@@ -167,7 +167,7 @@ Klik op **"Invoeren telpostgegevens"** in het hoofdscherm.
 ### Verder naar Soortselectie
 Na het invullen van de metadata, klik op **"Verder"** om naar het soortenselectiescherm te gaan.
 ### Voorbeeld screenshot
-![Metadatascherm van de app](images/metadatascherm.jpg)
+![Metadatascherm van de app](app/src/main/images/metadatascherm.jpg)
 ---
 
 ## 7. Soorten Kiezen & Recente Soorten
@@ -267,7 +267,7 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 - De telling wordt automatisch opgeslagen in een backup-bestand
 
 ### Voorbeeld screenshot
-![Metadatascherm van de app](images/tellingscherm.jpg)
+![Metadatascherm van de app](app/src/main/images/tellingscherm.jpg)
 ---
 
 ## 9. Waarneming Toevoegen via Spraakinvoer
