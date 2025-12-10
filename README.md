@@ -234,7 +234,7 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 ├──────────────────────────────────────┤
 │ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
 │ │ Buizerd │ │ Sperwer │ │ Vink    │  │ ← Soort-tegels met aantallen naar beide richtingen
-│ │    3    │ │    0    │ │   12    │  │ ← Een tegel aantikken opent een dialoog om handmatig aantallen toe te voegen
+│ │ 3 . 12  │ │  0 . 0  │ │ 12 . 54 │  │ ← Een tegel aantikken opent een dialoog om handmatig aantallen toe te voegen
 │ └─────────┘ └─────────┘ └─────────┘  │
 │ ...                                  │
 └──────────────────────────────────────┘
