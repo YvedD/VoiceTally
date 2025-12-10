@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vt5_black"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tvTitel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/titel_hoofd"
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="22sp"
+        android:paddingBottom="16dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnInstall"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/titel_install"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnVerder"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/btn_verder_metadata"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAfsluiten"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_afsluiten"
+        android:textSize="16sp" />
+
+    <!-- Alarm sectie -->
+    <View
+        android:id="@+id/divider_alarm"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/vt5_on_surface"
+        android:alpha="0.3" />
+
+    <TextView
+        android:id="@+id/tvAlarmStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="14sp"
+        android:paddingBottom="12dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnToggleAlarm"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/hoofd_alarm_toggle"
+        android:textSize="14sp" />
+
+    <!-- Telling Beheer sectie -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnBewerkTellingen"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/hoofd_bewerk_tellingen"
+        android:textSize="14sp" />
+
+    <!-- Exports opkuis sectie -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnOpkuisExports"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/hoofd_opkuis_exports"
+        android:textSize="14sp" />
+
+    <!-- Instellingen sectie -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnInstellingen"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/hoofd_instellingen"
+        android:textSize="14sp" />
+
+</LinearLayout>

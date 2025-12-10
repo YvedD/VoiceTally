@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Basis -->
+    <color name="vt5_black">#121212</color>
+    <color name="vt5_white">#FFFFFF</color>
+
+    <!-- Alias / compatibel met layouts die @color/black gebruiken -->
+    <color name="black">#121212</color>
+
+    <!-- Accent (lichtblauwe rand) -->
+    <color name="vt5_light_blue">#117CAF</color>
+    <color name="vt5_light_gray">#5D748C</color>
+    <color name="vt5_dark_gray">#1E1E1E</color>
+
+    <!-- Disabled -->
+    <color name="vt5_disabled_bg">#2A2A2A</color>
+    <color name="vt5_disabled_fg">#7A7A7A</color>
+
+    <!-- Outline (algemeen) -->
+    <color name="vt5_outline">#3DDC84</color>
+
+    <!-- Primair groen (voor later indien nodig) -->
+    <color name="vt5_primary">#80D97A</color>
+    <color name="vt5_primary_pressed">#6CC667</color>
+
+    <!-- Tekst op surface -->
+    <color name="vt5_on_surface">#E6E6E6</color>
+    <color name="vt5_green">#80D97A</color>
+    
+    <!-- Waarschuwing / verwijderen -->
+    <color name="vt5_red">#CF6679</color>
+</resources>

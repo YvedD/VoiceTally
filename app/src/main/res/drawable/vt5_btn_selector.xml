@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Checked: full filled blue -->
+    <item android:state_checked="true" android:drawable="@drawable/vt5_btn_checked" />
+
+    <!-- Pressed (visual feedback) - optional overlay; keep before default so press shows -->
+    <item android:state_pressed="true" android:drawable="@drawable/vt5_btn_pressed" />
+
+    <!-- Default / unchecked: black background with light-blue outline -->
+    <item android:drawable="@drawable/vt5_btn_unchecked" />
+</selector>

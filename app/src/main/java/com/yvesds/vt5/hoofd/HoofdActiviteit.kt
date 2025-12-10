@@ -1,0 +1,267 @@
+package com.yvesds.vt5.hoofd
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import com.yvesds.vt5.R
+import com.yvesds.vt5.core.app.AppShutdown
+import com.yvesds.vt5.core.app.HourlyAlarmManager
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.metadata.ui.MetadataScherm
+import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
+import com.yvesds.vt5.features.telling.TellingBeheerScherm
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
+
+/**
+ * HoofdActiviteit - Hoofdscherm van VT5 app
+ * 
+ * Biedt drie opties:
+ * 1. (Her)Installatie → InstallatieScherm
+ * 2. Invoeren telpostgegevens → MetadataScherm  
+ * 3. Afsluiten → Veilige app shutdown met cleanup
+ * 4. Bewerk tellingen → TellingBeheerScherm
+ * 5. Opkuis exports → Verwijder oude bestanden uit exports map
+ */
+class HoofdActiviteit : AppCompatActivity() {
+    private val TAG = "HoofdActiviteit"
+    
+    private lateinit var safHelper: SaFStorageHelper
+
+    @OptIn(ExperimentalSerializationApi::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.scherm_hoofd)
+        
+        safHelper = SaFStorageHelper(this)
+
+        val btnInstall   = findViewById<MaterialButton>(R.id.btnInstall)
+        val btnVerder    = findViewById<MaterialButton>(R.id.btnVerder)
+        val btnAfsluiten = findViewById<MaterialButton>(R.id.btnAfsluiten)
+        val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
+        val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
+        val btnInstellingen = findViewById<MaterialButton>(R.id.btnInstellingen)
+        
+        // Alarm sectie - altijd zichtbaar
+        setupAlarmSection()
+
+        btnInstall.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, InstallatieScherm::class.java))
+            it.isEnabled = true
+        }
+
+        btnVerder.setOnClickListener {
+            it.isEnabled = false
+            // OPTIMIZATION: Trigger preload during toast display for faster MetadataScherm startup
+            Toast.makeText(this, getString(R.string.hoofd_metadata_loading), Toast.LENGTH_SHORT).show()
+            
+            // Start preloading minimal data in background
+            lifecycleScope.launch {
+                try {
+                    val repo = com.yvesds.vt5.features.serverdata.model.ServerDataRepository(this@HoofdActiviteit)
+                    withContext(Dispatchers.IO) {
+                        // Trigger background preload (non-blocking)
+                        repo.loadMinimalData()
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Background preload failed (non-critical): ${e.message}")
+                }
+            }
+            
+            startActivity(Intent(this, MetadataScherm::class.java))
+            it.isEnabled = true
+        }
+
+        btnAfsluiten.setOnClickListener {
+            it.isEnabled = false
+            shutdownAndExit()
+        }
+        
+        // Bewerk tellingen knop
+        btnBewerkTellingen.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, TellingBeheerScherm::class.java))
+            it.isEnabled = true
+        }
+        
+        // Opkuis exports knop
+        btnOpkuisExports.setOnClickListener {
+            it.isEnabled = false
+            showExportsCleanupConfirmation()
+            it.isEnabled = true
+        }
+        
+        // Instellingen knop
+        btnInstellingen.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, InstellingenScherm::class.java))
+            it.isEnabled = true
+        }
+    }
+
+    /**
+     * Voert een veilige shutdown uit:
+     * - Roept AppShutdown.shutdownApp() voor cleanup
+     * - Verwijdert de app uit 'recente apps' (finishAndRemoveTask)
+     * - Thread-safe en voorkomt geheugenlekken
+     */
+    private fun shutdownAndExit() {
+        Log.i(TAG, "User initiated app shutdown")
+        
+        try {
+            // Voer alle cleanup uit (netwerk clients, logs, etc.)
+            AppShutdown.shutdownApp(this)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during shutdown cleanup: ${e.message}", e)
+        }
+        
+        // Verwijder de app uit recente apps en sluit af
+        finishAndRemoveTaskCompat()
+    }
+
+    /**
+     * Compatibility wrapper voor finishAndRemoveTask()
+     * - API 21+: finishAndRemoveTask() verwijdert app uit recente apps
+     * - API < 21: Fallback naar finish()
+     */
+    private fun finishAndRemoveTaskCompat() {
+        finishAndRemoveTask()
+    }
+    
+    /**
+     * Setup alarm sectie
+     */
+    private fun setupAlarmSection() {
+        val tvAlarmStatus = findViewById<TextView>(R.id.tvAlarmStatus)
+        val btnToggleAlarm = findViewById<MaterialButton>(R.id.btnToggleAlarm)
+        
+        // Update alarm status
+        updateAlarmStatus()
+        
+        // Toggle alarm button
+        btnToggleAlarm?.setOnClickListener {
+            it.isEnabled = false
+            val currentlyEnabled = HourlyAlarmManager.isEnabled(this)
+            HourlyAlarmManager.setEnabled(this, !currentlyEnabled)
+            updateAlarmStatus()
+            Toast.makeText(
+                this,
+                if (!currentlyEnabled) "Alarm ingeschakeld" else "Alarm uitgeschakeld",
+                Toast.LENGTH_SHORT
+            ).show()
+            it.postDelayed({ it.isEnabled = true }, 500)
+        }
+    }
+    
+    /**
+     * Update de alarm status tekst
+     * Toont eenvoudig "Uurlijks alarm is ingeschakeld/uitgeschakeld"
+     */
+    private fun updateAlarmStatus() {
+        val tvAlarmStatus = findViewById<TextView>(R.id.tvAlarmStatus)
+        val enabled = HourlyAlarmManager.isEnabled(this)
+        
+        tvAlarmStatus?.text = if (enabled) {
+            getString(R.string.hoofd_alarm_enabled)
+        } else {
+            getString(R.string.hoofd_alarm_disabled)
+        }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Update status wanneer we terugkomen naar dit scherm
+        updateAlarmStatus()
+    }
+    
+    /**
+     * Show confirmation dialog for exports cleanup.
+     * First checks how many files would be deleted, then asks for confirmation.
+     */
+    private fun showExportsCleanupConfirmation() {
+        Toast.makeText(this, getString(R.string.hoofd_opkuis_laden), Toast.LENGTH_SHORT).show()
+        
+        lifecycleScope.launch {
+            try {
+                val filesToDelete = withContext(Dispatchers.IO) {
+                    safHelper.getExportsCleanupCount(EXPORTS_KEEP_COUNT)
+                }
+                
+                if (filesToDelete == 0) {
+                    Toast.makeText(
+                        this@HoofdActiviteit,
+                        getString(R.string.hoofd_opkuis_geen_bestanden),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+                
+                // Show confirmation dialog
+                AlertDialog.Builder(this@HoofdActiviteit)
+                    .setTitle(getString(R.string.hoofd_opkuis_bevestig_titel))
+                    .setMessage(getString(R.string.hoofd_opkuis_bevestig_msg, filesToDelete))
+                    .setPositiveButton(getString(R.string.hoofd_opkuis_ja)) { _, _ ->
+                        performExportsCleanup()
+                    }
+                    .setNegativeButton(getString(R.string.hoofd_opkuis_nee), null)
+                    .show()
+                    
+            } catch (e: Exception) {
+                Log.e(TAG, "Error checking exports cleanup count: ${e.message}", e)
+                Toast.makeText(
+                    this@HoofdActiviteit,
+                    getString(R.string.hoofd_opkuis_fout, e.message ?: "Onbekende fout"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+    
+    /**
+     * Perform the actual exports cleanup after user confirmation.
+     */
+    private fun performExportsCleanup() {
+        lifecycleScope.launch {
+            try {
+                val (deleted, failed) = withContext(Dispatchers.IO) {
+                    safHelper.cleanupExportsDir(EXPORTS_KEEP_COUNT)
+                }
+                
+                if (failed > 0) {
+                    Toast.makeText(
+                        this@HoofdActiviteit,
+                        getString(R.string.hoofd_opkuis_succes, deleted) + " ($failed mislukt)",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this@HoofdActiviteit,
+                        getString(R.string.hoofd_opkuis_succes, deleted),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during exports cleanup: ${e.message}", e)
+                Toast.makeText(
+                    this@HoofdActiviteit,
+                    getString(R.string.hoofd_opkuis_fout, e.message ?: "Onbekende fout"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+    
+    companion object {
+        private const val EXPORTS_KEEP_COUNT = 10
+    }
+}

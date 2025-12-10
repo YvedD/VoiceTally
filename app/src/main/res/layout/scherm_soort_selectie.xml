@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- zoekveld -->
+    <EditText
+        android:id="@+id/etZoek"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Zoek soort..."
+        android:imeOptions="actionSearch"
+        android:singleLine="true" />
+
+    <!-- divider top voor suggestiezone -->
+    <View
+        android:id="@+id/dividerTop"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:background="#303030"
+        android:visibility="gone" />
+
+    <!-- suggestiezone (verschijnt alleen bij tekst) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSuggesties"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:nestedScrollingEnabled="false"
+        android:visibility="gone"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp" />
+
+    <!-- divider bottom voor suggestiezone -->
+    <View
+        android:id="@+id/dividerBottom"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#303030"
+        android:visibility="gone" />
+
+    <!-- teller -->
+    <TextView
+        android:id="@+id/tvTeller"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/soort_selection_info"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
+
+    <!-- hoofdgrid (alle site-soorten of alle soorten) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSoorten"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- knoppen onderaan -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="40dp"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:paddingTop="8dp">
+
+        <Button
+            android:id="@+id/btnAnnuleer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/soort_cancel" />
+
+        <Button
+            android:id="@+id/btnOk"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/soort_ok" />
+    </LinearLayout>
+</LinearLayout>

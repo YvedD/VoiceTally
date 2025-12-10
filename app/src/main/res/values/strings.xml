@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VT5</string>
+
+    <!-- Hoofdscherm -->
+    <string name="titel_hoofd">VoiceTally - spraakinvoer</string>
+    <string name="btn_install_start">((Her)Installatie starten</string>
+    <string name="btn_verder_metadata">Invullen telpostgegevens</string>
+    <string name="btn_afsluiten">Afsluiten</string>
+
+    <!-- Installatie -->
+    <string name="titel_install">(Her)Installatie</string>
+    <string name="install_uitleg">
+        Deze toepassing moet bestanden kunnen inlezen en wegschrijven. Bevestig het gebruik van de map ‘Documents’ in de volgende stap (kies ‘Deze map gebruiken’). Alle mappen/bestanden worden aangemaakt indien nodig. Bij herinstallatie wordt niets overschreven.
+    </string>
+
+    <string name="btn_kies_documents">Map ‘Documents’ kiezen</string>
+    <string name="btn_check_folders">Submappen controleren/aanmaken</string>
+    <string name="status_saf_niet_ingesteld">SAF niet ingesteld.\nKies ‘Documents’ en bevestig ‘Deze map gebruiken’.</string>
+    <string name="status_saf_ok">SAF ingesteld ✔ — alle VT5-submappen aanwezig.</string>
+    <string name="status_saf_missing">SAF ingesteld, maar submappen ontbreken nog.\nDruk op ‘Submappen controleren/aanmaken’.</string>
+
+    <string name="sect_trektellen">Trektellen-gegevens</string>
+    <string name="hint_login">Loginnaam</string>
+    <string name="hint_password">Paswoord</string>
+    <string name="btn_wis">Wis</string>
+    <string name="btn_bewaar">Bewaar</string>
+
+    <string name="btn_login_test">Login test</string>
+    <string name="msg_vul_login_eerst">Vul eerst login en paswoord in.</string>
+    <string name="msg_credentials_gewist">Credentials gewist</string>
+    <string name="msg_credentials_opgeslagen">Credentials opgeslagen</string>
+    <string name="dlg_titel_result">Resultaat</string>
+    <string name="dlg_ok">OK</string>
+    <string name="dlg_cancel">Annuleren</string>
+    <string name="dlg_disable_next">Pop-ups uitzetten (alleen voor login-check)</string>
+
+    <string name="btn_download_jsons">Serverdata ophalen</string>
+    <string name="msg_kies_documents_eerst">Kies eerst ‘Documents’ en maak submappen.</string>
+
+    <string name="btn_alias_precompute">Pré-compute aliassen</string>
+    <string name="dlg_busy_titel">Bezig…</string>
+
+    <!-- Annotatie strings -->
+    <string name="annotatie_titel">Details waarneming</string>
+    <string name="annotatie_ok">OK</string>
+    <string name="annotatie_annuleren">Annuleren</string>
+
+    <string name="msg_loading_annotations">Annotaties laden…</string>
+    <string name="msg_annotations_not_available">Annotaties niet beschikbaar. Controleer Documents/VT5/assets/annotations.json of voer "Serverdata ophalen" uit.</string>
+    <string name="annotatie_none">(geen opties)</string>
+    <string name="annotatie_opmerkingen_label">Opmerkingen</string>
+    <string name="annotatie_opmerkingen_hint">Vrije tekst (optioneel)</string>
+
+    <string name="btn_klaar">Klaar</string>
+
+    <!-- InstallatieScherm status messages -->
+    <string name="status_alias_rebuild_complete">Alias index rebuild voltooid</string>
+    <string name="status_alias_rebuild_error">Fout bij rebuild: %1$s</string>
+
+    <!-- MetadataScherm strings -->
+    <string name="metadata_loading">Metadata laden…</string>
+    <string name="metadata_preparing">Bezig met voorbereiden...</string>
+    <string name="metadata_error_no_telpost">Kies eerst een telpost.</string>
+    <string name="metadata_error_no_credentials">Geen user (check login).</string>
+    <string name="metadata_error_location_denied">Locatierechten geweigerd.</string>
+    <string name="metadata_error_loading_data">Fout bij laden essentiële gegevens</string>
+    <string name="metadata_error_no_location">Geen locatie beschikbaar.</string>
+    <string name="metadata_error_weather_fetch">Kon weer niet ophalen.</string>
+    <string name="metadata_error_weather_fetch_short">Kon weer niet ophalen</string>
+    <string name="metadata_error_start_failed_title">Start telling mislukt</string>
+    <string name="metadata_error_start_failed_msg">Kon telling niet starten:\n%1$s</string>
+    <string name="metadata_error_unclear_title">Start telling onduidelijk</string>
+    <string name="metadata_error_unclear_msg">Server antwoordde, maar kon geen onlineId herkennen.\n\nResponse:\n%1$s</string>
+    <string name="metadata_success_started">Telling gestart (onlineId: %1$s)</string>
+    <string name="metadata_error_preparing">Fout bij voorbereiden telling: %1$s</string>
+    <string name="metadata_dialog_time_title">Tijd kiezen</string>
+    <string name="metadata_cloudcover_format">%1$d/8</string>
+
+    <!-- HoofdActiviteit -->
+    <string name="hoofd_metadata_loading">Metadata laden…</string>
+    <string name="hoofd_alarm_enabled">Uurlijks alarm is ingeschakeld</string>
+    <string name="hoofd_alarm_disabled">Uurlijks alarm is uitgeschakeld</string>
+    <string name="hoofd_alarm_test">Test Alarm</string>
+    <string name="hoofd_alarm_toggle">Toggle Alarm</string>
+    <string name="hoofd_bewerk_tellingen">Bewerk tellingen</string>
+    <string name="hoofd_opkuis_exports">Opkuis submap \'exports\'</string>
+    <string name="hoofd_opkuis_bevestig_titel">Exports opkuisen?</string>
+    <string name="hoofd_opkuis_bevestig_msg">Wil je alle bestanden verwijderen behalve de 10 meest recente?\n\n%1$d bestanden zullen verwijderd worden.</string>
+    <string name="hoofd_opkuis_ja">Ja</string>
+    <string name="hoofd_opkuis_nee">Nee</string>
+    <string name="hoofd_opkuis_succes">%1$d bestanden verwijderd</string>
+    <string name="hoofd_opkuis_geen_bestanden">Geen oude bestanden om te verwijderen</string>
+    <string name="hoofd_opkuis_fout">Fout bij opkuisen: %1$s</string>
+    <string name="hoofd_opkuis_laden">Exports laden…</string>
+    <string name="hoofd_instellingen">Instellingen</string>
+
+    <!-- InstellingenScherm -->
+    <string name="instellingen_titel">Instellingen</string>
+    <string name="instellingen_lettergrootte_log_label">Lettergrootte logregels (partial/final):</string>
+    <string name="instellingen_lettergrootte_tegels_label">Lettergrootte tegels (soortnaam + aantallen):</string>
+    <string name="instellingen_sp_eenheid">sp</string>
+    <string name="instellingen_placeholder3">Placeholder 3 (later in te vullen)</string>
+
+    <!-- TellingBeheerScherm -->
+    <string name="beheer_titel">Beheer Opgeslagen Tellingen</string>
+    <string name="beheer_geen_tellingen">Geen opgeslagen tellingen gevonden</string>
+    <string name="beheer_laden">Tellingen laden…</string>
+    <string name="beheer_verwijder_bevestig_titel">Telling verwijderen?</string>
+    <string name="beheer_verwijder_bevestig_msg">Weet je zeker dat je deze telling wilt verwijderen?\n\n%1$s</string>
+    <string name="beheer_verwijderd">Telling verwijderd</string>
+    <string name="beheer_verwijder_fout">Kon telling niet verwijderen</string>
+    <string name="beheer_record_toevoegen">Record toevoegen</string>
+    <string name="beheer_record_bewerken">Record bewerken</string>
+    <string name="beheer_record_verwijderen">Record verwijderen</string>
+    <string name="beheer_metadata_bewerken">Metadata bewerken</string>
+    <string name="beheer_opslaan">Wijzigingen opslaan</string>
+    <string name="beheer_opgeslagen">Wijzigingen opgeslagen</string>
+    <string name="beheer_opslaan_fout">Kon wijzigingen niet opslaan</string>
+    <string name="beheer_telling_info">%1$d records • %2$d soorten</string>
+    <string name="beheer_actieve_telling">Actieve telling</string>
+    <string name="beheer_gearchiveerd">Gearchiveerd</string>
+    <string name="beheer_terug">Terug naar lijst</string>
+    <string name="beheer_soort_id">Soort ID</string>
+    <string name="beheer_soort">Soort</string>
+    <string name="beheer_aantal">Aantal</string>
+    <string name="beheer_aantalterug">Aantal terug</string>
+    <string name="beheer_lokaal">Lokaal</string>
+    <string name="beheer_richting">Richting</string>
+    <string name="beheer_leeftijd">Leeftijd</string>
+    <string name="beheer_geslacht">Geslacht</string>
+    <string name="beheer_kleed">Kleed</string>
+    <string name="beheer_markeren">Markeren</string>
+    <string name="beheer_markeren_lokaal">Markeren Lokaal</string>
+    <string name="beheer_tellers">Tellers</string>
+    <string name="beheer_opmerkingen">Opmerkingen</string>
+    <string name="beheer_telpost">Telpost</string>
+    <string name="beheer_datum">Datum</string>
+    <string name="beheer_begintijd">Begintijd</string>
+    <string name="beheer_eindtijd">Eindtijd</string>
+    <string name="beheer_weer">Weer</string>
+    <string name="beheer_tijd_kiezen">Tijd kiezen</string>
+    <string name="beheer_upload_bevestig_titel">Wijzigingen opslaan</string>
+    <string name="beheer_upload_bevestig_msg">Wil je deze telling ook naar de server uploaden (zoals bij Afronden)?</string>
+    <string name="beheer_upload_en_opslaan">Upload + Opslaan</string>
+    <string name="beheer_alleen_opslaan">Alleen lokaal opslaan</string>
+    <string name="beheer_uploading">Uploading naar server…</string>
+    <string name="beheer_upload_succes_titel">Upload geslaagd</string>
+    <string name="beheer_upload_succes_msg">De telling is succesvol naar de server geüpload en lokaal opgeslagen.</string>
+    <string name="beheer_upload_fout_titel">Upload mislukt</string>
+    <string name="beheer_upload_fout_msg">Kon telling niet uploaden:\n%1$s\n\nDe telling is wel lokaal opgeslagen.</string>
+    <string name="beheer_geen_credentials">Geen credentials beschikbaar. Ga naar Installatie om in te loggen.</string>
+    <string name="beheer_record_volledig_bewerken">Record volledig bewerken</string>
+
+    <!-- SoortSelectieScherm -->
+    <string name="soort_no_species_download">Geen soorten gevonden. Download eerst serverdata.</string>
+    <string name="soort_error_loading">Fout bij laden: %1$s</string>
+    <string name="soort_list_not_available">Soortenlijst niet beschikbaar</string>
+    <string name="soort_no_preselection">Geen voorselectie. Keer terug en selecteer soorten.</string>
+    <string name="soort_error_loading_species">Fout bij laden van soorten</string>
+
+    <!-- TellingDialogHelper -->
+    <string name="dialog_enter_count">%1$s: voer aantal in</string>
+    <string name="dialog_select_species">Selecteer soort</string>
+    <string name="dialog_add_species">Soort toevoegen?</string>
+    <string name="dialog_confirm_finish">Afronden bevestigen</string>
+    <string name="dialog_finish_success">Afronden geslaagd</string>
+    <string name="dialog_choose_species">Kies soort</string>
+    <string name="afrond_confirm_info">Controleer en pas eventueel de begin- en eindtijd aan, en voeg opmerkingen toe indien nodig.</string>
+    <string name="afrond_confirm_upload">Uploaden</string>
+    <string name="afrond_time_picker_title">Tijd kiezen</string>
+    <string name="afrond_upload_success">Upload geslaagd !</string>
+    <string name="afrond_vervolgtelling_titel">Vervolgtelling aanmaken</string>
+    <string name="afrond_vervolgtelling_msg">Wil je een vervolgtelling starten?\n\nDe begintijd wordt automatisch ingesteld op de eindtijd van de vorige telling.</string>
+
+    <!-- AliasEditor &amp; AddAliasDialog -->
+    <string name="alias_reload_complete">Aliassen herladen: klaar</string>
+    <string name="alias_reload_failed">Aliassen herladen: mislukt</string>
+    <string name="alias_link_to_species">Koppel alias aan soort</string>
+
+    <!-- TellingScherm -->
+    <string name="telling_added_count">Toegevoegd: %1$d</string>
+    <string name="telling_alias_saved_buffer">Alias opgeslagen (buffer).</string>
+    <string name="telling_alias_saved_observation">Waarneming opgeslagen (buffer)</string>
+    <string name="telling_index_updating">Index wordt bijgewerkt...</string>
+    <string name="telling_alias_saved_index_updated">Alias opgeslagen en index bijgewerkt</string>
+    <string name="telling_alias_saved_index_later">Alias opgeslagen (index update later)</string>
+    <string name="telling_speech_init_error">Kon spraakherkenning niet initialiseren: %1$s</string>
+
+    <!-- Layout strings voor XML -->
+    <string name="recents_header" formatted="false">Alle recente (%1$d)</string>
+    <string name="annotation_age">Leeftijd</string>
+    <string name="annotation_gender">Geslacht</string>
+    <string name="annotation_plumage">Kleed</string>
+    <string name="annotation_location">Locatie</string>
+    <string name="annotation_height">Hoogte</string>
+    <string name="annotation_direction_sw">ZW</string>
+    <string name="annotation_direction_no">NO</string>
+    <string name="annotation_local">Lokaal</string>
+    <string name="annotation_mark">Trek</string>
+    <string name="annotation_tally">Tally</string>
+    <string name="annotation_mark_local">Lokaal</string>
+    <string name="annotation_manual_counts_title">Manuele aantallen:</string>
+    <string name="annotation_count_zw">Aantal :</string>
+    <string name="annotation_count_no">Aantal terug :</string>
+    <string name="annotation_count_main">Aantal :</string>
+    <string name="annotation_count_return">Aantal terug :</string>
+    <string name="annotation_count_local">Aantal Lokaal :</string>
+    <string name="annotation_remarks">Opmerking:</string>
+    <string name="annotation_remarks_hint">Opmerkingen bij waarneming</string>
+
+    <string name="telling_speech_results">Resultaten spraak- of manuele invoer</string>
+    <string name="telling_totals">Totalen</string>
+    <string name="telling_add">Toevoegen</string>
+    <string name="telling_finish">Afronden</string>
+
+    <string name="soort_species_name_placeholder">Soortnaam (id: ...)</string>
+    <string name="soort_selection_info">%1$d soorten • geselecteerd: %2$d</string>
+    <string name="soort_cancel">Annuleer</string>
+    <string name="soort_ok">OK</string>
+
+    <string name="huidige_stand_title">Huidige stand van zaken</string>
+    <string name="huidige_stand_totals">Σ Totaal: %1$d | ZW: %2$d ex | NO: %3$d ex</string>
+    <string name="huidige_stand_totals_dynamic">Σ Totaal: %1$d | %2$s: %3$d ex | %4$s: %5$d ex</string>
+    <string name="huidige_stand_ok">OK</string>
+
+    <string name="add_alias_partials_label">Geselecteerde partials (kies één):</string>
+    <string name="add_alias_search_label">Zoek soort (type om te zoeken):</string>
+
+    <string name="tile_species_name">Soortnaam</string>
+    <string name="tile_count">0</string>
+
+    <!-- Compass strings -->
+    <string name="compass_title">Waarnemingsrichting</string>
+    <string name="compass_instruction">Tik op een knop om richting te kiezen, tik nogmaals om te wissen</string>
+    <string name="compass_content_description">Kompas voor selecteren waarnemingsrichting</string>
+    <string name="compass_no_selection">Geen richting geselecteerd</string>
+    <string name="compass_selected">Geselecteerd: %1$s</string>
+    <string name="compass_cancel">Annuleren</string>
+    <string name="compass_clear">Wissen</string>
+    <string name="compass_ok">OK</string>
+    <string name="compass_select">🧭 Kompas</string>
+    <string name="annotation_sighting_direction">Richting:</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Do not allow automatic backups or device transfer of app data by default. -->
+    <delete/>
+</data-extraction-rules>
+
