@@ -242,7 +242,7 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 
 ### Een alias toevoegen via de spraakinvoer/partialsscherm
 1. **Tik** op een partials-lijn in het blauwe kader
-2. Er verschijnt een dialoog: *"Alias toevoegen voor [partila-tekst]"*
+2. Er verschijnt een dialoog: *"Alias toevoegen voor [partial-tekst]"*
 3. Kies een soort om deze alias aan te toe te wijzen, tik op [Toevoegen]
 4. Als de gebruiker een lijn kiest waarin ook een aantal is herkend, dan word dit aantal automatisch ingevuld  bij de telling / tegel
 
