@@ -266,6 +266,8 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 - In het **Finals-venster** verschijnt: `Buizerd -> +5`
 - De telling wordt automatisch opgeslagen in een backup-bestand
 
+### Voorbeeld screenshot
+![Metadatascherm van de app](images/tellingscherm.jpg)
 ---
 
 ## 9. Waarneming Toevoegen via Spraakinvoer
