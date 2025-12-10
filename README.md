@@ -176,22 +176,22 @@ Het `SoortSelectieScherm` toont alle beschikbare vogelsoorten voor uw telling.
 ### Schermindeling
 
 ```
-┌─────────────────────────────────────┐
-│ [Zoekbalk: Typ om te zoeken]        │
-├─────────────────────────────────────┤
-│ ═══ Recente Soorten (5) [✓] Alles ═ │ ← Header met "Selecteer alle recente"
-│ ┌─────────┐ ┌─────────┐             │
-│ │ Buizerd │ │ Koolmees│             │ ← Recent gebruikte soorten
-│ └─────────┘ └─────────┘             │
+┌───────────────────────────────────────┐
+│ [Zoekbalk: Typ om te zoeken]          │
+├───────────────────────────────────────┤
+│ ═══ Recente Soorten (5) [✓] Alles ═   │ ← Header met "Selecteer alle recente"
+│ ┌─────────┐ ┌─────────┐               │
+│ │ Buizerd │ │ Koolmees│               │ ← Recent gebruikte soorten
+│ └─────────┘ └─────────┘               │
 │ ───────────────────────────────────── │ ← Scheidingslijn
-│ ┌─────────┐ ┌─────────┐             │
-│ │ Aalschol│ │ Appelvk │             │ ← Alfabetische lijst
-│ └─────────┘ └─────────┘             │
-│ ...                                  │
-├─────────────────────────────────────┤
-│ Totaal: 245 soorten | 12 geselecteerd│
-│        [Annuleer]    [OK]            │
-└─────────────────────────────────────┘
+│ ┌─────────┐ ┌─────────┐               │
+│ │ Aalschol│ │ Appelvk │               │ ← Alfabetische lijst
+│ └─────────┘ └─────────┘               │
+│ ...                                   │
+├───────────────────────────────────────┤
+│ Totaal: 245 soorten | 12 geselecteerd │
+│        [Annuleer]    [OK]             │
+└───────────────────────────────────────┘
 ```
 
 ### Recente Soorten (Quick-Pick)
@@ -221,24 +221,37 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 ### Schermindeling
 
 ```
-┌─────────────────────────────────────┐
-│ ═══ Spraakherkenning Resultaten ═══ │
-│ ┌─────────────────────────────────┐ │
-│ │ [Partials - blauw kader]        │ │ ← Tussenstands spraakherkenning
-│ └─────────────────────────────────┘ │
-│ ┌─────────────────────────────────┐ │
-│ │ [Finals - groen kader]          │ │ ← Definitieve resultaten
-│ └─────────────────────────────────┘ │
-├─────────────────────────────────────┤
-│ [Totalen] [+ Soorten] [Afronden]    │ ← Actieknoppen
-├─────────────────────────────────────┤
-│ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│ │ Buizerd │ │ Sperwer │ │ Vink    │ │ ← Soort-tegels
-│ │    3    │ │    0    │ │   12    │ │    met aantallen
-│ └─────────┘ └─────────┘ └─────────┘ │
+┌──────────────────────────────────────┐
+│ ═══ Spraakherkenning Resultaten ═══  │
+│ ┌──────────────────────────────────┐ │ ← Tussenstands spraakherkenning
+│ │ [Partials - blauw kader]         │ │ ← Een lijn aantikken opent een popup scherm om een alias toe te voegen
+│ └──────────────────────────────────┘ │
+│ ┌──────────────────────────────────┐ │ ← Definitieve resultaten
+│ │ [Finals - groen kader]           │ │ ← Een lijn aantikken opent een annotatiescherm voor die waarneming
+│ └──────────────────────────────────┘ │
+├──────────────────────────────────────┤ ← Actieknoppen [Overzicht van totalen tot nu toe]
+│  [Totalen] [+ Soorten] [Afronden]    │ ← [Soort toevoegen][Uploaden naar server]
+├──────────────────────────────────────┤
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
+│ │ Buizerd │ │ Sperwer │ │ Vink    │  │ ← Soort-tegels met aantallen naar beide richtingen
+│ │    3    │ │    0    │ │   12    │  │ ← Een tegel aantikken opent een dialoog om handmatig aantallen toe te voegen
+│ └─────────┘ └─────────┘ └─────────┘  │
 │ ...                                  │
-└─────────────────────────────────────┘
+└──────────────────────────────────────┘
 ```
+
+### Een alias toevoegen via de spraakinvoer/partialsscherm
+1. **Tik** op een partials-lijn in het blauwe kader
+2. Er verschijnt een dialoog: *"Alias toevoegen voor [partila-tekst]"*
+3. Kies een soort om deze alias aan te toe te wijzen, tik op [Toevoegen]
+4. Als de gebruiker een lijn kiest waarin ook een aantal is herkend, dan word dit aantal automatisch ingevuld  bij de telling / tegel
+
+### Een waarneming aanvullen, richting of andere parameters toevoegen via het finalscherm
+1. **Tik** op een 'final-logregel' in het groene kader
+2. Je komt terecht in het annotatiescherm, waarin verschillende parameters kunnen worden toegevoegd
+3. Je kan ook waarnemingen splitsen over hoofdrichting, tegenrichting en lokaal
+4. Er zijn ook checkboxen om de waarneming te markeren of in handteller-modus te zetten
+5. Alle wijzigingen worden opgeslagen bij het tikken op [OK]
 
 ### Handmatig Tellen (Tik op Tegel)
 1. **Tik** op een soort-tegel
@@ -260,7 +273,7 @@ VT5 is geoptimaliseerd voor snelle spraakherkenning van Nederlandse vogelnamen.
 
 ### Spraakherkenning Activeren
 - **Volumetoets** (omhoog of omlaag) indrukken en loslaten
-- Of automatisch via voice-key handler
+- Of automatisch via voice-key handler of een BT-HID knop
 
 ### Spraakprotocol
 Spreek in het formaat: **"Soortnaam Aantal"**
@@ -310,12 +323,11 @@ U kunt waarnemingen annoteren met extra details zoals leeftijd, geslacht, kleed,
 | **Kleed** | zomer, winter, overgangskleed, etc. |
 | **Locatie** | over telpost, passend, rustend, etc. |
 | **Hoogte** | < 10m, 10-50m, 50-100m, > 100m, etc. |
-| **Richting** | ZW, NO (checkboxes) |
 | **Markeren** | Speciale waarneming markeren |
 | **Handteller** | Tally-telling modus |
 
 ### Aantallen Aanpassen
-- **Hoofdrichting** (ZW of NO afhankelijk van seizoen)
+- **Hoofdrichting** (ZW of NO afhankelijk van seizoen - de periode wordt automatisch bepaald )
 - **Tegenrichting**
 - **Lokaal** (lokale vogels, niet trekkend)
 
@@ -415,7 +427,7 @@ Klik op **"OK"** om terug te keren naar het telscherm.
 ---
 
 ## 14. Telling Afronden
-
+Op elke 59e minuut van het uur herinnert de app u eraan om een telling af te ronden via een alarmmelding (uitschakelbaar)
 Na het voltooien van uw telling uploadt u de gegevens naar trektellen.nl.
 
 ### Afronden
@@ -512,4 +524,4 @@ Voor vragen of problemen, neem contact op met de app-ontwikkelaar.
 
 ---
 
-*Versie: 1.0 | Laatste update: 2025*
+*Versie: 1.0 | Laatste update: 2025-12-10*
