@@ -179,7 +179,7 @@ Het `SoortSelectieScherm` toont alle beschikbare vogelsoorten voor uw telling.
 ┌───────────────────────────────────────┐
 │ [Zoekbalk: Typ om te zoeken]          │
 ├───────────────────────────────────────┤
-│ ═══ Recente Soorten (5) [✓] Alles ═   │ ← Header met "Selecteer alle recente"
+│ ═══ Recente Soorten (5) [✓] Alles ═  │ ← Header met "Selecteer alle recente"
 │ ┌─────────┐ ┌─────────┐               │
 │ │ Buizerd │ │ Koolmees│               │ ← Recent gebruikte soorten
 │ └─────────┘ └─────────┘               │
