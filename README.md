@@ -166,7 +166,8 @@ Klik op **"Invoeren telpostgegevens"** in het hoofdscherm.
 
 ### Verder naar Soortselectie
 Na het invullen van de metadata, klik op **"Verder"** om naar het soortenselectiescherm te gaan.
-
+### Voorbeeld screenshot
+![Metadatascherm van de app](images/metadatascherm.jpg)
 ---
 
 ## 7. Soorten Kiezen & Recente Soorten
