@@ -1,0 +1,176 @@
+# GitHub Copilot Setup Steps for VoiceTally
+# This file helps Copilot understand the project structure and build process
+
+project:
+  name: VoiceTally
+  type: Android Application
+  language: Kotlin
+  build_system: Gradle
+
+# Build and test commands
+build:
+  # Make gradlew executable first (if needed)
+  prepare: chmod +x gradlew
+  
+  # Build commands
+  commands:
+    debug: ./gradlew assembleDebug
+    release: ./gradlew assembleRelease
+    clean: ./gradlew clean
+    
+  # Lint and code quality
+  lint: ./gradlew lint
+  
+  # Note: Tests are disabled in app/build.gradle.kts
+  test: echo "Tests are disabled in this project"
+
+# Project structure
+structure:
+  source: app/src/main/java/com/yvesds/vt5/
+  resources: app/src/main/res/
+  layouts: app/src/main/res/layout/
+  main_package: com.yvesds.vt5
+  
+  # Key directories
+  key_dirs:
+    - app/src/main/java/com/yvesds/vt5/core/          # Core utilities (UI, storage, secure)
+    - app/src/main/java/com/yvesds/vt5/features/      # Feature modules
+    - app/src/main/java/com/yvesds/vt5/hoofd/         # Main activity
+    - app/src/main/java/com/yvesds/vt5/net/           # Network/API
+    - app/src/main/res/layout/                         # XML layouts
+    - app/src/main/res/values/                         # Resources (strings, colors, etc.)
+
+# Important configuration files
+config:
+  gradle_wrapper: gradle/wrapper/gradle-wrapper.properties
+  gradle_versions: gradle/libs.versions.toml
+  app_gradle: app/build.gradle.kts
+  
+  # IMPORTANT: Do NOT modify AGP version settings
+  # User has confirmed AGP 10.0.1 works perfectly in laptop environment
+  do_not_modify:
+    - gradle/libs.versions.toml  # Contains AGP version
+    - build.gradle.kts            # Plugin configuration
+
+# Technology stack
+tech_stack:
+  android:
+    min_sdk: 33
+    target_sdk: 35
+    compile_sdk: 35
+    ndk_version: "28.2.13676358"
+    
+  kotlin:
+    version: "2.0.21"
+    jvm_target: "17"
+    
+  build:
+    agp_version: "8.10.1"  # Do NOT change - works in laptop environment
+    gradle_version: "8.11.1"
+    
+  ui:
+    - Material Components (com.google.android.material)
+    - ViewBinding (enabled)
+    - RecyclerView
+    - FlexboxLayout (com.google.android.flexbox:flexbox:3.0.0)
+    - Custom Views (CompassNeedleView)
+    
+  data:
+    - Kotlinx Serialization (JSON, CBOR)
+    - SharedPreferences
+    - SAF (Storage Access Framework)
+    - Encrypted SharedPreferences (androidx.security:security-crypto)
+    
+  networking:
+    - OkHttp 4.12.0
+    - Kotlinx Coroutines
+    
+  other:
+    - WorkManager (androidx.work:work-runtime-ktx)
+    - Apache Commons (commons-codec, commons-text)
+
+# Coding conventions
+conventions:
+  language: Dutch
+  naming:
+    - Activities end with "Scherm" or "Activiteit" (e.g., HoofdActiviteit, TellingBeheerScherm)
+    - Layouts use snake_case (e.g., scherm_hoofd.xml, dialog_edit_record_full.xml)
+    - IDs use camelCase with type prefix (e.g., btnCompass, tvSoortId, acLeeftijd)
+    
+  patterns:
+    - Use lifecycleScope for coroutines in Activities
+    - Load data with withContext(Dispatchers.IO)
+    - Use ServerDataCache for species/site data
+    - Direction codes: Dutch UI labels (N, NO, O) -> English codes (N, NE, E) for storage
+    - Species display format: "Species-Name (ID)" not just "ID"
+    - Use CompassNeedleView + dialog_compass.xml for direction selection
+    
+  data_fields:
+    - Numeric fields use "0" when empty/blank, not ""
+    - String fields can be "" when empty
+    - Boolean flags as "0" or "1" strings
+    - Direction stored in sightingdirection field (English codes)
+    - Species identified by soortid field
+
+# Common operations
+common_tasks:
+  add_compass_to_dialog:
+    description: "Add compass button for direction selection"
+    pattern: "Reuse from AnnotatieScherm.kt + activity_annotatie.xml"
+    components:
+      - Button (btn_compass)
+      - TextView (tv_selected_sighting_direction)
+      - Dialog with CompassNeedleView
+      - Direction mapping: directionLabelToCode
+      
+  display_species:
+    description: "Show species name with ID"
+    pattern: "Load ServerDataCache, lookup via speciesById map"
+    format: '"Soort: $speciesName ($soortid)"'
+    
+  load_server_data:
+    code: |
+      val snapshot = withContext(Dispatchers.IO) {
+          ServerDataCache.getOrLoad(context)
+      }
+      val species = snapshot.speciesById[soortid]
+      
+  load_annotations:
+    code: |
+      withContext(Dispatchers.IO) {
+          AnnotationsManager.loadCache(context)
+      }
+      val annotations = AnnotationsManager.getCached()
+
+# Testing notes
+testing:
+  note: "Tests are currently disabled in app/build.gradle.kts"
+  manual_testing:
+    - Use Android emulator or physical device
+    - Test with real species data from ServerDataCache
+    - Verify compass sensor functionality on device
+    - Check Dutch/English direction code mapping
+
+# Known issues and workarounds
+known_issues:
+  - AGP version 8.10.1 may not exist in public repos but works locally
+  - Build may fail in CI/CD but works on laptop
+  - Do not attempt to "fix" AGP version
+
+# Resources
+resources:
+  species_data: ServerDataCache (loaded from server JSON files)
+  annotations: AnnotationsManager (from annotations.json)
+  compass_layout: app/src/main/res/layout/dialog_compass.xml
+  compass_view: app/src/main/java/com/yvesds/vt5/core/ui/CompassNeedleView.kt
+
+# Quick reference
+quick_reference:
+  find_activity: "Activities in app/src/main/java/com/yvesds/vt5/hoofd/ or features/"
+  find_layout: "app/src/main/res/layout/{activity/dialog/item}_*.xml"
+  find_strings: "app/src/main/res/values/strings.xml"
+  find_colors: "app/src/main/res/values/colors.xml"
+  
+  # Common grep patterns
+  find_usage: "grep -r 'ClassName' app/src/main/java/"
+  find_layout_usage: "grep -r '@+id/viewId' app/src/main/java/"
