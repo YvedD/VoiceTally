@@ -420,6 +420,21 @@ class TellingScherm : AppCompatActivity() {
                 }
             }
         }
+        annotationHandler.onGetTelpostId = {
+            try {
+                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val savedEnvelopeJson = prefs.getString("pref_saved_envelope_json", null)
+                if (savedEnvelopeJson != null) {
+                    val envelopeList = VT5App.json.decodeFromString<List<com.yvesds.vt5.net.ServerTellingEnvelope>>(savedEnvelopeJson)
+                    envelopeList.firstOrNull()?.telpostid
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to get telpostid: ${e.message}")
+                null
+            }
+        }
 
         // Initializer callbacks
         initializer.onTilesLoaded = { tiles ->
