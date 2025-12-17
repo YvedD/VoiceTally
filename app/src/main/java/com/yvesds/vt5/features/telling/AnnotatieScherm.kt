@@ -21,6 +21,8 @@ import com.yvesds.vt5.core.ui.CompassNeedleView
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.features.annotation.AnnotationOption
 import com.yvesds.vt5.features.annotation.AnnotationsManager
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
+import com.yvesds.vt5.features.serverdata.model.SiteItem
 import com.yvesds.vt5.utils.SeizoenUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,6 +56,9 @@ class AnnotatieScherm : AppCompatActivity() {
         const val EXTRA_RECORD_AANTAL = "extra_record_aantal"           // record.aantal (main direction)
         const val EXTRA_RECORD_AANTALTERUG = "extra_record_aantalterug" // record.aantalterug (opposite direction)
         const val EXTRA_LOKAAL = "extra_lokaal"
+        
+        // Key for telpostid to get site-specific direction labels
+        const val EXTRA_TELPOSTID = "extra_telpostid"
     }
 
     private val json = Json { prettyPrint = false }
@@ -66,6 +71,9 @@ class AnnotatieScherm : AppCompatActivity() {
 
     // Selected sighting direction (code from windoms, e.g., "N", "NNE", etc.)
     private var selectedSightingDirection: String? = null
+    
+    // Current site information for direction labels
+    private var currentSite: SiteItem? = null
 
     // Track active compass dialog and view for proper sensor cleanup
     private var activeCompassDialog: Dialog? = null
@@ -126,11 +134,18 @@ class AnnotatieScherm : AppCompatActivity() {
                 withContext(Dispatchers.IO) {
                     // load annotations into memory (SAF -> assets fallback)
                     AnnotationsManager.loadCache(this@AnnotatieScherm)
+                    
+                    // Load site data for direction labels
+                    val telpostId = intent.getStringExtra(EXTRA_TELPOSTID)
+                    if (!telpostId.isNullOrBlank()) {
+                        val snapshot = ServerDataCache.getOrLoad(this@AnnotatieScherm)
+                        currentSite = snapshot.sitesById[telpostId]
+                    }
                 }
                 // populate the pre-drawn buttons
                 populateAllColumnsFromCache()
 
-                // Update count field labels based on current season
+                // Update count field labels based on current season and site
                 updateCountFieldLabels()
 
                 // Prefill count fields with existing record values if provided
@@ -189,12 +204,27 @@ class AnnotatieScherm : AppCompatActivity() {
                 selectedLabels.add("Handteller")
             }
 
-            // Manual count inputs - direct mapping (labels are adjusted based on season)
+            // Manual count inputs - direct mapping (labels are adjusted based on season and site)
             // et_aantal always maps to record.aantal (main direction)
             // et_aantalterug always maps to record.aantalterug (opposite direction)
             val isZwSeizoen = isZwSeizoen()
-            val mainLabel = if (isZwSeizoen) "ZW" else "NO"
-            val returnLabel = if (isZwSeizoen) "NO" else "ZW"
+            
+            // Get direction labels from site data
+            val isNocMigSite = currentSite?.typetelpost == "5"
+            val r1 = currentSite?.r1?.takeIf { it.isNotBlank() && it != "nvt" }
+            val r2 = currentSite?.r2?.takeIf { it.isNotBlank() && it != "nvt" }
+            
+            // Determine labels to use in summary
+            val mainLabel = when {
+                isNocMigSite || r1 == null || r2 == null -> "Aantal"
+                isZwSeizoen -> r1.uppercase()
+                else -> r2.uppercase()
+            }
+            val returnLabel = when {
+                isNocMigSite || r1 == null || r2 == null -> "Aantal terug"
+                isZwSeizoen -> r2.uppercase()
+                else -> r1.uppercase()
+            }
 
             findViewById<EditText>(R.id.et_aantal)?.text?.toString()?.trim()?.takeIf { it.isNotEmpty() }?.let {
                 resultMap["aantal"] = it
@@ -417,24 +447,45 @@ class AnnotatieScherm : AppCompatActivity() {
     }
 
     /**
-     * Update the count field labels based on the current season.
-     * In ZW seizoen (Jul-Dec): "Aantal ZW :" and "Aantal NO :"
-     * In NO seizoen (Jan-Jun): "Aantal NO :" and "Aantal ZW :"
+     * Update the count field labels based on the current season and site-specific directions.
+     * Uses r1 (autumn direction, Jul-Dec) and r2 (spring direction, Jan-Jun) from sites.json.
+     * For sites with typetelpost="5" (NocMig sites), directions are not applicable and labels remain simple.
      */
     private fun updateCountFieldLabels() {
-        val isZwSeizoen = isZwSeizoen()
-
         val labelAantal = findViewById<TextView>(R.id.tv_label_aantal)
         val labelAantalterug = findViewById<TextView>(R.id.tv_label_aantalterug)
-
+        
+        // Check if this is a NocMig site (typetelpost=5) where directions don't apply
+        val isNocMigSite = currentSite?.typetelpost == "5"
+        
+        if (isNocMigSite || currentSite == null) {
+            // NocMig sites or unknown sites: use simple labels without direction
+            labelAantal?.text = "Aantal :"
+            labelAantalterug?.text = "Aantal terug :"
+            return
+        }
+        
+        // Get r1 (autumn) and r2 (spring) from site data
+        val r1 = currentSite?.r1?.takeIf { it.isNotBlank() && it != "nvt" }
+        val r2 = currentSite?.r2?.takeIf { it.isNotBlank() && it != "nvt" }
+        
+        // If either direction is null/nvt, fall back to simple labels
+        if (r1 == null || r2 == null) {
+            labelAantal?.text = "Aantal :"
+            labelAantalterug?.text = "Aantal terug :"
+            return
+        }
+        
+        val isZwSeizoen = isZwSeizoen()
+        
         if (isZwSeizoen) {
-            // ZW seizoen: hoofdrichting is ZW, terug is NO
-            labelAantal?.text = getString(R.string.annotation_count_zw)
-            labelAantalterug?.text = getString(R.string.annotation_count_no)
+            // Autumn season (Jul-Dec): hoofdrichting is r1, terug is r2
+            labelAantal?.text = "Aantal ${r1.uppercase()} :"
+            labelAantalterug?.text = "Aantal ${r2.uppercase()} :"
         } else {
-            // NO seizoen: hoofdrichting is NO, terug is ZW
-            labelAantal?.text = getString(R.string.annotation_count_no)
-            labelAantalterug?.text = getString(R.string.annotation_count_zw)
+            // Spring season (Jan-Jun): hoofdrichting is r2, terug is r1
+            labelAantal?.text = "Aantal ${r2.uppercase()} :"
+            labelAantalterug?.text = "Aantal ${r1.uppercase()} :"
         }
     }
 

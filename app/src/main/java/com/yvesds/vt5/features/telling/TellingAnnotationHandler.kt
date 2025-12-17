@@ -43,6 +43,7 @@ class TellingAnnotationHandler(
     var onGetFinalsList: (() -> List<TellingScherm.SpeechLogRow>)? = null
     var onGetPendingRecords: (() -> List<ServerTellingDataItem>)? = null
     var onUpdatePendingRecord: ((Int, ServerTellingDataItem) -> Unit)? = null
+    var onGetTelpostId: (() -> String?)? = null
 
     // Activity result launcher
     private lateinit var annotationLauncher: ActivityResultLauncher<Intent>
@@ -69,6 +70,12 @@ class TellingAnnotationHandler(
             putExtra(AnnotatieScherm.EXTRA_TEXT, text)
             putExtra(AnnotatieScherm.EXTRA_TS, timestamp)
             putExtra("extra_row_pos", rowPosition)
+            
+            // Pass telpostid for dynamic direction labels
+            val telpostId = onGetTelpostId?.invoke()
+            if (telpostId != null) {
+                putExtra(AnnotatieScherm.EXTRA_TELPOSTID, telpostId)
+            }
             
             // Find matching pending record to prefill count fields
             val pendingRecords = onGetPendingRecords?.invoke() ?: emptyList()
