@@ -7,7 +7,7 @@
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
-[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/LICENSE.md)
+[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md))
 
 ---
 
