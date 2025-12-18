@@ -2,6 +2,12 @@
 
 > **VT5** is een snelle, intuïtieve Android-app voor het vastleggen van vogeltrekwaarnemingen via spraakinvoer. De app is ontworpen voor gebruik in het veld door vogelwaarnemers en synchroniseert automatisch met [www.trektellen.nl](https://www.trektellen.nl).
 
+## Releases
+![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)
+![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
+![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
+![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
+![License](https://img.shields.io/github/license/YvedD/VoiceTally)
 ---
 
 ## Inhoudsopgave
