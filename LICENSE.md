@@ -7,7 +7,7 @@
 
 ## 🇬🇧 English Version
 
-**Copyright © 2024 [YvedD](https://github.com/YvedD)**  
+**Copyright © 2025 [YvedD](https://github.com/YvedD)**(De Saedeleer Yves)<br>
 **Project:** [VoiceTally](https://github.com/YvedD/VoiceTally)
 
 Permission is hereby granted to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, and distribute the Software, subject to the following conditions:
