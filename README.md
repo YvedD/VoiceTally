@@ -268,14 +268,14 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 **Opmerking** Als je in het annotatiescherm aantallen ingeeft en tegelijk ook andere opties aantikt, dan gelden deze andere opties voor alle aantallen, dus ook voor 'tegenrichting' en 'lokaal' !!
 
 ### Knoppenbalk
-**[Totalen]** : Toont een huidige stand van zaken van de **lopende** telling.
-**[Toevoegen]** : Extra soorten manueel toevoegen aan de lopende telling.
-**[Afronden]** : Sluit een lopende telling af en upload deze naar de server. (Nadien heb je de keuze om een vervolgtelling te maken)
+**[Totalen]** : Toont een huidige stand van zaken van de **lopende** telling.<br>
+**[Toevoegen]** : Extra soorten manueel toevoegen aan de lopende telling.<br>
+**[Afronden]** : Sluit een lopende telling af en upload deze naar de server. (Nadien heb je de keuze om een vervolgtelling te maken).
 
 ### Uurlijks alarm
-Op elke 59ste minuut van het begonnen uur verschijn het "Totalenscherm" met de huidige stand van zaken voor de lopende telling.
-Na controle is het aangeraden om de telling alsnog af te ronden en naar de server te sturen.
-Na het uploaden kan je kiezen om niet verder te tellen **[Annuleren] of een vervolgtelling te starten [OK]
+Op elke 59ste minuut van het begonnen uur verschijn het "Totalenscherm" met de huidige stand van zaken voor de lopende telling.<br>
+Na controle is het aangeraden om de telling alsnog af te ronden en naar de server te sturen.<br>
+Na het uploaden kan je kiezen om niet verder te tellen **[Annuleren] of een vervolgtelling te starten [OK].<br>
 
 ### Handmatig Tellen (Tik op Tegel)
 1. **Tik** op een soort-tegel
