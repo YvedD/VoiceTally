@@ -533,4 +533,4 @@ Voor vragen of problemen, neem contact op met de app-ontwikkelaar.
 
 ---
 
-*Versie: 1.0 | Laatste update: 2025-12-10*
+*Versie: 1.0.1 | Laatste update: 2025-12-18*
