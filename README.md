@@ -7,7 +7,7 @@
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
-[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md))
+[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 
 ---
 
@@ -34,13 +34,16 @@
 ## 1. Eerste Installatie
 
 ### Stap 1: App Starten
-Na het installeren van de APK start u de VT5-app. U komt terecht op het **Hoofdscherm** met drie knoppen:
+Na het installeren van de APK start u de VT5-app. U komt terecht op het **Hoofdscherm** met zes knoppen:
 
 | Knop | Functie |
 |------|---------|
 | **(Her)Installatie** | Opent het installatieproces voor eerste configuratie of herconfiguratie |
 | **Invoeren telpostgegevens** | Start een nieuwe telling (na installatie) |
-| **Afsluiten** | Sluit de app veilig af |
+| **Toggle alarm** | Schakelt het uurlijkse alarm in/uit |
+| **Bewerk tellingen** | Mogelijkheid om bestaande tellingen nog aan te passen en op te slaan |
+| **Opkuis submap 'exports'** | Opschonen van de submap exports op de tien laatste bestanden na |
+| **Instellingen** | Stel een aantal gebruikersinstellingen in met betrekking tot de interface |
 
 ### Stap 2: Installatiewizard Starten
 Klik op **"(Her)Installatie"** om naar het `InstallatieScherm` te gaan.
@@ -126,6 +129,7 @@ Documents/VT5/
 
 ### Login Testen
 Klik op **"Test login"** om te verifiëren dat uw credentials werken. Bij succes ziet u uw gebruikersinfo.
+Als je dit doet worden ook de gebruikergegevens lokaal opgeslagen zodat die later kunnen gebruikt worden voor de upload naar de server.
 
 ### Server Data Downloaden
 1. Klik op **"Download JSONs van server"**
@@ -161,12 +165,12 @@ Klik op **"Invoeren telpostgegevens"** in het hoofdscherm.
 | **Telpost** | Kies een telpost uit de dropdown (gedownload van server) |
 | **Datum** | Automatisch ingevuld met vandaag; klik om aan te passen |
 | **Starttijd** | Automatisch ingevuld met huidige tijd; klik om aan te passen |
-| **Tellers** | Uw naam (automatisch ingevuld vanuit login) |
+| **Tellers** | Uw naam (automatisch ingevuld vanuit login), vul manueel aan met collega tellers |
 | **Windrichting** | 16-punts kompasroos (N, NNO, NO, ONO, etc.) |
 | **Windkracht** | Beaufort schaal (0-12) |
 | **Bewolking** | Achtsten (0/8 tot 8/8) |
 | **Neerslag** | Geen, motregen, regen, etc. |
-| **Temperatuur** | Graden Celsius |
+| **Temperatuur** | Graden Celsius (C°)|
 | **Zicht** | Meters |
 | **Luchtdruk** | Hectopascal (hPa) |
 | **Weer opmerking** | Vrij tekstveld voor extra weerinfo |
@@ -252,7 +256,7 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 1. **Tik** op een partials-lijn in het blauwe kader
 2. Er verschijnt een dialoog: *"Alias toevoegen voor [partial-tekst]"*
 3. Kies een soort om deze alias aan te toe te wijzen, tik op [Toevoegen]
-4. Als de gebruiker een lijn kiest waarin ook een aantal is herkend, dan word dit aantal automatisch ingevuld  bij de telling / tegel
+4. Als de gebruiker een lijn kiest waarin ook een aantal is herkend, dan word dit aantal automatisch ingevuld bij de telling / tegel
 
 ### Een waarneming aanvullen, richting of andere parameters toevoegen via het finalscherm
 1. **Tik** op een 'final-logregel' in het groene kader
@@ -260,6 +264,18 @@ In het `TellingScherm` ziet u uw geselecteerde soorten als tegels (tiles).
 3. Je kan ook waarnemingen splitsen over hoofdrichting, tegenrichting en lokaal
 4. Er zijn ook checkboxen om de waarneming te markeren of in handteller-modus te zetten
 5. Alle wijzigingen worden opgeslagen bij het tikken op [OK]
+
+**Opmerking** Als je in het annotatiescherm aantallen ingeeft en tegelijk ook andere opties aantikt, dan gelden deze andere opties voor alle aantallen, dus ook voor 'tegenrichting' en 'lokaal' !!
+
+### Knoppenbalk
+**[Totalen]** : Toont een huidige stand van zaken van de **lopende** telling.
+**[Toevoegen]** : Extra soorten manueel toevoegen aan de lopende telling.
+**[Afronden]** : Sluit een lopende telling af en upload deze naar de server. (Nadien heb je de keuze om een vervolgtelling te maken)
+
+### Uurlijks alarm
+Op elke 59ste minuut van het begonnen uur verschijn het "Totalenscherm" met de huidige stand van zaken voor de lopende telling.
+Na controle is het aangeraden om de telling alsnog af te ronden en naar de server te sturen.
+Na het uploaden kan je kiezen om niet verder te tellen **[Annuleren] of een vervolgtelling te starten [OK]
 
 ### Handmatig Tellen (Tik op Tegel)
 1. **Tik** op een soort-tegel
