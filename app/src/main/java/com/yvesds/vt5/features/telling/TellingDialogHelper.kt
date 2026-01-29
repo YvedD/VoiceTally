@@ -1,24 +1,18 @@
 package com.yvesds.vt5.features.telling
 
 import android.app.Activity
-import android.graphics.Color
-import android.text.InputFilter
-import android.text.InputType
 import android.util.Log
-import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.features.alias.AliasManager
-import com.yvesds.vt5.features.recent.RecentSpeciesStore
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
-import com.yvesds.vt5.features.speech.Candidate
-import kotlinx.coroutines.Dispatchers
+import com.yvesds.vt5.utils.TelpostDirectionLabelProvider
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * TellingDialogHelper: Manages dialog interactions for TellingScherm.
@@ -40,83 +34,57 @@ class TellingDialogHelper(
 
     /**
      * Show number input dialog for a species tile.
+     * Updated to allow entering two counts: main direction (boven) and return/opposite direction (onder).
      */
     fun showNumberInputDialog(
         position: Int,
         currentTiles: List<TellingScherm.SoortRow>,
-        onCountUpdated: (String, Int) -> Unit
+        onCountUpdated: (String, Int, Int) -> Unit
     ) {
         if (position < 0 || position >= currentTiles.size) return
         val row = currentTiles[position]
 
-        val input = EditText(activity).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            filters = arrayOf(InputFilter.LengthFilter(4))
-            hint = "Aantal (bijv. 5)"
+        val inflater = activity.layoutInflater
+        val view = inflater.inflate(R.layout.dialog_number_input_dual, null)
+        val etMain = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_main_count)
+        val etReturn = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_return_count)
+        val tvMainLabel = view.findViewById<TextView>(R.id.tv_main_direction_label)
+        val tvReturnLabel = view.findViewById<TextView>(R.id.tv_return_direction_label)
+        val tvCurrentTotal = view.findViewById<TextView>(R.id.tv_current_total)
+
+        // Direction labels based on telpost + (telling) date/season
+        lifecycleOwner.lifecycleScope.launch {
+            try {
+                val labels = TelpostDirectionLabelProvider.getForCurrentSession(activity)
+                tvMainLabel.text = labels.mainText
+                tvReturnLabel.text = labels.returnText
+            } catch (_: Exception) {
+                // fall back to defaults in layout
+            }
         }
+
+        // Show current counts as initial values
+        etMain.setText(row.countMain.toString())
+        etReturn.setText(row.countReturn.toString())
+        tvCurrentTotal.text = activity.getString(R.string.dialog_current_total, row.count)
 
         val dialog = AlertDialog.Builder(activity)
             .setTitle(activity.getString(R.string.dialog_enter_count, row.naam))
-            .setMessage("Huidige stand: ${row.count}")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("Toevoegen") { _, _ ->
-                val text = input.text.toString().trim()
-                val delta = text.toIntOrNull() ?: 0
-                if (delta > 0) {
-                    onCountUpdated(row.soortId, delta)
+                val mainRaw = etMain.text?.toString()?.trim() ?: "0"
+                val returnRaw = etReturn.text?.toString()?.trim() ?: "0"
+                val mainDelta = mainRaw.toIntOrNull() ?: 0
+                val returnDelta = returnRaw.toIntOrNull() ?: 0
+                if (mainDelta > 0 || returnDelta > 0) {
+                    onCountUpdated(row.soortId, mainDelta, returnDelta)
                 }
             }
             .setNegativeButton("Annuleren", null)
             .show()
 
-        styleAlertDialogTextToWhite(dialog)
-    }
-
-    /**
-     * Show suggestion bottom sheet with multiple candidates.
-     */
-    fun showSuggestionBottomSheet(
-        candidates: List<Candidate>,
-        count: Int,
-        onCandidateSelected: (String, String, Int) -> Unit
-    ) {
-        if (candidates.isEmpty()) return
-
-        val items = candidates.map { "${it.displayName} (${it.speciesId})" }.toTypedArray()
-        
-        val dialog = AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.dialog_select_species))
-            .setItems(items) { _, which ->
-                val selected = candidates.getOrNull(which) ?: return@setItems
-                onCandidateSelected(selected.speciesId, selected.displayName, count)
-            }
-            .setNegativeButton("Annuleren", null)
-            .show()
-
-        styleAlertDialogTextToWhite(dialog)
-    }
-
-    /**
-     * Show confirmation dialog before adding species with popup.
-     */
-    fun showAddSpeciesConfirmation(
-        speciesId: String,
-        displayName: String,
-        count: Int,
-        onConfirmed: (String, String, Int) -> Unit
-    ) {
-        val msg = "Soort \"$displayName\" herkend met aantal $count.\n\nToevoegen?"
-        
-        val dialog = AlertDialog.Builder(activity)
-            .setTitle(activity.getString(R.string.dialog_add_species))
-            .setMessage(msg)
-            .setPositiveButton("Ja") { _, _ ->
-                onConfirmed(speciesId, displayName, count)
-            }
-            .setNegativeButton("Nee", null)
-            .show()
-
-        styleAlertDialogTextToWhite(dialog)
+        // Dialog styling: theme-first, plus a safe code fallback
+        DialogStyler.apply(dialog)
     }
 
     /**
@@ -160,27 +128,5 @@ class TellingDialogHelper(
         }
         
         dialog.show(fragmentManager, "addAlias")
-    }
-
-    /**
-     * Style AlertDialog text to white for sunlight readability.
-     * Forces title and message text to white color.
-     */
-    fun styleAlertDialogTextToWhite(dialog: AlertDialog) {
-        try {
-            // Title
-            val titleId = activity.resources.getIdentifier("alertTitle", "id", "android")
-            if (titleId > 0) {
-                val titleView = dialog.findViewById<TextView>(titleId)
-                titleView?.setTextColor(Color.WHITE)
-            }
-
-            // Message
-            val messageId = android.R.id.message
-            val messageView = dialog.findViewById<TextView>(messageId)
-            messageView?.setTextColor(Color.WHITE)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to style dialog text: ${e.message}")
-        }
     }
 }

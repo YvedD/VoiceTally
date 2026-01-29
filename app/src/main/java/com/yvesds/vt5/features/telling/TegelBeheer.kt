@@ -114,10 +114,30 @@ class TegelBeheer(private val ui: TegelUi) {
                 Log.w(TAG, "verhoogSoortAantal: soortId $soortId niet gevonden")
                 return false
             }
-            
+
             val cur = tiles[idx]
             val updated = cur.copy(countMain = cur.countMain + delta)
-            
+
+            tiles[idx] = updated
+            ui.onTileCountUpdated(soortId, updated.count)
+            ui.submitTiles(tiles.map { it.copy() })
+            return true
+        }
+    }
+
+    // New: increase the return/opposite direction count for a tile
+    fun verhoogSoortAantalReturn(soortId: String, delta: Int): Boolean {
+        if (delta == 0) return true
+        synchronized(lock) {
+            val idx = tiles.indexOfFirst { it.soortId == soortId }
+            if (idx == -1) {
+                Log.w(TAG, "verhoogSoortAantalReturn: soortId $soortId niet gevonden")
+                return false
+            }
+
+            val cur = tiles[idx]
+            val updated = cur.copy(countReturn = cur.countReturn + delta)
+
             tiles[idx] = updated
             ui.onTileCountUpdated(soortId, updated.count)
             ui.submitTiles(tiles.map { it.copy() })

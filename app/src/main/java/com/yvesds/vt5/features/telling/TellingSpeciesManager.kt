@@ -216,8 +216,9 @@ class TellingSpeciesManager(
 
     /**
      * Collect observation as record and create backup.
+     * Updated to accept both main and return counts.
      */
-    suspend fun collectFinalAsRecord(soortId: String, amount: Int) {
+    suspend fun collectFinalAsRecord(soortId: String, amountMain: Int, amountReturn: Int = 0) {
         withContext(Dispatchers.IO) {
             try {
                 val prefs = activity.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
@@ -229,40 +230,41 @@ class TellingSpeciesManager(
 
                 val idLocal = DataUploader.getAndIncrementRecordId(activity, tellingId)
                 val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
-                
+
                 // Generate uploadtijdstip in "YYYY-MM-DD HH:MM:SS" format
                 val currentTimestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
                     .format(java.util.Date())
-                
+
+                val total = amountMain + amountReturn
+
                 // Create complete record with sensible defaults
-                // Annotation system will override these values if user annotates the observation
                 val item = ServerTellingDataItem(
                     idLocal = idLocal,
                     tellingid = tellingId,
                     soortid = soortId,
-                    aantal = amount.toString(),
-                    richting = "",                     // Empty - only filled via annotation checkboxes
-                    aantalterug = "0",
-                    richtingterug = "",                // Empty until direction annotated
-                    sightingdirection = "",            // Empty by default (user's preference)
+                    aantal = amountMain.toString(),
+                    richting = "",
+                    aantalterug = amountReturn.toString(),
+                    richtingterug = "",
+                    sightingdirection = "",
                     lokaal = "0",
                     aantal_plus = "0",
                     aantalterug_plus = "0",
                     lokaal_plus = "0",
-                    markeren = "0",                    // Not marked by default
-                    markerenlokaal = "0",              // Not marked local by default
-                    geslacht = "",                     // Empty until user annotates
-                    leeftijd = "",                     // Empty until user annotates
-                    kleed = "",                        // Empty until user annotates
-                    opmerkingen = "",                  // Empty until user adds remarks
-                    trektype = "",                     // Empty (not used in UI)
-                    teltype = "",                      // Empty until user annotates
-                    location = "",                     // Empty until user annotates (height buttons)
-                    height = "",                       // Empty until user annotates (location buttons)
+                    markeren = "0",
+                    markerenlokaal = "0",
+                    geslacht = "",
+                    leeftijd = "",
+                    kleed = "",
+                    opmerkingen = "",
+                    trektype = "",
+                    teltype = "",
+                    location = "",
+                    height = "",
                     tijdstip = nowEpoch,
                     groupid = idLocal,
-                    uploadtijdstip = currentTimestamp, // Set timestamp immediately!
-                    totaalaantal = amount.toString()
+                    uploadtijdstip = currentTimestamp,
+                    totaalaantal = total.toString()
                 )
 
                 // Notify callback

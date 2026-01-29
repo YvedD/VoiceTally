@@ -69,4 +69,15 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
+    <!-- AlertDialog theme overlay for consistent dialog button colors (Material3) -->
+    <style name="ThemeOverlay.VT5.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.VT5.AlertDialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.VT5.AlertDialog.Button</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.VT5.AlertDialog.Button</item>
+    </style>
+
+    <style name="Widget.VT5.AlertDialog.Button" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/vt5_white</item>
+    </style>
+
 </resources>

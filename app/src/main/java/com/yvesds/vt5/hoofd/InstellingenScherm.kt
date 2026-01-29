@@ -2,11 +2,17 @@ package com.yvesds.vt5.hoofd
 
 import android.content.Context
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
 import android.widget.NumberPicker
+import android.widget.Spinner
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.ui.UiColorPrefs
 
 /**
  * InstellingenScherm - Scherm voor app-instellingen
@@ -33,15 +39,15 @@ class InstellingenScherm : AppCompatActivity() {
          * Haal de huidige lettergrootte voor logregels op uit SharedPreferences.
          */
         fun getLettergrootteLogSp(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             return prefs.getInt(PREF_LETTERGROOTTE_LOG_SP, DEFAULT_LETTERGROOTTE_SP)
         }
-        
+
         /**
          * Haal de huidige lettergrootte voor tegels op uit SharedPreferences.
          */
         fun getLettergroottTegelsSp(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             return prefs.getInt(PREF_LETTERGROOTTE_TEGELS_SP, DEFAULT_LETTERGROOTTE_SP)
         }
     }
@@ -49,9 +55,13 @@ class InstellingenScherm : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_instellingen)
-        
+
+        // Apply user-selected colors to this screen
+        UiColorPrefs.applyToActivity(this)
+
         setupTerugKnop()
         setupLettergrootteNumberPickers()
+        setupColorSpinners()
     }
     
     private fun setupTerugKnop() {
@@ -62,8 +72,8 @@ class InstellingenScherm : AppCompatActivity() {
     }
     
     private fun setupLettergrootteNumberPickers() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
         // NumberPicker voor logregels
         val npLog = findViewById<NumberPicker>(R.id.npLettergrootteLog)
         npLog.minValue = MIN_LETTERGROOTTE_SP
@@ -90,6 +100,90 @@ class InstellingenScherm : AppCompatActivity() {
             prefs.edit {
                 putInt(PREF_LETTERGROOTTE_TEGELS_SP, newVal)
             }
+        }
+    }
+
+    private fun setupColorSpinners() {
+        val spBg = findViewById<Spinner>(R.id.spBackgroundColor)
+        val spText = findViewById<Spinner>(R.id.spTextColor)
+
+        val bgOptions = UiColorPrefs.backgroundOptions
+        val textOptions = UiColorPrefs.textOptions
+
+        fun buildAdapter(
+            items: List<UiColorPrefs.ColorOption>,
+            getBg: () -> Int,
+            getText: () -> Int
+        ): BaseAdapter {
+            return object : BaseAdapter() {
+                override fun getCount(): Int = items.size
+                override fun getItem(position: Int): Any = items[position]
+                override fun getItemId(position: Int): Long = position.toLong()
+
+                private fun bind(tv: TextView, position: Int) {
+                    val opt = items[position]
+                    tv.text = opt.label
+                    tv.setBackgroundColor(getBg())
+                    tv.setTextColor(getText())
+                    tv.setPadding(24, 18, 24, 18)
+                }
+
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val tv = (convertView as? TextView)
+                        ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
+                    bind(tv, position)
+                    return tv
+                }
+
+                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val tv = (convertView as? TextView)
+                        ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
+                    bind(tv, position)
+                    return tv
+                }
+            }
+        }
+
+        // Current selection holders (so each spinner can reflect the combined choice)
+        var selectedBg = UiColorPrefs.getBackgroundColor(this)
+        var selectedText = UiColorPrefs.getTextColor(this)
+
+        val bgAdapter = buildAdapter(bgOptions, getBg = { selectedBg }, getText = { selectedText })
+        val textAdapter = buildAdapter(textOptions, getBg = { selectedBg }, getText = { selectedText })
+
+        spBg.adapter = bgAdapter
+        spText.adapter = textAdapter
+
+        // Preselect from prefs
+        spBg.setSelection(bgOptions.indexOfFirst { it.argb == selectedBg }.takeIf { it >= 0 } ?: 0)
+        spText.setSelection(textOptions.indexOfFirst { it.argb == selectedText }.takeIf { it >= 0 } ?: 0)
+
+        spBg.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedBg = bgOptions[position].argb
+                UiColorPrefs.setBackgroundColor(this@InstellingenScherm, selectedBg)
+
+                // Refresh both spinners so each item reflects the combined colors
+                bgAdapter.notifyDataSetChanged()
+                textAdapter.notifyDataSetChanged()
+
+                UiColorPrefs.applyToActivity(this@InstellingenScherm)
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+
+        spText.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedText = textOptions[position].argb
+                UiColorPrefs.setTextColor(this@InstellingenScherm, selectedText)
+
+                // Refresh both spinners so each item reflects the combined colors
+                bgAdapter.notifyDataSetChanged()
+                textAdapter.notifyDataSetChanged()
+
+                UiColorPrefs.applyToActivity(this@InstellingenScherm)
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
     }
 }

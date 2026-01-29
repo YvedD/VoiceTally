@@ -101,6 +101,10 @@
     <string name="instellingen_lettergrootte_tegels_label">Lettergrootte tegels (soortnaam + aantallen):</string>
     <string name="instellingen_sp_eenheid">sp</string>
     <string name="instellingen_placeholder3">Placeholder 3 (later in te vullen)</string>
+    <string name="instellingen_colors_title">Kleuren</string>
+    <string name="instellingen_bg_color_label">Achtergrondkleur</string>
+    <string name="instellingen_text_color_label">Tekstkleur</string>
+    <string name="instellingen_back_arrow">←</string>
 
     <!-- TellingBeheerScherm -->
     <string name="beheer_titel">Beheer Opgeslagen Tellingen</string>
@@ -241,4 +245,11 @@
     <string name="compass_ok">OK</string>
     <string name="compass_select">🧭 Kompas</string>
     <string name="annotation_sighting_direction">Richting:</string>
+
+    <!-- Nieuwe of gewijzigde strings -->
+    <string name="dialog_current_total">Huidige stand: %1$d</string>
+    <string name="dialog_direction_main">Hoofdrichting</string>
+    <string name="dialog_direction_return">Tegenrichting</string>
+    <string name="dialog_default_zero">0</string>
+    <string name="dialog_current_total_placeholder">Huidige stand: 0</string>
 </resources>

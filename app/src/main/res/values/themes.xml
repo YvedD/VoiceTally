@@ -17,6 +17,9 @@
         <item name="android:buttonStyle">@style/Widget.VT5.Button.Outlined</item>
         <item name="materialButtonStyle">@style/Widget.VT5.Button</item>
         <item name="materialButtonOutlinedStyle">@style/Widget.VT5.Button.Outlined</item>
+
+        <!-- Globale AlertDialog styling (knopteksten wit, consistent) -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.VT5.MaterialAlertDialog</item>
     </style>
 
     <!-- Splash Screen thema - fullscreen zonder action bar -->

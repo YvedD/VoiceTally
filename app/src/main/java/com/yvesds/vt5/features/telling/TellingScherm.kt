@@ -2,76 +2,38 @@
 
 package com.yvesds.vt5.features.telling
 
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.text.InputFilter
-import android.text.InputType
-import android.view.GestureDetector
 import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.View
-import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.flexbox.AlignItems
-import com.google.android.flexbox.FlexDirection
-import com.google.android.flexbox.FlexWrap
-import com.google.android.flexbox.FlexboxLayoutManager
-import com.google.android.flexbox.JustifyContent
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermTellingBinding
 import com.yvesds.vt5.features.alias.AliasRepository
 import com.yvesds.vt5.features.alias.AliasManager
-import com.yvesds.vt5.features.telling.AliasEditor
-import com.yvesds.vt5.features.telling.AddAliasDialog
 import com.yvesds.vt5.features.recent.RecentSpeciesStore
-import com.yvesds.vt5.features.serverdata.model.ServerDataCache
-import com.yvesds.vt5.features.soort.ui.SoortSelectieScherm
-import com.yvesds.vt5.features.speech.SpeechRecognitionManager
-import com.yvesds.vt5.features.speech.VolumeKeyHandler
-import com.yvesds.vt5.features.speech.AliasSpeechParser
-import com.yvesds.vt5.features.speech.MatchContext
-import com.yvesds.vt5.features.speech.MatchResult
-import com.yvesds.vt5.features.speech.Candidate
-import com.yvesds.vt5.features.network.DataUploader
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
-import com.yvesds.vt5.net.TrektellenApi
-import com.yvesds.vt5.core.secure.CredentialsStore
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
-import android.Manifest
-import android.content.pm.PackageManager
-import android.graphics.Color
 import android.util.Log
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import java.util.Locale
 import androidx.documentfile.provider.DocumentFile
-import java.text.SimpleDateFormat
-import java.util.Date
 import kotlin.jvm.Volatile
-import androidx.core.content.edit
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.ui.UiColorPrefs
+import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.features.speech.Candidate
 
 /**
  * TellingScherm.kt
@@ -88,19 +50,9 @@ class TellingScherm : AppCompatActivity() {
 
     companion object {
         private const val TAG = "TellingScherm"
-        private const val PERMISSION_REQUEST_RECORD_AUDIO = 101
 
         // Preferences keys
         private const val PREFS_NAME = "vt5_prefs"
-        private const val PREF_ASR_SILENCE_MS = "pref_asr_silence_ms"
-
-        // Keys used across app
-        private const val PREF_ONLINE_ID = "pref_online_id"
-        private const val PREF_TELLING_ID = "pref_telling_id"
-        private const val PREF_SAVED_ENVELOPE_JSON = "pref_saved_envelope_json"
-
-        // Default silence ms: set low for testing; make configurable in prefs
-        private const val DEFAULT_SILENCE_MS = 1000
 
         private const val MAX_LOG_ROWS = 600
         
@@ -171,7 +123,6 @@ class TellingScherm : AppCompatActivity() {
 
             lifecycleScope.launch(Dispatchers.Default) {
                 try {
-                    val t0 = System.currentTimeMillis()
                     val tiles = tegelBeheer.getTiles().map { it.soortId }.toSet()
                     val mc = initializer.buildMatchContext(tiles)
                     speechHandler.updateCachedMatchContext(mc)
@@ -202,8 +153,11 @@ class TellingScherm : AppCompatActivity() {
         binding = SchermTellingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        
+        // Apply user-selected UI colors (background + text)
+        UiColorPrefs.applyToActivity(this)
+
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
         // Check if this is triggered by the hourly alarm (from HourlyAlarmManager)
         // Store the flag to show HuidigeStandScherm after tiles are loaded
         if (intent.getBooleanExtra(EXTRA_SHOW_HUIDIGE_STAND, false)) {
@@ -254,7 +208,6 @@ class TellingScherm : AppCompatActivity() {
                 // Rebuild cachedMatchContext asynchronously on Default to avoid blocking parse path
                 lifecycleScope.launch(Dispatchers.Default) {
                     try {
-                        val t0 = System.currentTimeMillis()
                         val tilesIds = tiles.map { it.soortId }.toSet()
                         val mc = initializer.buildMatchContext(tilesIds)
                         speechHandler.updateCachedMatchContext(mc)
@@ -277,7 +230,7 @@ class TellingScherm : AppCompatActivity() {
         try {
             val filter = IntentFilter(AliasRepository.ACTION_ALIAS_RELOAD_COMPLETED)
             // minSdk is Android 13+, so use the API-33 overload and explicitly mark NOT_EXPORTED
-            registerReceiver(aliasReloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(aliasReloadReceiver, filter, RECEIVER_NOT_EXPORTED)
         } catch (ex: Exception) {
             Log.w(TAG, "Failed to register aliasReloadReceiver: ${ex.message}", ex)
         }
@@ -422,10 +375,10 @@ class TellingScherm : AppCompatActivity() {
         }
         annotationHandler.onGetTelpostId = {
             try {
-                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
                 val savedEnvelopeJson = prefs.getString("pref_saved_envelope_json", null)
                 if (savedEnvelopeJson != null) {
-                    val envelopeList = VT5App.json.decodeFromString<List<com.yvesds.vt5.net.ServerTellingEnvelope>>(savedEnvelopeJson)
+                    val envelopeList = VT5App.json.decodeFromString<List<ServerTellingEnvelope>>(savedEnvelopeJson)
                     envelopeList.firstOrNull()?.telpostid
                 } else {
                     null
@@ -489,7 +442,7 @@ class TellingScherm : AppCompatActivity() {
     /**
      * Handle tap on partial log entry - show alias dialog.
      */
-    private fun handlePartialTap(pos: Int, row: SpeechLogRow) {
+    private fun handlePartialTap(@Suppress("UNUSED_PARAMETER") _pos: Int, row: SpeechLogRow) {
         when (row.bron) {
             "partial", "raw" -> {
                 val (nameOnly, cnt) = parseNameAndCountFromDisplay(row.tekst)
@@ -676,8 +629,8 @@ class TellingScherm : AppCompatActivity() {
                 savedEnvelopeJson
             )
             
-            if (envelopeList.isNullOrEmpty()) return -1L
-            
+            if (envelopeList.isEmpty()) return -1L
+
             // The begintijd field is a string containing epoch seconds
             envelopeList[0].begintijd.toLongOrNull() ?: -1L
         } catch (e: Exception) {
@@ -733,15 +686,15 @@ class TellingScherm : AppCompatActivity() {
         
         if (::partialsAdapter.isInitialized) {
             partialsAdapter.updateTextSize(logTextSizeSp)
-            partialsAdapter.notifyDataSetChanged()
+            partialsAdapter.notifyItemRangeChanged(0, partialsAdapter.itemCount)
         }
         if (::finalsAdapter.isInitialized) {
             finalsAdapter.updateTextSize(logTextSizeSp)
-            finalsAdapter.notifyDataSetChanged()
+            finalsAdapter.notifyItemRangeChanged(0, finalsAdapter.itemCount)
         }
         if (::tilesAdapter.isInitialized) {
             tilesAdapter.updateTextSize(tegelsTextSizeSp)
-            tilesAdapter.notifyDataSetChanged()
+            tilesAdapter.notifyItemRangeChanged(0, tilesAdapter.itemCount)
         }
     }
     
@@ -780,16 +733,24 @@ class TellingScherm : AppCompatActivity() {
     /* ---------- TILE click dialog (adds to existing count) ---------- */
     private fun showNumberInputDialog(position: Int) {
         val current = tilesAdapter.currentList
-        dialogHelper.showNumberInputDialog(position, current) { soortId, delta ->
+        dialogHelper.showNumberInputDialog(position, current) { soortId, mainDelta, returnDelta ->
             lifecycleScope.launch {
-                // Use tegelBeheer to update tile count
+                // Use tegelBeheer to update tile counts
                 val naam = tegelBeheer.findNaamBySoortId(soortId) ?: "Unknown"
-                tegelBeheer.verhoogSoortAantal(soortId, delta)
+                if (mainDelta > 0) {
+                    tegelBeheer.verhoogSoortAantal(soortId, mainDelta)
+                    // Behave like an ASR final for main direction
+                    addFinalLog("$naam -> +$mainDelta")
+                    speciesManager.collectFinalAsRecord(soortId, mainDelta)
+                }
+                if (returnDelta > 0) {
+                    tegelBeheer.verhoogSoortAantalReturn(soortId, returnDelta)
+                    // Log and collect return as record (amountReturn)
+                    addFinalLog("$naam (tegenrichting) -> +$returnDelta")
+                    speciesManager.collectFinalAsRecord(soortId, 0, returnDelta)
+                }
 
-                // Behave exactly like an ASR final:
-                addFinalLog("$naam -> +$delta")
                 RecentSpeciesStore.recordUse(this@TellingScherm, soortId, maxEntries = 30)
-                speciesManager.collectFinalAsRecord(soortId, delta)
             }
         }
     }
@@ -813,35 +774,28 @@ class TellingScherm : AppCompatActivity() {
      * Handle speech recognition hypotheses and process match results.
      */
     private fun handleSpeechHypotheses(hypotheses: List<Pair<String, Float>>, partials: List<String>) {
-        val receivedAt = System.currentTimeMillis()
         lifecycleScope.launch(Dispatchers.Default) {
-            val parseStartAt = System.currentTimeMillis()
-            try {
-                val matchContext = speechHandler.getCachedMatchContext() ?: run {
-                    val t0 = System.currentTimeMillis()
-                    val tiles = tegelBeheer.getTiles().map { it.soortId }.toSet()
-                    val mc = initializer.buildMatchContext(tiles)
-                    speechHandler.updateCachedMatchContext(mc)
-                    mc
-                }
+             try {
+                 val matchContext = speechHandler.getCachedMatchContext() ?: run {
+                     val tiles = tegelBeheer.getTiles().map { it.soortId }.toSet()
+                     val mc = initializer.buildMatchContext(tiles)
+                     speechHandler.updateCachedMatchContext(mc)
+                     mc
+                 }
 
-                val result = speechHandler.parseSpokenWithHypotheses(hypotheses, matchContext, partials, asrWeight = 0.4)
-                val parseEndAt = System.currentTimeMillis()
+                 val result = speechHandler.parseSpokenWithHypotheses(hypotheses, matchContext, partials, asrWeight = 0.4)
 
-                withContext(Dispatchers.Main) {
-                    val uiStartAt = System.currentTimeMillis()
-                    try {
-                        matchResultHandler.handleMatchResult(result)
-                    } catch (ex: Exception) {
-                        Log.w(TAG, "Hypotheses handling (UI) failed: ${ex.message}", ex)
-                    } finally {
-                        val uiEndAt = System.currentTimeMillis()
-                    }
-                }
-            } catch (ex: Exception) {
-                Log.w(TAG, "Hypotheses handling (background) failed: ${ex.message}", ex)
-            }
-        }
+                 withContext(Dispatchers.Main) {
+                     try {
+                         matchResultHandler.handleMatchResult(result)
+                     } catch (ex: Exception) {
+                         Log.w(TAG, "Hypotheses handling (UI) failed: ${ex.message}", ex)
+                     }
+                 }
+             } catch (ex: Exception) {
+                 Log.w(TAG, "Hypotheses handling (background) failed: ${ex.message}", ex)
+             }
+         }
     }
 
 
@@ -875,7 +829,7 @@ class TellingScherm : AppCompatActivity() {
             }
             .setNegativeButton("Nee", null)
             .show()
-        dialogHelper.styleAlertDialogTextToWhite(dlg)
+        DialogStyler.apply(dlg)
     }
 
     /* ---------- Helper log functions (delegated to logManager) ---------- */
@@ -981,7 +935,7 @@ class TellingScherm : AppCompatActivity() {
                         }
                         .setNegativeButton("Nee", null)
                         .show()
-                    dialogHelper.styleAlertDialogTextToWhite(dlg)
+                    DialogStyler.apply(dlg)
                 }
                 RecentSpeciesStore.recordUse(this, chosen.speciesId, maxEntries = 30)
             }
@@ -1031,7 +985,7 @@ class TellingScherm : AppCompatActivity() {
                         .setMessage(result.message)
                         .setPositiveButton("OK", null)
                         .show()
-                    dialogHelper.styleAlertDialogTextToWhite(dlg)
+                    DialogStyler.apply(dlg)
                 }
             }
         }
@@ -1051,8 +1005,8 @@ class TellingScherm : AppCompatActivity() {
             .create()
         
         successDialog.show()
-        dialogHelper.styleAlertDialogTextToWhite(successDialog)
-        
+        DialogStyler.apply(successDialog)
+
         // Auto-dismiss after SUCCESS_DIALOG_DELAY_MS and show vervolgtelling dialog
         lifecycleScope.launch {
             kotlinx.coroutines.delay(SUCCESS_DIALOG_DELAY_MS)
@@ -1089,7 +1043,7 @@ class TellingScherm : AppCompatActivity() {
             }
             .setCancelable(false)
             .show()
-        dialogHelper.styleAlertDialogTextToWhite(dlg)
+        DialogStyler.apply(dlg)
     }
 
     // Write pretty envelope JSON to SAF as "<timestamp>_count_<onlineid>.json"
@@ -1119,3 +1073,16 @@ class TellingScherm : AppCompatActivity() {
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
