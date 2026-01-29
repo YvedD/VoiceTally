@@ -287,6 +287,72 @@ class TellingSpeciesManager(
     }
 
     /**
+     * Collect observation in the opposite direction (aantalterug).
+     */
+    suspend fun collectFinalAsRecordReturn(soortId: String, amount: Int) {
+        withContext(Dispatchers.IO) {
+            try {
+                val prefs = activity.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                val tellingId = prefs.getString(PREF_TELLING_ID, null)
+                if (tellingId.isNullOrBlank()) {
+                    Log.w(TAG, "No PREF_TELLING_ID available - cannot collect return count")
+                    return@withContext
+                }
+
+                val idLocal = DataUploader.getAndIncrementRecordId(activity, tellingId)
+                val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
+                val currentTimestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                    .format(java.util.Date())
+
+                val item = ServerTellingDataItem(
+                    idLocal = idLocal,
+                    tellingid = tellingId,
+                    soortid = soortId,
+                    aantal = "0",
+                    richting = "",
+                    aantalterug = amount.toString(),
+                    richtingterug = "",
+                    sightingdirection = "",
+                    lokaal = "0",
+                    aantal_plus = "0",
+                    aantalterug_plus = "0",
+                    lokaal_plus = "0",
+                    markeren = "0",
+                    markerenlokaal = "0",
+                    geslacht = "",
+                    leeftijd = "",
+                    kleed = "",
+                    opmerkingen = "",
+                    trektype = "",
+                    teltype = "",
+                    location = "",
+                    height = "",
+                    tijdstip = nowEpoch,
+                    groupid = idLocal,
+                    uploadtijdstip = currentTimestamp,
+                    totaalaantal = amount.toString()
+                )
+
+                withContext(Dispatchers.Main) {
+                    onRecordCollected?.invoke(item)
+                }
+
+                try {
+                    backupManager.writeRecordBackupSaf(tellingId, item)
+                } catch (ex: Exception) {
+                    Log.w(TAG, "Record backup (return) failed: ${ex.message}", ex)
+                }
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(activity, "Waarneming opgeslagen (tegenrichting)", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "collectFinalAsRecordReturn failed: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
      * Ensure available species flat list is loaded.
      */
     fun ensureAvailableSpeciesFlat(onReady: (List<String>) -> Unit) {
