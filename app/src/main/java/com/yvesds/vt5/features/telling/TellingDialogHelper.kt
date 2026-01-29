@@ -44,26 +44,54 @@ class TellingDialogHelper(
     fun showNumberInputDialog(
         position: Int,
         currentTiles: List<TellingScherm.SoortRow>,
-        onCountUpdated: (String, Int) -> Unit
+        mainLabel: String,
+        returnLabel: String,
+        onCountUpdated: (String, Int, Int) -> Unit
     ) {
         if (position < 0 || position >= currentTiles.size) return
         val row = currentTiles[position]
 
-        val input = EditText(activity).apply {
+        val mainInput = EditText(activity).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             filters = arrayOf(InputFilter.LengthFilter(4))
-            hint = "Aantal (bijv. 5)"
+            hint = "Aantal ${mainLabel.uppercase()}"
+        }
+        val returnInput = EditText(activity).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            filters = arrayOf(InputFilter.LengthFilter(4))
+            hint = "Aantal ${returnLabel.uppercase()}"
+        }
+
+        val container = android.widget.LinearLayout(activity).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24, 16, 24, 0)
+
+            fun makeRow(label: String, field: EditText): android.widget.LinearLayout {
+                return android.widget.LinearLayout(activity).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    val tv = TextView(activity).apply {
+                        text = "$label:"
+                        setTextColor(Color.WHITE)
+                        setPadding(0, 12, 16, 12)
+                    }
+                    addView(tv)
+                    addView(field, android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                }
+            }
+
+            addView(makeRow(mainLabel.uppercase(), mainInput))
+            addView(makeRow(returnLabel.uppercase(), returnInput))
         }
 
         val dialog = AlertDialog.Builder(activity)
             .setTitle(activity.getString(R.string.dialog_enter_count, row.naam))
-            .setMessage("Huidige stand: ${row.count}")
-            .setView(input)
+            .setMessage("Huidige stand: ${row.countMain} (${mainLabel.uppercase()}) / ${row.countReturn} (${returnLabel.uppercase()})")
+            .setView(container)
             .setPositiveButton("Toevoegen") { _, _ ->
-                val text = input.text.toString().trim()
-                val delta = text.toIntOrNull() ?: 0
-                if (delta > 0) {
-                    onCountUpdated(row.soortId, delta)
+                val deltaMain = mainInput.text.toString().trim().toIntOrNull() ?: 0
+                val deltaReturn = returnInput.text.toString().trim().toIntOrNull() ?: 0
+                if (deltaMain > 0 || deltaReturn > 0) {
+                    onCountUpdated(row.soortId, deltaMain, deltaReturn)
                 }
             }
             .setNegativeButton("Annuleren", null)
@@ -179,6 +207,21 @@ class TellingDialogHelper(
             val messageId = android.R.id.message
             val messageView = dialog.findViewById<TextView>(messageId)
             messageView?.setTextColor(Color.WHITE)
+
+            // Buttons
+            val darkGray = activity.getColor(R.color.vt5_dark_gray)
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(darkGray)
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(darkGray)
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(darkGray)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to style dialog text: ${e.message}")
         }

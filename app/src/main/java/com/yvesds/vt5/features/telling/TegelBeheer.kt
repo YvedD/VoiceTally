@@ -125,6 +125,26 @@ class TegelBeheer(private val ui: TegelUi) {
         }
     }
 
+    fun verhoogSoortAantalMetRichting(soortId: String, deltaMain: Int, deltaReturn: Int): Boolean {
+        if (deltaMain == 0 && deltaReturn == 0) return true
+        synchronized(lock) {
+            val idx = tiles.indexOfFirst { it.soortId == soortId }
+            if (idx == -1) {
+                Log.w(TAG, "verhoogSoortAantalMetRichting: soortId $soortId niet gevonden")
+                return false
+            }
+            val cur = tiles[idx]
+            val updated = cur.copy(
+                countMain = cur.countMain + deltaMain,
+                countReturn = cur.countReturn + deltaReturn
+            )
+            tiles[idx] = updated
+            ui.onTileCountUpdated(soortId, updated.count)
+            ui.submitTiles(tiles.map { it.copy() })
+            return true
+        }
+    }
+
     fun verhoogSoortAantalOfVoegToe(soortId: String, naamFallback: String, delta: Int): Int? {
         synchronized(lock) {
             val idx = tiles.indexOfFirst { it.soortId == soortId }

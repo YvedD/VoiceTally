@@ -72,6 +72,7 @@ import java.util.Date
 import kotlin.jvm.Volatile
 import androidx.core.content.edit
 import com.yvesds.vt5.R
+import com.yvesds.vt5.utils.SeizoenUtils
 
 /**
  * TellingScherm.kt
@@ -780,16 +781,41 @@ class TellingScherm : AppCompatActivity() {
     /* ---------- TILE click dialog (adds to existing count) ---------- */
     private fun showNumberInputDialog(position: Int) {
         val current = tilesAdapter.currentList
-        dialogHelper.showNumberInputDialog(position, current) { soortId, delta ->
-            lifecycleScope.launch {
-                // Use tegelBeheer to update tile count
-                val naam = tegelBeheer.findNaamBySoortId(soortId) ?: "Unknown"
-                tegelBeheer.verhoogSoortAantal(soortId, delta)
+        val isZwSeason = SeizoenUtils.isZwSeizoen()
+        // Use telpost main directions if available
+        val (mainLabel, returnLabel) = try {
+            val savedJson = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(PREF_SAVED_ENVELOPE_JSON, null)
+            val savedTelpostId = savedJson?.let {
+                VT5App.json.decodeFromString<List<ServerTellingEnvelope>>(it).firstOrNull()?.telpostid
+            }
+            val telpostId = savedTelpostId ?: TellingSessionManager.preselectState.value.telpostId
 
-                // Behave exactly like an ASR final:
-                addFinalLog("$naam -> +$delta")
+            val snapshot = ServerDataCache.getCachedOrNull()
+            val site = telpostId?.let { snapshot?.sitesById?.get(it) }
+            val r1 = site?.r1?.takeIf { it.isNotBlank() && it != "nvt" }
+            val r2 = site?.r2?.takeIf { it.isNotBlank() && it != "nvt" }
+            if (r1 != null && r2 != null) {
+                if (isZwSeason) r1.uppercase() to r2.uppercase() else r2.uppercase() to r1.uppercase()
+            } else {
+                if (isZwSeason) "ZW" to "NO" else "NO" to "ZW"
+            }
+        } catch (_: Exception) {
+            if (isZwSeason) "ZW" to "NO" else "NO" to "ZW"
+        }
+
+        dialogHelper.showNumberInputDialog(position, current, mainLabel, returnLabel) { soortId, deltaMain, deltaReturn ->
+            lifecycleScope.launch {
+                val naam = tegelBeheer.findNaamBySoortId(soortId) ?: "Unknown"
+                tegelBeheer.verhoogSoortAantalMetRichting(soortId, deltaMain, deltaReturn)
+
+                val parts = mutableListOf<String>()
+                if (deltaMain > 0) parts.add("${mainLabel.uppercase()} +$deltaMain")
+                if (deltaReturn > 0) parts.add("${returnLabel.uppercase()} +$deltaReturn")
+                addFinalLog("$naam -> ${parts.joinToString(" / ")}")
                 RecentSpeciesStore.recordUse(this@TellingScherm, soortId, maxEntries = 30)
-                speciesManager.collectFinalAsRecord(soortId, delta)
+                if (deltaMain > 0) speciesManager.collectFinalAsRecord(soortId, deltaMain)
+                if (deltaReturn > 0) speciesManager.collectFinalAsRecordReturn(soortId, deltaReturn)
             }
         }
     }

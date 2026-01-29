@@ -158,9 +158,19 @@ class InstallationDialogManager(
             dialog.findViewById<TextView>(messageId)?.setTextColor(Color.WHITE)
             
             // Style buttons
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(Color.WHITE)
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(Color.WHITE)
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setTextColor(Color.WHITE)
+            val darkGray = activity.getColor(com.yvesds.vt5.R.color.vt5_dark_gray)
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(darkGray)
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(darkGray)
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.apply {
+                setTextColor(Color.WHITE)
+                setBackgroundColor(darkGray)
+            }
         } catch (e: Exception) {
             // Ignore styling errors - dialog will still be functional
         }
