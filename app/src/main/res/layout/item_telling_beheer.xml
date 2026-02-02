@@ -23,6 +23,13 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
+            <CheckBox
+                android:id="@+id/cbSelect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:buttonTint="@color/vt5_light_blue"
+                android:paddingEnd="8dp" />
+
             <TextView
                 android:id="@+id/tvFilename"
                 android:layout_width="0dp"
@@ -46,6 +53,14 @@
                 android:textSize="10sp"
                 android:visibility="gone" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvTellingId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/vt5_white"
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/tvInfo"

@@ -1,5 +1,6 @@
 package com.yvesds.vt5.features.telling
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.Dialog
 import android.content.res.ColorStateList
@@ -12,7 +13,6 @@ import android.view.Window
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.NumberPicker
@@ -21,22 +21,20 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.secure.CredentialsStore
 import com.yvesds.vt5.core.ui.CompassNeedleView
 import com.yvesds.vt5.features.annotation.AnnotationsManager
+import com.yvesds.vt5.features.serverdata.model.CodeItemSlim
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
-import com.yvesds.vt5.features.serverdata.model.SiteItem
-import com.yvesds.vt5.features.serverdata.model.SpeciesItem
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.net.TrektellenApi
@@ -50,7 +48,7 @@ import java.util.Locale
 
 /**
  * TellingBeheerScherm: Activity voor het beheren van opgeslagen tellingen.
- * 
+ *
  * Biedt een UI voor:
  * - Lijst van opgeslagen tellingen bekijken
  * - Telling selecteren en details bekijken
@@ -60,23 +58,25 @@ import java.util.Locale
  * - Opslaan en uploaden naar server
  */
 class TellingBeheerScherm : AppCompatActivity() {
-    
+
     companion object {
         private const val TAG = "TellingBeheerScherm"
+        private const val PREFS_UPLOADS = "vt5_uploads"
+        private const val KEY_PENDING_UPLOADS = "pending_uploads"
     }
-    
+
     private lateinit var toolset: TellingBeheerToolset
     private lateinit var safHelper: SaFStorageHelper
-    
+
     // Views
     private lateinit var tvTitel: TextView
     private lateinit var btnTerug: MaterialButton
-    private lateinit var layoutList: LinearLayout
+    private lateinit var layoutList: View
     private lateinit var layoutDetail: View
     private lateinit var tvLoading: TextView
     private lateinit var tvEmpty: TextView
     private lateinit var rvTellingen: RecyclerView
-    
+
     // Detail views
     private lateinit var tvDetailFilename: TextView
     private lateinit var tvDetailInfo: TextView
@@ -86,30 +86,31 @@ class TellingBeheerScherm : AppCompatActivity() {
     private lateinit var btnOpslaan: MaterialButton
     private lateinit var btnTellingVerwijderen: MaterialButton
     private lateinit var rvRecords: RecyclerView
-    
+    private lateinit var btnDeleteSelected: MaterialButton
+
     // State
     private var tellingenList: List<TellingFileInfo> = emptyList()
     private var currentFilename: String? = null
     private var currentEnvelope: ServerTellingEnvelope? = null
     private var hasUnsavedChanges = false
-    
+
     // Adapters
     private lateinit var tellingenAdapter: TellingenAdapter
     private lateinit var recordsAdapter: RecordsAdapter
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_telling_beheer)
-        
+
         safHelper = SaFStorageHelper(this)
         toolset = TellingBeheerToolset(this, safHelper)
-        
+
         setupBackPressedCallback()
         initViews()
         setupListeners()
         loadTellingenList()
     }
-    
+
     /**
      * Setup OnBackPressedCallback voor moderne back button handling.
      * Vervangt deprecated onBackPressed() override.
@@ -117,7 +118,7 @@ class TellingBeheerScherm : AppCompatActivity() {
     private fun setupBackPressedCallback() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (layoutDetail.visibility == View.VISIBLE) {
+                if (layoutDetail.isVisible) {
                     if (hasUnsavedChanges) {
                         showUnsavedChangesDialog()
                     } else {
@@ -131,7 +132,7 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
         })
     }
-    
+
     private fun initViews() {
         tvTitel = findViewById(R.id.tvTitel)
         btnTerug = findViewById(R.id.btnTerug)
@@ -140,7 +141,7 @@ class TellingBeheerScherm : AppCompatActivity() {
         tvLoading = findViewById(R.id.tvLoading)
         tvEmpty = findViewById(R.id.tvEmpty)
         rvTellingen = findViewById(R.id.rvTellingen)
-        
+
         tvDetailFilename = findViewById(R.id.tvDetailFilename)
         tvDetailInfo = findViewById(R.id.tvDetailInfo)
         tvDetailTelpost = findViewById(R.id.tvDetailTelpost)
@@ -149,12 +150,16 @@ class TellingBeheerScherm : AppCompatActivity() {
         btnOpslaan = findViewById(R.id.btnOpslaan)
         btnTellingVerwijderen = findViewById(R.id.btnTellingVerwijderen)
         rvRecords = findViewById(R.id.rvRecords)
-        
+        btnDeleteSelected = findViewById(R.id.btnDeleteSelected)
+
         // Setup RecyclerViews
-        tellingenAdapter = TellingenAdapter { info -> onTellingSelected(info) }
+        tellingenAdapter = TellingenAdapter(
+            onClick = { info -> onTellingSelected(info) },
+            onSelectionChanged = { updateDeleteSelectedState() }
+        )
         rvTellingen.layoutManager = LinearLayoutManager(this)
         rvTellingen.adapter = tellingenAdapter
-        
+
         recordsAdapter = RecordsAdapter(
             onEdit = { index, item -> showEditRecordDialog(index, item) },
             onDelete = { index, item -> showDeleteRecordDialog(index, item) }
@@ -162,10 +167,10 @@ class TellingBeheerScherm : AppCompatActivity() {
         rvRecords.layoutManager = LinearLayoutManager(this)
         rvRecords.adapter = recordsAdapter
     }
-    
+
     private fun setupListeners() {
         btnTerug.setOnClickListener {
-            if (layoutDetail.visibility == View.VISIBLE) {
+            if (layoutDetail.isVisible) {
                 if (hasUnsavedChanges) {
                     showUnsavedChangesDialog()
                 } else {
@@ -175,37 +180,44 @@ class TellingBeheerScherm : AppCompatActivity() {
                 finish()
             }
         }
-        
+
         btnMetadataBewerken.setOnClickListener {
             currentEnvelope?.let { showEditMetadataDialog(it) }
         }
-        
+
         btnRecordToevoegen.setOnClickListener {
             showAddRecordDialog()
         }
-        
+
         btnOpslaan.setOnClickListener {
             saveCurrentTelling()
         }
-        
+
         btnTellingVerwijderen.setOnClickListener {
             currentFilename?.let { showDeleteTellingDialog(it) }
         }
+
+        btnDeleteSelected.setOnClickListener {
+            val selected = tellingenAdapter.getSelectedFilenames()
+            if (selected.isNotEmpty()) {
+                showDeleteMultipleTellingenDialog(selected)
+            }
+        }
     }
-    
+
     private fun loadTellingenList() {
         tvLoading.visibility = View.VISIBLE
         tvEmpty.visibility = View.GONE
         rvTellingen.visibility = View.GONE
-        
+
         lifecycleScope.launch {
             try {
                 tellingenList = withContext(Dispatchers.IO) {
                     toolset.listSavedTellingen()
                 }
-                
+
                 tvLoading.visibility = View.GONE
-                
+
                 if (tellingenList.isEmpty()) {
                     tvEmpty.visibility = View.VISIBLE
                     rvTellingen.visibility = View.GONE
@@ -217,32 +229,32 @@ class TellingBeheerScherm : AppCompatActivity() {
             } catch (e: Exception) {
                 tvLoading.visibility = View.GONE
                 tvEmpty.visibility = View.VISIBLE
-                tvEmpty.text = "Fout bij laden: ${e.message}"
+                tvEmpty.text = getString(R.string.beheer_laden_fout, e.message ?: "")
             }
         }
     }
-    
+
     private fun onTellingSelected(info: TellingFileInfo) {
         lifecycleScope.launch {
             try {
                 val envelope = withContext(Dispatchers.IO) {
                     toolset.loadTelling(info.filename)
                 }
-                
+
                 if (envelope != null) {
                     currentFilename = info.filename
                     currentEnvelope = envelope
                     hasUnsavedChanges = false
                     showDetailView(info, envelope)
                 } else {
-                    Toast.makeText(this@TellingBeheerScherm, "Kon telling niet laden", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_telling_kon_niet_laden), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@TellingBeheerScherm, "Fout: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_fout, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     private fun showListView() {
         tvTitel.text = getString(R.string.beheer_titel)
         layoutList.visibility = View.VISIBLE
@@ -252,186 +264,290 @@ class TellingBeheerScherm : AppCompatActivity() {
         hasUnsavedChanges = false
         loadTellingenList()
     }
-    
+
     private fun showDetailView(info: TellingFileInfo, envelope: ServerTellingEnvelope) {
         tvTitel.text = getString(R.string.beheer_terug)
         layoutList.visibility = View.GONE
         layoutDetail.visibility = View.VISIBLE
-        
+
         tvDetailFilename.text = info.filename
-        tvDetailInfo.text = getString(R.string.beheer_telling_info, envelope.data.size, 
+        tvDetailInfo.text = getString(R.string.beheer_telling_info, envelope.data.size,
             envelope.data.map { it.soortid }.toSet().size)
-        tvDetailTelpost.text = "Telpost: ${envelope.telpostid} • Tellers: ${envelope.tellers}"
-        
+        tvDetailTelpost.text = getString(
+            R.string.beheer_detail_telpost_tellers,
+            envelope.telpostid,
+            envelope.tellers
+        )
+
         updateRecordsList(envelope)
     }
-    
+
     private fun updateRecordsList(envelope: ServerTellingEnvelope) {
         recordsAdapter.submitList(envelope.data.mapIndexed { index, item -> index to item })
         // Force RecyclerView to recalculate layout after data change
         // This is needed because rvRecords is inside a ScrollView with wrap_content height
         rvRecords.requestLayout()
     }
-    
+
     private fun showEditMetadataDialog(envelope: ServerTellingEnvelope) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_metadata, null)
-        
-        // Find all views
-        val acTelpost = dialogView.findViewById<AutoCompleteTextView>(R.id.acTelpost)
-        val etDatum = dialogView.findViewById<TextInputEditText>(R.id.etDatum)
-        val etBegintijd = dialogView.findViewById<TextInputEditText>(R.id.etBegintijd)
-        val etEindtijd = dialogView.findViewById<TextInputEditText>(R.id.etEindtijd)
-        val etTellers = dialogView.findViewById<TextInputEditText>(R.id.etTellers)
-        val etWeer = dialogView.findViewById<TextInputEditText>(R.id.etWeer)
-        val etOpmerkingen = dialogView.findViewById<TextInputEditText>(R.id.etOpmerkingen)
-        
-        // State for tracking selected values
-        var selectedTelpostId = envelope.telpostid
-        var selectedBegintijdEpoch = envelope.begintijd.toLongOrNull() ?: 0L
-        var selectedEindtijdEpoch = envelope.eindtijd.toLongOrNull() ?: 0L
-        
-        // Load telpost data and populate dropdown
-        lifecycleScope.launch {
-            try {
-                val snapshot = withContext(Dispatchers.IO) {
-                    ServerDataCache.getOrLoad(this@TellingBeheerScherm)
-                }
-                
-                val sites = snapshot.sitesById.values
-                    .sortedBy { it.telpostnaam.lowercase(Locale.getDefault()) }
-                
-                val labels = sites.map { it.telpostnaam }
-                val ids = sites.map { it.telpostid }
-                
-                val adapter = ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, labels)
-                acTelpost.setAdapter(adapter)
-                
-                // Pre-select current telpost
-                val currentIdx = ids.indexOf(envelope.telpostid)
-                if (currentIdx >= 0) {
-                    acTelpost.setText(labels[currentIdx], false)
-                }
-                
-                acTelpost.setOnItemClickListener { _, _, pos, _ ->
-                    selectedTelpostId = ids[pos]
-                }
-            } catch (e: Exception) {
-                // Fallback: just show telpostid as text
-                acTelpost.setText(envelope.telpostid)
-            }
-        }
-        
-        // Date/time formatters
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_edit_metadata)
+        dialog.setCancelable(true)
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
+        val tvTitle = dialog.findViewById<TextView>(R.id.tvTitle)
+        val onlineIdLabel = envelope.onlineid.takeIf { it.isNotBlank() } ?: "-"
+        tvTitle?.text = getString(R.string.meta_titel_basis_with_id, onlineIdLabel)
+
+        val acTelpost = dialog.findViewById<AutoCompleteTextView>(R.id.acTelpost)
+        val etDatum = dialog.findViewById<TextInputEditText>(R.id.etDatum)
+        val etTijd = dialog.findViewById<TextInputEditText>(R.id.etTijd)
+        val etTellers = dialog.findViewById<TextInputEditText>(R.id.etTellers)
+        val etWeerOpmerking = dialog.findViewById<TextInputEditText>(R.id.etWeerOpmerking)
+        val acWindrichting = dialog.findViewById<AutoCompleteTextView>(R.id.acWindrichting)
+        val etTemperatuur = dialog.findViewById<TextInputEditText>(R.id.etTemperatuur)
+        val acBewolking = dialog.findViewById<AutoCompleteTextView>(R.id.acBewolking)
+        val etZicht = dialog.findViewById<TextInputEditText>(R.id.etZicht)
+        val acWindkracht = dialog.findViewById<AutoCompleteTextView>(R.id.acWindkracht)
+        val acNeerslag = dialog.findViewById<AutoCompleteTextView>(R.id.acNeerslag)
+        val etLuchtdruk = dialog.findViewById<TextInputEditText>(R.id.etLuchtdruk)
+        val acTypeTelling = dialog.findViewById<AutoCompleteTextView>(R.id.acTypeTelling)
+        val etOpmerkingen = dialog.findViewById<TextInputEditText>(R.id.etOpmerkingen)
+        val btnAnnuleer = dialog.findViewById<MaterialButton>(R.id.btnAnnuleer)
+        val btnOk = dialog.findViewById<MaterialButton>(R.id.btnVerder)
+
+        btnOk.text = getString(R.string.dlg_ok)
+
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        
-        // Convert epoch to date string for display
-        fun epochToDateStr(epoch: Long): String {
-            return if (epoch > 0) dateFormat.format(Date(epoch * 1000)) else ""
+
+        var selectedTelpostId = envelope.telpostid
+        var selectedBegintijdEpoch = envelope.begintijd.toLongOrNull() ?: 0L
+        var selectedWindrichting: String? = null
+        var selectedBewolking: String? = null
+        var selectedWindkracht: String? = null
+        var selectedNeerslag: String? = null
+        var selectedTypeTelling: String? = null
+
+        fun parseEpoch(dateStr: String, timeStr: String, fallback: Long): Long {
+            return try {
+                dateTimeFormat.parse("$dateStr $timeStr")?.time?.div(1000) ?: fallback
+            } catch (_: Exception) {
+                fallback
+            }
         }
-        
-        fun epochToTimeStr(epoch: Long): String {
-            return if (epoch > 0) timeFormat.format(Date(epoch * 1000)) else ""
+
+        fun setDateTimeFromEpoch(epoch: Long) {
+            if (epoch > 0) {
+                val date = Date(epoch * 1000)
+                etDatum.setText(dateFormat.format(date))
+                etTijd.setText(timeFormat.format(date))
+            }
         }
-        
-        // Prefill current values
+
+        fun windkrachtValueFromDisplay(display: String): String {
+            return when {
+                display.equals("<1bf", ignoreCase = true) -> "0"
+                display.endsWith("bf", ignoreCase = true) -> display.dropLast(2).trim()
+                else -> display.trim()
+            }
+        }
+
+        fun bewolkingValueFromDisplay(display: String): String {
+            return display.substringBefore("/").trim()
+        }
+
+        fun findMatchingLabel(value: String, items: List<CodeItemSlim>): String? {
+            if (value.isBlank()) return null
+            return items.firstOrNull { it.value == value }?.text
+                ?: items.firstOrNull { it.text.equals(value, ignoreCase = true) }?.text
+        }
+
+        fun changedOrNull(newValue: String, oldValue: String): String? {
+            return if (newValue == oldValue) null else newValue
+        }
+
+        setDateTimeFromEpoch(selectedBegintijdEpoch)
         etTellers.setText(envelope.tellers)
-        etWeer.setText(envelope.weer)
+        etWeerOpmerking.setText(envelope.weer)
+        etTemperatuur.setText(envelope.temperatuur)
+        etZicht.setText(envelope.zicht)
+        etLuchtdruk.setText(envelope.hpa)
         etOpmerkingen.setText(envelope.opmerkingen)
-        
-        // Prefill date (from begintijd)
-        if (selectedBegintijdEpoch > 0) {
-            etDatum.setText(epochToDateStr(selectedBegintijdEpoch))
-        }
-        
-        // Prefill times
-        etBegintijd.setText(epochToTimeStr(selectedBegintijdEpoch))
-        etEindtijd.setText(epochToTimeStr(selectedEindtijdEpoch))
-        
-        // Setup date picker
+
         etDatum.setOnClickListener {
             val cal = Calendar.getInstance()
             if (selectedBegintijdEpoch > 0) {
                 cal.timeInMillis = selectedBegintijdEpoch * 1000
             }
-            
             DatePickerDialog(
                 this,
                 { _, year, month, dayOfMonth ->
                     val mm = (month + 1).toString().padStart(2, '0')
                     val dd = dayOfMonth.toString().padStart(2, '0')
-                    etDatum.setText("$year-$mm-$dd")
-                    
-                    // Update epoch values with new date
-                    val datePart = "$year-$mm-$dd"
-                    val beginTimePart = etBegintijd.text?.toString() ?: "00:00"
-                    val endTimePart = etEindtijd.text?.toString() ?: "00:00"
-                    
-                    try {
-                        selectedBegintijdEpoch = dateTimeFormat.parse("$datePart $beginTimePart")?.time?.div(1000) ?: selectedBegintijdEpoch
-                        selectedEindtijdEpoch = dateTimeFormat.parse("$datePart $endTimePart")?.time?.div(1000) ?: selectedEindtijdEpoch
-                    } catch (_: Exception) {}
+                    val dateStr = "$year-$mm-$dd"
+                    etDatum.setText(dateStr)
+                    val timeStr = etTijd.text?.toString()?.trim().orEmpty().ifBlank { "00:00" }
+                    selectedBegintijdEpoch = parseEpoch(dateStr, timeStr, selectedBegintijdEpoch)
                 },
                 cal.get(Calendar.YEAR),
                 cal.get(Calendar.MONTH),
                 cal.get(Calendar.DAY_OF_MONTH)
             ).show()
         }
-        
-        // Setup begintijd time picker
-        etBegintijd.setOnClickListener {
-            showTimePickerDialog(etBegintijd, selectedBegintijdEpoch) { newEpoch ->
+
+        etTijd.setOnClickListener {
+            showTimePickerDialog(etTijd, selectedBegintijdEpoch) { newEpoch ->
                 selectedBegintijdEpoch = newEpoch
             }
         }
-        
-        // Setup eindtijd time picker
-        etEindtijd.setOnClickListener {
-            showTimePickerDialog(etEindtijd, selectedEindtijdEpoch) { newEpoch ->
-                selectedEindtijdEpoch = newEpoch
+
+        lifecycleScope.launch {
+            val snapshot = try {
+                withContext(Dispatchers.IO) { ServerDataCache.getOrLoad(this@TellingBeheerScherm) }
+            } catch (_: Exception) {
+                null
+            }
+            if (snapshot == null) {
+                acTelpost.setText(envelope.telpostid)
+                return@launch
+            }
+
+            val sites = snapshot.sitesById.values
+                .sortedBy { it.telpostnaam.lowercase(Locale.getDefault()) }
+            val siteLabels = sites.map { it.telpostnaam }
+            val siteIds = sites.map { it.telpostid }
+            acTelpost.setAdapter(ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, siteLabels))
+            val currentSiteIdx = siteIds.indexOf(envelope.telpostid)
+            if (currentSiteIdx >= 0) {
+                acTelpost.setText(siteLabels[currentSiteIdx], false)
+            }
+            acTelpost.setOnItemClickListener { _, _, pos, _ ->
+                selectedTelpostId = siteIds[pos]
+            }
+
+            val windCodes = snapshot.codesByCategory["wind"].orEmpty()
+            val windLabels = windCodes.map { it.text }
+            val windValuesByLabel = windCodes.associate { it.text to it.value }
+            acWindrichting.setAdapter(ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, windLabels))
+            findMatchingLabel(envelope.windrichting, windCodes)?.let { label ->
+                acWindrichting.setText(label, false)
+                selectedWindrichting = windValuesByLabel[label] ?: envelope.windrichting
+            }
+            acWindrichting.setOnItemClickListener { _, _, pos, _ ->
+                selectedWindrichting = windCodes[pos].value
+            }
+
+            val bewolkingDisplays = (0..8).map { "$it/8" }
+            val bewolkingValues = (0..8).map { it.toString() }
+            acBewolking.setAdapter(ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, bewolkingDisplays))
+            val bewolkingValue = envelope.bewolking
+            if (bewolkingValue.isNotBlank()) {
+                val idx = bewolkingValues.indexOf(bewolkingValue)
+                if (idx >= 0) {
+                    acBewolking.setText(bewolkingDisplays[idx], false)
+                    selectedBewolking = bewolkingValues[idx]
+                }
+            }
+            acBewolking.setOnItemClickListener { _, _, pos, _ ->
+                selectedBewolking = bewolkingValues[pos]
+            }
+
+            val windkrachtDisplays = buildList { add("<1bf"); addAll((1..12).map { "${it}bf" }) }
+            val windkrachtValues = buildList { add("0"); addAll((1..12).map { it.toString() }) }
+            acWindkracht.setAdapter(ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, windkrachtDisplays))
+            val windkrachtValue = envelope.windkracht
+            if (windkrachtValue.isNotBlank()) {
+                val idx = windkrachtValues.indexOf(windkrachtValue)
+                if (idx >= 0) {
+                    acWindkracht.setText(windkrachtDisplays[idx], false)
+                    selectedWindkracht = windkrachtValues[idx]
+                }
+            }
+            acWindkracht.setOnItemClickListener { _, _, pos, _ ->
+                selectedWindkracht = windkrachtValues[pos]
+            }
+
+            val neerslagCodes = snapshot.codesByCategory["neerslag"].orEmpty()
+            val neerslagLabels = neerslagCodes.map { it.text }
+            val neerslagValuesByLabel = neerslagCodes.associate { it.text to it.value }
+            acNeerslag.setAdapter(ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, neerslagLabels))
+            findMatchingLabel(envelope.neerslag, neerslagCodes)?.let { label ->
+                acNeerslag.setText(label, false)
+                selectedNeerslag = neerslagValuesByLabel[label] ?: envelope.neerslag
+            }
+            acNeerslag.setOnItemClickListener { _, _, pos, _ ->
+                selectedNeerslag = neerslagCodes[pos].value
+            }
+
+            val typeCodesAll = snapshot.codesByCategory["typetelling_trek"].orEmpty()
+            val typeCodes = typeCodesAll.filterNot { c ->
+                val key = c.key ?: ""
+                key.contains("_sound") ||
+                    key.contains("_ringen") ||
+                    key.startsWith("samplingrate_") ||
+                    key.startsWith("gain_") ||
+                    key.startsWith("verstoring_")
+            }
+            val typeLabels = typeCodes.map { it.text }
+            val typeValuesByLabel = typeCodes.associate { it.text to it.value }
+            acTypeTelling.setAdapter(ArrayAdapter(this@TellingBeheerScherm, android.R.layout.simple_list_item_1, typeLabels))
+            findMatchingLabel(envelope.typetelling, typeCodes)?.let { label ->
+                acTypeTelling.setText(label, false)
+                selectedTypeTelling = typeValuesByLabel[label] ?: envelope.typetelling
+            }
+            acTypeTelling.setOnItemClickListener { _, _, pos, _ ->
+                selectedTypeTelling = typeCodes[pos].value
             }
         }
-        
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.beheer_metadata_bewerken))
-            .setView(dialogView)
-            .setPositiveButton("OK") { _, _ ->
-                // Build epoch strings from date + time
-                val datePart = etDatum.text?.toString() ?: ""
-                val beginTimePart = etBegintijd.text?.toString() ?: "00:00"
-                val endTimePart = etEindtijd.text?.toString() ?: "00:00"
-                
-                var finalBegintijd = selectedBegintijdEpoch.toString()
-                var finalEindtijd = selectedEindtijdEpoch.toString()
-                
-                if (datePart.isNotBlank()) {
-                    try {
-                        dateTimeFormat.parse("$datePart $beginTimePart")?.let {
-                            finalBegintijd = (it.time / 1000).toString()
-                        }
-                        dateTimeFormat.parse("$datePart $endTimePart")?.let {
-                            finalEindtijd = (it.time / 1000).toString()
-                        }
-                    } catch (_: Exception) {}
-                }
-                
-                val updates = MetadataUpdates(
-                    telpostid = selectedTelpostId,
-                    begintijd = finalBegintijd,
-                    eindtijd = finalEindtijd,
-                    tellers = etTellers.text?.toString(),
-                    weer = etWeer.text?.toString(),
-                    opmerkingen = etOpmerkingen.text?.toString()
-                )
-                currentEnvelope = toolset.updateMetadata(envelope, updates)
-                hasUnsavedChanges = true
-                currentEnvelope?.let { updateDetailView(it) }
+
+        btnAnnuleer.setOnClickListener { dialog.dismiss() }
+        btnOk.setOnClickListener {
+            val datePart = etDatum.text?.toString()?.trim().orEmpty()
+            val timePart = etTijd.text?.toString()?.trim().orEmpty().ifBlank { "00:00" }
+            val finalBegintijd = if (datePart.isNotBlank()) {
+                parseEpoch(datePart, timePart, selectedBegintijdEpoch).toString()
+            } else {
+                selectedBegintijdEpoch.toString()
             }
-            .setNegativeButton("Annuleren", null)
-            .show()
+
+            val windkrachtText = acWindkracht.text?.toString()?.trim().orEmpty()
+            val bewolkingText = acBewolking.text?.toString()?.trim().orEmpty()
+
+            val newTelpostId = selectedTelpostId.ifBlank { envelope.telpostid }
+            val newWindrichting = (selectedWindrichting ?: acWindrichting.text?.toString()?.trim().orEmpty())
+            val newWindkracht = (selectedWindkracht ?: windkrachtValueFromDisplay(windkrachtText))
+            val newBewolking = (selectedBewolking ?: bewolkingValueFromDisplay(bewolkingText))
+            val newNeerslag = (selectedNeerslag ?: acNeerslag.text?.toString()?.trim().orEmpty())
+            val newTypeTelling = (selectedTypeTelling ?: acTypeTelling.text?.toString()?.trim().orEmpty())
+
+            val updates = MetadataUpdates(
+                telpostid = changedOrNull(newTelpostId, envelope.telpostid),
+                begintijd = changedOrNull(finalBegintijd, envelope.begintijd),
+                tellers = changedOrNull(etTellers.text?.toString()?.trim().orEmpty(), envelope.tellers),
+                weer = changedOrNull(etWeerOpmerking.text?.toString()?.trim().orEmpty(), envelope.weer),
+                opmerkingen = changedOrNull(etOpmerkingen.text?.toString()?.trim().orEmpty(), envelope.opmerkingen),
+                windrichting = changedOrNull(newWindrichting, envelope.windrichting),
+                windkracht = changedOrNull(newWindkracht, envelope.windkracht),
+                temperatuur = changedOrNull(etTemperatuur.text?.toString()?.trim().orEmpty(), envelope.temperatuur),
+                bewolking = changedOrNull(newBewolking, envelope.bewolking),
+                neerslag = changedOrNull(newNeerslag, envelope.neerslag),
+                zicht = changedOrNull(etZicht.text?.toString()?.trim().orEmpty(), envelope.zicht),
+                hpa = changedOrNull(etLuchtdruk.text?.toString()?.trim().orEmpty(), envelope.hpa),
+                typetelling = changedOrNull(newTypeTelling, envelope.typetelling)
+            )
+
+            currentEnvelope = toolset.updateMetadata(envelope, updates)
+            hasUnsavedChanges = true
+            currentEnvelope?.let { updateDetailView(it) }
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
-    
+
     /**
      * Show a time picker dialog with hour and minute spinners.
      */
@@ -444,22 +560,22 @@ class TellingBeheerScherm : AppCompatActivity() {
         if (currentEpoch > 0) {
             cal.timeInMillis = currentEpoch * 1000
         }
-        
+
         val startHour = cal.get(Calendar.HOUR_OF_DAY)
         val startMinute = cal.get(Calendar.MINUTE)
-        
+
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(48, 32, 48, 16)
         }
-        
+
         val hourPicker = NumberPicker(this).apply {
             minValue = 0
             maxValue = 23
             value = startHour
             wrapSelectorWheel = true
         }
-        
+
         val minutePicker = NumberPicker(this).apply {
             minValue = 0
             maxValue = 59
@@ -467,29 +583,27 @@ class TellingBeheerScherm : AppCompatActivity() {
             wrapSelectorWheel = true
             setFormatter { v -> v.toString().padStart(2, '0') }
         }
-        
+
         // Auto-increment hour when going 59->0 or 0->59
-        var lastMinute = startMinute
         minutePicker.setOnValueChangedListener { _, _, newVal ->
-            if (newVal == 0 && lastMinute == 59) {
+            if (newVal == 0 && startMinute == 59) {
                 hourPicker.value = (hourPicker.value + 1) % 24
-            } else if (newVal == 59 && lastMinute == 0) {
+            } else if (newVal == 59 && startMinute == 0) {
                 hourPicker.value = if (hourPicker.value == 0) 23 else hourPicker.value - 1
             }
-            lastMinute = newVal
         }
-        
+
         row.addView(hourPicker, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(minutePicker, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        
+
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_tijd_kiezen))
             .setView(row)
-            .setPositiveButton("OK") { _, _ ->
+            .setPositiveButton(getString(R.string.dlg_ok)) { _, _ ->
                 val hh = hourPicker.value.toString().padStart(2, '0')
                 val mm = minutePicker.value.toString().padStart(2, '0')
-                targetEditText.setText("$hh:$mm")
-                
+                targetEditText.setText(getString(R.string.beheer_time_hhmm, hh, mm))
+
                 // Calculate new epoch
                 val newCal = Calendar.getInstance()
                 if (currentEpoch > 0) {
@@ -498,34 +612,34 @@ class TellingBeheerScherm : AppCompatActivity() {
                 newCal.set(Calendar.HOUR_OF_DAY, hourPicker.value)
                 newCal.set(Calendar.MINUTE, minutePicker.value)
                 newCal.set(Calendar.SECOND, 0)
-                
+
                 onTimeSelected(newCal.timeInMillis / 1000)
             }
-            .setNegativeButton("Annuleren", null)
+            .setNegativeButton(getString(R.string.annuleer), null)
             .show()
     }
-    
+
     private fun showAddRecordDialog() {
         showFullRecordDialog(null, null)
     }
-    
+
     private fun showEditRecordDialog(index: Int, item: ServerTellingDataItem) {
         showFullRecordDialog(index, item)
     }
-    
+
     /**
      * Show a comprehensive dialog for editing or adding a record.
      * Includes species selection with searchable dropdown and all annotation fields.
-     * 
+     *
      * @param index Record index (null for adding new record)
      * @param existingItem Existing record to edit (null for adding new record)
      */
     private fun showFullRecordDialog(index: Int?, existingItem: ServerTellingDataItem?) {
         val envelope = currentEnvelope ?: return
         val isEditing = index != null && existingItem != null
-        
+
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_record_full, null)
-        
+
         // Find all views
         val acSoort = dialogView.findViewById<AutoCompleteTextView>(R.id.acSoort)
         val etAantal = dialogView.findViewById<TextInputEditText>(R.id.etAantal)
@@ -539,28 +653,29 @@ class TellingBeheerScherm : AppCompatActivity() {
         val cbMarkeren = dialogView.findViewById<android.widget.CheckBox>(R.id.cbMarkeren)
         val cbMarkerenLokaal = dialogView.findViewById<android.widget.CheckBox>(R.id.cbMarkerenLokaal)
         val etOpmerkingen = dialogView.findViewById<TextInputEditText>(R.id.etRecordOpmerkingen)
-        
+
         // State variables
         var selectedSoortId = existingItem?.soortid ?: ""
         var selectedSightingDirection = existingItem?.sightingdirection ?: ""
         var selectedLeeftijd = existingItem?.leeftijd ?: ""
         var selectedGeslacht = existingItem?.geslacht ?: ""
         var selectedKleed = existingItem?.kleed ?: ""
-        
+
         // Prefill existing values
         if (isEditing) {
-            acSoort.setText(existingItem!!.soortid)
-            etAantal.setText(existingItem.aantal)
-            etAantalterug.setText(existingItem.aantalterug)
-            etLokaal.setText(existingItem.lokaal)
-            acLeeftijd.setText(existingItem.leeftijd)
-            acGeslacht.setText(existingItem.geslacht)
-            acKleed.setText(existingItem.kleed)
-            cbMarkeren.isChecked = existingItem.markeren == "1"
-            cbMarkerenLokaal.isChecked = existingItem.markerenlokaal == "1"
-            etOpmerkingen.setText(existingItem.opmerkingen)
+            val record = requireNotNull(existingItem)
+            acSoort.setText(record.soortid)
+            etAantal.setText(record.aantal)
+            etAantalterug.setText(record.aantalterug)
+            etLokaal.setText(record.lokaal)
+            acLeeftijd.setText(record.leeftijd)
+            acGeslacht.setText(record.geslacht)
+            acKleed.setText(record.kleed)
+            cbMarkeren.isChecked = record.markeren == "1"
+            cbMarkerenLokaal.isChecked = record.markerenlokaal == "1"
+            etOpmerkingen.setText(record.opmerkingen)
         }
-        
+
         // Load species and annotation data
         lifecycleScope.launch {
             try {
@@ -568,14 +683,14 @@ class TellingBeheerScherm : AppCompatActivity() {
                 val snapshot = withContext(Dispatchers.IO) {
                     ServerDataCache.getOrLoad(this@TellingBeheerScherm)
                 }
-                
+
                 // Populate species dropdown
                 val species = snapshot.speciesById.values.toList()
                     .sortedBy { it.soortnaam.lowercase(Locale.getDefault()) }
-                
+
                 val speciesLabels = species.map { "${it.soortnaam} (${it.soortid})" }
                 val speciesIds = species.map { it.soortid }
-                
+
                 val speciesAdapter = ArrayAdapter(
                     this@TellingBeheerScherm,
                     android.R.layout.simple_dropdown_item_1line,
@@ -583,7 +698,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                 )
                 acSoort.setAdapter(speciesAdapter)
                 acSoort.threshold = 1 // Start filtering after 1 character
-                
+
                 // Set current species display name if editing
                 if (isEditing && selectedSoortId.isNotBlank()) {
                     val currentIdx = speciesIds.indexOf(selectedSoortId)
@@ -591,7 +706,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                         acSoort.setText(speciesLabels[currentIdx], false)
                     }
                 }
-                
+
                 acSoort.setOnItemClickListener { _, _, pos, _ ->
                     // Filter to find actual match
                     val selectedLabel = acSoort.adapter.getItem(pos) as String
@@ -600,7 +715,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                         selectedSoortId = speciesIds[idx]
                     }
                 }
-                
+
                 // Also handle manual text entry (allow typing soortid directly)
                 acSoort.setOnFocusChangeListener { _, hasFocus ->
                     if (!hasFocus) {
@@ -620,13 +735,13 @@ class TellingBeheerScherm : AppCompatActivity() {
                         }
                     }
                 }
-                
+
                 // Load annotations
                 withContext(Dispatchers.IO) {
                     AnnotationsManager.loadCache(this@TellingBeheerScherm)
                 }
                 val annotations = AnnotationsManager.getCached()
-                
+
                 // Set up compass button for sighting direction
                 updateDirectionDisplay(tvSelectedDirection, selectedSightingDirection)
                 btnCompass.setOnClickListener {
@@ -635,7 +750,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                         updateDirectionDisplay(tvSelectedDirection, selectedSightingDirection)
                     }
                 }
-                
+
                 // Populate leeftijd dropdown - use waarde (server code) for values
                 val leeftijdOptions = listOf("") + (annotations["leeftijd"]?.map { it.waarde ?: "" } ?: emptyList())
                 val leeftijdLabels = listOf("(geen)") + (annotations["leeftijd"]?.map { it.tekst } ?: emptyList())
@@ -648,7 +763,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                 acLeeftijd.setOnItemClickListener { _, _, pos, _ ->
                     selectedLeeftijd = leeftijdOptions[pos]
                 }
-                
+
                 // Populate geslacht dropdown - use waarde (server code) for values
                 val geslachtOptions = listOf("") + (annotations["geslacht"]?.map { it.waarde ?: "" } ?: emptyList())
                 val geslachtLabels = listOf("(geen)") + (annotations["geslacht"]?.map { it.tekst } ?: emptyList())
@@ -661,7 +776,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                 acGeslacht.setOnItemClickListener { _, _, pos, _ ->
                     selectedGeslacht = geslachtOptions[pos]
                 }
-                
+
                 // Populate kleed dropdown - use waarde (server code) for values
                 val kleedOptions = listOf("") + (annotations["kleed"]?.map { it.waarde ?: "" } ?: emptyList())
                 val kleedLabels = listOf("(geen)") + (annotations["kleed"]?.map { it.tekst } ?: emptyList())
@@ -674,23 +789,23 @@ class TellingBeheerScherm : AppCompatActivity() {
                 acKleed.setOnItemClickListener { _, _, pos, _ ->
                     selectedKleed = kleedOptions[pos]
                 }
-                
+
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load species/annotation data: ${e.message}", e)
-                Toast.makeText(this@TellingBeheerScherm, "Kon soorten niet laden", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_soorten_niet_geladen), Toast.LENGTH_SHORT).show()
             }
         }
-        
+
         val title = if (isEditing) {
             getString(R.string.beheer_record_volledig_bewerken)
         } else {
             getString(R.string.beheer_record_toevoegen)
         }
-        
+
         AlertDialog.Builder(this)
             .setTitle(title)
             .setView(dialogView)
-            .setPositiveButton(if (isEditing) "Opslaan" else "Toevoegen") { _, _ ->
+            .setPositiveButton(if (isEditing) getString(R.string.beheer_opslaan) else getString(R.string.telling_add)) { _, _ ->
                 // Get final soortid from the text field if not set
                 if (selectedSoortId.isBlank()) {
                     val text = acSoort.text.toString().trim()
@@ -698,36 +813,38 @@ class TellingBeheerScherm : AppCompatActivity() {
                     val match = Regex("\\(([^)]+)\\)$").find(text)
                     selectedSoortId = match?.groupValues?.get(1) ?: text
                 }
-                
+
                 if (selectedSoortId.isBlank()) {
-                    Toast.makeText(this, "Soort is verplicht", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.beheer_soort_verplicht), Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                
+
                 // All numeric fields must be "0" when empty/blank, not ""
                 // Server expects string values, empty strings must be "" for non-numeric fields
                 val aantalRaw = etAantal.text?.toString()?.trim() ?: ""
                 val aantalterugRaw = etAantalterug.text?.toString()?.trim() ?: ""
                 val lokaalRaw = etLokaal.text?.toString()?.trim() ?: ""
                 val opmerkingen = etOpmerkingen.text?.toString() ?: ""
-                
+
                 // Numeric fields: use "0" when blank
                 val aantal = aantalRaw.ifBlank { "0" }
                 val aantalterug = aantalterugRaw.ifBlank { "0" }
                 val lokaal = lokaalRaw.ifBlank { "0" }
-                
+
                 // Checkboxes: "0" or "1" (never "")
                 val markeren = if (cbMarkeren.isChecked) "1" else "0"
                 val markerenlokaal = if (cbMarkerenLokaal.isChecked) "1" else "0"
-                
+
                 // Calculate totaalaantal
                 val aantalInt = aantal.toIntOrNull() ?: 0
                 val aantalterugInt = aantalterug.toIntOrNull() ?: 0
                 val lokaalInt = lokaal.toIntOrNull() ?: 0
                 val totaal = aantalInt + aantalterugInt + lokaalInt
-                
+
                 if (isEditing) {
-                    val updatedRecord = existingItem!!.copy(
+                    val record = requireNotNull(existingItem)
+                    val idx = requireNotNull(index)
+                    val updatedRecord = record.copy(
                         soortid = selectedSoortId,
                         aantal = aantal,
                         aantalterug = aantalterug,
@@ -738,17 +855,17 @@ class TellingBeheerScherm : AppCompatActivity() {
                         geslacht = selectedGeslacht,
                         kleed = selectedKleed,
                         markeren = markeren,
-                        markerenlokaal = markerenlokaal,
+                        markerenlokaal = record.markerenlokaal,
                         opmerkingen = opmerkingen
                     )
-                    currentEnvelope = toolset.updateRecord(envelope, index!!, updatedRecord)
+                    currentEnvelope = toolset.updateRecord(envelope, idx, updatedRecord)
                 } else {
                     // Create new record with all fields properly set
                     // Numeric fields must be "0" when blank, not ""
                     val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
                     val currentTimestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                         .format(Date())
-                    
+
                     val newRecord = ServerTellingDataItem(
                         // IDs will be set by addRecord
                         idLocal = "",
@@ -780,218 +897,53 @@ class TellingBeheerScherm : AppCompatActivity() {
                     )
                     currentEnvelope = toolset.addRecord(envelope, newRecord, generateId = true)
                 }
-                
+
                 hasUnsavedChanges = true
-                currentEnvelope?.let { 
+                currentEnvelope?.let {
                     updateRecordsList(it)
                     updateDetailView(it)
                 }
             }
-            .setNegativeButton("Annuleren", null)
+            .setNegativeButton(getString(R.string.annuleer), null)
             .show()
     }
-    
-    /**
-     * Direction button data: Dutch label -> uppercase English code for sightingdirection field.
-     * Matches codes.json sightingdirection values.
-     */
-    private val directionLabelToCode = mapOf(
-        "N" to "N", "NNO" to "NNE", "NO" to "NE", "ONO" to "ENE",
-        "O" to "E", "OZO" to "ESE", "ZO" to "SE", "ZZO" to "SSE",
-        "Z" to "S", "ZZW" to "SSW", "ZW" to "SW", "WZW" to "WSW",
-        "W" to "W", "WNW" to "WNW", "NW" to "NW", "NNW" to "NNW"
-    )
-    
-    /**
-     * Direction button IDs for compass dialog.
-     */
-    private val directionButtonIds = listOf(
-        R.id.btn_dir_n, R.id.btn_dir_nno, R.id.btn_dir_no, R.id.btn_dir_ono,
-        R.id.btn_dir_o, R.id.btn_dir_ozo, R.id.btn_dir_zo, R.id.btn_dir_zzo,
-        R.id.btn_dir_z, R.id.btn_dir_zzw, R.id.btn_dir_zw, R.id.btn_dir_wzw,
-        R.id.btn_dir_w, R.id.btn_dir_wnw, R.id.btn_dir_nw, R.id.btn_dir_nnw
-    )
-    
-    /**
-     * Updates the direction display TextView with the selected direction.
-     */
-    private fun updateDirectionDisplay(textView: TextView?, directionCode: String?) {
-        if (textView == null) return
-        
-        if (directionCode.isNullOrBlank()) {
-            textView.text = ""
-        } else {
-            // Find the Dutch label for the English code
-            val label = directionLabelToCode.entries.find { it.value == directionCode }?.key ?: directionCode
-            textView.text = label
-        }
-    }
-    
-    /**
-     * Shows the compass dialog for selecting sighting direction.
-     * The compass uses device sensors to show a real moving needle.
-     * User can tap on any of the 16 wind direction buttons to select it.
-     * 
-     * @param initialDirection The initially selected direction code (e.g., "N", "NE")
-     * @param onDirectionSelected Callback with selected direction code, or null if cleared/cancelled
-     */
-    private fun showCompassDialogForRecord(
-        initialDirection: String?,
-        onDirectionSelected: (String?) -> Unit
-    ) {
-        // Store original direction to restore on cancel
-        val originalDirection = initialDirection
-        var currentSelection = initialDirection
-        
-        val dialog = Dialog(this)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.dialog_compass)
-        dialog.setCancelable(true)
-        
-        val compassNeedleView = dialog.findViewById<CompassNeedleView>(R.id.compass_needle_view)
-        val tvSelectedDirection = dialog.findViewById<TextView>(R.id.tv_selected_direction)
-        val btnCancel = dialog.findViewById<Button>(R.id.btn_compass_cancel)
-        val btnClear = dialog.findViewById<Button>(R.id.btn_compass_clear)
-        val btnOk = dialog.findViewById<Button>(R.id.btn_compass_ok)
-        
-        // Get all direction buttons using predefined ID list
-        val directionButtons = directionButtonIds.map { id ->
-            dialog.findViewById<MaterialButton>(id)
-        }
-        
-        // Colors for button states
-        val normalColor = getColor(R.color.vt5_dark_gray)
-        val selectedColor = getColor(R.color.vt5_light_blue)
-        
-        // Set initial selection if already selected
-        val initialLabel = initialDirection?.let { code ->
-            directionLabelToCode.entries.find { it.value == code }?.key
-        }
-        updateDirectionButtonColors(directionButtons, initialLabel, normalColor, selectedColor)
-        updateCompassSelectionText(tvSelectedDirection, initialDirection)
-        
-        // Set up click handlers for all direction buttons
-        directionButtons.forEach { btn ->
-            btn.setOnClickListener {
-                val label = btn.text.toString()
-                val code = directionLabelToCode[label] ?: label
-                
-                // Toggle: if same button tapped again, deselect
-                if (currentSelection == code) {
-                    currentSelection = null
-                    updateDirectionButtonColors(directionButtons, null, normalColor, selectedColor)
-                    updateCompassSelectionText(tvSelectedDirection, null)
-                } else {
-                    currentSelection = code
-                    updateDirectionButtonColors(directionButtons, label, normalColor, selectedColor)
-                    updateCompassSelectionText(tvSelectedDirection, code)
-                }
-            }
-        }
-        
-        // Start sensors when dialog is shown
-        compassNeedleView.startSensors()
-        
-        btnCancel.setOnClickListener {
-            // Cancel reverts to the original selection (before opening dialog)
-            compassNeedleView.stopSensors()
-            onDirectionSelected(originalDirection)
-            dialog.dismiss()
-        }
-        
-        btnClear.setOnClickListener {
-            currentSelection = null
-            updateDirectionButtonColors(directionButtons, null, normalColor, selectedColor)
-            updateCompassSelectionText(tvSelectedDirection, null)
-        }
-        
-        btnOk.setOnClickListener {
-            // Selection is already stored, just close the dialog
-            compassNeedleView.stopSensors()
-            onDirectionSelected(currentSelection)
-            dialog.dismiss()
-        }
-        
-        // Stop sensors when dialog is dismissed (by back button, etc.)
-        dialog.setOnDismissListener {
-            compassNeedleView.stopSensors()
-        }
-        
-        dialog.show()
-        
-        // Set dialog width to match parent with some margin
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.95).toInt(),
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-    }
-    
-    /**
-     * Updates the background colors of direction buttons based on selection.
-     */
-    private fun updateDirectionButtonColors(
-        buttons: List<MaterialButton>,
-        selectedLabel: String?,
-        normalColor: Int,
-        selectedColor: Int
-    ) {
-        buttons.forEach { btn ->
-            val isSelected = btn.text.toString() == selectedLabel
-            btn.backgroundTintList = ColorStateList.valueOf(
-                if (isSelected) selectedColor else normalColor
-            )
-        }
-    }
-    
-    /**
-     * Updates the text showing the selected direction in the compass dialog.
-     */
-    private fun updateCompassSelectionText(textView: TextView, directionCode: String?) {
-        if (directionCode == null) {
-            textView.text = getString(R.string.compass_no_selection)
-        } else {
-            // Find the Dutch label for the English code
-            val label = directionLabelToCode.entries.find { it.value == directionCode }?.key ?: directionCode
-            textView.text = getString(R.string.compass_selected, label)
-        }
-    }
-    
+
     private fun showDeleteRecordDialog(index: Int, item: ServerTellingDataItem) {
         val envelope = currentEnvelope ?: return
-        
+
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_record_verwijderen))
-            .setMessage("Weet je zeker dat je record ${index + 1} (${item.soortid}) wilt verwijderen?")
-            .setPositiveButton("Verwijderen") { _, _ ->
+            .setMessage(getString(R.string.beheer_record_verwijder_msg, index + 1, item.soortid))
+            .setPositiveButton(getString(R.string.beheer_verwijderen)) { _, _ ->
                 currentEnvelope = toolset.deleteRecord(envelope, index)
                 hasUnsavedChanges = true
-                currentEnvelope?.let { 
+                currentEnvelope?.let {
                     updateRecordsList(it)
                     updateDetailView(it)
                 }
             }
-            .setNegativeButton("Annuleren", null)
+            .setNegativeButton(getString(R.string.annuleer), null)
             .show()
     }
-    
+
     private fun showDeleteTellingDialog(filename: String) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_verwijder_bevestig_titel))
             .setMessage(getString(R.string.beheer_verwijder_bevestig_msg, filename))
-            .setPositiveButton("Verwijderen") { _, _ ->
+            .setPositiveButton(getString(R.string.beheer_verwijderen)) { _, _ ->
                 deleteTelling(filename)
             }
-            .setNegativeButton("Annuleren", null)
+            .setNegativeButton(getString(R.string.annuleer), null)
             .show()
     }
-    
+
     private fun deleteTelling(filename: String) {
         lifecycleScope.launch {
             try {
                 val success = withContext(Dispatchers.IO) {
                     toolset.deleteTelling(filename)
                 }
-                
+
                 if (success) {
                     Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_verwijderd), Toast.LENGTH_SHORT).show()
                     showListView()
@@ -999,16 +951,15 @@ class TellingBeheerScherm : AppCompatActivity() {
                     Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_verwijder_fout), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@TellingBeheerScherm, "Fout: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_fout, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     private fun saveCurrentTelling() {
         val filename = currentFilename ?: return
         val envelope = currentEnvelope ?: return
-        
-        // Show confirmation dialog for upload
+
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_upload_bevestig_titel))
             .setMessage(getString(R.string.beheer_upload_bevestig_msg))
@@ -1018,10 +969,10 @@ class TellingBeheerScherm : AppCompatActivity() {
             .setNegativeButton(getString(R.string.beheer_alleen_opslaan)) { _, _ ->
                 performSaveOnly(filename, envelope)
             }
-            .setNeutralButton("Annuleren", null)
+            .setNeutralButton(getString(R.string.annuleer), null)
             .show()
     }
-    
+
     /**
      * Save locally only without uploading to server.
      */
@@ -1031,7 +982,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                 val success = withContext(Dispatchers.IO) {
                     toolset.saveTelling(envelope, filename)
                 }
-                
+
                 if (success) {
                     hasUnsavedChanges = false
                     Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_opgeslagen), Toast.LENGTH_SHORT).show()
@@ -1040,11 +991,11 @@ class TellingBeheerScherm : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Save only failed: ${e.message}", e)
-                Toast.makeText(this@TellingBeheerScherm, "Fout: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_fout, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
-    
+
     /**
      * Save locally and upload to server (like Afronden in TellingScherm).
      */
@@ -1055,29 +1006,30 @@ class TellingBeheerScherm : AppCompatActivity() {
                 val saveSuccess = withContext(Dispatchers.IO) {
                     toolset.saveTelling(envelope, filename)
                 }
-                
+
                 if (!saveSuccess) {
                     Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_opslaan_fout), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
-                
+
                 // Get credentials
                 val creds = CredentialsStore(this@TellingBeheerScherm)
                 val user = creds.getUsername().orEmpty()
                 val pass = creds.getPassword().orEmpty()
-                
+
                 if (user.isBlank() || pass.isBlank()) {
                     AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_fout_titel))
                         .setMessage(getString(R.string.beheer_geen_credentials))
                         .setPositiveButton("OK", null)
                         .show()
+                    markPendingUpload()
                     return@launch
                 }
-                
+
                 // Show uploading toast
                 Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_uploading), Toast.LENGTH_SHORT).show()
-                
+
                 // Prepare final envelope with current timestamp and sanitized data
                 val nowFormatted = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
                 val preparedEnvelope = envelope.copy(
@@ -1085,15 +1037,15 @@ class TellingBeheerScherm : AppCompatActivity() {
                     nrec = envelope.data.size.toString(),
                     nsoort = envelope.data.map { it.soortid }.toSet().size.toString()
                 )
-                
+
                 // Sanitize all records to ensure proper values (no empty strings for numeric fields)
                 val finalEnvelope = sanitizeEnvelopeForUpload(preparedEnvelope)
-                
+
                 // Upload to server
                 val baseUrl = "https://trektellen.nl"
                 val language = "dutch"
                 val versie = "1845"
-                
+
                 val (ok, resp) = withContext(Dispatchers.IO) {
                     try {
                         TrektellenApi.postCountsSave(baseUrl, language, versie, user, pass, listOf(finalEnvelope))
@@ -1102,14 +1054,14 @@ class TellingBeheerScherm : AppCompatActivity() {
                         false to (ex.message ?: "exception")
                     }
                 }
-                
+
                 if (ok) {
                     hasUnsavedChanges = false
-                    
-                    // Parse returned onlineId if available
+                    clearPendingUpload()
+
+                    // Parse returned onlineId only if we don't already have one
                     val returnedOnlineId = parseOnlineIdFromResponse(resp)
-                    if (!returnedOnlineId.isNullOrBlank() && returnedOnlineId != envelope.onlineid) {
-                        // Update envelope with new onlineId and save again
+                    if (envelope.onlineid.isBlank() && !returnedOnlineId.isNullOrBlank()) {
                         val updatedEnvelope = finalEnvelope.copy(onlineid = returnedOnlineId)
                         currentEnvelope = updatedEnvelope
                         withContext(Dispatchers.IO) {
@@ -1117,13 +1069,14 @@ class TellingBeheerScherm : AppCompatActivity() {
                         }
                         updateDetailView(updatedEnvelope)
                     }
-                    
+
                     AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_succes_titel))
                         .setMessage(getString(R.string.beheer_upload_succes_msg))
                         .setPositiveButton("OK", null)
                         .show()
                 } else {
+                    markPendingUpload()
                     AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_fout_titel))
                         .setMessage(getString(R.string.beheer_upload_fout_msg, resp))
@@ -1131,16 +1084,17 @@ class TellingBeheerScherm : AppCompatActivity() {
                         .show()
                 }
             } catch (e: Exception) {
+                markPendingUpload()
                 Log.w(TAG, "Save and upload failed: ${e.message}", e)
                 AlertDialog.Builder(this@TellingBeheerScherm)
                     .setTitle(getString(R.string.beheer_upload_fout_titel))
-                    .setMessage("Fout: ${e.message}")
-                    .setPositiveButton("OK", null)
+                    .setMessage(getString(R.string.beheer_fout, e.message ?: ""))
+                    .setPositiveButton(getString(R.string.dlg_ok), null)
                     .show()
             }
         }
     }
-    
+
     /**
      * Sanitize all records in an envelope to ensure all fields have valid string values.
      * Server does not accept null values - empty strings "" are OK.
@@ -1182,7 +1136,7 @@ class TellingBeheerScherm : AppCompatActivity() {
         }
         return envelope.copy(data = sanitizedData)
     }
-    
+
     /**
      * Parse onlineId from server response.
      * Response format is typically: "onlineid|timestamp" or just contains onlineId.
@@ -1202,88 +1156,172 @@ class TellingBeheerScherm : AppCompatActivity() {
             null
         }
     }
-    
+
     private fun showUnsavedChangesDialog() {
         AlertDialog.Builder(this)
-            .setTitle("Onopgeslagen wijzigingen")
-            .setMessage("Je hebt wijzigingen die nog niet zijn opgeslagen. Wil je deze opslaan?")
-            .setPositiveButton("Opslaan") { _, _ ->
+            .setTitle(getString(R.string.beheer_unsaved_titel))
+            .setMessage(getString(R.string.beheer_unsaved_msg))
+            .setPositiveButton(getString(R.string.beheer_opslaan)) { _, _ ->
                 saveCurrentTelling()
                 showListView()
             }
-            .setNegativeButton("Negeren") { _, _ ->
+            .setNegativeButton(getString(R.string.beheer_unsaved_negeren)) { _, _ ->
                 showListView()
             }
-            .setNeutralButton("Annuleren", null)
+            .setNeutralButton(getString(R.string.annuleer), null)
             .show()
     }
-    
+
     private fun updateDetailView(envelope: ServerTellingEnvelope) {
-        tvDetailInfo.text = getString(R.string.beheer_telling_info, envelope.data.size, 
+        tvDetailInfo.text = getString(R.string.beheer_telling_info, envelope.data.size,
             envelope.data.map { it.soortid }.toSet().size)
-        tvDetailTelpost.text = "Telpost: ${envelope.telpostid} • Tellers: ${envelope.tellers}"
+        tvDetailTelpost.text = getString(
+            R.string.beheer_detail_telpost_tellers,
+            envelope.telpostid,
+            envelope.tellers
+        )
     }
-    
+
+    private fun updateDeleteSelectedState() {
+        val selectedCount = tellingenAdapter.getSelectedFilenames().size
+        btnDeleteSelected.isEnabled = selectedCount > 0
+        btnDeleteSelected.text = if (selectedCount > 0) {
+            getString(R.string.beheer_verwijderen) + " (" + selectedCount + ")"
+        } else {
+            getString(R.string.beheer_verwijderen)
+        }
+    }
+
+    private fun showDeleteMultipleTellingenDialog(filenames: List<String>) {
+        val message = getString(R.string.beheer_verwijder_meerdere_msg, filenames.size)
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.beheer_verwijder_bevestig_titel))
+            .setMessage(message)
+            .setPositiveButton(getString(R.string.beheer_verwijderen)) { _, _ ->
+                deleteMultipleTellingen(filenames)
+            }
+            .setNegativeButton(getString(R.string.annuleer), null)
+            .show()
+    }
+
+    private fun deleteMultipleTellingen(filenames: List<String>) {
+        lifecycleScope.launch {
+            var deletedCount = 0
+            try {
+                withContext(Dispatchers.IO) {
+                    filenames.forEach { filename ->
+                        if (toolset.deleteTelling(filename)) {
+                            deletedCount++
+                        }
+                    }
+                }
+            } finally {
+                Toast.makeText(
+                    this@TellingBeheerScherm,
+                    getString(R.string.beheer_verwijderd_meerdere, deletedCount),
+                    Toast.LENGTH_SHORT
+                ).show()
+                showListView()
+            }
+        }
+    }
+
+    private fun markPendingUpload() {
+        getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_PENDING_UPLOADS, true)
+            .apply()
+    }
+
+    private fun clearPendingUpload() {
+        getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_PENDING_UPLOADS, false)
+            .apply()
+    }
+
     // ========================================================================
     // ADAPTERS
     // ========================================================================
-    
+
+    @SuppressLint("NotifyDataSetChanged")
     private inner class TellingenAdapter(
-        private val onClick: (TellingFileInfo) -> Unit
+        private val onClick: (TellingFileInfo) -> Unit,
+        private val onSelectionChanged: () -> Unit
     ) : RecyclerView.Adapter<TellingenAdapter.ViewHolder>() {
-        
+
         private var items: List<TellingFileInfo> = emptyList()
-        
+        private val selectedFilenames = mutableSetOf<String>()
+
         fun submitList(newItems: List<TellingFileInfo>) {
             items = newItems
+            selectedFilenames.retainAll(items.map { it.filename })
             notifyDataSetChanged()
+            onSelectionChanged()
         }
-        
+
+        fun getSelectedFilenames(): List<String> = selectedFilenames.toList()
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_telling_beheer, parent, false)
             return ViewHolder(view)
         }
-        
+
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             holder.bind(items[position])
         }
-        
+
         override fun getItemCount() = items.size
-        
+
         inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             private val tvFilename: TextView = itemView.findViewById(R.id.tvFilename)
+            private val tvTellingId: TextView = itemView.findViewById(R.id.tvTellingId)
             private val tvInfo: TextView = itemView.findViewById(R.id.tvInfo)
             private val tvTimestamp: TextView = itemView.findViewById(R.id.tvTimestamp)
             private val tvBadge: TextView = itemView.findViewById(R.id.tvBadge)
-            
+            private val cbSelect: android.widget.CheckBox = itemView.findViewById(R.id.cbSelect)
+
             fun bind(info: TellingFileInfo) {
                 tvFilename.text = info.filename
+                tvTellingId.text = info.onlineId?.takeIf { it.isNotBlank() } ?: "-"
                 tvInfo.text = getString(R.string.beheer_telling_info, info.nrec, info.nsoort)
-                
+
                 val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
                 tvTimestamp.text = dateFormat.format(Date(info.lastModified))
-                
+
                 if (info.isActive) {
                     tvBadge.visibility = View.VISIBLE
                     tvBadge.text = getString(R.string.beheer_actieve_telling)
                 } else {
                     tvBadge.visibility = View.GONE
                 }
-                
+
+                cbSelect.setOnCheckedChangeListener(null)
+                cbSelect.isChecked = selectedFilenames.contains(info.filename)
+                cbSelect.setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        selectedFilenames.add(info.filename)
+                    } else {
+                        selectedFilenames.remove(info.filename)
+                    }
+                    onSelectionChanged()
+                }
+
                 itemView.setOnClickListener { onClick(info) }
             }
         }
     }
-    
+
+    @SuppressLint("NotifyDataSetChanged")
     private inner class RecordsAdapter(
         private val onEdit: (Int, ServerTellingDataItem) -> Unit,
         private val onDelete: (Int, ServerTellingDataItem) -> Unit
     ) : RecyclerView.Adapter<RecordsAdapter.ViewHolder>() {
-        
+
         private var items: List<Pair<Int, ServerTellingDataItem>> = emptyList()
         private var speciesSnapshot: DataSnapshot? = null
-        
+
         init {
             // Load species data asynchronously
             lifecycleScope.launch {
@@ -1298,56 +1336,183 @@ class TellingBeheerScherm : AppCompatActivity() {
                 }
             }
         }
-        
+
         fun submitList(newItems: List<Pair<Int, ServerTellingDataItem>>) {
             items = newItems
             notifyDataSetChanged()
         }
-        
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_telling_record, parent, false)
             return ViewHolder(view)
         }
-        
+
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val (index, item) = items[position]
             holder.bind(index, item)
         }
-        
+
         override fun getItemCount() = items.size
-        
+
         inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             private val tvIndex: TextView = itemView.findViewById(R.id.tvIndex)
             private val tvSoortId: TextView = itemView.findViewById(R.id.tvSoortId)
             private val tvAantal: TextView = itemView.findViewById(R.id.tvAantal)
+            private val tvAantalTerug: TextView = itemView.findViewById(R.id.tvAantalTerug)
             private val tvOpmerkingen: TextView = itemView.findViewById(R.id.tvOpmerkingen)
             private val btnEdit: ImageButton = itemView.findViewById(R.id.btnEdit)
             private val btnDelete: ImageButton = itemView.findViewById(R.id.btnDelete)
-            
+
             fun bind(index: Int, item: ServerTellingDataItem) {
-                tvIndex.text = "#${index + 1}"
-                
-                // Display species name with ID if available, otherwise just ID
+                tvIndex.text = getString(R.string.beheer_record_index, index + 1)
+
                 val speciesName = speciesSnapshot?.speciesById?.get(item.soortid)?.soortnaam
                 tvSoortId.text = if (speciesName != null) {
-                    "Soort: $speciesName (${item.soortid})"
+                    getString(R.string.beheer_record_soort, speciesName)
                 } else {
-                    "Soort: ${item.soortid}"
+                    getString(R.string.beheer_record_soort, item.soortid)
                 }
-                
-                tvAantal.text = "Aantal: ${item.aantal}"
-                
+
+                tvAantal.text = getString(R.string.beheer_record_aantal, item.aantal)
+                tvAantalTerug.text = getString(R.string.beheer_record_aantal_terug, item.aantalterug)
+
                 if (item.opmerkingen.isNotBlank()) {
                     tvOpmerkingen.visibility = View.VISIBLE
                     tvOpmerkingen.text = item.opmerkingen
                 } else {
                     tvOpmerkingen.visibility = View.GONE
                 }
-                
+
                 btnEdit.setOnClickListener { onEdit(index, item) }
                 btnDelete.setOnClickListener { onDelete(index, item) }
             }
         }
+    }
+
+    private val directionLabelToCode = mapOf(
+        "N" to "N", "NNO" to "NNE", "NO" to "NE", "ONO" to "ENE",
+        "O" to "E", "OZO" to "ESE", "ZO" to "SE", "ZZO" to "SSE",
+        "Z" to "S", "ZZW" to "SSW", "ZW" to "SW", "WZW" to "WSW",
+        "W" to "W", "WNW" to "WNW", "NW" to "NW", "NNW" to "NNW"
+    )
+
+    private val directionButtonIds = listOf(
+        R.id.btn_dir_n, R.id.btn_dir_nno, R.id.btn_dir_no, R.id.btn_dir_ono,
+        R.id.btn_dir_o, R.id.btn_dir_ozo, R.id.btn_dir_zo, R.id.btn_dir_zzo,
+        R.id.btn_dir_z, R.id.btn_dir_zzw, R.id.btn_dir_zw, R.id.btn_dir_wzw,
+        R.id.btn_dir_w, R.id.btn_dir_wnw, R.id.btn_dir_nw, R.id.btn_dir_nnw
+    )
+
+    private fun updateDirectionDisplay(textView: TextView?, directionCode: String?) {
+        if (textView == null) return
+        if (directionCode.isNullOrBlank()) {
+            textView.text = ""
+        } else {
+            val label = directionLabelToCode.entries.find { it.value == directionCode }?.key ?: directionCode
+            textView.text = label
+        }
+    }
+
+    private fun updateDirectionButtonColors(
+        buttons: List<MaterialButton>,
+        selectedLabel: String?,
+        normalColor: Int,
+        selectedColor: Int
+    ) {
+        buttons.forEach { btn ->
+            val isSelected = btn.text.toString() == selectedLabel
+            btn.backgroundTintList = ColorStateList.valueOf(
+                if (isSelected) selectedColor else normalColor
+            )
+        }
+    }
+
+    private fun updateCompassSelectionText(textView: TextView, directionCode: String?) {
+        if (directionCode == null) {
+            textView.text = getString(R.string.compass_no_selection)
+        } else {
+            val label = directionLabelToCode.entries.find { it.value == directionCode }?.key ?: directionCode
+            textView.text = getString(R.string.compass_selected, label)
+        }
+    }
+
+    private fun showCompassDialogForRecord(
+        initialDirection: String?,
+        onDirectionSelected: (String?) -> Unit
+    ) {
+        val originalDirection = initialDirection
+        var currentSelection = initialDirection
+
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_compass)
+        dialog.setCancelable(true)
+
+        val compassNeedleView = dialog.findViewById<CompassNeedleView>(R.id.compass_needle_view)
+        val tvSelectedDirection = dialog.findViewById<TextView>(R.id.tv_selected_direction)
+        val btnCancel = dialog.findViewById<Button>(R.id.btn_compass_cancel)
+        val btnClear = dialog.findViewById<Button>(R.id.btn_compass_clear)
+        val btnOk = dialog.findViewById<Button>(R.id.btn_compass_ok)
+
+        val directionButtons = directionButtonIds.map { id ->
+            dialog.findViewById<MaterialButton>(id)
+        }
+
+        val normalColor = getColor(R.color.vt5_dark_gray)
+        val selectedColor = getColor(R.color.vt5_light_blue)
+
+        val initialLabel = initialDirection?.let { code ->
+            directionLabelToCode.entries.find { it.value == code }?.key
+        }
+        updateDirectionButtonColors(directionButtons, initialLabel, normalColor, selectedColor)
+        updateCompassSelectionText(tvSelectedDirection, initialDirection)
+
+        directionButtons.forEach { btn ->
+            btn.setOnClickListener {
+                val label = btn.text.toString()
+                val code = directionLabelToCode[label] ?: label
+
+                if (currentSelection == code) {
+                    currentSelection = null
+                    updateDirectionButtonColors(directionButtons, null, normalColor, selectedColor)
+                    updateCompassSelectionText(tvSelectedDirection, null)
+                } else {
+                    currentSelection = code
+                    updateDirectionButtonColors(directionButtons, label, normalColor, selectedColor)
+                    updateCompassSelectionText(tvSelectedDirection, code)
+                }
+            }
+        }
+
+        compassNeedleView.startSensors()
+
+        btnCancel.setOnClickListener {
+            compassNeedleView.stopSensors()
+            onDirectionSelected(originalDirection)
+            dialog.dismiss()
+        }
+
+        btnClear.setOnClickListener {
+            currentSelection = null
+            updateDirectionButtonColors(directionButtons, null, normalColor, selectedColor)
+            updateCompassSelectionText(tvSelectedDirection, null)
+        }
+
+        btnOk.setOnClickListener {
+            compassNeedleView.stopSensors()
+            onDirectionSelected(currentSelection)
+            dialog.dismiss()
+        }
+
+        dialog.setOnDismissListener {
+            compassNeedleView.stopSensors()
+        }
+
+        dialog.show()
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.95).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 }

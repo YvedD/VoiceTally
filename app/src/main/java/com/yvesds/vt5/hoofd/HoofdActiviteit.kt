@@ -33,7 +33,14 @@ import kotlinx.serialization.ExperimentalSerializationApi
  */
 class HoofdActiviteit : AppCompatActivity() {
     private val TAG = "HoofdActiviteit"
-    
+
+    companion object {
+        private const val EXPORTS_KEEP_COUNT = 10
+        private const val PREFS_UPLOADS = "vt5_uploads"
+        private const val KEY_PENDING_UPLOADS = "pending_uploads"
+        private const val KEY_UPLOAD_ON_EXIT = "upload_on_exit"
+    }
+
     private lateinit var safHelper: SaFStorageHelper
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -106,6 +113,26 @@ class HoofdActiviteit : AppCompatActivity() {
             startActivity(Intent(this, InstellingenScherm::class.java))
             it.isEnabled = true
         }
+
+        maybeShowPendingUploadsDialog()
+    }
+
+    private fun maybeShowPendingUploadsDialog() {
+        val prefs = getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
+        if (!prefs.getBoolean(KEY_PENDING_UPLOADS, false)) return
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.uploads_pending_title))
+            .setMessage(getString(R.string.uploads_pending_message))
+            .setPositiveButton(getString(R.string.uploads_pending_now)) { _, _ ->
+                prefs.edit().putBoolean(KEY_UPLOAD_ON_EXIT, false).apply()
+                startActivity(Intent(this, TellingBeheerScherm::class.java))
+            }
+            .setNegativeButton(getString(R.string.uploads_pending_on_exit)) { _, _ ->
+                prefs.edit().putBoolean(KEY_UPLOAD_ON_EXIT, true).apply()
+            }
+            .setNeutralButton(getString(R.string.annuleer), null)
+            .show()
     }
 
     /**
@@ -115,6 +142,14 @@ class HoofdActiviteit : AppCompatActivity() {
      * - Thread-safe en voorkomt geheugenlekken
      */
     private fun shutdownAndExit() {
+        val prefs = getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
+        val pendingUploads = prefs.getBoolean(KEY_PENDING_UPLOADS, false)
+        val uploadOnExit = prefs.getBoolean(KEY_UPLOAD_ON_EXIT, false)
+        if (pendingUploads && uploadOnExit) {
+            startActivity(Intent(this, TellingBeheerScherm::class.java))
+            return
+        }
+
         Log.i(TAG, "User initiated app shutdown")
         
         try {
@@ -259,9 +294,5 @@ class HoofdActiviteit : AppCompatActivity() {
                 ).show()
             }
         }
-    }
-    
-    companion object {
-        private const val EXPORTS_KEEP_COUNT = 10
     }
 }

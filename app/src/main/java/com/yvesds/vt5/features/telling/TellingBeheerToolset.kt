@@ -1,4 +1,4 @@
-package com.yvesds.vt5.features.telling
+ package com.yvesds.vt5.features.telling
 
 import android.content.Context
 import android.util.Log
@@ -419,6 +419,15 @@ class TellingBeheerToolset(
         envelope: ServerTellingEnvelope,
         updates: MetadataUpdates
     ): ServerTellingEnvelope {
+        val tellingId = envelope.tellingid
+        val updatedData = envelope.data.map { record ->
+            if (record.tellingid.isBlank() && tellingId.isNotBlank()) {
+                record.copy(tellingid = tellingId)
+            } else {
+                record
+            }
+        }
+
         return envelope.copy(
             tellers = updates.tellers ?: envelope.tellers,
             opmerkingen = updates.opmerkingen ?: envelope.opmerkingen,
@@ -440,7 +449,9 @@ class TellingBeheerToolset(
             equipment = updates.equipment ?: envelope.equipment,
             begintijd = updates.begintijd ?: envelope.begintijd,
             eindtijd = updates.eindtijd ?: envelope.eindtijd,
-            telpostid = updates.telpostid ?: envelope.telpostid
+            telpostid = updates.telpostid ?: envelope.telpostid,
+            tellingid = tellingId,
+            data = updatedData
         )
     }
     

@@ -2,6 +2,11 @@
 <resources>
     <string name="app_name">VT5</string>
 
+    <!-- Annotatie density toggle content descriptions -->
+    <string name="annotatie_density_standard">Standaard weergave</string>
+    <string name="annotatie_density_compact">Compacte weergave</string>
+    <string name="annotatie_density_supercompact">Supercompacte weergave</string>
+
     <!-- Hoofdscherm -->
     <string name="titel_hoofd">VoiceTally - spraakinvoer</string>
     <string name="btn_install_start">((Her)Installatie starten</string>
@@ -111,7 +116,7 @@
     <string name="beheer_geen_tellingen">Geen opgeslagen tellingen gevonden</string>
     <string name="beheer_laden">Tellingen laden…</string>
     <string name="beheer_verwijder_bevestig_titel">Telling verwijderen?</string>
-    <string name="beheer_verwijder_bevestig_msg">Weet je zeker dat je deze telling wilt verwijderen?\n\n%1$s</string>
+    <string name="beheer_verwijder_bevestig_msg">Weet je zeker dat je deze telling lokaal wilt verwijderen?\n\n%1$s\n\nDit heeft geen invloed op de server.</string>
     <string name="beheer_verwijderd">Telling verwijderd</string>
     <string name="beheer_verwijder_fout">Kon telling niet verwijderen</string>
     <string name="beheer_record_toevoegen">Record toevoegen</string>
@@ -252,4 +257,35 @@
     <string name="dialog_direction_return">Tegenrichting</string>
     <string name="dialog_default_zero">0</string>
     <string name="dialog_current_total_placeholder">Huidige stand: 0</string>
+
+    <!-- Algemene knoppen -->
+    <string name="annuleer">Annuleren</string>
+    <string name="verder">Verder</string>
+
+    <!-- TellingBeheerScherm aanvullingen -->
+    <string name="beheer_laden_fout">Fout bij laden: %1$s</string>
+    <string name="beheer_detail_telpost_tellers">Telpost: %1$s • Tellers: %2$s</string>
+    <string name="beheer_record_verwijder_msg">Weet je zeker dat je record %1$d (%2$s) wilt verwijderen?</string>
+    <string name="beheer_verwijderen">Verwijderen</string>
+    <string name="beheer_record_index">#%1$d</string>
+    <string name="beheer_record_soort">Soort: %1$s</string>
+    <string name="beheer_record_aantal">Aantal: %1$s</string>
+    <string name="beheer_record_aantal_terug">Aantal_terug: %1$s</string>
+    <string name="beheer_telling_kon_niet_laden">Kon telling niet laden</string>
+    <string name="beheer_fout">Fout: %1$s</string>
+    <string name="beheer_soort_verplicht">Soort is verplicht</string>
+    <string name="beheer_soorten_niet_geladen">Kon soorten niet laden</string>
+    <string name="beheer_time_hhmm">%1$s:%2$s</string>
+
+    <string name="beheer_unsaved_titel">Onopgeslagen wijzigingen</string>
+    <string name="beheer_unsaved_msg">Je hebt wijzigingen die nog niet zijn opgeslagen. Wil je deze opslaan?</string>
+    <string name="beheer_unsaved_negeren">Negeren</string>
+
+    <string name="beheer_verwijder_meerdere_msg">Weet je zeker dat je %1$d tellingen lokaal wilt verwijderen? Dit kan niet ongedaan gemaakt worden.\n\nDit heeft geen invloed op de server.</string>
+    <string name="beheer_verwijderd_meerdere">%1$d tellingen verwijderd</string>
+
+    <string name="uploads_pending_title">Er staan nog uploads klaar in de wachtrij !</string>
+    <string name="uploads_pending_message">Gegevens nu eerst uploaden?</string>
+    <string name="uploads_pending_now">Nu uploaden</string>
+    <string name="uploads_pending_on_exit">Uploaden bij afsluiten</string>
 </resources>

@@ -1,5 +1,6 @@
 <resources>
     <string name="meta_titel_basis">Basisgegevens telling</string>
+    <string name="meta_titel_basis_with_id">Basisgegevens telling - %1$s</string>
     <string name="meta_datum">  Datum  </string>
     <string name="meta_tijd">  Tijd  </string>
     <string name="meta_telpost">  Telpost  </string>
@@ -18,10 +19,6 @@
     <string name="meta_luchtdruk">  Luchtdruk (hPa)  </string>
     <string name="meta_weer_auto">Auto</string>
 
-
     <string name="meta_typetelling">  Type telling  </string>
     <string name="meta_opmerkingen">  Opmerkingen  </string>
-
-    <string name="annuleer">Annuleer</string>
-    <string name="verder">Verder</string>
 </resources>

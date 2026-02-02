@@ -6,11 +6,14 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.view.Window
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatToggleButton
@@ -29,6 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
 
 /**
  * AnnotatieScherm
@@ -59,7 +63,35 @@ class AnnotatieScherm : AppCompatActivity() {
         
         // Key for telpostid to get site-specific direction labels
         const val EXTRA_TELPOSTID = "extra_telpostid"
+
+        private const val PREF_ANNOT_DENSITY = "pref_annot_density"
     }
+
+    private enum class DensityMode(val key: String, val factor: Float) {
+        STANDARD("standard", 1.0f),
+        COMPACT("compact", 0.85f),
+        SUPERCOMPACT("supercompact", 0.72f);
+
+        companion object {
+            fun fromKey(key: String?): DensityMode {
+                return values().firstOrNull { it.key == key } ?: STANDARD
+            }
+        }
+    }
+
+    private data class DensityBaseline(
+        val textSizePx: Float?,
+        val paddingLeft: Int,
+        val paddingTop: Int,
+        val paddingRight: Int,
+        val paddingBottom: Int,
+        val minWidth: Int,
+        val minHeight: Int,
+        val marginLeft: Int,
+        val marginTop: Int,
+        val marginRight: Int,
+        val marginBottom: Int
+    )
 
     private val json = Json { prettyPrint = false }
 
@@ -120,6 +152,8 @@ class AnnotatieScherm : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_annotatie)
+
+        setupDensityControls()
 
         // Initialize remarks EditText for location/height auto-tagging
         etOpmerkingen = findViewById(R.id.et_opmerkingen)
@@ -681,6 +715,108 @@ class AnnotatieScherm : AppCompatActivity() {
             tvSelectedDirection?.text = label
         } else {
             tvSelectedDirection?.text = ""
+        }
+    }
+
+    private fun setupDensityControls() {
+        val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
+        val savedMode = DensityMode.fromKey(prefs.getString(PREF_ANNOT_DENSITY, null))
+
+        val btnStandard = findViewById<ImageButton>(R.id.btn_density_standard)
+        val btnCompact = findViewById<ImageButton>(R.id.btn_density_compact)
+        val btnSupercompact = findViewById<ImageButton>(R.id.btn_density_supercompact)
+
+        fun applyMode(mode: DensityMode) {
+            prefs.edit().putString(PREF_ANNOT_DENSITY, mode.key).apply()
+            applyDensityMode(mode)
+            updateDensityButtonState(btnStandard, btnCompact, btnSupercompact, mode)
+        }
+
+        btnStandard.setOnClickListener { applyMode(DensityMode.STANDARD) }
+        btnCompact.setOnClickListener { applyMode(DensityMode.COMPACT) }
+        btnSupercompact.setOnClickListener { applyMode(DensityMode.SUPERCOMPACT) }
+
+        applyMode(savedMode)
+    }
+
+    private fun updateDensityButtonState(
+        btnStandard: ImageButton,
+        btnCompact: ImageButton,
+        btnSupercompact: ImageButton,
+        mode: DensityMode
+    ) {
+        val activeAlpha = 1.0f
+        val inactiveAlpha = 0.5f
+        btnStandard.alpha = if (mode == DensityMode.STANDARD) activeAlpha else inactiveAlpha
+        btnCompact.alpha = if (mode == DensityMode.COMPACT) activeAlpha else inactiveAlpha
+        btnSupercompact.alpha = if (mode == DensityMode.SUPERCOMPACT) activeAlpha else inactiveAlpha
+    }
+
+    private fun applyDensityMode(mode: DensityMode) {
+        val root = findViewById<ViewGroup>(R.id.annot_content_root) ?: return
+        val factor = mode.factor
+        val skipIds = setOf(R.id.btn_density_standard, R.id.btn_density_compact, R.id.btn_density_supercompact)
+
+        traverseViews(root) { view ->
+            if (skipIds.contains(view.id)) return@traverseViews
+            val baseline = (view.getTag(R.id.tag_density_baseline) as? DensityBaseline)
+                ?: captureBaseline(view).also { view.setTag(R.id.tag_density_baseline, it) }
+            applyBaseline(view, baseline, factor)
+        }
+        root.requestLayout()
+        root.invalidate()
+    }
+
+    private fun traverseViews(root: View, block: (View) -> Unit) {
+        block(root)
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                traverseViews(root.getChildAt(i), block)
+            }
+        }
+    }
+
+    private fun captureBaseline(view: View): DensityBaseline {
+        val textSizePx = (view as? TextView)?.textSize
+        val params = view.layoutParams as? ViewGroup.MarginLayoutParams
+        return DensityBaseline(
+            textSizePx = textSizePx,
+            paddingLeft = view.paddingLeft,
+            paddingTop = view.paddingTop,
+            paddingRight = view.paddingRight,
+            paddingBottom = view.paddingBottom,
+            minWidth = view.minimumWidth,
+            minHeight = view.minimumHeight,
+            marginLeft = params?.leftMargin ?: 0,
+            marginTop = params?.topMargin ?: 0,
+            marginRight = params?.rightMargin ?: 0,
+            marginBottom = params?.bottomMargin ?: 0
+        )
+    }
+
+    private fun applyBaseline(view: View, baseline: DensityBaseline, factor: Float) {
+        baseline.textSizePx?.let { sizePx ->
+            if (view is TextView) {
+                view.setTextSize(TypedValue.COMPLEX_UNIT_PX, sizePx * factor)
+            }
+        }
+
+        val left = (baseline.paddingLeft * factor).roundToInt()
+        val top = (baseline.paddingTop * factor).roundToInt()
+        val right = (baseline.paddingRight * factor).roundToInt()
+        val bottom = (baseline.paddingBottom * factor).roundToInt()
+        view.setPadding(left, top, right, bottom)
+
+        view.minimumWidth = (baseline.minWidth * factor).roundToInt()
+        view.minimumHeight = (baseline.minHeight * factor).roundToInt()
+
+        val params = view.layoutParams
+        if (params is ViewGroup.MarginLayoutParams) {
+            params.leftMargin = (baseline.marginLeft * factor).roundToInt()
+            params.topMargin = (baseline.marginTop * factor).roundToInt()
+            params.rightMargin = (baseline.marginRight * factor).roundToInt()
+            params.bottomMargin = (baseline.marginBottom * factor).roundToInt()
+            view.layoutParams = params
         }
     }
 }

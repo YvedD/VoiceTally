@@ -1,5 +1,8 @@
+@file:OptIn(InternalSerializationApi::class)
+
 package com.yvesds.vt5.features.telling
 
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 
 /**

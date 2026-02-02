@@ -50,6 +50,13 @@
                 android:textSize="13sp" />
 
             <TextView
+                android:id="@+id/tvAantalTerug"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="13sp" />
+
+            <TextView
                 android:id="@+id/tvOpmerkingen"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -72,7 +79,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Bewerken"
+                android:contentDescription="@string/beheer_record_bewerken"
                 android:src="@android:drawable/ic_menu_edit"
                 app:tint="@color/vt5_light_blue" />
 
@@ -82,7 +89,7 @@
                 android:layout_height="36dp"
                 android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Verwijderen"
+                android:contentDescription="@string/beheer_record_verwijderen"
                 android:src="@android:drawable/ic_menu_delete"
                 app:tint="@color/vt5_red" />
 

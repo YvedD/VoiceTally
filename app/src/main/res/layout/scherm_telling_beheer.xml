@@ -34,6 +34,17 @@
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
             android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteSelected"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/beheer_verwijderen"
+            android:textSize="12sp"
+            android:enabled="false"
+            app:strokeColor="@color/vt5_red" />
     </LinearLayout>
 
     <!-- Divider -->
