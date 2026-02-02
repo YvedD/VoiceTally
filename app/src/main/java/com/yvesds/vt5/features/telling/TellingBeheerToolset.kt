@@ -420,6 +420,7 @@ class TellingBeheerToolset(
         updates: MetadataUpdates
     ): ServerTellingEnvelope {
         val tellingId = envelope.tellingid
+        val onlineId = envelope.onlineid
         val updatedData = envelope.data.map { record ->
             if (record.tellingid.isBlank() && tellingId.isNotBlank()) {
                 record.copy(tellingid = tellingId)
@@ -451,6 +452,7 @@ class TellingBeheerToolset(
             eindtijd = updates.eindtijd ?: envelope.eindtijd,
             telpostid = updates.telpostid ?: envelope.telpostid,
             tellingid = tellingId,
+            onlineid = onlineId,
             data = updatedData
         )
     }
