@@ -464,7 +464,7 @@ Klik op **"OK"** om terug te keren naar het telscherm.
 ---
 
 ## 14. Telling Afronden
-Op elke 59e minuut van het uur herinnert de app u eraan om een telling af te ronden via een alarmmelding (uitschakelbaar)
+Op elke 00e minuut van het uur herinnert de app u eraan om een telling af te ronden via een alarmmelding (uitschakelbaar)
 Na het voltooien van uw telling uploadt u de gegevens naar trektellen.nl.
 
 ### Afronden
@@ -481,6 +481,7 @@ Na het voltooien van uw telling uploadt u de gegevens naar trektellen.nl.
    - Lokale backup-bestanden worden opgeruimd
    - De telling wordt opgeslagen in `counts/` als archief
    - U keert terug naar het MetadataScherm
+4. Na het uploaden kan men kiezen om een 'aansluitende' vervolgtelling te starten, om zo de tellingen verder te zetten.
 
 ### Foutafhandeling
 - Bij netwerkfouten blijven de gegevens lokaal bewaard
