@@ -6,7 +6,9 @@ import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import com.yvesds.vt5.R
 
 /**
  * Central place for user-configurable UI colors (background + text).
@@ -24,7 +26,8 @@ object UiColorPrefs {
     // A small palette of high-contrast colors.
     data class ColorOption(val label: String, val argb: Int)
 
-    val backgroundOptions: List<ColorOption> = listOf(
+    // Defaults (fallback if resource presets aren't available)
+    private val fallbackBackgroundOptions: List<ColorOption> = listOf(
         ColorOption("Zwart", Color.parseColor("#000000")),
         ColorOption("Donkergrijs", Color.parseColor("#222222")),
         ColorOption("Nachtblauw", Color.parseColor("#0B1B3A")),
@@ -35,7 +38,7 @@ object UiColorPrefs {
         ColorOption("Lichtgeel", Color.parseColor("#FFF8D6"))
     )
 
-    val textOptions: List<ColorOption> = listOf(
+    private val fallbackTextOptions: List<ColorOption> = listOf(
         ColorOption("Wit", Color.parseColor("#FFFFFF")),
         ColorOption("Lichtgrijs", Color.parseColor("#E0E0E0")),
         ColorOption("Zwart", Color.parseColor("#000000")),
@@ -45,6 +48,36 @@ object UiColorPrefs {
         ColorOption("Oranje", Color.parseColor("#FF9800")),
         ColorOption("Lichtgroen", Color.parseColor("#8BC34A"))
     )
+
+    /** Resource-defined presets from res/values/popup_colors.xml. */
+    fun getBackgroundOptions(context: Context): List<ColorOption> {
+        return runCatching {
+            val labels = context.resources.getStringArray(R.array.popup_bg_labels)
+            val colorResIds = context.resources.getIntArray(R.array.popup_bg_colors)
+            labels.indices.map { idx ->
+                val label = labels[idx]
+                val resId = colorResIds.getOrNull(idx) ?: error("Missing bg preset resId for index $idx")
+                ColorOption(label, ContextCompat.getColor(context, resId))
+            }
+        }.getOrElse {
+            fallbackBackgroundOptions
+        }
+    }
+
+    /** Resource-defined presets from res/values/popup_colors.xml. */
+    fun getTextOptions(context: Context): List<ColorOption> {
+        return runCatching {
+            val labels = context.resources.getStringArray(R.array.popup_text_labels)
+            val colorResIds = context.resources.getIntArray(R.array.popup_text_colors)
+            labels.indices.map { idx ->
+                val label = labels[idx]
+                val resId = colorResIds.getOrNull(idx) ?: error("Missing text preset resId for index $idx")
+                ColorOption(label, ContextCompat.getColor(context, resId))
+            }
+        }.getOrElse {
+            fallbackTextOptions
+        }
+    }
 
     fun getBackgroundColor(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -92,4 +125,3 @@ object UiColorPrefs {
         }
     }
 }
-

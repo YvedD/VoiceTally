@@ -55,6 +55,9 @@ object ProgressDialogHelper {
         binding.tvMessage.text = message
         dialog.show()
 
+        // Apply user-selected popup colors (background + text) consistently.
+        PopupThemeHelper.applyDialogWindow(dialog, context)
+
         return dialog
     }
 

@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:padding="10dp"
         android:gravity="center_vertical">
 
         <com.google.android.material.button.MaterialButton
@@ -28,7 +28,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="10dp"
             android:text="@string/instellingen_titel"
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
@@ -54,84 +54,197 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="10dp">
 
-            <!-- Lettergrootte logregels -->
-            <TextView
-                android:id="@+id/tvLettergrootteLogLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/instellingen_lettergrootte_log_label"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="15sp"
-                android:paddingBottom="4dp" />
-
+            <!-- Lettergrootte logregels (compact) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+
+                <TextView
+                    android:id="@+id/tvLettergrootteLogLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_lettergrootte_log_label"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
 
                 <NumberPicker
                     android:id="@+id/npLettergrootteLog"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
+                    android:layout_width="88dp"
+                    android:layout_height="70dp"
                     android:theme="@style/Theme.VT5.NumberPicker" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/instellingen_sp_eenheid"
                     android:textColor="@color/vt5_on_surface"
-                    android:textSize="16sp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp" />
+                    android:textSize="15sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="10dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="6dp"
                 android:background="@color/vt5_on_surface"
                 android:alpha="0.3" />
 
-            <!-- Lettergrootte tegels -->
-            <TextView
-                android:id="@+id/tvLettergrootteTegelsLabel"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/instellingen_lettergrootte_tegels_label"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="15sp"
-                android:paddingBottom="4dp" />
-
+            <!-- Lettergrootte tegels (compact) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+
+                <TextView
+                    android:id="@+id/tvLettergrootteTegelsLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_lettergrootte_tegels_label"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
 
                 <NumberPicker
                     android:id="@+id/npLettergrootteTegels"
-                    android:layout_width="80dp"
-                    android:layout_height="wrap_content"
+                    android:layout_width="88dp"
+                    android:layout_height="70dp"
                     android:theme="@style/Theme.VT5.NumberPicker" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/instellingen_sp_eenheid"
                     android:textColor="@color/vt5_on_surface"
-                    android:textSize="16sp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp" />
+                    android:textSize="15sp" />
             </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="6dp"
+                android:background="@color/vt5_on_surface"
+                android:alpha="0.3" />
+
+            <!-- Favorieten limiet -->
+            <TextView
+                android:id="@+id/tvFavTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_fav_limit_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav15"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_15"
+                    android:checkable="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav20"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_20"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav25"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_25"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav30"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_30"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav35"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_35"
+                    android:checkable="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav40"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_40"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFavAll"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_all"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
                 android:background="@color/vt5_on_surface"
                 android:alpha="0.3" />
 
@@ -144,7 +257,8 @@
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:paddingVertical="8dp" />
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -152,7 +266,7 @@
                 android:text="@string/instellingen_bg_color_label"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="14sp"
-                android:paddingBottom="6dp" />
+                android:paddingBottom="4dp" />
 
             <Spinner
                 android:id="@+id/spBackgroundColor"
@@ -165,8 +279,8 @@
                 android:text="@string/instellingen_text_color_label"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="14sp"
-                android:layout_marginTop="8dp"
-                android:paddingBottom="6dp" />
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp" />
 
             <Spinner
                 android:id="@+id/spTextColor"

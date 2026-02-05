@@ -1,6 +1,5 @@
 package com.yvesds.vt5.features.soort.ui
 
-import android.app.Activity
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -8,6 +7,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -17,9 +17,11 @@ import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermSoortSelectieBinding
 import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.recent.RecentSpeciesStore
+import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.features.telling.TellingSessionManager
+import com.yvesds.vt5.hoofd.InstellingenScherm
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -181,7 +183,7 @@ class SoortSelectieScherm : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.btnAnnuleer.setOnClickListener {
-            setResult(Activity.RESULT_CANCELED)
+            setResult(RESULT_CANCELED)
             finish()
         }
 
@@ -190,20 +192,20 @@ class SoortSelectieScherm : AppCompatActivity() {
             val chosen = ArrayList(selectedIds)
             TellingSessionManager.setPreselectedSoorten(chosen)
             val data = intent.apply { putExtra(EXTRA_SELECTED_SOORT_IDS, chosen) }
-            setResult(Activity.RESULT_OK, data)
+            setResult(RESULT_OK, data)
             finish()
         }
 
         // Debounced zoekfunctie (optimalisatie)
-        var searchJob: Job? = null
+        val searchJob = arrayOfNulls<Job>(1)
         binding.etZoek.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 val query = s?.toString().orEmpty()
                 lastSearchQuery = query
 
                 // Cancel lopende zoekopdracht en start een nieuwe na kleine vertraging
-                searchJob?.cancel()
-                searchJob = uiScope.launch {
+                searchJob[0]?.cancel()
+                searchJob[0] = uiScope.launch {
                     updateSuggestions(query)
                 }
             }
@@ -215,8 +217,6 @@ class SoortSelectieScherm : AppCompatActivity() {
     private fun loadData() {
         uiScope.launch {
             try {
-                val startTime = System.currentTimeMillis()
-                
                 // Fast-path: check cache first without showing dialog
                 val cachedData = ServerDataCache.getCachedOrNull()
                 if (cachedData != null) {
@@ -241,7 +241,6 @@ class SoortSelectieScherm : AppCompatActivity() {
                     submitGrid(recents = recentRows, restAlpha = baseAlphaRows.filterNot { it.soortId in recentIds })
                     updateCounter()
                     
-                    val elapsed = System.currentTimeMillis() - startTime
                     return@launch
                 }
 
@@ -273,8 +272,6 @@ class SoortSelectieScherm : AppCompatActivity() {
                     // Submit naar grid
                     submitGrid(recents = recentRows, restAlpha = baseAlphaRows.filterNot { it.soortId in recentIds })
                     updateCounter()
-
-                    val elapsed = System.currentTimeMillis() - startTime
 
                     if (baseAlphaRows.isEmpty()) {
                         Toast.makeText(this@SoortSelectieScherm, getString(R.string.soort_no_species_download), Toast.LENGTH_LONG).show()
@@ -354,12 +351,23 @@ class SoortSelectieScherm : AppCompatActivity() {
     }
 
     private fun computeRecents(baseAlpha: List<Row>): List<Row> {
+        val prefLimit = InstellingenScherm.getMaxFavorieten(this)
+        val effectiveLimit = when {
+            prefLimit == InstellingenScherm.MAX_FAVORIETEN_ALL -> SpeciesUsageScoreStore.MAX_ALL_CAP
+            prefLimit <= 0 -> SpeciesUsageScoreStore.MAX_ALL_CAP
+            else -> prefLimit
+        }.coerceAtMost(SpeciesUsageScoreStore.MAX_ALL_CAP)
+
         // Use cached lookup map instead of rebuilding
-        val recentsOrderedIds = RecentSpeciesStore.getRecents(this).map { it.first }
-        
+        val recentsOrderedIds = RecentSpeciesStore.getRecents(this)
+            .asSequence()
+            .map { it.first }
+            .take(effectiveLimit)
+            .toList()
+
         // Pre-allocate result list with expected size
         val result = ArrayList<Row>(recentsOrderedIds.size.coerceAtMost(baseAlpha.size))
-        
+
         // Use the cached rowsByIdCache for O(1) lookups if available, otherwise build temporary map
         if (rowsByIdCache.isNotEmpty()) {
             recentsOrderedIds.forEach { id ->
@@ -372,7 +380,7 @@ class SoortSelectieScherm : AppCompatActivity() {
                 byId[id]?.let { result.add(it) }
             }
         }
-        
+
         return result
     }
 
@@ -387,7 +395,7 @@ class SoortSelectieScherm : AppCompatActivity() {
 
         if (recents.isNotEmpty()) {
             // Check if all recents are selected (optimized with any { } short-circuit)
-            val allSel = recents.isNotEmpty() && !recents.any { !selectedIds.contains(it.soortId) }
+            val allSel = !recents.any { !selectedIds.contains(it.soortId) }
 
             // Header voor recente items
             items.add(SoortSelectieSectionedAdapter.RowUi.RecentsHeader(recentsCount = recents.size, allSelected = allSel))
@@ -461,7 +469,7 @@ class SoortSelectieScherm : AppCompatActivity() {
      * Update de selectiestatus in suggesties (indien zichtbaar)
      */
     private fun updateSuggestionsSelection() {
-        if (binding.rvSuggesties.visibility == View.VISIBLE) {
+        if (binding.rvSuggesties.isVisible) {
             for (i in 0 until suggestAdapter.itemCount) {
                 suggestAdapter.notifyItemChanged(i, SoortSelectieAdapter.PAYLOAD_SELECTION)
             }

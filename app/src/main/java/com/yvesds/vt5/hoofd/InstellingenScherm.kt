@@ -34,7 +34,11 @@ class InstellingenScherm : AppCompatActivity() {
         const val MIN_LETTERGROOTTE_SP = 10
         const val MAX_LETTERGROOTTE_SP = 30
         const val DEFAULT_LETTERGROOTTE_SP = 17
-        
+
+        const val PREF_MAX_FAVORIETEN = "pref_max_favoriete_soorten"
+        const val MAX_FAVORIETEN_ALL = -1
+        const val DEFAULT_MAX_FAVORIETEN = 30
+
         /**
          * Haal de huidige lettergrootte voor logregels op uit SharedPreferences.
          */
@@ -50,18 +54,33 @@ class InstellingenScherm : AppCompatActivity() {
             val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             return prefs.getInt(PREF_LETTERGROOTTE_TEGELS_SP, DEFAULT_LETTERGROOTTE_SP)
         }
+
+        @Suppress("unused")
+        private const val _keepGetMaxFavorieten = 0
+
+        /**
+         * Haal het huidige maximum aantal favorieten op uit SharedPreferences.
+         */
+        fun getMaxFavorieten(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
+        }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_instellingen)
 
-        // Apply user-selected colors to this screen
-        UiColorPrefs.applyToActivity(this)
-
-        setupTerugKnop()
-        setupLettergrootteNumberPickers()
-        setupColorSpinners()
+        try {
+            setupTerugKnop()
+            setupLettergrootteNumberPickers()
+            setupColorSpinners()
+            setupMaxFavorietenButtons()
+        } catch (t: Throwable) {
+            // Fail-safe: avoid hard crash to background when a view/id mismatch occurs.
+            android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
+            android.widget.Toast.makeText(this, "Fout in instellingen-scherm: ${t.message}", android.widget.Toast.LENGTH_LONG).show()
+        }
     }
     
     private fun setupTerugKnop() {
@@ -107,8 +126,8 @@ class InstellingenScherm : AppCompatActivity() {
         val spBg = findViewById<Spinner>(R.id.spBackgroundColor)
         val spText = findViewById<Spinner>(R.id.spTextColor)
 
-        val bgOptions = UiColorPrefs.backgroundOptions
-        val textOptions = UiColorPrefs.textOptions
+        val bgOptions = UiColorPrefs.getBackgroundOptions(this)
+        val textOptions = UiColorPrefs.getTextOptions(this)
 
         fun buildAdapter(
             items: List<UiColorPrefs.ColorOption>,
@@ -166,8 +185,6 @@ class InstellingenScherm : AppCompatActivity() {
                 // Refresh both spinners so each item reflects the combined colors
                 bgAdapter.notifyDataSetChanged()
                 textAdapter.notifyDataSetChanged()
-
-                UiColorPrefs.applyToActivity(this@InstellingenScherm)
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
@@ -180,10 +197,54 @@ class InstellingenScherm : AppCompatActivity() {
                 // Refresh both spinners so each item reflects the combined colors
                 bgAdapter.notifyDataSetChanged()
                 textAdapter.notifyDataSetChanged()
-
-                UiColorPrefs.applyToActivity(this@InstellingenScherm)
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
+    }
+
+    private fun setupMaxFavorietenButtons() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
+        fun findButton(idName: String): MaterialButton? {
+            val id = resources.getIdentifier(idName, "id", packageName)
+            if (id == 0) return null
+            return findViewById(id)
+        }
+
+        val btn15 = findButton("btnFav15")
+        val btn20 = findButton("btnFav20")
+        val btn25 = findButton("btnFav25")
+        val btn30 = findButton("btnFav30")
+        val btn35 = findButton("btnFav35")
+        val btn40 = findButton("btnFav40")
+        val btnAll = findButton("btnFavAll")
+
+        val allButtons = listOfNotNull(btn15, btn20, btn25, btn30, btn35, btn40, btnAll)
+        if (allButtons.isEmpty()) return
+
+        fun applySelection(value: Int) {
+            prefs.edit { putInt(PREF_MAX_FAVORIETEN, value) }
+            allButtons.forEach { it.isChecked = false }
+            when (value) {
+                15 -> btn15?.isChecked = true
+                20 -> btn20?.isChecked = true
+                25 -> btn25?.isChecked = true
+                30 -> btn30?.isChecked = true
+                35 -> btn35?.isChecked = true
+                40 -> btn40?.isChecked = true
+                else -> btnAll?.isChecked = true
+            }
+        }
+
+        val current = prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
+        applySelection(current)
+
+        btn15?.setOnClickListener { applySelection(15) }
+        btn20?.setOnClickListener { applySelection(20) }
+        btn25?.setOnClickListener { applySelection(25) }
+        btn30?.setOnClickListener { applySelection(30) }
+        btn35?.setOnClickListener { applySelection(35) }
+        btn40?.setOnClickListener { applySelection(40) }
+        btnAll?.setOnClickListener { applySelection(MAX_FAVORIETEN_ALL) }
     }
 }

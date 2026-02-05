@@ -1,11 +1,8 @@
 package com.yvesds.vt5.features.telling
 
 import android.app.Activity
-import android.content.Intent
-import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
@@ -14,7 +11,6 @@ import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import com.yvesds.vt5.databinding.SchermTellingBinding
-import kotlinx.coroutines.launch
 
 /**
  * TellingUiManager: Manages UI setup for TellingScherm.
@@ -29,10 +25,6 @@ class TellingUiManager(
     private val activity: Activity,
     private val binding: SchermTellingBinding
 ) {
-    companion object {
-        private const val TAG = "TellingUiManager"
-    }
-
     private lateinit var partialsAdapter: SpeechLogAdapter
     private lateinit var finalsAdapter: SpeechLogAdapter
     private lateinit var tilesAdapter: SpeciesTileAdapter
@@ -136,6 +128,13 @@ class TellingUiManager(
         }
         binding.recyclerViewSpecies.adapter = tilesAdapter
     }
+
+    /**
+     * Expose the tiles adapter so the Activity can reuse the exact instance
+     * attached to the RecyclerView (prevents having multiple adapters with
+     * different backing lists).
+     */
+    fun getTilesAdapter(): SpeciesTileAdapter = tilesAdapter
 
     /**
      * Setup button click handlers.

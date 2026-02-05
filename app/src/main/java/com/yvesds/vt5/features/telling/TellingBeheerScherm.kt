@@ -21,6 +21,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -31,6 +32,8 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.secure.CredentialsStore
 import com.yvesds.vt5.core.ui.CompassNeedleView
+import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.core.ui.PopupThemeHelper
 import com.yvesds.vt5.features.annotation.AnnotationsManager
 import com.yvesds.vt5.features.serverdata.model.CodeItemSlim
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
@@ -546,6 +549,8 @@ class TellingBeheerScherm : AppCompatActivity() {
         }
 
         dialog.show()
+        // dialog is a platform Dialog (not AlertDialog)
+        PopupThemeHelper.applyDialogWindow(dialog, this)
     }
 
     /**
@@ -596,7 +601,7 @@ class TellingBeheerScherm : AppCompatActivity() {
         row.addView(hourPicker, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(minutePicker, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
 
-        AlertDialog.Builder(this)
+        val dlg = AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_tijd_kiezen))
             .setView(row)
             .setPositiveButton(getString(R.string.dlg_ok)) { _, _ ->
@@ -617,6 +622,8 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlg)
     }
 
     private fun showAddRecordDialog() {
@@ -802,7 +809,7 @@ class TellingBeheerScherm : AppCompatActivity() {
             getString(R.string.beheer_record_toevoegen)
         }
 
-        AlertDialog.Builder(this)
+        val dlg2 = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(dialogView)
             .setPositiveButton(if (isEditing) getString(R.string.beheer_opslaan) else getString(R.string.telling_add)) { _, _ ->
@@ -906,12 +913,14 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlg2)
     }
 
     private fun showDeleteRecordDialog(index: Int, item: ServerTellingDataItem) {
         val envelope = currentEnvelope ?: return
 
-        AlertDialog.Builder(this)
+        val dlg3 = AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_record_verwijderen))
             .setMessage(getString(R.string.beheer_record_verwijder_msg, index + 1, item.soortid))
             .setPositiveButton(getString(R.string.beheer_verwijderen)) { _, _ ->
@@ -924,10 +933,12 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlg3)
     }
 
     private fun showDeleteTellingDialog(filename: String) {
-        AlertDialog.Builder(this)
+        val dlg4 = AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_verwijder_bevestig_titel))
             .setMessage(getString(R.string.beheer_verwijder_bevestig_msg, filename))
             .setPositiveButton(getString(R.string.beheer_verwijderen)) { _, _ ->
@@ -935,6 +946,8 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlg4)
     }
 
     private fun deleteTelling(filename: String) {
@@ -960,7 +973,7 @@ class TellingBeheerScherm : AppCompatActivity() {
         val filename = currentFilename ?: return
         val envelope = currentEnvelope ?: return
 
-        AlertDialog.Builder(this)
+        val dlg5 = AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_upload_bevestig_titel))
             .setMessage(getString(R.string.beheer_upload_bevestig_msg))
             .setPositiveButton(getString(R.string.beheer_upload_en_opslaan)) { _, _ ->
@@ -971,6 +984,8 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNeutralButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlg5)
     }
 
     /**
@@ -1018,11 +1033,13 @@ class TellingBeheerScherm : AppCompatActivity() {
                 val pass = creds.getPassword().orEmpty()
 
                 if (user.isBlank() || pass.isBlank()) {
-                    AlertDialog.Builder(this@TellingBeheerScherm)
+                    val dlg6 = AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_fout_titel))
                         .setMessage(getString(R.string.beheer_geen_credentials))
                         .setPositiveButton("OK", null)
                         .show()
+
+                    DialogStyler.apply(dlg6)
                     markPendingUpload()
                     return@launch
                 }
@@ -1070,27 +1087,33 @@ class TellingBeheerScherm : AppCompatActivity() {
                         updateDetailView(updatedEnvelope)
                     }
 
-                    AlertDialog.Builder(this@TellingBeheerScherm)
+                    val dlg7 = AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_succes_titel))
                         .setMessage(getString(R.string.beheer_upload_succes_msg))
                         .setPositiveButton("OK", null)
                         .show()
+
+                    DialogStyler.apply(dlg7)
                 } else {
                     markPendingUpload()
-                    AlertDialog.Builder(this@TellingBeheerScherm)
+                    val dlg8 = AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_fout_titel))
                         .setMessage(getString(R.string.beheer_upload_fout_msg, resp))
                         .setPositiveButton("OK", null)
                         .show()
+
+                    DialogStyler.apply(dlg8)
                 }
             } catch (e: Exception) {
                 markPendingUpload()
                 Log.w(TAG, "Save and upload failed: ${e.message}", e)
-                AlertDialog.Builder(this@TellingBeheerScherm)
+                val dlg9 = AlertDialog.Builder(this@TellingBeheerScherm)
                     .setTitle(getString(R.string.beheer_upload_fout_titel))
                     .setMessage(getString(R.string.beheer_fout, e.message ?: ""))
                     .setPositiveButton(getString(R.string.dlg_ok), null)
                     .show()
+
+                DialogStyler.apply(dlg9)
             }
         }
     }
@@ -1158,7 +1181,7 @@ class TellingBeheerScherm : AppCompatActivity() {
     }
 
     private fun showUnsavedChangesDialog() {
-        AlertDialog.Builder(this)
+        val dlgUnsaved = AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_unsaved_titel))
             .setMessage(getString(R.string.beheer_unsaved_msg))
             .setPositiveButton(getString(R.string.beheer_opslaan)) { _, _ ->
@@ -1170,6 +1193,8 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNeutralButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlgUnsaved)
     }
 
     private fun updateDetailView(envelope: ServerTellingEnvelope) {
@@ -1194,7 +1219,7 @@ class TellingBeheerScherm : AppCompatActivity() {
 
     private fun showDeleteMultipleTellingenDialog(filenames: List<String>) {
         val message = getString(R.string.beheer_verwijder_meerdere_msg, filenames.size)
-        AlertDialog.Builder(this)
+        val dlgMulti = AlertDialog.Builder(this)
             .setTitle(getString(R.string.beheer_verwijder_bevestig_titel))
             .setMessage(message)
             .setPositiveButton(getString(R.string.beheer_verwijderen)) { _, _ ->
@@ -1202,6 +1227,8 @@ class TellingBeheerScherm : AppCompatActivity() {
             }
             .setNegativeButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlgMulti)
     }
 
     private fun deleteMultipleTellingen(filenames: List<String>) {
@@ -1226,18 +1253,16 @@ class TellingBeheerScherm : AppCompatActivity() {
         }
     }
 
+    @Suppress("UseKtx")
     private fun markPendingUpload() {
         getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_PENDING_UPLOADS, true)
-            .apply()
+            .edit { putBoolean(KEY_PENDING_UPLOADS, true) }
     }
 
+    @Suppress("UseKtx")
     private fun clearPendingUpload() {
         getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_PENDING_UPLOADS, false)
-            .apply()
+            .edit { putBoolean(KEY_PENDING_UPLOADS, false) }
     }
 
     // ========================================================================

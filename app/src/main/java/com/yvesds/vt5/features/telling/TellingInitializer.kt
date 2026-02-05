@@ -1,7 +1,6 @@
 package com.yvesds.vt5.features.telling
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
@@ -51,18 +50,16 @@ class TellingInitializer(
             try {
                 val dialog = ProgressDialogHelper.show(activity, "Soorten laden...")
                 try {
-                    val (snapshot, initial) = withContext(Dispatchers.IO) {
+                    val initial = withContext(Dispatchers.IO) {
                         val snapshot = ServerDataCache.getOrLoad(activity)
                         val pre = TellingSessionManager.preselectState.value
                         val ids = pre.selectedSoortIds
 
                         val speciesById = snapshot.speciesById
-                        val initialList = ids.mapNotNull { sid ->
+                        ids.mapNotNull { sid ->
                             val naam = speciesById[sid]?.soortnaam ?: return@mapNotNull null
                             SoortTile(sid, naam, 0)
                         }.sortedBy { it.naam.lowercase(Locale.getDefault()) }
-
-                        snapshot to initialList
                     }
 
                     if (initial.isEmpty()) {
@@ -84,7 +81,6 @@ class TellingInitializer(
                     // Build initial match context in background
                     activity.lifecycleScope.launch(Dispatchers.Default) {
                         try {
-                            val t0 = System.currentTimeMillis()
                             val mc = buildMatchContext(initial.map { it.soortId }.toSet())
                             onMatchContextBuilt?.invoke(mc)
                         } catch (ex: Exception) {

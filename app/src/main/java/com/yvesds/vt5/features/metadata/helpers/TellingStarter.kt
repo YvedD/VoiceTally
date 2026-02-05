@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.core.content.edit
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.databinding.SchermMetadataBinding
+import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.net.StartTellingApi
 import com.yvesds.vt5.net.TrektellenApi
@@ -57,7 +58,7 @@ class TellingStarter(
         telpostId: String,
         username: String,
         password: String,
-        snapshot: DataSnapshot
+        @Suppress("UNUSED_PARAMETER") snapshot: DataSnapshot
     ): StartResult = withContext(Dispatchers.IO) {
         try {
             // Generate telling ID
@@ -106,6 +107,9 @@ class TellingStarter(
                 liveMode = true
             )
             
+            // NEW: start a new session for score-based favorites windowing (last N sessions)
+            SpeciesUsageScoreStore.startNewSession(context)
+
             // Post counts_save
             val baseUrl = "https://trektellen.nl"
             val language = "dutch"

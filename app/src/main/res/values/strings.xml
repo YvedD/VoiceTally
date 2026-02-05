@@ -111,6 +111,16 @@
     <string name="instellingen_text_color_label">Tekstkleur</string>
     <string name="instellingen_back_arrow">←</string>
 
+    <!-- InstellingenScherm: favorieten/recents -->
+    <string name="instellingen_fav_limit_title">Instellen aantal recente soorten</string>
+    <string name="instellingen_fav_15">15</string>
+    <string name="instellingen_fav_20">20</string>
+    <string name="instellingen_fav_25">25</string>
+    <string name="instellingen_fav_30">30</string>
+    <string name="instellingen_fav_35">35</string>
+    <string name="instellingen_fav_40">40</string>
+    <string name="instellingen_fav_all">ALLE</string>
+
     <!-- TellingBeheerScherm -->
     <string name="beheer_titel">Beheer Opgeslagen Tellingen</string>
     <string name="beheer_geen_tellingen">Geen opgeslagen tellingen gevonden</string>

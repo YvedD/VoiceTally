@@ -7,6 +7,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
@@ -16,6 +17,7 @@ import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
 import com.yvesds.vt5.features.telling.TellingBeheerScherm
+import com.yvesds.vt5.core.ui.DialogStyler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -121,18 +123,20 @@ class HoofdActiviteit : AppCompatActivity() {
         val prefs = getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
         if (!prefs.getBoolean(KEY_PENDING_UPLOADS, false)) return
 
-        AlertDialog.Builder(this)
+        val dlg = AlertDialog.Builder(this)
             .setTitle(getString(R.string.uploads_pending_title))
             .setMessage(getString(R.string.uploads_pending_message))
             .setPositiveButton(getString(R.string.uploads_pending_now)) { _, _ ->
-                prefs.edit().putBoolean(KEY_UPLOAD_ON_EXIT, false).apply()
+                prefs.edit { putBoolean(KEY_UPLOAD_ON_EXIT, false) }
                 startActivity(Intent(this, TellingBeheerScherm::class.java))
             }
             .setNegativeButton(getString(R.string.uploads_pending_on_exit)) { _, _ ->
-                prefs.edit().putBoolean(KEY_UPLOAD_ON_EXIT, true).apply()
+                prefs.edit { putBoolean(KEY_UPLOAD_ON_EXIT, true) }
             }
             .setNeutralButton(getString(R.string.annuleer), null)
             .show()
+
+        DialogStyler.apply(dlg)
     }
 
     /**
@@ -176,7 +180,6 @@ class HoofdActiviteit : AppCompatActivity() {
      * Setup alarm sectie
      */
     private fun setupAlarmSection() {
-        val tvAlarmStatus = findViewById<TextView>(R.id.tvAlarmStatus)
         val btnToggleAlarm = findViewById<MaterialButton>(R.id.btnToggleAlarm)
         
         // Update alarm status
@@ -241,7 +244,7 @@ class HoofdActiviteit : AppCompatActivity() {
                 }
                 
                 // Show confirmation dialog
-                AlertDialog.Builder(this@HoofdActiviteit)
+                val dlg = AlertDialog.Builder(this@HoofdActiviteit)
                     .setTitle(getString(R.string.hoofd_opkuis_bevestig_titel))
                     .setMessage(getString(R.string.hoofd_opkuis_bevestig_msg, filesToDelete))
                     .setPositiveButton(getString(R.string.hoofd_opkuis_ja)) { _, _ ->
@@ -249,7 +252,9 @@ class HoofdActiviteit : AppCompatActivity() {
                     }
                     .setNegativeButton(getString(R.string.hoofd_opkuis_nee), null)
                     .show()
-                    
+
+                DialogStyler.apply(dlg)
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error checking exports cleanup count: ${e.message}", e)
                 Toast.makeText(

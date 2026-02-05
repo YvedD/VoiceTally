@@ -13,13 +13,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Scrollbare content (knoppen vast onderaan) -->
+        <!-- Scrollbare content (knoppen volgen direct onder de form) -->
         <androidx.core.widget.NestedScrollView
             android:id="@+id/rootScroll"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:fillViewport="true"
-            app:layout_constraintBottom_toTopOf="@+id/bottomBar"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -28,7 +28,8 @@
                 android:id="@+id/content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="0dp"
+                android:layout_marginTop="4dp"
+                android:baselineAligned="false"
                 android:orientation="vertical"
                 android:padding="0dp">
 
@@ -37,9 +38,14 @@
                     android:id="@+id/tvTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_margin="8dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="8dp"
+                    android:layout_marginBottom="4dp"
                     android:background="#117CAF"
                     android:gravity="center_horizontal|center_vertical"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
                     android:text="@string/meta_titel_basis"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
@@ -48,8 +54,10 @@
                     android:id="@+id/dateTimeRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:baselineAligned="false"
                     android:orientation="horizontal"
-                    android:paddingBottom="0dp">
+                    android:paddingBottom="0dp"
+                    android:paddingTop="0dp">
 
                     <!-- Datum (tap = datepicker) -->
                     <com.google.android.material.textfield.TextInputLayout
@@ -58,18 +66,20 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:hint="@string/meta_datum"
-                        app:boxBackgroundMode="outline">
+                        app:boxBackgroundMode="outline"
+                        app:boxCollapsedPaddingTop="4dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etDatum"
                             android:layout_width="match_parent"
-                            android:layout_height="50dp"
-                            android:layout_marginLeft="8dp"
-                            android:layout_marginRight="4dp"
+                            android:layout_height="46dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="4dp"
                             android:clickable="true"
                             android:focusable="false"
                             android:inputType="none"
                             android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
                             android:textSize="11sp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -80,18 +90,20 @@
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:hint="@string/meta_tijd"
-                        app:boxBackgroundMode="outline">
+                        app:boxBackgroundMode="outline"
+                        app:boxCollapsedPaddingTop="4dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/etTijd"
                             android:layout_width="match_parent"
-                            android:layout_height="50dp"
-                            android:layout_marginLeft="4dp"
-                            android:layout_marginRight="8dp"
+                            android:layout_height="46dp"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="8dp"
                             android:clickable="true"
                             android:focusable="false"
                             android:inputType="none"
                             android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
                             android:textSize="11sp" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
@@ -101,18 +113,21 @@
                     android:id="@+id/tilTelpost"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
                     android:hint="@string/meta_telpost"
                     app:boxBackgroundMode="outline"
+                    app:boxCollapsedPaddingTop="4dp"
                     app:endIconMode="dropdown_menu">
 
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/acTelpost"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginLeft="8dp"
-                        android:layout_marginRight="8dp"
+                        android:layout_height="46dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:inputType="none"
                         android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
                         android:textSize="11sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -121,48 +136,54 @@
                     android:id="@+id/tilTellers"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
                     android:hint="@string/meta_tellers"
-                    app:boxBackgroundMode="outline">
+                    app:boxBackgroundMode="outline"
+                    app:boxCollapsedPaddingTop="4dp">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etTellers"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginLeft="8dp"
-                        android:layout_marginRight="8dp"
+                        android:layout_height="46dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:inputType="textPersonName"
                         android:maxLines="1"
                         android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
                         android:textSize="11sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Tellers -->
+                <!-- Weer-opmerking -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/weerHeaderRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
                     android:hint="@string/meta_weer_opm"
-                    app:boxBackgroundMode="outline">
+                    app:boxBackgroundMode="outline"
+                    app:boxCollapsedPaddingTop="4dp">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etWeerOpmerking"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginLeft="8dp"
-                        android:layout_marginRight="8dp"
+                        android:layout_height="46dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:inputType="textPersonName"
                         android:maxLines="1"
                         android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
                         android:textSize="11sp" />
                 </com.google.android.material.textfield.TextInputLayout>
-
-
 
                 <!-- Weervelden: 2 kolommen -->
                 <LinearLayout
                     android:id="@+id/weerContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <!-- Linker kolom -->
@@ -180,15 +201,17 @@
                             android:layout_height="wrap_content"
                             android:hint="@string/meta_windrichting"
                             app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp"
                             app:endIconMode="dropdown_menu">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/acWindrichting"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginLeft="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginStart="8dp"
                                 android:inputType="none"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -197,16 +220,19 @@
                             android:id="@+id/tilTemperatuur"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:hint="@string/meta_temperatuur"
-                            app:boxBackgroundMode="outline">
+                            app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etTemperatuur"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginLeft="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginStart="8dp"
                                 android:inputType="number"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -215,17 +241,20 @@
                             android:id="@+id/tilBewolking"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:hint="@string/meta_bewolking"
                             app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp"
                             app:endIconMode="dropdown_menu">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/acBewolking"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginLeft="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginStart="8dp"
                                 android:inputType="none"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -234,16 +263,19 @@
                             android:id="@+id/tilZicht"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:hint="@string/meta_zicht"
-                            app:boxBackgroundMode="outline">
+                            app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etZicht"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginLeft="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginStart="8dp"
                                 android:inputType="number"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
@@ -255,7 +287,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:orientation="vertical"
-                        android:paddingStart="6dp">
+                        android:paddingStart="6dp"
+                        android:paddingEnd="0dp">
 
                         <!-- Windkracht -->
                         <com.google.android.material.textfield.TextInputLayout
@@ -264,15 +297,17 @@
                             android:layout_height="wrap_content"
                             android:hint="@string/meta_windkracht"
                             app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp"
                             app:endIconMode="dropdown_menu">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/acWindkracht"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginRight="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginEnd="8dp"
                                 android:inputType="none"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -281,17 +316,20 @@
                             android:id="@+id/tilNeerslag"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:hint="@string/meta_neerslag"
                             app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp"
                             app:endIconMode="dropdown_menu">
 
                             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                                 android:id="@+id/acNeerslag"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginRight="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginEnd="8dp"
                                 android:inputType="none"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -300,16 +338,19 @@
                             android:id="@+id/tilLuchtdruk"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
                             android:hint="@string/meta_luchtdruk"
-                            app:boxBackgroundMode="outline">
+                            app:boxBackgroundMode="outline"
+                            app:boxCollapsedPaddingTop="6dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etLuchtdruk"
                                 android:layout_width="match_parent"
-                                android:layout_height="50dp"
-                                android:layout_marginRight="8dp"
+                                android:layout_height="46dp"
+                                android:layout_marginEnd="8dp"
                                 android:inputType="numberDecimal"
                                 android:paddingStart="10dp"
+                                android:paddingEnd="10dp"
                                 android:textSize="11sp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
@@ -317,8 +358,8 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnWeerAuto"
                             android:layout_width="match_parent"
-                            android:layout_height="50dp"
-                            android:layout_marginTop="5dp"
+                            android:layout_height="46dp"
+                            android:layout_marginTop="2dp"
                             android:layout_marginEnd="8dp"
                             android:text="@string/meta_weer_auto"
                             android:textAllCaps="false"
@@ -340,18 +381,21 @@
                     android:id="@+id/tilTypeTelling"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
                     android:hint="@string/meta_typetelling"
                     app:boxBackgroundMode="outline"
+                    app:boxCollapsedPaddingTop="4dp"
                     app:endIconMode="dropdown_menu">
 
                     <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/acTypeTelling"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp"
-                        android:layout_marginLeft="8dp"
-                        android:layout_marginRight="8dp"
+                        android:layout_height="46dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:inputType="none"
                         android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
                         android:textSize="11sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -360,60 +404,63 @@
                     android:id="@+id/tilOpmerkingen"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
                     android:hint="@string/meta_opmerkingen"
-                    app:boxBackgroundMode="outline">
+                    app:boxBackgroundMode="outline"
+                    app:boxCollapsedPaddingTop="4dp">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etOpmerkingen"
                         android:layout_width="match_parent"
                         android:layout_height="50dp"
-                        android:layout_marginLeft="8dp"
-                        android:layout_marginRight="8dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="top"
                         android:inputType="textMultiLine"
                         android:minLines="2"
                         android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
                         android:textSize="11sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Onderste actiebalk: moet altijd direct onder etOpmerkingen zitten -->
+                <LinearLayout
+                    android:id="@+id/bottomBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="6dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAnnuleer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:layout_weight="1"
+                        android:minHeight="36dp"
+                        android:text="@string/annuleer" />
+
+                    <Space
+                        android:layout_width="6dp"
+                        android:layout_height="1dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnVerder"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:layout_weight="1"
+                        android:minHeight="36dp"
+                        android:text="@string/verder" />
+                </LinearLayout>
+
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
-
-        <!-- Onderste actiebalk -->
-        <LinearLayout
-            android:id="@+id/bottomBar"
-            android:layout_width="0dp"
-            android:layout_height="125dp"
-            android:orientation="horizontal"
-            android:paddingTop="1dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/rootScroll">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAnnuleer"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:layout_weight="1"
-                android:minHeight="36dp"
-                android:text="@string/annuleer" />
-
-            <Space
-                android:layout_width="6dp"
-                android:layout_height="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnVerder"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:layout_weight="1"
-                android:minHeight="36dp"
-                android:text="@string/verder" />
-        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

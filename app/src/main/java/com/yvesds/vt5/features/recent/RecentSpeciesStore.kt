@@ -2,13 +2,14 @@ package com.yvesds.vt5.features.recent
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Verbeterde 'recent gebruikt' opslag met in-memory caching.
- * - Bewaart max [maxEntries] soortIDs met laatste gebruikstijd, meest recent eerst.
+ * - Bewaart max [DEFAULT_MAX_RECENTS] soortIDs met laatste gebruikstijd, meest recent eerst.
  * - recordUse() promoot of voegt toe; trimt lijst.
  * - Optimalisaties: in-memory caching voor snellere toegang zonder IO
  *
@@ -28,10 +29,14 @@ object RecentSpeciesStore {
     private var cachedRecentIdsSet = ConcurrentHashMap<String, Boolean>()
 
     /**
-     * Registreer het gebruik van een soort-id. Standaard max 30 entries.
-     * Promoot bestaande soort naar boven of voegt nieuwe toe.
+     * Registreer het gebruik van een soort-id.
+     * Houdt legacy "recents" bij én voedt het nieuw score/decay systeem.
      */
     fun recordUse(context: Context, soortId: String, maxEntries: Int = DEFAULT_MAX_RECENTS) {
+        // NEW score-based favorites model
+        SpeciesUsageScoreStore.recordUse(context, soortId)
+
+        // Legacy recents list (kept for backwards compatibility)
         val list = load(context).toMutableList()
         val now = System.currentTimeMillis()
         val without = list.filterNot { it.first == soortId }
@@ -46,22 +51,21 @@ object RecentSpeciesStore {
 
     /**
      * Retourneert lijst van (soortId, lastUsedMillis), meest recent eerst.
-     * Gebruikt in-memory cache voor betere performance.
+     * NEW: score-store bepaalt de window (laatste sessies) + cap voor ALLE.
      */
     fun getRecents(context: Context): List<Pair<String, Long>> {
-        cachedRecents?.let { return it }
-
-        val loaded = load(context)
+        // Delegate to score-based recents window.
+        val loaded = SpeciesUsageScoreStore.getRecents(context, limit = SpeciesUsageScoreStore.MAX_ALL_CAP)
         cachedRecents = loaded
         cachedRecentIdsSet.clear()
         loaded.forEach { (id, _) -> cachedRecentIdsSet[id] = true }
-
         return loaded
     }
 
     /**
      * Snel controleren of een soortId recent is gebruikt
      */
+    @Suppress("unused")
     fun isRecent(context: Context, soortId: String): Boolean {
         if (cachedRecentIdsSet.containsKey(soortId)) {
             return cachedRecentIdsSet[soortId] == true
@@ -99,9 +103,9 @@ object RecentSpeciesStore {
                 arr.put(JSONObject().put("id", id).put("ts", ts))
             }
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY, arr.toString())
-                .apply() // apply in plaats van commit voor background IO
+                .edit {
+                    putString(KEY, arr.toString())
+                }
         } catch (e: Exception) {
             Log.e(TAG, "Error saving recents: ${e.message}", e)
         }
@@ -110,6 +114,7 @@ object RecentSpeciesStore {
     /**
      * Handmatig de cache leegmaken (gebruikt in testsituaties)
      */
+    @Suppress("unused")
     fun invalidateCache() {
         cachedRecents = null
         cachedRecentIdsSet.clear()

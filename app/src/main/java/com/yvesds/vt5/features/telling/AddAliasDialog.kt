@@ -3,15 +3,15 @@ package com.yvesds.vt5.features.telling
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isNotEmpty
 import androidx.fragment.app.DialogFragment
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.databinding.DialogAddAliasBinding
 
 /**
@@ -43,7 +43,7 @@ class AddAliasDialog : DialogFragment() {
     private lateinit var vb: DialogAddAliasBinding
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        vb = DialogAddAliasBinding.inflate(LayoutInflater.from(context))
+        vb = DialogAddAliasBinding.inflate(layoutInflater)
 
         val partials = arguments?.getStringArrayList(ARG_PARTIALS) ?: arrayListOf()
         val speciesFlat = arguments?.getStringArrayList(ARG_SPECIES) ?: arrayListOf()
@@ -59,7 +59,7 @@ class AddAliasDialog : DialogFragment() {
             rg.addView(rb)
             if (idx == partials.lastIndex) defaultRadioId = rb.id
         }
-        if (rg.childCount > 0) {
+        if (rg.isNotEmpty()) {
             vb.containerPartials.removeAllViews()
             vb.containerPartials.addView(rg)
             defaultRadioId?.let { rg.check(it) }
@@ -70,7 +70,8 @@ class AddAliasDialog : DialogFragment() {
         // Autocomplete species list
         val names = speciesFlat.map { it.substringAfter("||") }
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, names)
-        val act = vb.actSpecies as AutoCompleteTextView
+        val act = vb.actSpecies
+
         act.setAdapter(adapter)
         act.threshold = 1
 
@@ -99,6 +100,10 @@ class AddAliasDialog : DialogFragment() {
             }
             .setNegativeButton("Annuleer", null)
             .create()
+
+        dlg.setOnShowListener {
+            DialogStyler.apply(dlg)
+        }
 
         return dlg
     }

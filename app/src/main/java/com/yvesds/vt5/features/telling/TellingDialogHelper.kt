@@ -63,9 +63,11 @@ class TellingDialogHelper(
             }
         }
 
-        // Show current counts as initial values
-        etMain.setText(row.countMain.toString())
-        etReturn.setText(row.countReturn.toString())
+        // IMPORTANT UX: always start a new manual entry from 0/0 (avoid accidental double counting)
+        etMain.setText("0")
+        etReturn.setText("0")
+
+        // Still show the current totals as information
         tvCurrentTotal.text = activity.getString(R.string.dialog_current_total, row.count)
 
         val dialog = AlertDialog.Builder(activity)

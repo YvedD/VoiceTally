@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Popup color presets.
+
+      Edit these colors in the editor to fine-tune popup contrast.
+      The app will load these as defaults for the popup color spinners.
+
+      IMPORTANT:
+      - Background & text are stored as ARGB ints in SharedPrefs.
+      - Only POPUPS (dialogs) should follow these colors.
+    -->
+
+    <!-- Background presets (dark-first) -->
+    <color name="popup_bg_zwart">#FF000000</color>
+    <color name="popup_bg_donkergrijs">#928B8B</color>
+    <color name="popup_bg_nachtblauw">#423DB6</color>
+    <color name="popup_bg_donkergroen">#FF0E2A1A</color>
+    <color name="popup_bg_sepia">#FF2B1B0E</color>
+    <color name="popup_bg_donkerpaars">#FF1B0E2B</color>
+    <color name="popup_bg_wit">#FFFFFFFF</color>
+    <color name="popup_bg_lichtgeel">#FFFFF8D6</color>
+
+    <!-- Text presets (high contrast options) -->
+    <color name="popup_text_wit">#FFFFFFFF</color>
+    <color name="popup_text_lichtgrijs">#FFE0E0E0</color>
+    <color name="popup_text_zwart">#FF000000</color>
+    <color name="popup_text_donkergrijs">#FF222222</color>
+    <color name="popup_text_geel">#FFFFEB3B</color>
+    <color name="popup_text_cyaan">#FF00BCD4</color>
+    <color name="popup_text_oranje">#FFFF9800</color>
+    <color name="popup_text_lichtgroen">#FF8BC34A</color>
+
+    <string-array name="popup_bg_labels">
+        <item>Zwart</item>
+        <item>Donkergrijs</item>
+        <item>Nachtblauw</item>
+        <item>Donkergroen</item>
+        <item>Sepia</item>
+        <item>Donkerpaars</item>
+        <item>Wit</item>
+        <item>Lichtgeel</item>
+    </string-array>
+
+    <integer-array name="popup_bg_colors">
+        <item>@color/popup_bg_zwart</item>
+        <item>@color/popup_bg_donkergrijs</item>
+        <item>@color/popup_bg_nachtblauw</item>
+        <item>@color/popup_bg_donkergroen</item>
+        <item>@color/popup_bg_sepia</item>
+        <item>@color/popup_bg_donkerpaars</item>
+        <item>@color/popup_bg_wit</item>
+        <item>@color/popup_bg_lichtgeel</item>
+    </integer-array>
+
+    <string-array name="popup_text_labels">
+        <item>Wit</item>
+        <item>Lichtgrijs</item>
+        <item>Zwart</item>
+        <item>Donkergrijs</item>
+        <item>Geel</item>
+        <item>Cyaan</item>
+        <item>Oranje</item>
+        <item>Lichtgroen</item>
+    </string-array>
+
+    <integer-array name="popup_text_colors">
+        <item>@color/popup_text_wit</item>
+        <item>@color/popup_text_lichtgrijs</item>
+        <item>@color/popup_text_zwart</item>
+        <item>@color/popup_text_donkergrijs</item>
+        <item>@color/popup_text_geel</item>
+        <item>@color/popup_text_cyaan</item>
+        <item>@color/popup_text_oranje</item>
+        <item>@color/popup_text_lichtgroen</item>
+    </integer-array>
+</resources>
+

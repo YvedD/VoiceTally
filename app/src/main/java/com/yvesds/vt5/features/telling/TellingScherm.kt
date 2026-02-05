@@ -20,6 +20,7 @@ import com.yvesds.vt5.databinding.SchermTellingBinding
 import com.yvesds.vt5.features.alias.AliasRepository
 import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.recent.RecentSpeciesStore
+import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
@@ -31,9 +32,9 @@ import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import kotlin.jvm.Volatile
 import com.yvesds.vt5.R
-import com.yvesds.vt5.core.ui.UiColorPrefs
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.features.speech.Candidate
+import com.yvesds.vt5.hoofd.InstellingenScherm
 
 /**
  * TellingScherm.kt
@@ -152,9 +153,6 @@ class TellingScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = SchermTellingBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // Apply user-selected UI colors (background + text)
-        UiColorPrefs.applyToActivity(this)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
@@ -421,10 +419,12 @@ class TellingScherm : AppCompatActivity() {
         // Store adapter references for backward compatibility
         partialsAdapter = uiManager.getCurrentPartials().let { SpeechLogAdapter().apply { submitList(it) } }
         finalsAdapter = uiManager.getCurrentFinals().let { SpeechLogAdapter().apply { submitList(it) } }
-        tilesAdapter = SpeciesTileAdapter { position -> 
-            showNumberInputDialog(position) 
-        }
-        
+
+        // IMPORTANT: do NOT create a second tilesAdapter here.
+        // UiManager already created + attached the SpeciesTileAdapter to the RecyclerView.
+        // We reuse that adapter so 'Totalen' sees the same up-to-date list.
+        tilesAdapter = uiManager.getTilesAdapter()
+
         // Setup callbacks for UI manager
         uiManager.onPartialTapCallback = { pos, row -> handlePartialTap(pos, row) }
         uiManager.onFinalTapCallback = { pos, row -> handleFinalTap(pos, row) }
@@ -679,23 +679,6 @@ class TellingScherm : AppCompatActivity() {
         if (::alarmHandler.isInitialized) {
             alarmHandler.startMonitoring()
         }
-        
-        // Update lettergrootte in adapters als instellingen zijn gewijzigd
-        val logTextSizeSp = com.yvesds.vt5.hoofd.InstellingenScherm.getLettergrootteLogSp(this)
-        val tegelsTextSizeSp = com.yvesds.vt5.hoofd.InstellingenScherm.getLettergroottTegelsSp(this)
-        
-        if (::partialsAdapter.isInitialized) {
-            partialsAdapter.updateTextSize(logTextSizeSp)
-            partialsAdapter.notifyItemRangeChanged(0, partialsAdapter.itemCount)
-        }
-        if (::finalsAdapter.isInitialized) {
-            finalsAdapter.updateTextSize(logTextSizeSp)
-            finalsAdapter.notifyItemRangeChanged(0, finalsAdapter.itemCount)
-        }
-        if (::tilesAdapter.isInitialized) {
-            tilesAdapter.updateTextSize(tegelsTextSizeSp)
-            tilesAdapter.notifyItemRangeChanged(0, tilesAdapter.itemCount)
-        }
     }
     
     override fun onPause() {
@@ -750,7 +733,7 @@ class TellingScherm : AppCompatActivity() {
                     speciesManager.collectFinalAsRecord(soortId, 0, returnDelta)
                 }
 
-                RecentSpeciesStore.recordUse(this@TellingScherm, soortId, maxEntries = 30)
+                RecentSpeciesStore.recordUse(this@TellingScherm, soortId, maxEntries = InstellingenScherm.getMaxFavorieten(this@TellingScherm).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
             }
         }
     }
@@ -809,7 +792,7 @@ class TellingScherm : AppCompatActivity() {
             speciesManager.updateSoortCountInternal(speciesId, count)
             speciesManager.collectFinalAsRecord(speciesId, count)
         }
-        RecentSpeciesStore.recordUse(this, speciesId, maxEntries = 30)
+        RecentSpeciesStore.recordUse(this, speciesId, maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
     }
 
     /**
@@ -911,7 +894,7 @@ class TellingScherm : AppCompatActivity() {
     private fun showSuggestionBottomSheet(candidates: List<Candidate>, count: Int) {
         val items = candidates.map { "${it.displayName} (score: ${"%.2f".format(it.score)})" }.toTypedArray()
 
-        AlertDialog.Builder(this)
+        val dlgList = AlertDialog.Builder(this)
             .setTitle("Kies soort")
             .setItems(items) { _, which ->
                 val chosen = candidates[which]
@@ -937,10 +920,18 @@ class TellingScherm : AppCompatActivity() {
                         .show()
                     DialogStyler.apply(dlg)
                 }
-                RecentSpeciesStore.recordUse(this, chosen.speciesId, maxEntries = 30)
+                RecentSpeciesStore.recordUse(
+                    this,
+                    chosen.speciesId,
+                    maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it }
+                )
+
             }
             .setNegativeButton("Annuleer", null)
             .show()
+
+        // Ensure the list dialog itself is also styled.
+        DialogStyler.apply(dlgList)
     }
 
 
@@ -1027,7 +1018,7 @@ class TellingScherm : AppCompatActivity() {
             .setTitle(getString(R.string.afrond_vervolgtelling_titel))
             .setMessage(getString(R.string.afrond_vervolgtelling_msg))
             .setPositiveButton("OK") { _, _ ->
-                // Navigate to MetadataScherm with begintijd preset to eindtijd of previous telling
+                // Navigate to MetadataScherm with begintijd preset to eindtijd of the previous telling
                 val intent = Intent(this@TellingScherm, MetadataScherm::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 intent.putExtra(MetadataScherm.EXTRA_VERVOLG_BEGINTIJD_EPOCH, eindtijdEpoch)
@@ -1070,19 +1061,4 @@ class TellingScherm : AppCompatActivity() {
     private fun openSoortSelectieForAdd() {
         speciesManager.launchSpeciesSelection()
     }
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

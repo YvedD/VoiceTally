@@ -19,10 +19,10 @@ import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.features.soort.ui.SoortSelectieScherm
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.features.network.DataUploader
+import com.yvesds.vt5.hoofd.InstellingenScherm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 /**
  * TellingSpeciesManager: Manages species operations for TellingScherm.
@@ -179,7 +179,9 @@ class TellingSpeciesManager(
                 tegelBeheer.verhoogSoortAantal(speciesId, extractedCount)
             }
             onTilesUpdated?.invoke()
-            RecentSpeciesStore.recordUse(activity, speciesId, maxEntries = 30)
+            val maxRecents = InstellingenScherm.getMaxFavorieten(activity)
+                .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
+            RecentSpeciesStore.recordUse(activity, speciesId, maxEntries = maxRecents)
             onLogMessage?.invoke(
                 "Soort ${if (added) "toegevoegd" else "bijgewerkt"}: $canonical ($extractedCount)",
                 "systeem"
@@ -197,7 +199,9 @@ class TellingSpeciesManager(
 
             tegelBeheer.voegSoortToe(soortId, canonical, initialCount, mergeIfExists = true)
             onTilesUpdated?.invoke()
-            RecentSpeciesStore.recordUse(activity, soortId, maxEntries = 30)
+            val maxRecents2 = InstellingenScherm.getMaxFavorieten(activity)
+                .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
+            RecentSpeciesStore.recordUse(activity, soortId, maxEntries = maxRecents2)
             onLogMessage?.invoke("Soort toegevoegd: $canonical ($initialCount)", "systeem")
         } catch (ex: Exception) {
             Log.w(TAG, "addSpeciesToTiles failed: ${ex.message}", ex)
@@ -208,9 +212,11 @@ class TellingSpeciesManager(
     /**
      * Update species count internally (no log message).
      */
-    suspend fun updateSoortCountInternal(soortId: String, count: Int) {
+    fun updateSoortCountInternal(soortId: String, count: Int) {
         tegelBeheer.verhoogSoortAantal(soortId, count)
-        RecentSpeciesStore.recordUse(activity, soortId, maxEntries = 30)
+        val maxRecents3 = InstellingenScherm.getMaxFavorieten(activity)
+            .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
+        RecentSpeciesStore.recordUse(activity, soortId, maxEntries = maxRecents3)
         onTilesUpdated?.invoke()
     }
 
@@ -232,7 +238,7 @@ class TellingSpeciesManager(
                 val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
 
                 // Generate uploadtijdstip in "YYYY-MM-DD HH:MM:SS" format
-                val currentTimestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                val currentTimestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", activity.resources.configuration.locales[0])
                     .format(java.util.Date())
 
                 val total = amountMain + amountReturn

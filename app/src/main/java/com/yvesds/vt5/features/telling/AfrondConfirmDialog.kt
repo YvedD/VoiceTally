@@ -9,6 +9,7 @@ import android.widget.NumberPicker
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.databinding.DialogAfrondConfirmBinding
 import java.util.Calendar
 import java.util.Date
@@ -89,7 +90,7 @@ class AfrondConfirmDialog : DialogFragment() {
     private var dateDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        binding = DialogAfrondConfirmBinding.inflate(LayoutInflater.from(context))
+        binding = DialogAfrondConfirmBinding.inflate(layoutInflater)
 
         val begintijdEpochStr = arguments?.getString(ARG_BEGINTIJD_EPOCH) ?: ""
         val eindtijdEpochStr = arguments?.getString(ARG_EINDTIJD_EPOCH) ?: ""
@@ -136,6 +137,10 @@ class AfrondConfirmDialog : DialogFragment() {
                 listener?.onAfrondCancelled()
             }
             .create()
+
+        dlg.setOnShowListener {
+            DialogStyler.apply(dlg)
+        }
 
         return dlg
     }
@@ -248,21 +253,17 @@ class AfrondConfirmDialog : DialogFragment() {
             setFormatter { v -> v.toString().padStart(2, '0') }
         }
 
-        // Auto-adjust hour when rolling over from 59 to 0 or 0 to 59
-        var lastMinute = currentMinute
-        minutePicker.setOnValueChangedListener { _, _, newVal ->
-            if (newVal == 0 && lastMinute == 59) {
+        // Auto-adjust hour when rolling over from 59 to 0
+        minutePicker.setOnValueChangedListener { _, oldVal, newVal ->
+            if (newVal == 0 && oldVal == 59) {
                 hourPicker.value = (hourPicker.value + 1) % 24
-            } else if (newVal == 59 && lastMinute == 0) {
-                hourPicker.value = if (hourPicker.value == 0) 23 else hourPicker.value - 1
             }
-            lastMinute = newVal
         }
 
         row.addView(hourPicker, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(minutePicker, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
 
-        AlertDialog.Builder(requireContext())
+        val dlg = AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.afrond_time_picker_title))
             .setView(row)
             .setPositiveButton("OK") { _, _ ->
@@ -276,6 +277,12 @@ class AfrondConfirmDialog : DialogFragment() {
                 updateTimeDisplay()
             }
             .setNegativeButton(getString(R.string.dlg_cancel), null)
-            .show()
+            .create()
+
+        dlg.setOnShowListener {
+            DialogStyler.apply(dlg)
+        }
+
+        dlg.show()
     }
 }
