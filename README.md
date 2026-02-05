@@ -366,7 +366,7 @@ U kunt waarnemingen annoteren met extra details zoals leeftijd, geslacht, kleed,
 - **Lokaal** (lokale vogels, niet trekkend)
 
 ### Kompas
-- **Er is een werkend kompas aanwezig, waarmee de gebruikers een afwijkende vliegroute precies kunnen ingeven, op basis van real-time kompas gegevens
+- Er is een werkend kompas aanwezig, waarmee de gebruikers een afwijkende vliegroute precies kunnen ingeven, op basis van real-time kompas gegevens
 
 ### Opmerkingen
 Veld voor vrije tekst (bijv. bijzondere kenmerken)
