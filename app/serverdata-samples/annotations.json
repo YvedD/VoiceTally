@@ -32,11 +32,11 @@
   ],
 
    "height": [
-    { "tekst": "<25m",    "veld": "height", "waarde": "<25m" },
-    { "tekst": "<50m",    "veld": "height", "waarde": "<50m" },
-    { "tekst": "50-100m", "veld": "height", "waarde": "50-100m" },
-    { "tekst": "100-200m","veld": "height", "waarde": "100-200m" },
-    { "tekst": ">200m",   "veld": "height", "waarde": ">200m" }
+    { "tekst": "⇑ <25m",    "veld": "height", "waarde": "⇑ <25m" },
+    { "tekst": "⇑ <50m",    "veld": "height", "waarde": "⇑ <50m" },
+    { "tekst": "⇑ 50-100m", "veld": "height", "waarde": "⇑ 50-100m" },
+    { "tekst": "⇑ 100-200m","veld": "height", "waarde": "⇑ 100-200m" },
+    { "tekst": "⇑ >200m",   "veld": "height", "waarde": "⇑ >200m" }
   ],
 
   "location": [
