@@ -1,0 +1,205 @@
+# AI-Predictor voorstel (Belgische kust, voorjaar)
+
+## 1) Doel en scope
+
+Dit document werkt een **haalbaar en uitlegbaar pad** uit voor een AI-gestuurde migratieprognose voor een lokale telpost aan de Belgische kust, met focus op **voorjaarstrek**.
+
+De output per dag (D+0 t/m D+4):
+- migratie-index (0–100)
+- klasse: laag / matig / goed / top
+- betrouwbaarheidsniveau: laag / midden / hoog
+- korte uitleg van de belangrijkste drijvers
+
+---
+
+## 2) Online bevindingen: welke zuidelijke locaties monitoren?
+
+Op basis van online raadpleging (trektelnetwerken + gekende observatiepunten langs Kanaal/Pas-de-Calais) zijn deze zuidelijke aanvoerlocaties het meest relevant voor een Belgische kusttelpost in het voorjaar.
+
+### 2.1 Kernlocaties (hoogste prioriteit)
+
+1. **Cap Gris-Nez (Pas-de-Calais)**  
+   - Klassieke bottleneck aan de Straat van Dover; zeer relevant voor doorstroom richting België.
+   - In trektelnetwerken expliciet als actieve site aanwezig.
+
+2. **Le Clipon / Jetée du Clipon (Loon-Plage, nabij Duinkerke)**  
+   - Strategische kustpost dicht bij de Frans-Belgische grens.
+   - Nuttig als “laatste zuidelijke check” vóór de Belgische kust.
+
+3. **Cap Blanc-Nez (Pas-de-Calais)**  
+   - Complementair met Cap Gris-Nez om kanaalstuwing en kustlijnen te volgen.
+
+4. **Baie de Somme / Marquenterre (Picardië)**  
+   - Relevante zuidelijkere bronzone waar veel doortrek/stopover plaatsvindt.
+   - Functioneert als vroeg signaal voor potentieel noordwaarts transport.
+
+### 2.2 Aanvullende locaties (middelmatige prioriteit)
+
+5. **Le Hourdel (zuidpunt Baie de Somme)**  
+6. **Oye-Plage / Platier d’Oye zone**  
+7. **Wimereux-kustzone**
+
+### 2.3 Praktisch monitoringsontwerp voor VT5
+
+Voor robuuste voorspelling niet op één punt steunen, maar:
+- **2 punten in Somme-zone** (bv. Marquenterre + Le Hourdel),
+- **2 punten in Pas-de-Calais middenzone** (Cap Blanc-Nez + Cap Gris-Nez),
+- **1 punt in grenszone** (Le Clipon of Oye-Plage).
+
+Zo krijg je een **zuid -> noord corridorprofiel** i.p.v. enkel lokale momentopname.
+
+---
+
+## 3) Score-opbouw na inlezen zuidelijke locaties
+
+### 3.1 Stap 1 — Feature extractie per zone
+
+Per zone (Somme, Pas-de-Calais, Grens, Lokaal België) per dag:
+- windrichting (°), windsnelheid, windstoten
+- neerslag, zicht, luchtdruk
+- temperatuur (optioneel dauwpunt/luchtvochtigheid)
+- trends (Δ24u en Δ48u)
+
+### 3.2 Stap 2 — Deel-scores
+
+Bereken per dag vier deel-scores (0–100):
+
+1. **Lokaal vliegweer** (gewicht 35%)  
+   Hoe gunstig zijn condities op de telpost zelf?
+
+2. **Aanvoerlijn-score** (gewicht 40%)  
+   Zijn zuidelijke zones gunstig én coherent voor noordwaartse doorvoer?
+
+3. **Trend/stabiliteit-score** (gewicht 15%)  
+   Houden condities stand of stort het weerprofiel in?
+
+4. **Contextscore** (gewicht 10%)  
+   Seizoensfase, daglengte, historiek, enz.
+
+**Totaalscore** = `0.35*Lokaal + 0.40*Aanvoer + 0.15*Trend + 0.10*Context`
+
+### 3.3 Stap 3 — Corridorlogica (essentieel)
+
+Aanvoer mag pas echt hoog scoren als:
+- zuidelijke zones **opeenvolgend** gunstig zijn (Somme -> Pas-de-Calais -> Grens),
+- wind in corridor niet structureel tegenwerkt,
+- geen dominante “stopfactor” (zware neerslag/slecht zicht) op meerdere punten tegelijk.
+
+Voorbeeld:
+- Somme goed, Pas-de-Calais goed, grenszone goed => sterke corridorbonus.
+- Somme goed maar Pas-de-Calais slecht => beperkte score (doorstroom waarschijnlijk geblokkeerd/versnipperd).
+
+### 3.4 Stap 4 — Klasse en confidence
+
+- 0–24 = laag  
+- 25–49 = matig  
+- 50–74 = goed  
+- 75–100 = top
+
+Confidence (laag/midden/hoog) op basis van:
+- datacompleetheid (missende waarden?)
+- ruimtelijke consistentie (zones spreken elkaar tegen?)
+- modelconsensus (regelengine vs AI-correctielaag)
+
+---
+
+## 4) Belangrijke parameters (uitgebreide lijst)
+
+### 4.1 Meteorologisch (verplicht)
+- windrichting / windsnelheid / windstoten
+- neerslagintensiteit + neerslagkans
+- zicht (mist/haze als negatieve factor)
+- luchtdruk + druktrend (stijgend/dalend)
+- temperatuur
+
+### 4.2 Synoptisch (sterk aanbevolen)
+- frontpassages (koufront/warmtefront)
+- stabiliteit over 6–12 uur vensters
+- ruimtelijke gradiënt (grote verschillen tussen zones = lagere voorspelbaarheid)
+
+### 4.3 Tijd/biologie (aanbevolen)
+- dag in seizoen (vroeg/midden/laat voorjaar)
+- daglengte en tijd t.o.v. zonsopgang
+- optioneel: maanfase (voor nachtelijke bewegingen)
+
+### 4.4 Observatiegedreven (aanbevolen)
+- recente lokale intensiteit (laatste 1–3 dagen)
+- soortgroep-specifieke gevoeligheid (zeetrek vs landtrek)
+- telinspanning/waarnemersinspanning (bias-correctie)
+
+---
+
+## 5) AI-architectuur: uitlegbaar én uitbreidbaar
+
+### 5.1 Fase A — Rule Engine (direct inzetbaar)
+- Transparante regels + drempels.
+- Altijd uitlegtekst genereren (“waarom deze score”).
+
+### 5.2 Fase B — Hybride correctielaag
+- Licht model (bijv. gradient boosting/regressie) dat Rule-score bijstuurt.
+- Input: weerfeatures + corridorfeatures + Rule-score.
+- Output: gecorrigeerde score + calibrated confidence.
+
+### 5.3 Waarom deze aanpak?
+- snel bruikbaar in praktijk
+- uitlegbaar voor gebruikers
+- later nauwkeuriger zonder black-box vanaf dag 1
+
+---
+
+## 6) Haalbaar implementatiepad
+
+### Sprint 1 (2–3 weken)
+- vaste locatielijst (5–7 zuidelijke punten) + lokale telpost
+- data-inname actueel + 5-daagse forecast
+- rule-based score + klasse + korte uitleg
+
+### Sprint 2 (2–4 weken)
+- logging van voorspelling vs waargenomen trek
+- basis-kalibratie van gewichten per seizoen
+- confidence zichtbaar in UI
+
+### Sprint 3 (4+ weken)
+- hybride AI-correctie trainen
+- evaluatie rule-only vs hybrid
+- drempels finetunen voor “top”-dagen
+
+---
+
+## 7) Validatie en kwaliteit
+
+Minimale KPI’s:
+- klasse-accuratesse (laag/matig/goed/top)
+- false positives op “top”
+- calibration error van confidence
+
+Operationele regels:
+- bij lage confidence geen “top”-advies forceren
+- fallback op laatste betrouwbare run bij data-uitval
+
+---
+
+## 8) Conclusie voor jouw use-case
+
+Voor een telpost aan de Belgische kust in het voorjaar is de beste start:
+1. monitor een **zuidelijke corridor** met nadruk op **Cap Gris-Nez, Le Clipon, Cap Blanc-Nez en Baie de Somme/Marquenterre**,
+2. bouw een **gewogen score** met lokale + aanvoer + trend + contextblokken,
+3. start met **uitlegbare regels**, en voeg daarna een lichte AI-correctielaag toe.
+
+Dat levert snel een bruikbare tool op, met een realistisch pad naar hogere nauwkeurigheid.
+
+---
+
+## 9) Geraadpleegde online bronnen (selectie)
+
+> Opmerking: sommige domeinen waren vanuit de sandbox niet rechtstreeks opvraagbaar via `web_fetch`, maar zijn wel opgehaald via zoekresultaat-analyse in `web_search`.
+
+- Trektellen site-info Cap Gris-Nez: https://www.trektellen.nl/site/info/148  
+- Trektellen site-info Le Clipon: https://www.trektellen.nl/site/info/7  
+- Trektellen protocol zeetrektellingen: https://www.trektellen.nl/static/doc/Protocol_Zeetrektellingen_v2022.pdf  
+- Trektellen documentenoverzicht: https://www.trektellen.nl/doc  
+- Jaarverslag Duinbrug/Spanjaardduin (Belgische kust): https://www.trektellen.org/static/doc/Jaarverslag_Trektelposten_Duinbrug_-_Spanjaardduin_Bredene.pdf  
+- Migraction Cap Gris-Nez: https://www.migraction.net/index.php?m_id=1510&frmSite=112  
+- Migraction Le Clipon: https://www.migraction.net/index.php?m_id=1510&frmSite=17  
+- LPO activiteit Cap Gris-Nez: https://www.lpo.fr/lpo-locales/region-hauts-de-france/lpo-pas-de-calais/agenda-pas-de-calais/agenda-2025-pas-de-calais/la-migration-au-cap-gris-nez  
+- Parc du Marquenterre: https://www.parcdumarquenterre.fr/?lang=2  
