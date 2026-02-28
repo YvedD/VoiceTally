@@ -613,7 +613,7 @@ Voor elke dag D+0 t/m D+4:
 - **Migratie-index**: 0–100
 - **Klasse**: laag / matig / goed / top
 - **Richtingstype**: vooral hoofdrichting / gemengd / weinig gericht
-- **Betrouwbaarheid**: laag / midden / hoog
+- **Betrouwbaarheid**: laag / middel / hoog
 - **Korte reden** (uitlegbaar): bv. “meewind-corridor zuid->lokaal + droog”
 
 Zo blijft het systeem zowel praktisch als uitlegbaar in veldgebruik.
@@ -683,7 +683,7 @@ Bereken naast de score ook een betrouwbaarheid:
 - ruimtelijke consistentie (zones niet tegenstrijdig?)
 
 Als betrouwbaarheid laag is, toon expliciet:  
-“Voorspelling voorlopig — met lage zekerheid door inconsistente corridor-data.”
+“Voorspelling is voorlopig — met lage zekerheid door inconsistente corridor-data.”
 
 #### 16.7.6 Uitlegbaarheid (essentieel voor vertrouwen)
 
