@@ -16,12 +16,21 @@ DEFAULT_REGION = {
     "latitude": 51.2567,
     "longitude": 2.9606,
 }
-SOUTH_RASTER_POINTS = [
-    {"point_id": "le-hourdel", "latitude": 50.2142, "longitude": 1.5583},
-    {"point_id": "marquenterre", "latitude": 50.3268, "longitude": 1.6046},
-    {"point_id": "cap-blanc-nez", "latitude": 50.9313, "longitude": 1.7044},
-    {"point_id": "cap-gris-nez", "latitude": 50.8675, "longitude": 1.5824},
-    {"point_id": "le-clipon", "latitude": 51.0368, "longitude": 2.2724},
+RASTER_ORIGIN = {"point_id": "tarifa", "latitude": 36.013, "longitude": -5.606}
+RASTER_STEP_KM = 100
+RASTER_LENGTH_KM = 1010
+LAND_RASTER_POINTS = [
+    {"point_id": "tarifa", "country": "ES", "latitude": 36.0130, "longitude": -5.6060, "distance_from_origin_km": 0},
+    {"point_id": "seville", "country": "ES", "latitude": 37.3891, "longitude": -5.9845, "distance_from_origin_km": 100},
+    {"point_id": "cordoba", "country": "ES", "latitude": 37.8882, "longitude": -4.7794, "distance_from_origin_km": 200},
+    {"point_id": "madrid", "country": "ES", "latitude": 40.4168, "longitude": -3.7038, "distance_from_origin_km": 300},
+    {"point_id": "burgos", "country": "ES", "latitude": 42.3439, "longitude": -3.6969, "distance_from_origin_km": 400},
+    {"point_id": "san-sebastian", "country": "ES", "latitude": 43.3183, "longitude": -1.9812, "distance_from_origin_km": 500},
+    {"point_id": "bordeaux", "country": "FR", "latitude": 44.8378, "longitude": -0.5792, "distance_from_origin_km": 600},
+    {"point_id": "tours", "country": "FR", "latitude": 47.3941, "longitude": 0.6848, "distance_from_origin_km": 700},
+    {"point_id": "lille", "country": "FR", "latitude": 50.6292, "longitude": 3.0573, "distance_from_origin_km": 800},
+    {"point_id": "oostende", "country": "BE", "latitude": 51.2300, "longitude": 2.9200, "distance_from_origin_km": 900},
+    {"point_id": DEFAULT_REGION["region_id"], "country": "BE", "latitude": DEFAULT_REGION["latitude"], "longitude": DEFAULT_REGION["longitude"], "distance_from_origin_km": 1010},
 ]
 
 
@@ -72,9 +81,13 @@ def compute_score(current_weather: dict | None) -> tuple[float, float]:
     return round(score, 3), round(confidence, 3)
 
 
+def generate_raster_points() -> list[dict]:
+    return LAND_RASTER_POINTS
+
+
 def build_south_raster_points() -> list[dict]:
     points = []
-    for point in SOUTH_RASTER_POINTS:
+    for point in generate_raster_points():
         weather = fetch_current_weather(point["latitude"], point["longitude"])
         score, confidence = compute_score(weather)
         points.append(
@@ -82,6 +95,8 @@ def build_south_raster_points() -> list[dict]:
                 "point_id": point["point_id"],
                 "latitude": point["latitude"],
                 "longitude": point["longitude"],
+                "country": point["country"],
+                "distance_from_origin_km": point["distance_from_origin_km"],
                 "score": score,
                 "confidence": confidence,
                 "weather": weather,
@@ -101,10 +116,13 @@ def build_payload() -> dict:
     return {
         "updated_at": utc_now_iso(),
         "ttl_minutes": 60,
-        "source": "github-actions-schedule-v2-south-raster",
+        "source": "github-actions-schedule-v3-tarifa-raster",
         "corridor": {
             "direction": "south_to_local",
             "raster_point_count": len(south_points),
+            "origin_point_id": RASTER_ORIGIN["point_id"],
+            "step_km": RASTER_STEP_KM,
+            "length_km": RASTER_LENGTH_KM,
             "aggregate_score": score,
             "aggregate_confidence": confidence,
         },
