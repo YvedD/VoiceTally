@@ -769,6 +769,15 @@ Zo krijg je snel veldwaarde én een gecontroleerde overgang naar een echte AI-to
 - **Data opslag**: Android SAF (Documents/VT5/)
 - **Backend**: www.trektellen.nl
 
+### Geplande migratie-output (GitHub Actions)
+
+De repository bevat nu een geplande workflow voor migratie-output:
+- Workflow: `.github/workflows/migration-prediction-refresh.yml`
+- Script: `scripts/refresh_migration_output.py`
+- Outputbestand voor consumptie door app/web: `data/migration/latest.json`
+
+De workflow draait elke 30 minuten (UTC) en kan ook manueel gestart worden via `workflow_dispatch`.
+
 ---
 
 ## Contact & Support

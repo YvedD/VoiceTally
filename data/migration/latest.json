@@ -1,0 +1,13 @@
+{
+  "updated_at": "2026-02-28T16:15:05Z",
+  "ttl_minutes": 60,
+  "source": "github-actions-schedule-v1",
+  "regions": [
+    {
+      "region_id": "spanjaardduin-bredene",
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    }
+  ]
+}
