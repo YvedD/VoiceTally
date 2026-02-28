@@ -196,7 +196,7 @@ Deze uitbreiding gebruikt hetzelfde model, maar met **meerdere corridors tegelij
 
 ### 9.1 Uitgebreide monitorlocaties
 
-#### A) Zuidwest-kustcorridor (FR -> BE -> NL kust)
+#### A) Zuidwest-kustcorridor (Frankrijk -> België -> Nederland kust)
 - Cap Blanc-Nez, Cap Gris-Nez, Le Clipon
 - Wenduine / Spioenkop, Bredene (Duinbrug + Spanjaardduin), Zeebrugge/De Fonteintjes
 - Breskens / Westerschelde, Westkapelle, Maasvlakte, IJmuiden, Camperduin
@@ -204,11 +204,11 @@ Deze uitbreiding gebruikt hetzelfde model, maar met **meerdere corridors tegelij
 
 #### B) Binnenlandcorridor BE+NL
 - België: Maatheide/Kristallijn (Mol), De Maten (Genk), Hobokense Polder-regio
-- Nederland: Limburgse Maaszone (o.a. De Hamert-omgeving), centrale oostelijke telposten (zoals Amerongse Bovenpolder-regio)
+- Nederland: Limburgse Maaszone (zoals De Hamert-omgeving), centrale oostelijke telposten (zoals Amerongse Bovenpolder-regio)
 
 #### C) Rhône-gedreven aanvoer (mediterrane as -> Benelux)
 - Rhône-as in Frankrijk (Camargue -> lagere/midden Rhône -> noordelijke uitwaaiering)
-- Koppeling via noordoostelijk Frankrijk (Saône/Moezel/maas-georiënteerde doorgang) richting België/Nederland
+- Koppeling via noordoostelijk Frankrijk (Saône/Moezel/Maas-georiënteerde doorgang) richting België/Nederland
 - Praktisch: monitor deze as als **upstream early-warning corridor** voor dagen D+2 t/m D+4
 
 ### 9.2 Score-opbouw voor BE+NL op nationaal niveau
@@ -221,7 +221,7 @@ Voor nationale dekking gebruik je vijf blokken:
 4. **RhoneCorridorScore (20%)**: mediterrane aanvoer die noordwaarts doorzet  
 5. **ContextScore (10%)**: seizoensfase, historiek, effort-correctie
 
-`TotalScore_BE_NL = 0.25*Local + 0.25*Coastal + 0.20*Inland + 0.20*Rhone + 0.10*Context`
+`TotalScore_BE_NL = 0.25*Local + 0.25*Coastal + 0.20*Inland + 0.20*RhoneCorridor + 0.10*Context`
 
 ### 9.3 Rhône-activatiefactor (belangrijk)
 
@@ -267,7 +267,7 @@ Per dag:
 - Jaarverslag Duinbrug/Spanjaardduin (Belgische kust): https://www.trektellen.org/static/doc/Jaarverslag_Trektelposten_Duinbrug_-_Spanjaardduin_Bredene.pdf  
 - Migraction Cap Gris-Nez: https://www.migraction.net/index.php?m_id=1510&frmSite=112  
 - Migraction Le Clipon: https://www.migraction.net/index.php?m_id=1510&frmSite=17  
-- Migraction (Rhône-vallei voorbeeldsite, spring migration context): https://www.migraction.net/index.php?m_id=1510&showret=1&cp=all&frmSite=36  
+- Migraction (Rhône-vallei voorbeeldsite, voorjaarstrekcontext): https://www.migraction.net/index.php?m_id=1510&showret=1&cp=all&frmSite=36  
 - LPO activiteit Cap Gris-Nez: https://www.lpo.fr/lpo-locales/region-hauts-de-france/lpo-pas-de-calais/agenda-pas-de-calais/agenda-2025-pas-de-calais/la-migration-au-cap-gris-nez  
 - Parc du Marquenterre: https://www.parcdumarquenterre.fr/?lang=2  
 - Trektellen platform (NL/BE site-overzicht en kaart): https://www.trektellen.nl/  
