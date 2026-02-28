@@ -381,3 +381,140 @@ Waarom:
 - `github.io`-pagina toont dan enkel het laatst berekende resultaat.
 
 Zo blijft je site snel en vermijd je dat de app of browser honderden realtime requests moet doen.
+
+---
+
+## 14) Praktische blauwdruk — GitHub Actions `schedule` + app verwerking
+
+Hieronder staat een concrete, production-achtige flow die je met minimale infrastructuur kan draaien.
+
+### 14.1 End-to-end architectuur
+
+1. **Scheduler (GitHub Actions)**  
+   Start automatisch op vaste intervallen (bv. elke 30 of 60 minuten).
+2. **Ingestie-job**  
+   Haalt raster-weerdata op (API), normaliseert en valideert.
+3. **Berekening-job**  
+   Berekent migratiescore per regio/telpost.
+4. **Publicatie-job**  
+   Schrijft resultaat weg als statisch bestand (bv. `latest.json`).
+5. **Consumptie (app + optioneel github.io)**  
+   Leest enkel het reeds berekende JSON-resultaat in, niet alle ruwe rasterpunten.
+
+Belangrijk: je verplaatst zware fan-out (veel API-calls) van toestel/browser naar een geplande backend-taak.
+
+### 14.2 Voorbeeld van een workflow met `schedule`
+
+Bestand: `.github/workflows/raster-refresh.yml`
+
+```yaml
+name: Raster refresh
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # elke 30 minuten (UTC)
+  workflow_dispatch: {}     # manueel starten
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install -r scripts/requirements.txt
+
+      - name: Fetch + compute
+        env:
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+        run: python scripts/refresh_raster.py
+
+      - name: Commit latest output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/latest.json data/latest-meta.json
+          git diff --cached --quiet || git commit -m "chore: refresh raster output"
+          git push
+```
+
+### 14.3 Waarom deze opzet goed werkt
+
+- **Voorspelbare latency in app:** app downloadt één compact resultaatbestand i.p.v. honderden requests.
+- **Minder batterij- en dataverbruik:** zware berekening gebeurt buiten het toestel.
+- **Betere foutafhandeling:** bij een mislukte refresh blijft vorige `latest.json` beschikbaar.
+- **Eenvoudig te beheren:** planning, logs en retries zitten in GitHub Actions.
+
+### 14.4 Hoe je app aan de data geraakt
+
+Je app kan op 2 gangbare manieren aan de output:
+
+**A) Rechtstreeks uit de repository (snelle start)**
+- Publiceer `data/latest.json` in een publieke branch.
+- Lees via een vaste URL (bijvoorbeeld raw content).
+- In app:
+  - haal JSON op,
+  - parseer naar model (`score`, `confidence`, `updated_at`, `region_id`),
+  - cache lokaal,
+  - toon ook `updated_at`.
+
+**B) Via een kleine API-laag (meer controle)**
+- API serveert dezelfde `latest.json` (eventueel uit object storage/cache).
+- Voordelen:
+  - versiebeheer (`/v1/prediction/latest`),
+  - auth/rate-limit,
+  - transformaties per client.
+
+Voor een eerste versie is **A** vaak voldoende. Bij groei of private data is **B** beter.
+
+### 14.5 Aanbevolen JSON-structuur
+
+```json
+{
+  "updated_at": "2026-02-28T15:30:00Z",
+  "ttl_minutes": 60,
+  "source": "raster-v1",
+  "regions": [
+    {
+      "region_id": "spanjaardduin-bredene",
+      "score": 0.74,
+      "confidence": 0.81
+    }
+  ]
+}
+```
+
+Minimaal nodig voor de app:
+- `updated_at` voor transparantie/freshness,
+- `regions[]` met score + confidence,
+- optioneel `ttl_minutes` om cachebeleid te sturen.
+
+### 14.6 Cache- en fallbackstrategie in de app
+
+Praktische volgorde:
+1. Lees eerst lokale cache (onmiddellijke UI).
+2. Doe netwerk-call voor nieuwere `latest.json`.
+3. Bij succes: ververs UI + overschrijf cache.
+4. Bij fout/timeout: blijf cached data tonen + label “laatste update”.
+
+Zo blijft de UX stabiel, zelfs bij tijdelijke API- of Action-storing.
+
+### 14.7 Operationele aandachtspunten
+
+- **Cron is UTC:** stem interval af op jouw tijdszone en piekuren.
+- **Idempotent script:** meerdere runs mogen geen corrupte output geven.
+- **Secrets in GitHub Secrets:** API keys nooit hardcoderen.
+- **Observability:** volg mislukte runs op (mail/notification).
+- **Rate limits:** batch slim (throttling/backoff) bij veel rasterpunten.
+
+### 14.8 Samengevat
+
+Ja, dit kan perfect met GitHub-ecosysteem — maar niet “in Pages zelf”.  
+Gebruik **GitHub Actions als scheduler + rekenlaag**, en laat je app enkel het **voorgekookte JSON-resultaat** ophalen en cachen.
