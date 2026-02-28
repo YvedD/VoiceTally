@@ -776,6 +776,8 @@ De repository bevat nu een geplande workflow voor migratie-output:
 - Script: `scripts/refresh_migration_output.py`
 - Outputbestand voor consumptie door app/web: `data/migration/latest.json`
 
+Het script haalt nu ook weerdata op voor een **zuidelijke raster-corridor** (o.a. Le Hourdel, Marquenterre, Cap Blanc-Nez, Cap Gris-Nez, Le Clipon) en publiceert die onder `south_raster_points` plus een corridor-samenvatting in hetzelfde outputbestand.
+
 De workflow draait elke 30 minuten (UTC) en kan ook manueel gestart worden via `workflow_dispatch`.
 
 ---

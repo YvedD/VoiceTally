@@ -16,6 +16,13 @@ DEFAULT_REGION = {
     "latitude": 51.2567,
     "longitude": 2.9606,
 }
+SOUTH_RASTER_POINTS = [
+    {"point_id": "le-hourdel", "latitude": 50.2142, "longitude": 1.5583},
+    {"point_id": "marquenterre", "latitude": 50.3268, "longitude": 1.6046},
+    {"point_id": "cap-blanc-nez", "latitude": 50.9313, "longitude": 1.7044},
+    {"point_id": "cap-gris-nez", "latitude": 50.8675, "longitude": 1.5824},
+    {"point_id": "le-clipon", "latitude": 51.0368, "longitude": 2.2724},
+]
 
 
 def utc_now_iso() -> str:
@@ -65,13 +72,43 @@ def compute_score(current_weather: dict | None) -> tuple[float, float]:
     return round(score, 3), round(confidence, 3)
 
 
+def build_south_raster_points() -> list[dict]:
+    points = []
+    for point in SOUTH_RASTER_POINTS:
+        weather = fetch_current_weather(point["latitude"], point["longitude"])
+        score, confidence = compute_score(weather)
+        points.append(
+            {
+                "point_id": point["point_id"],
+                "latitude": point["latitude"],
+                "longitude": point["longitude"],
+                "score": score,
+                "confidence": confidence,
+                "weather": weather,
+            }
+        )
+    return points
+
+
 def build_payload() -> dict:
+    south_points = build_south_raster_points()
+    if south_points:
+        score = round(sum(p["score"] for p in south_points) / len(south_points), 3)
+        confidence = round(sum(p["confidence"] for p in south_points) / len(south_points), 3)
+    else:
+        score, confidence = 0.5, 0.3
+
     weather = fetch_current_weather(DEFAULT_REGION["latitude"], DEFAULT_REGION["longitude"])
-    score, confidence = compute_score(weather)
     return {
         "updated_at": utc_now_iso(),
         "ttl_minutes": 60,
-        "source": "github-actions-schedule-v1",
+        "source": "github-actions-schedule-v2-south-raster",
+        "corridor": {
+            "direction": "south_to_local",
+            "raster_point_count": len(south_points),
+            "aggregate_score": score,
+        },
+        "south_raster_points": south_points,
         "regions": [
             {
                 "region_id": DEFAULT_REGION["region_id"],

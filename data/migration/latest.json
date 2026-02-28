@@ -1,7 +1,54 @@
 {
-  "updated_at": "2026-02-28T16:15:52Z",
+  "updated_at": "2026-02-28T16:24:21Z",
   "ttl_minutes": 60,
-  "source": "github-actions-schedule-v1",
+  "source": "github-actions-schedule-v2-south-raster",
+  "corridor": {
+    "direction": "south_to_local",
+    "raster_point_count": 5,
+    "aggregate_score": 0.5
+  },
+  "south_raster_points": [
+    {
+      "point_id": "le-hourdel",
+      "latitude": 50.2142,
+      "longitude": 1.5583,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "marquenterre",
+      "latitude": 50.3268,
+      "longitude": 1.6046,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "cap-blanc-nez",
+      "latitude": 50.9313,
+      "longitude": 1.7044,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "cap-gris-nez",
+      "latitude": 50.8675,
+      "longitude": 1.5824,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "le-clipon",
+      "latitude": 51.0368,
+      "longitude": 2.2724,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    }
+  ],
   "regions": [
     {
       "region_id": "spanjaardduin-bredene",
