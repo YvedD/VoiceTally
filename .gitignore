@@ -27,6 +27,8 @@ keystore.properties
 
 # Logs
 *.log
+__pycache__/
+*.pyc
 
 # OS/Editor
 .DS_Store
