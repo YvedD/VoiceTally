@@ -30,6 +30,7 @@
 13. [Huidige Stand Scherm](#13-huidige-stand-scherm)
 14. [Telling Afronden](#14-telling-afronden)
 15. [Auto-Weather Systeem](#15-auto-weather-systeem)
+16. [Audit: Real-time migratie-predictie (AI-gestuurd)](#16-audit-real-time-migratie-predictie-ai-gestuurd)
 
 ---
 
@@ -524,6 +525,81 @@ VT5 kan automatisch actuele weergegevens ophalen via GPS en een weer-API.
 
 ### Weer API
 VT5 gebruikt de Open-Meteo API voor weergegevens (gratis, geen API-key nodig).
+
+---
+
+## 16. Audit: Real-time migratie-predictie (AI-gestuurd)
+
+Deze sectie is een **onderzoek/audit** (geen directe code-implementatie) voor een nieuwe functie op het opstartscherm: een extra knop of mini-grafiek die de **trek-kans voor de komende 5 dagen** toont op basis van lokale weersverwachting en weersituatie noord/zuid van de huidige locatie.
+
+### 16.1 Huidige situatie in VT5 (relevante bouwstenen)
+
+- Er is al een duidelijk **opstartscherm** (`HoofdActiviteit`) waar een extra knop of grafiekblok logisch kan landen.
+- Er is al een werkende **weer-integratie** in de app:
+  - locatie via GPS/last-known location
+  - weerdata via Open-Meteo (`WeatherManager`)
+  - mapping naar vogelpraktijkvelden (windrichting, Beaufort, neerslag, zicht, luchtdruk)
+- Dit betekent dat een eerste versie zonder zware architectuurwijziging haalbaar is.
+
+### 16.2 Eenvoudig implementeerbaar systeem (aanbevolen start)
+
+**Doel:** elke dag (D+0 t/m D+4) een migratie-score 0–100 berekenen + trendgrafiek tonen.
+
+**Stap A — Weerdata in 3 zones ophalen**
+- **Lokale zone:** rond huidige GPS (bv. straal 30–50 km).
+- **Zuid-zone** (voorjaar): representatieve punten in noord/centraal Frankrijk.
+- **Noord-zone** (najaar): representatieve punten in NL/Noord-Duitsland/Denemarken-zuid.
+
+**Stap B — Seizoen bepalen**
+- Jan–Jun: voorjaarstrek (focus op zuidelijke aanvoer).
+- Jul–Dec: najaarstrek (focus op noordelijke aanvoer).
+
+**Stap C — Regelgebaseerde score (v1, “AI-ready”)**
+- Start met transparante regels:
+  - gunstige rugwind in bronzone + gunstige wind lokaal => score omhoog
+  - tegenwind / zware neerslag / slecht zicht => score omlaag
+  - consistente gunstige situatie over meerdere zones => bonus
+- Dit levert onmiddellijk bruikbare voorspellingen op en vormt tegelijk trainingsdata voor latere echte AI.
+
+**Stap D — UI op opstartscherm**
+- Optie 1: knop **“Migratieprognose”** naar detailscherm.
+- Optie 2: mini-lijngrafiek (5 dagen) direct onderaan op hoofdscherm.
+- Toon telkens ook een korte tekst: “laag / matig / goed / topcondities”.
+
+### 16.3 Waarom dit goed aansluit bij jouw voorbeeld
+
+Jouw casus (voorjaar, gunstige Z–O stroming in zuid/centraal Frankrijk + O/ZO aan Belgische kust) kan in bovenstaand model direct als **“synoptische meewind-corridor”** worden gescoord, met verhoogde kans op sterke migratie.
+
+### 16.4 Drie implementatiepaden met voor- en nadelen
+
+#### Pad A — Heuristisch (snelste route)
+- **Beschrijving:** volledig regelgebaseerd, zonder ML-model.
+- **Voordelen:** snel, uitlegbaar, weinig risico, offline caching eenvoudig.
+- **Nadelen:** minder adaptief; vergt handmatig tunen per seizoen/regio.
+
+#### Pad B — Hybride (aanbevolen middellange termijn)
+- **Beschrijving:** heuristiek als baseline + lichte AI-correctie (bijv. regressiemodel op historische data).
+- **Voordelen:** betere nauwkeurigheid, nog steeds goed uitlegbaar.
+- **Nadelen:** nood aan datasetopbouw en periodieke modelvalidatie.
+
+#### Pad C — Volledig AI-gestuurd
+- **Beschrijving:** model voorspelt rechtstreeks migratie-intensiteit uit weerfeatures.
+- **Voordelen:** potentieel hoogste performantie.
+- **Nadelen:** complexiteit, meer MLOps, moeilijker te debuggen/uitleggen in veldgebruik.
+
+### 16.5 Databronnen: “lokale weerstations” pragmatisch benaderen
+
+- Primair: weer-API met hoge-resolutie rasterdata + dichtstbijzijnde gridpunten.
+- Optioneel: verrijken met station-georiënteerde bronnen waar beschikbaar.
+- Praktische richtlijn: gebruik altijd “nearest representative points” per zone zodat de gebruiker effectief lokale benadering krijgt.
+
+### 16.6 Aanbevolen fasering
+
+1. **Fase 1:** Pad A (heuristisch), 5-daagse score + eenvoudige grafiek op startscherm.  
+2. **Fase 2:** logging van voorspelling vs. geobserveerde trekintensiteit.  
+3. **Fase 3:** hybride AI-correctielaag (Pad B) op basis van verzamelde data.  
+
+Deze aanpak houdt de implementatie eenvoudig, levert snel waarde in het veld, en laat toe om gecontroleerd door te groeien naar “echte AI”.
 
 ---
 
