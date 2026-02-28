@@ -277,3 +277,49 @@ Per dag:
 - EuroBirdPortal (flyway context): https://www.eurobirdportal.org/ebp/en/  
 - EURING Migration Mapping Tool: https://euring.org/research/migration-mapping  
 - Eurasian African Bird Migration Atlas: https://migrationatlas.org/  
+
+---
+
+## 11) Addendum — praktische start op Spanjaardduin Bredene met weinig feedback
+
+Je insteek is logisch: eerst betrouwbaar werken op **één telpost** (Spanjaardduin Bredene), daarna pas uitbreiden.
+
+### 11.1 Startfase met beperkte feedback uit de app
+
+In de beginfase hoeft dit nog geen “echt AI-model” te zijn.  
+De meest robuuste aanpak is:
+
+1. **Rule-first baseline** (zoals eerder beschreven) voor dagelijkse score + klasse  
+2. **Lichte handmatige evaluatie** na elke telperiode (bv. “verwachting klopte / te hoog / te laag”)  
+3. **Kleine calibraties per maand** in gewichten en drempels
+
+Zo kan je met weinig app-feedback toch al snel bruikbare voorspellingen krijgen, zonder te vroeg te overfitten op een kleine dataset.
+
+### 11.2 Is een cloud database direct nodig?
+
+**Kort antwoord:** niet per se voor dag 1, maar wel sterk aanbevolen zodra je structureel wil leren en opschalen.
+
+Pragmatische fasering:
+- **Fase A (lokaal/klein):** lokale opslag (CSV/SQLite/Room) kan volstaan om te starten.
+- **Fase B (stabilisatie):** periodieke export/back-up naar cloud object storage of eenvoudige cloud DB.
+- **Fase C (AI-trainbaar):** centrale cloud datastore + versiebeheer van trainingsdatasets wordt belangrijk.
+
+### 11.3 Waarom cloud op termijn toch nuttig is
+
+Voor een later “echt” AI-model heb je doorgaans nodig:
+- langere historiek (seizoenen over meerdere jaren),
+- consistente datakwaliteit (zelfde schema, minder ontbrekende velden),
+- reproduceerbare training (welke data-versie gaf welk modelresultaat),
+- gecombineerde bronnen (weer, observaties, modeloutput, evaluatiefeedback).
+
+Dat is veel eenvoudiger met centrale cloudopslag dan met enkel lokale opslag op één toestel.
+
+### 11.4 Aanbevolen minimum-architectuur voor jouw situatie
+
+Voor Spanjaardduin Bredene:
+- app blijft voorspellingen lokaal tonen (lage operationele complexiteit),
+- dagelijks 1 recordset wegschrijven: inputfeatures + voorspelling + confidence + “observed outcome”,
+- wekelijks synchroniseren naar cloud (batch i.p.v. realtime),
+- later pas trainingspipeline bouwen op die cloudhistoriek.
+
+Zo hou je de start eenvoudig, maar blokkeer je de latere AI-uitrol niet.
