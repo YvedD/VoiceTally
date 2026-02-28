@@ -323,3 +323,42 @@ Voor Spanjaardduin Bredene:
 - later pas trainingspipeline bouwen op die cloudhistoriek.
 
 Zo hou je de start eenvoudig, maar blokkeer je de latere AI-uitrol niet.
+
+---
+
+## 12) Addendum — 100x100 km raster over West-Europa: impact op app-latency
+
+Goede bedenking. De vertraging hangt vooral af van **waar** je de raster-berekening uitvoert.
+
+### 12.1 Ordegrootte van het raster
+
+Voor West-Europa kom je met 100 km resolutie typisch uit op ongeveer **400–800 rasterpunten** (afhankelijk van afbakening land/zee en projectie).
+
+### 12.2 Verwachte vertraging per architectuur
+
+**A) Alles realtime in de app (niet aanbevolen)**
+- app vraagt weerdata op voor honderden punten,
+- daarna berekent app lokaal de migratiescore.
+
+Praktisch gevolg:
+- bij 400–800 losse weer-opvragingen zit je snel aan **tientallen seconden tot minuten** (rate limits + netwerklatency),
+- batterij- en dataverbruik stijgen sterk,
+- UX wordt onvoorspelbaar bij matig netwerk.
+
+**B) Server-side aggregatie + app leest enkel eindresultaat (aanbevolen)**
+- backend haalt periodiek raster-weerdata op (batch),
+- backend berekent “te verwachten migratie”,
+- app haalt enkel samengevat resultaat op per regio/telpost.
+
+Praktisch gevolg:
+- app-responstijd typisch **~200 ms tot 2 s** (cache-hit vaak <1 s),
+- backend refresh kan asynchroon op de achtergrond lopen (bv. elke 30–60 min),
+- gebruikers zien stabiele, snelle resultaten.
+
+### 12.3 Conclusie voor jouw case
+
+Voor Spanjaardduin Bredene: hou de app licht en laat zware rasterlogica niet blokkerend op het toestel draaien.  
+Gebruik bij voorkeur:
+- **precompute + cache** op server,
+- app die enkel de laatste voorspelling en confidence ophaalt,
+- optioneel “laatste update-tijd” tonen voor transparantie.
