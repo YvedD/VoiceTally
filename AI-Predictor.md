@@ -190,7 +190,73 @@ Dat levert snel een bruikbare tool op, met een realistisch pad naar hogere nauwk
 
 ---
 
-## 9) Geraadpleegde online bronnen (selectie)
+## 9) Addendum — opschaling naar volledig België + Nederland (incl. Rhône-route)
+
+Deze uitbreiding gebruikt hetzelfde model, maar met **meerdere corridors tegelijk** i.p.v. enkel de zuidelijke kustaanvoer.
+
+### 9.1 Uitgebreide monitorlocaties
+
+#### A) Zuidwest-kustcorridor (FR -> BE -> NL kust)
+- Cap Blanc-Nez, Cap Gris-Nez, Le Clipon
+- Wenduine / Spioenkop, Bredene (Duinbrug + Spanjaardduin), Zeebrugge/De Fonteintjes
+- Breskens / Westerschelde, Westkapelle, Maasvlakte, IJmuiden, Camperduin
+- Waddenketen (Texel, Vlieland, Terschelling) als noordelijke afvoercontrole
+
+#### B) Binnenlandcorridor BE+NL
+- België: Maatheide/Kristallijn (Mol), De Maten (Genk), Hobokense Polder-regio
+- Nederland: Limburgse Maaszone (o.a. De Hamert-omgeving), centrale oostelijke telposten (zoals Amerongse Bovenpolder-regio)
+
+#### C) Rhône-gedreven aanvoer (mediterrane as -> Benelux)
+- Rhône-as in Frankrijk (Camargue -> lagere/midden Rhône -> noordelijke uitwaaiering)
+- Koppeling via noordoostelijk Frankrijk (Saône/Moezel/maas-georiënteerde doorgang) richting België/Nederland
+- Praktisch: monitor deze as als **upstream early-warning corridor** voor dagen D+2 t/m D+4
+
+### 9.2 Score-opbouw voor BE+NL op nationaal niveau
+
+Voor nationale dekking gebruik je vijf blokken:
+
+1. **LocalScore (25%)**: lokaal vliegweer per telpostcluster  
+2. **CoastalCorridorScore (25%)**: FR-BE-NL kuststuwing en doorvoer  
+3. **InlandCorridorScore (20%)**: breedfront + rivierassen binnenland  
+4. **RhoneCorridorScore (20%)**: mediterrane aanvoer die noordwaarts doorzet  
+5. **ContextScore (10%)**: seizoensfase, historiek, effort-correctie
+
+`TotalScore_BE_NL = 0.25*Local + 0.25*Coastal + 0.20*Inland + 0.20*Rhone + 0.10*Context`
+
+### 9.3 Rhône-activatiefactor (belangrijk)
+
+De Rhône-component telt vooral zwaar als meerdere voorwaarden tegelijk voldaan zijn:
+- duidelijke trekvensters met gunstig weer op de Rhône-as (droger, voldoende zicht, bruikbare wind)
+- geen dominante stopfactor in de overgangszone richting noordoost-Frankrijk
+- aansluitende gunstige condities in België/Nederland op D+1 tot D+3
+
+Modelmatig:
+- bereken `RhoneRaw` (0–100) uit weer + waarnemingen op de as
+- bereken `RhoneTransferFactor` (0–1) voor “kan de puls effectief Benelux bereiken?”
+- `RhoneCorridorScore = RhoneRaw * RhoneTransferFactor`
+
+Zo vermijd je vals-positieve “hoge” scores wanneer Rhône actief is, maar transport naar BE/NL meteorologisch geblokkeerd raakt.
+
+### 9.4 Belangrijkste extra parameters voor de BE+NL versie
+
+Aanvullend op de eerdere lijst:
+- corridor-specifieke windprojectie (component in trekrichting)
+- tijdvertraging per corridor (verwachte aankomstpiek in uren/dagen)
+- kuststuwing-index (vooral BE-kust, Zeeland, Zuid-/Noord-Holland)
+- binnenlandspreiding-index (breedfront vs kanaalvorming)
+- upstream-downstream consistentiecheck (Rhône -> NO-Frankrijk -> BE/NL)
+
+### 9.5 Praktische output voor operators
+
+Per dag:
+- nationale totaalscore + klasse
+- deel-scores per corridor (kust / binnenland / Rhône)
+- “route-driver” label (welke corridor drijft de verwachting)
+- confidence met waarschuwing bij corridorconflict
+
+---
+
+## 10) Geraadpleegde online bronnen (selectie)
 
 > Opmerking: sommige domeinen waren vanuit de sandbox niet rechtstreeks opvraagbaar via `web_fetch`, maar zijn wel opgehaald via zoekresultaat-analyse in `web_search`.
 
@@ -201,5 +267,13 @@ Dat levert snel een bruikbare tool op, met een realistisch pad naar hogere nauwk
 - Jaarverslag Duinbrug/Spanjaardduin (Belgische kust): https://www.trektellen.org/static/doc/Jaarverslag_Trektelposten_Duinbrug_-_Spanjaardduin_Bredene.pdf  
 - Migraction Cap Gris-Nez: https://www.migraction.net/index.php?m_id=1510&frmSite=112  
 - Migraction Le Clipon: https://www.migraction.net/index.php?m_id=1510&frmSite=17  
+- Migraction (Rhône-vallei voorbeeldsite, spring migration context): https://www.migraction.net/index.php?m_id=1510&showret=1&cp=all&frmSite=36  
 - LPO activiteit Cap Gris-Nez: https://www.lpo.fr/lpo-locales/region-hauts-de-france/lpo-pas-de-calais/agenda-pas-de-calais/agenda-2025-pas-de-calais/la-migration-au-cap-gris-nez  
 - Parc du Marquenterre: https://www.parcdumarquenterre.fr/?lang=2  
+- Trektellen platform (NL/BE site-overzicht en kaart): https://www.trektellen.nl/  
+- Trektellen kaart: https://www.trektellen.nl/maps/  
+- Natuurpunt trektellingen (BE context): https://www.natuurpunt.be/projecten/trektellingen  
+- Vogelbescherming (wind/stuwing en voorjaarstrek): https://www.vogelbescherming.nl/actueel/bericht/vogeltrek-gejaagd-door-de-wind  
+- EuroBirdPortal (flyway context): https://www.eurobirdportal.org/ebp/en/  
+- EURING Migration Mapping Tool: https://euring.org/research/migration-mapping  
+- Eurasian African Bird Migration Atlas: https://migrationatlas.org/  
