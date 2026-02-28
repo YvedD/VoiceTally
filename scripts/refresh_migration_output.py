@@ -32,6 +32,8 @@ LAND_RASTER_POINTS = [
     {"point_id": "oostende", "country": "BE", "latitude": 51.2300, "longitude": 2.9200, "distance_from_origin_km": 900},
     {"point_id": DEFAULT_REGION["region_id"], "country": "BE", "latitude": DEFAULT_REGION["latitude"], "longitude": DEFAULT_REGION["longitude"], "distance_from_origin_km": 1010},
 ]
+if LAND_RASTER_POINTS[-1]["distance_from_origin_km"] != RASTER_LENGTH_KM:
+    raise RuntimeError("LAND_RASTER_POINTS endpoint distance must match RASTER_LENGTH_KM")
 
 
 def utc_now_iso() -> str:
@@ -81,13 +83,9 @@ def compute_score(current_weather: dict | None) -> tuple[float, float]:
     return round(score, 3), round(confidence, 3)
 
 
-def generate_raster_points() -> list[dict]:
-    return LAND_RASTER_POINTS
-
-
-def build_south_raster_points() -> list[dict]:
+def build_corridor_points() -> list[dict]:
     points = []
-    for point in generate_raster_points():
+    for point in LAND_RASTER_POINTS:
         weather = fetch_current_weather(point["latitude"], point["longitude"])
         score, confidence = compute_score(weather)
         points.append(
@@ -106,9 +104,9 @@ def build_south_raster_points() -> list[dict]:
 
 
 def build_payload() -> dict:
-    south_points = build_south_raster_points()
+    south_points = build_corridor_points()
     if not south_points:
-        raise RuntimeError("SOUTH_RASTER_POINTS is empty; cannot compute corridor aggregate")
+        raise RuntimeError("No corridor points available; cannot compute corridor aggregate")
     score = round(sum(p["score"] for p in south_points) / len(south_points), 3)
     confidence = round(sum(p["confidence"] for p in south_points) / len(south_points), 3)
 
