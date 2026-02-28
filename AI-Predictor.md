@@ -362,3 +362,22 @@ Gebruik bij voorkeur:
 - **precompute + cache** op server,
 - app die enkel de laatste voorspelling en confidence ophaalt,
 - optioneel “laatste update-tijd” tonen voor transparantie.
+
+---
+
+## 13) Addendum — Kan GitHub Pages dit periodiek ophalen?
+
+**Kort antwoord:** met een pure `github.io`-pagina zelf: **nee, niet betrouwbaar** voor periodieke backend-taken.
+
+Waarom:
+- GitHub Pages host statische content (HTML/CSS/JS),
+- er draait geen permanente server of cron op Pages zelf,
+- browser-JavaScript draait alleen wanneer een bezoeker de pagina open heeft.
+
+**Wat wel werkt met GitHub-ecosysteem:**
+- periodieke job via **GitHub Actions** (`schedule`/cron),
+- job haalt raster-weerdata op en berekent migratiescore,
+- resultaat wegschrijven als JSON/CSV (in repo, artifact, of externe storage/API),
+- `github.io`-pagina toont dan enkel het laatst berekende resultaat.
+
+Zo blijft je site snel en vermijd je dat de app of browser honderden realtime requests moet doen.
