@@ -92,11 +92,10 @@ def build_south_raster_points() -> list[dict]:
 
 def build_payload() -> dict:
     south_points = build_south_raster_points()
-    if south_points:
-        score = round(sum(p["score"] for p in south_points) / len(south_points), 3)
-        confidence = round(sum(p["confidence"] for p in south_points) / len(south_points), 3)
-    else:
-        score, confidence = 0.5, 0.3
+    if not south_points:
+        raise RuntimeError("SOUTH_RASTER_POINTS is empty; cannot compute corridor aggregate")
+    score = round(sum(p["score"] for p in south_points) / len(south_points), 3)
+    confidence = round(sum(p["confidence"] for p in south_points) / len(south_points), 3)
 
     weather = fetch_current_weather(DEFAULT_REGION["latitude"], DEFAULT_REGION["longitude"])
     return {
@@ -107,6 +106,7 @@ def build_payload() -> dict:
             "direction": "south_to_local",
             "raster_point_count": len(south_points),
             "aggregate_score": score,
+            "aggregate_confidence": confidence,
         },
         "south_raster_points": south_points,
         "regions": [

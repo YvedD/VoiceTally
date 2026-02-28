@@ -1,11 +1,12 @@
 {
-  "updated_at": "2026-02-28T16:24:21Z",
+  "updated_at": "2026-02-28T16:26:08Z",
   "ttl_minutes": 60,
   "source": "github-actions-schedule-v2-south-raster",
   "corridor": {
     "direction": "south_to_local",
     "raster_point_count": 5,
-    "aggregate_score": 0.5
+    "aggregate_score": 0.5,
+    "aggregate_confidence": 0.3
   },
   "south_raster_points": [
     {
