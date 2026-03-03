@@ -1,0 +1,134 @@
+{
+  "updated_at": "2026-02-28T16:53:23Z",
+  "ttl_minutes": 60,
+  "source": "github-actions-schedule-v3-tarifa-raster",
+  "corridor": {
+    "direction": "south_to_local",
+    "raster_point_count": 11,
+    "origin_point_id": "tarifa",
+    "step_km": 100,
+    "length_km": 1010,
+    "aggregate_score": 0.5,
+    "aggregate_confidence": 0.3
+  },
+  "south_raster_points": [
+    {
+      "point_id": "tarifa",
+      "latitude": 36.013,
+      "longitude": -5.606,
+      "country": "ES",
+      "distance_from_origin_km": 0,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "seville",
+      "latitude": 37.3891,
+      "longitude": -5.9845,
+      "country": "ES",
+      "distance_from_origin_km": 100,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "cordoba",
+      "latitude": 37.8882,
+      "longitude": -4.7794,
+      "country": "ES",
+      "distance_from_origin_km": 200,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "madrid",
+      "latitude": 40.4168,
+      "longitude": -3.7038,
+      "country": "ES",
+      "distance_from_origin_km": 300,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "burgos",
+      "latitude": 42.3439,
+      "longitude": -3.6969,
+      "country": "ES",
+      "distance_from_origin_km": 400,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "san-sebastian",
+      "latitude": 43.3183,
+      "longitude": -1.9812,
+      "country": "ES",
+      "distance_from_origin_km": 500,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "bordeaux",
+      "latitude": 44.8378,
+      "longitude": -0.5792,
+      "country": "FR",
+      "distance_from_origin_km": 600,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "tours",
+      "latitude": 47.3941,
+      "longitude": 0.6848,
+      "country": "FR",
+      "distance_from_origin_km": 700,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "lille",
+      "latitude": 50.6292,
+      "longitude": 3.0573,
+      "country": "FR",
+      "distance_from_origin_km": 800,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "oostende",
+      "latitude": 51.23,
+      "longitude": 2.92,
+      "country": "BE",
+      "distance_from_origin_km": 900,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    },
+    {
+      "point_id": "spanjaardduin-bredene",
+      "latitude": 51.2567,
+      "longitude": 2.9606,
+      "country": "BE",
+      "distance_from_origin_km": 1010,
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    }
+  ],
+  "regions": [
+    {
+      "region_id": "spanjaardduin-bredene",
+      "score": 0.5,
+      "confidence": 0.3,
+      "weather": null
+    }
+  ]
+}

@@ -47,6 +47,7 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 13. [Huidige Stand Scherm](#13-huidige-stand-scherm)
 14. [Telling Afronden](#14-telling-afronden)
 15. [Auto-Weather Systeem](#15-auto-weather-systeem)
+16. [Audit: Real-time migratie-predictie (AI-gestuurd)](#16-audit-real-time-migratie-predictie-ai-gestuurd)
 
 ---
 
@@ -544,6 +545,220 @@ VT5 gebruikt de Open-Meteo API voor weergegevens (gratis, geen API-key nodig).
 
 ---
 
+## 16. Audit: Real-time migratie-predictie (AI-gestuurd)
+
+Deze sectie is een **onderzoek/audit** (geen directe code-implementatie) voor een nieuwe functie op het opstartscherm: een extra knop of mini-grafiek die de **trek-kans voor de komende 5 dagen** toont op basis van lokale weersverwachting en weersituatie noord/zuid van de huidige locatie.
+
+### 16.1 Huidige situatie in VT5 (relevante bouwstenen)
+
+- Er is al een duidelijk **opstartscherm** (`HoofdActiviteit`) waar een extra knop of grafiekblok logisch kan landen.
+- Er is al een werkende **weer-integratie** in de app:
+  - locatie via GPS/last-known location
+  - weerdata via Open-Meteo (`WeatherManager`)
+  - mapping naar vogelpraktijkvelden (windrichting, Beaufort, neerslag, zicht, luchtdruk)
+- Dit betekent dat een eerste versie zonder zware architectuurwijziging haalbaar is.
+
+### 16.2 Eenvoudig implementeerbaar systeem (aanbevolen start)
+
+**Doel:** elke dag (D+0 t/m D+4) een migratie-score 0–100 berekenen + trendgrafiek tonen.
+
+**Stap A — Weerdata in 3 zones ophalen**
+- **Lokale zone:** rond huidige GPS (bv. straal 30–50 km).
+- **Zuid-zone** (voorjaar): representatieve punten in noord/centraal Frankrijk.
+- **Noord-zone** (najaar): representatieve punten in NL/Noord-Duitsland/Denemarken-zuid.
+
+**Stap B — Seizoen bepalen**
+- Jan–Jun: voorjaarstrek (focus op zuidelijke aanvoer).
+- Jul–Dec: najaarstrek (focus op noordelijke aanvoer).
+
+**Stap C — Regelgebaseerde score (v1, “AI-ready”)**
+- Start met transparante regels:
+  - gunstige rugwind in bronzone + gunstige wind lokaal => score omhoog
+  - tegenwind / zware neerslag / slecht zicht => score omlaag
+  - consistente gunstige situatie over meerdere zones => bonus
+- Dit levert onmiddellijk bruikbare voorspellingen op en vormt tegelijk trainingsdata voor latere echte AI.
+
+**Stap D — UI op opstartscherm**
+- Optie 1: knop **“Migratieprognose”** naar detailscherm.
+- Optie 2: mini-lijngrafiek (5 dagen) direct onderaan op hoofdscherm.
+- Toon telkens ook een korte tekst: “laag / matig / goed / topcondities”.
+
+### 16.3 Waarom dit goed aansluit bij jouw voorbeeld
+
+Jouw casus (voorjaar, gunstige Z–O stroming in zuid/centraal Frankrijk + O/ZO aan Belgische kust) kan in bovenstaand model direct als **“synoptische meewind-corridor”** worden gescoord, met verhoogde kans op sterke migratie.
+
+### 16.4 Drie implementatiepaden met voor- en nadelen
+
+#### Pad A — Heuristisch (snelste route)
+- **Beschrijving:** volledig regelgebaseerd, zonder ML-model.
+- **Voordelen:** snel, uitlegbaar, weinig risico, offline caching eenvoudig.
+- **Nadelen:** minder adaptief; vergt handmatig tunen per seizoen/regio.
+
+#### Pad B — Hybride (aanbevolen middellange termijn)
+- **Beschrijving:** heuristiek als baseline + lichte AI-correctie (bijv. regressiemodel op historische data).
+- **Voordelen:** betere nauwkeurigheid, nog steeds goed uitlegbaar.
+- **Nadelen:** nood aan datasetopbouw en periodieke modelvalidatie.
+
+#### Pad C — Volledig AI-gestuurd
+- **Beschrijving:** model voorspelt rechtstreeks migratie-intensiteit uit weerfeatures.
+- **Voordelen:** potentieel hoogste performantie.
+- **Nadelen:** complexiteit, meer MLOps, moeilijker te debuggen/uitleggen in veldgebruik.
+
+### 16.5 Databronnen: “lokale weerstations” pragmatisch benaderen
+
+- Primair: weer-API met hoge-resolutie rasterdata + dichtstbijzijnde gridpunten.
+- Optioneel: verrijken met station-georiënteerde bronnen waar beschikbaar.
+- Praktische richtlijn: gebruik altijd “nearest representative points” per zone zodat de gebruiker effectief lokale benadering krijgt.
+
+### 16.6 Aanbevolen fasering
+
+1. **Fase 1:** Pad A (heuristisch), 5-daagse score + eenvoudige grafiek op startscherm.  
+2. **Fase 2:** logging van voorspelling vs. geobserveerde trekintensiteit.  
+3. **Fase 3:** hybride AI-correctielaag (Pad B) op basis van verzamelde data.  
+
+Deze aanpak houdt de implementatie eenvoudig, levert snel waarde in het veld, en laat toe om gecontroleerd door te groeien naar “echte AI”.
+
+---
+
+### 16.7 Grondig modelvoorstel: van data tot interpretatie
+
+Onderstaand voorstel beschrijft hoe het model **operationeel** kan werken zonder de app-architectuur zwaar te veranderen.
+
+#### 16.7.1 Doeloutput van het model (wat de gebruiker ziet)
+
+Voor elke dag D+0 t/m D+4:
+- **Migratie-index**: 0–100
+- **Klasse**: laag / matig / goed / top
+- **Richtingstype**: vooral hoofdrichting / gemengd / weinig gericht
+- **Betrouwbaarheid**: laag / middel / hoog
+- **Korte reden** (uitlegbaar): bv. “meewind-corridor zuid->lokaal + droog”
+
+Zo blijft het systeem zowel praktisch als uitlegbaar in veldgebruik.
+
+#### 16.7.2 Data-inname (features) in vier blokken
+
+**A) Lokale features (huidige GPS-zone)**
+- windrichting, windsnelheid, windstoten
+- neerslag, zicht, luchtdruk, temperatuur
+- tijdvenster ochtend/middag/avond (trekgedrag is tijdsafhankelijk)
+
+**B) Aanvoerlijn-features (upstream corridors)**
+- voorjaar: zuidelijke corridor (meerdere punten noord + centraal Frankrijk)
+- najaar: noordelijke corridor (meerdere punten NL/Noord-Duitsland/Denemarken-zuid)
+- per corridorpunt dezelfde weatherfeatures als lokaal
+- extra: ruimtelijke consistentie (hoe homogeen gunstige stroming is over de lijn)
+
+**C) Synoptische dynamiek (verandering doorheen de tijd)**
+- trend 24u/48u: wind draait gunstiger of ongunstiger?
+- front-achtige overgangen: abrupte neerslag- en drukwissels
+- stabiliteitsscore: blijven condities meerdere uren/dagen gunstig?
+
+**D) Contextfeatures (belangrijke extra beslissingsvariabelen)**
+- dag in seizoen (vroeg/midden/laat voorjaar of najaar)
+- daglengte / zonsopgang-zonsondergang (proxy voor trekactiviteit)
+- maanfase (optioneel; nuttig voor nachtelijke trek)
+- persistentie uit observatiehistoriek (bv. laatste 2–3 dagen lokale intensiteit)
+- telpostprofiel (kust/inland/landschapstunnel) als latere verfijning
+
+#### 16.7.3 Evaluatiestap: scoringskern (AI-ready)
+
+Gebruik een **twee-lagen aanpak**:
+
+1. **Rule Engine (basis)**
+   - hard afkapcriteria (bv. zeer zware regen + slechte zichtbaarheid)
+   - positieve regels (corridor-meewind + lokaal gunstige afbuiging)
+   - negatieve regels (tegenwind in corridor of lokaal, onstabiele condities)
+
+2. **Model Corrector (fase 2/3)**
+   - licht model (regressie/gradient boosting) dat basis-score corrigeert
+   - input = alle features + rule-score
+   - output = gecorrigeerde index + calibrated confidence
+
+Deze structuur geeft snel resultaat én ondersteunt latere AI-verbetering zonder black-box vanaf dag 1.
+
+#### 16.7.4 Concreet scorekader (voorbeeld, eenvoudig te kalibreren)
+
+Totale score 0–100 als gewogen som:
+- **35% lokale vliegcondities**
+- **40% aanvoerlijn-condities**
+- **15% trend/stabiliteit**
+- **10% contextfactoren**
+
+Interpretatie:
+- 0–24: laag
+- 25–49: matig
+- 50–74: goed
+- 75–100: top
+
+Belangrijk: gewichten zijn startwaarden; verfijnen op basis van echte waarnemingsdata.
+
+#### 16.7.5 Betrouwbaarheid en foutmarge
+
+Bereken naast de score ook een betrouwbaarheid:
+- data-compleetheid (ontbrekende punten?)
+- model-overeenstemming (rule en model wijzen dezelfde richting uit?)
+- ruimtelijke consistentie (zones niet tegenstrijdig?)
+
+Als betrouwbaarheid laag is, toon expliciet:  
+“Voorspelling is voorlopig — met lage zekerheid door inconsistente corridor-data.”
+
+#### 16.7.6 Uitlegbaarheid (essentieel voor vertrouwen)
+
+Sla per dag de topdrivers op:
+- + “gunstige ZO/O-stroming op 4 van 6 corridorpunten”
+- + “droog + goed zicht lokaal”
+- - “tijdelijke tegenwindpiek in namiddag”
+
+De gebruiker ziet dus niet enkel een getal, maar ook *waarom*.
+
+#### 16.7.7 Validatie-aanpak (haalbaar en pragmatisch)
+
+Gebruik bestaande tellingen als referentie en label grove intensiteitsklassen:
+- laag / matig / goed / top op basis van aantallen per uur of per sessie
+- evalueer per seizoen apart (voorjaar en najaar hebben andere dynamiek)
+
+Kernmetrics:
+- classificatie-accuratesse per klasse
+- calibration error (komt 80%-confidence overeen met realiteit?)
+- false positives op “top”-dagen (operationeel zeer belangrijk)
+
+#### 16.7.8 Gefaseerd pad naar productie
+
+**Sprint 1 (2–3 weken)**
+- data-inname lokaal + corridor
+- rule-engine score 5 dagen
+- eenvoudige visualisatie + korte reden
+
+**Sprint 2 (2–4 weken)**
+- logging pipeline en evaluatiedashboard
+- eerste kalibratie van gewichten
+- betrouwbaarheidsscore in UI
+
+**Sprint 3 (4+ weken)**
+- model-corrector trainen op historiek
+- A/B vergelijking: rule-only vs hybrid
+- drempels finetunen voor topcondities
+
+#### 16.7.9 Belangrijkste risico’s en mitigatie
+
+- **Risico:** overfitting op één regio/telpost  
+  **Mitigatie:** per seizoen valideren op meerdere telposttypes.
+- **Risico:** te complexe output voor gebruiker  
+  **Mitigatie:** vaste 4-klassen output + 1-zins uitleg.
+- **Risico:** data-gaten of API-onbeschikbaarheid  
+  **Mitigatie:** caching + fallback op laatste betrouwbare run.
+
+#### 16.7.10 Besluit: haalbaar pad
+
+De meest haalbare route voor VT5:
+1. start met uitlegbare rule-engine (snel, robuust, direct bruikbaar),
+2. bouw simultaan datalogging op,
+3. voeg daarna lichte AI-correctie toe voor nauwkeurigheid.
+
+Zo krijg je snel veldwaarde én een gecontroleerde overgang naar een echte AI-tool.
+
+---
+
 ## Veelgestelde Vragen (FAQ)
 
 ### Q: De app start niet - wat nu?
@@ -570,6 +785,17 @@ VT5 gebruikt de Open-Meteo API voor weergegevens (gratis, geen API-key nodig).
 - **Offline functionaliteit**: Kernfuncties werken zonder internet
 - **Data opslag**: Android SAF (Documents/VT5/)
 - **Backend**: www.trektellen.nl
+
+### Geplande migratie-output (GitHub Actions)
+
+De repository bevat nu een geplande workflow voor migratie-output:
+- Workflow: `.github/workflows/migration-prediction-refresh.yml`
+- Script: `scripts/refresh_migration_output.py`
+- Outputbestand voor consumptie door app/web: `data/migration/latest.json`
+
+Het script haalt nu ook weerdata op voor een **zuidelijke, land-only raster-corridor vanaf Tarifa (Spanje)** met punten in **Spanje, Frankrijk en België** (geen zee-rasterpunten) en publiceert die onder `south_raster_points` plus een corridor-samenvatting in hetzelfde outputbestand.
+
+De workflow draait elke 30 minuten (UTC) en kan ook manueel gestart worden via `workflow_dispatch`.
 
 ---
 
