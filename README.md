@@ -1,3 +1,20 @@
+# Moderne Android-versies (vooral vanaf Android 12–14) en de aangepaste beveiligingslaag Samsung Knox op Samsung-toestellen tonen vaak waarschuwingen wanneer je een APK buiten de officiële store installeert. Dat is normaal gedrag van Google Play Protect en het systeem voor “Unknown Apps”.
+
+Er zijn een paar legitieme manieren om die waarschuwingen te vermijden of te minimaliseren.
+
+**1. “Install unknown apps” toestaan (meest standaard)**
+
+Vanaf Android 8.0 Oreo gebeurt dit per app (bv. browser of file manager).
+Stappen (Samsung One UI):
+-> Ga naar Instellingen
+-> Apps
+-> Kies de app waarmee je de APK opent
+-> bv. My Files (Bestanden), Google Chrome, of een andere file manager
+-> Install unknown apps
+-> Zet Allow from this source aan
+
+Daarna kan je APK’s installeren zonder dat Android het blokkeert.
+
 # VT5 — Gebruikershandleiding
 
 > **VT5** is een snelle, intuïtieve Android-app voor het vastleggen van vogeltrekwaarnemingen via spraakinvoer. De app is ontworpen voor gebruik in het veld door vogelwaarnemers en synchroniseert automatisch met [www.trektellen.nl](https://www.trektellen.nl).
