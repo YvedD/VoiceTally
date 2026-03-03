@@ -33,6 +33,72 @@
                 android:textSize="12sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Toestemmingen -->
+        <TextView
+            android:id="@+id/tvPermissiesTitel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/install_permissions_title"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbPermAudio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/perm_audio_checkbox"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbPermSaf"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/perm_saf_checkbox"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp" />
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbPermLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/perm_location_checkbox"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp" />
+
+        <!-- Installatiehulp -->
+        <TextView
+            android:id="@+id/tvInstallatieHelpTitel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/install_unknown_sources_title"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvInstallatieHelpDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/install_unknown_sources_desc"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenUnknownSources"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/install_unknown_sources_button" />
+
         <!-- SAF -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnKiesDocuments"

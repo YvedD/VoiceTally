@@ -10,6 +10,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="12dp">
@@ -54,7 +55,7 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <!-- Lettergrootte logregels (compact) -->
+            <!-- Lettergrootte partials (compact) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -64,16 +65,16 @@
                 android:paddingBottom="2dp">
 
                 <TextView
-                    android:id="@+id/tvLettergrootteLogLabel"
+                    android:id="@+id/tvLettergroottePartialsLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/instellingen_lettergrootte_log_label"
+                    android:text="@string/instellingen_lettergrootte_partials_label"
                     android:textColor="@color/vt5_on_surface"
                     android:textSize="15sp" />
 
                 <NumberPicker
-                    android:id="@+id/npLettergrootteLog"
+                    android:id="@+id/npLettergroottePartials"
                     android:layout_width="100dp"
                     android:layout_height="70dp"
                     android:theme="@style/Theme.VT5.NumberPicker" />
@@ -87,6 +88,69 @@
                     android:textColor="@color/vt5_on_surface"
                     android:textSize="15sp" />
             </LinearLayout>
+
+            <!-- Lettergrootte finals (compact) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+
+                <TextView
+                    android:id="@+id/tvLettergrootteFinalsLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_lettergrootte_finals_label"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
+
+                <NumberPicker
+                    android:id="@+id/npLettergrootteFinals"
+                    android:layout_width="100dp"
+                    android:layout_height="70dp"
+                    android:theme="@style/Theme.VT5.NumberPicker" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/instellingen_sp_eenheid"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- Log-kleuren bij log-grootte -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_partials_text_color_label"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp"
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spPartialsTextColor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_finals_text_color_label"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp"
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spFinalsTextColor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
 
             <View
                 android:layout_width="match_parent"
@@ -227,12 +291,23 @@
                     android:text="@string/instellingen_fav_40" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFav75"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:minHeight="40dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_fav_75" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFavAll"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:layout_weight="2"
+                    android:layout_weight="1"
                     android:minHeight="40dp"
                     android:checkable="true"
                     android:text="@string/instellingen_fav_all" />
@@ -284,6 +359,53 @@
                 android:id="@+id/spTextColor"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <!-- Toestemmingen (info) -->
+            <TextView
+                android:id="@+id/tvPermissiesTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_permissions_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbPermAudio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/perm_audio_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbPermSaf"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/perm_saf_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbPermLocation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/perm_location_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
         </LinearLayout>
 
     </ScrollView>

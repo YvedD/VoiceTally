@@ -87,7 +87,7 @@ class TellingScherm : AppCompatActivity() {
     private lateinit var annotationHandler: TellingAnnotationHandler
     private lateinit var initializer: TellingInitializer
     private lateinit var alarmHandler: TellingAlarmHandler
-    
+
     // Continuous envelope persistence - saves full envelope after each observation
     private lateinit var envelopePersistence: TellingEnvelopePersistence
 
@@ -112,6 +112,11 @@ class TellingScherm : AppCompatActivity() {
     // Flag to show HuidigeStandScherm after tiles are loaded (triggered by hourly alarm)
     @Volatile
     private var pendingShowHuidigeStand = false
+
+    // Restore guard to avoid applying restore multiple times
+    private var restoredFromSavedEnvelope = false
+
+    private var pendingDialogShown = false
 
     // BroadcastReceiver: listen for alias-reload events from AliasManager
     private val aliasReloadReceiver = object : BroadcastReceiver() {
@@ -235,6 +240,11 @@ class TellingScherm : AppCompatActivity() {
 
         // Preload tiles (if preselected) then initialize ASR
         initializer.loadPreselection()
+
+        // Ask user if a pending, non-uploaded telling should be restored
+        lifecycleScope.launch {
+            promptPendingTellingIfAvailable()
+        }
     }
 
     /**
@@ -679,6 +689,18 @@ class TellingScherm : AppCompatActivity() {
         if (::alarmHandler.isInitialized) {
             alarmHandler.startMonitoring()
         }
+
+        // Refresh log text size/color from settings
+        val partialsSize = InstellingenScherm.getPartialsTextSizeSp(this)
+        val finalsSize = InstellingenScherm.getFinalsTextSizeSp(this)
+        val partialsColor = InstellingenScherm.getPartialsTextColor(this)
+        val finalsColor = InstellingenScherm.getFinalsTextColor(this)
+        partialsAdapter.updatePartialsTextSize(partialsSize)
+        finalsAdapter.updateFinalsTextSize(finalsSize)
+        partialsAdapter.updatePartialsTextColor(partialsColor)
+        finalsAdapter.updateFinalsTextColor(finalsColor)
+        uiManager.updatePartials(uiManager.getCurrentPartials())
+        uiManager.updateFinals(uiManager.getCurrentFinals())
     }
     
     override fun onPause() {
@@ -686,6 +708,18 @@ class TellingScherm : AppCompatActivity() {
         // Stop alarm monitoring when the screen is not visible
         if (::alarmHandler.isInitialized) {
             alarmHandler.stopMonitoring()
+        }
+
+        // Always persist the latest envelope snapshot as a safety net
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val records = synchronized(pendingRecords) { pendingRecords.toList() }
+                if (records.isNotEmpty()) {
+                    envelopePersistence.saveEnvelopeWithRecords(records)
+                }
+            } catch (ex: Exception) {
+                Log.w(TAG, "Envelope persistence failed onPause: ${ex.message}", ex)
+            }
         }
     }
 
@@ -1060,5 +1094,149 @@ class TellingScherm : AppCompatActivity() {
     // Launch soort selectie
     private fun openSoortSelectieForAdd() {
         speciesManager.launchSpeciesSelection()
+    }
+
+    private suspend fun restorePendingTellingIfAvailable() {
+        if (restoredFromSavedEnvelope) return
+        try {
+            val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
+            val savedRecords = savedEnvelope.data
+
+            if (savedRecords.isEmpty()) return
+
+            // Skip restore if this telling was already sent
+            if (TellingUploadFlags.isSent(this, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
+                Log.i(TAG, "Pending envelope already marked as sent; skipping restore")
+                return
+            }
+
+            // Restore tiles based on saved records
+            val snapshot = withContext(Dispatchers.IO) {
+                com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(this@TellingScherm)
+            }
+            val speciesById = snapshot.speciesById
+            val countsBySoort = savedRecords.groupBy { it.soortid }
+
+            val restoredTiles = countsBySoort.mapNotNull { (soortId, items) ->
+                val soortNaam = speciesById[soortId]?.soortnaam ?: return@mapNotNull null
+                val countMain = items.sumOf { it.aantal.toIntOrNull() ?: 0 }
+                val countReturn = items.sumOf { it.aantalterug.toIntOrNull() ?: 0 }
+                SoortTile(soortId, soortNaam, countMain, countReturn)
+            }.sortedBy { it.naam.lowercase() }
+
+            if (restoredTiles.isNotEmpty()) {
+                tegelBeheer.setTiles(restoredTiles)
+                updateSelectedSpeciesMap()
+            }
+
+            // Restore pending records and reflect to ViewModel
+            synchronized(pendingRecords) {
+                pendingRecords.clear()
+                pendingRecords.addAll(savedRecords)
+            }
+            if (::viewModel.isInitialized) {
+                viewModel.setPendingRecords(savedRecords)
+            }
+
+            // Restore finals log from records (partials remain empty)
+            val restoredFinals = savedRecords.map { rec ->
+                val naam = speciesById[rec.soortid]?.soortnaam ?: rec.soortid
+                val main = rec.aantal.toIntOrNull() ?: 0
+                val ret = rec.aantalterug.toIntOrNull() ?: 0
+                val display = buildString {
+                    append(naam)
+                    append(" -> +")
+                    append(main)
+                    if (ret > 0) {
+                        append(" (tegenrichting) -> +")
+                        append(ret)
+                    }
+                }
+                SpeechLogRow(System.currentTimeMillis() / 1000L, display, "final")
+            }
+            logManager.setFinals(restoredFinals)
+            logManager.setPartials(emptyList())
+            uiManager.updateFinals(restoredFinals)
+            uiManager.updatePartials(emptyList())
+            if (::viewModel.isInitialized) {
+                viewModel.setFinals(restoredFinals)
+                viewModel.setPartials(emptyList())
+            }
+
+            restoredFromSavedEnvelope = true
+            Toast.makeText(this, getString(R.string.pending_telling_restored), Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Log.w(TAG, "restorePendingTellingIfAvailable failed: ${e.message}", e)
+        }
+    }
+
+    private suspend fun promptPendingTellingIfAvailable() {
+        if (pendingDialogShown || restoredFromSavedEnvelope) return
+        try {
+            val hasSaved = envelopePersistence.hasSavedEnvelope()
+            if (!hasSaved) return
+
+            val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
+            if (savedEnvelope.data.isEmpty()) return
+
+            // Skip prompt if this telling was already sent
+            if (TellingUploadFlags.isSent(this, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
+                Log.i(TAG, "Pending envelope already marked as sent; skipping prompt")
+                return
+            }
+
+            withContext(Dispatchers.Main) {
+                pendingDialogShown = true
+                val dlg = AlertDialog.Builder(this@TellingScherm)
+                    .setTitle(getString(R.string.pending_telling_title))
+                    .setMessage(getString(R.string.pending_telling_message))
+                    .setPositiveButton(getString(R.string.pending_telling_open)) { _, _ ->
+                        lifecycleScope.launch {
+                            restorePendingTellingIfAvailable()
+                        }
+                    }
+                    .setNegativeButton(getString(R.string.pending_telling_delete)) { _, _ ->
+                        lifecycleScope.launch {
+                            deletePendingTelling(savedEnvelope)
+                        }
+                    }
+                    .show()
+                DialogStyler.apply(dlg)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "promptPendingTellingIfAvailable failed: ${e.message}", e)
+        }
+    }
+
+    private suspend fun deletePendingTelling(savedEnvelope: ServerTellingEnvelope? = null) {
+        try {
+            envelopePersistence.clearSavedEnvelope()
+
+            if (savedEnvelope != null) {
+                TellingUploadFlags.clearFlag(this, savedEnvelope.tellingid, savedEnvelope.onlineid)
+            }
+
+            prefs.edit()
+                .remove("pref_saved_envelope_json")
+                .remove("pref_online_id")
+                .remove("pref_telling_id")
+                .apply()
+
+            synchronized(pendingRecords) { pendingRecords.clear() }
+            if (::viewModel.isInitialized) viewModel.clearPendingRecords()
+            logManager.clearAll()
+            uiManager.updateFinals(emptyList())
+            uiManager.updatePartials(emptyList())
+            if (::viewModel.isInitialized) {
+                viewModel.setFinals(emptyList())
+                viewModel.setPartials(emptyList())
+            }
+
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@TellingScherm, getString(R.string.pending_telling_deleted), Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "deletePendingTelling failed: ${e.message}", e)
+        }
     }
 }

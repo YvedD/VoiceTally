@@ -12,6 +12,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
         android:paddingBottom="1dp"
         android:text="@string/telling_speech_results"
         android:textSize="11sp"
@@ -27,7 +28,7 @@
         app:cardCornerRadius="8dp"
         app:cardUseCompatPadding="true"
         app:strokeColor="@color/vt5_light_blue"
-        app:strokeWidth="2dp">
+        app:strokeWidth="4dp">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewSpeechPartials"
@@ -47,7 +48,7 @@
         app:cardCornerRadius="8dp"
         app:cardUseCompatPadding="true"
         app:strokeColor="@color/vt5_green"
-        app:strokeWidth="2dp">
+        app:strokeWidth="4dp">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewSpeechFinals"

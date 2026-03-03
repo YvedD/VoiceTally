@@ -2,15 +2,24 @@
 
 package com.yvesds.vt5.features.opstart.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.secure.CredentialsStore
+import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.databinding.SchermInstallatieBinding
 import com.yvesds.vt5.features.opstart.helpers.AliasIndexManager
 import com.yvesds.vt5.features.opstart.helpers.InstallationDialogManager
@@ -19,6 +28,7 @@ import com.yvesds.vt5.features.opstart.helpers.ServerAuthenticationManager
 import com.yvesds.vt5.features.opstart.helpers.ServerDataDownloadManager
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.hoofd.HoofdActiviteit
+import com.yvesds.vt5.hoofd.InstellingenScherm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,6 +79,7 @@ class InstallatieScherm : AppCompatActivity() {
         
         // Setup UI
         initUi()
+        setupPermissionAcknowledgements()
         wireClicks()
 
         // Preload data if SAF already configured
@@ -200,6 +211,107 @@ class InstallatieScherm : AppCompatActivity() {
         // Done button - return to main
         btnKlaar.setOnClickListener {
             navigateToOpstart()
+        }
+
+        btnOpenUnknownSources.setOnClickListener {
+            openUnknownSourcesSettings()
+        }
+    }
+
+    private fun setupPermissionAcknowledgements() {
+        val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
+        val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasSaf = saf.getRootUri() != null
+
+        bindPermCheckBox(
+            cb = binding.cbPermAudio,
+            key = InstellingenScherm.PREF_PERM_AUDIO_ACK,
+            prefs = prefs,
+            actualGranted = hasAudio,
+            disableMessageRes = R.string.perm_disable_message_audio
+        )
+        bindPermCheckBox(
+            cb = binding.cbPermSaf,
+            key = InstellingenScherm.PREF_PERM_SAF_ACK,
+            prefs = prefs,
+            actualGranted = hasSaf,
+            disableMessageRes = R.string.perm_disable_message_saf
+        )
+        bindPermCheckBox(
+            cb = binding.cbPermLocation,
+            key = InstellingenScherm.PREF_PERM_LOCATION_ACK,
+            prefs = prefs,
+            actualGranted = hasLocation,
+            disableMessageRes = R.string.perm_disable_message_location
+        )
+    }
+
+    private fun bindPermCheckBox(
+        cb: MaterialCheckBox,
+        key: String,
+        prefs: android.content.SharedPreferences,
+        actualGranted: Boolean,
+        disableMessageRes: Int
+    ) {
+        var suppress = false
+        val stored = prefs.getBoolean(key, false)
+        val effective = stored || actualGranted
+        if (effective && !stored) {
+            prefs.edit { putBoolean(key, true) }
+        }
+        suppress = true
+        cb.isChecked = effective
+        suppress = false
+
+        cb.setOnCheckedChangeListener { _, isChecked ->
+            if (suppress) return@setOnCheckedChangeListener
+            if (!isChecked) {
+                showDisablePermissionDialog(disableMessageRes) { confirmed ->
+                    if (confirmed) {
+                        prefs.edit { putBoolean(key, false) }
+                    } else {
+                        suppress = true
+                        cb.isChecked = true
+                        suppress = false
+                    }
+                }
+            } else {
+                prefs.edit { putBoolean(key, true) }
+            }
+        }
+    }
+
+    private fun showDisablePermissionDialog(messageRes: Int, onResult: (Boolean) -> Unit) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.perm_disable_title)
+            .setMessage(messageRes)
+            .setPositiveButton(R.string.perm_disable_confirm) { _, _ ->
+                onResult(true)
+            }
+            .setNegativeButton(R.string.perm_disable_cancel) { _, _ ->
+                onResult(false)
+            }
+            .setCancelable(false)
+            .show()
+
+        DialogStyler.apply(dialog)
+    }
+
+    private fun openUnknownSourcesSettings() {
+        try {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                "package:$packageName".toUri()
+            )
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.w(TAG, "Unable to open unknown sources settings: ${e.message}", e)
+            Toast.makeText(this, "Kan installatie-instellingen niet openen.", Toast.LENGTH_SHORT).show()
         }
     }
 

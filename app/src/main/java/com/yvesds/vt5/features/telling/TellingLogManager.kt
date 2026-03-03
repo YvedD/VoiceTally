@@ -169,6 +169,16 @@ class TellingLogManager(
      */
     fun getFinals(): List<TellingScherm.SpeechLogRow> = finalsLog.toList()
 
+    fun setFinals(list: List<TellingScherm.SpeechLogRow>) {
+        finalsLog.clear()
+        finalsLog.addAll(list)
+    }
+
+    fun setPartials(list: List<TellingScherm.SpeechLogRow>) {
+        partialsLog.clear()
+        partialsLog.addAll(list)
+    }
+
     /**
      * Clear all logs.
      */

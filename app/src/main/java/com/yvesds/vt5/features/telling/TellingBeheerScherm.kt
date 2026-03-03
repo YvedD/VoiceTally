@@ -1306,6 +1306,7 @@ class TellingBeheerScherm : AppCompatActivity() {
             private val tvTimestamp: TextView = itemView.findViewById(R.id.tvTimestamp)
             private val tvBadge: TextView = itemView.findViewById(R.id.tvBadge)
             private val cbSelect: android.widget.CheckBox = itemView.findViewById(R.id.cbSelect)
+            private val tvStatus: TextView = itemView.findViewById(R.id.tvStatus)
 
             fun bind(info: TellingFileInfo) {
                 tvFilename.text = info.filename
@@ -1320,6 +1321,14 @@ class TellingBeheerScherm : AppCompatActivity() {
                     tvBadge.text = getString(R.string.beheer_actieve_telling)
                 } else {
                     tvBadge.visibility = View.GONE
+                }
+
+                val isSent = TellingUploadFlags.isSent(itemView.context, info.tellingId, info.onlineId)
+                tvStatus.visibility = View.VISIBLE
+                tvStatus.text = if (isSent) {
+                    getString(R.string.beheer_status_verzonden)
+                } else {
+                    getString(R.string.beheer_status_niet_verzonden)
                 }
 
                 cbSelect.setOnCheckedChangeListener(null)
@@ -1541,3 +1550,5 @@ class TellingBeheerScherm : AppCompatActivity() {
         )
     }
 }
+
+

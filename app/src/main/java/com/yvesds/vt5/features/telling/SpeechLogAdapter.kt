@@ -1,6 +1,5 @@
 package com.yvesds.vt5.features.telling
 
-import android.graphics.Color
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -35,7 +34,10 @@ class SpeechLogAdapter :
     }
     
     // Gecachede lettergrootte voor betere performance
-    private var cachedTextSizeSp: Float = InstellingenScherm.DEFAULT_LETTERGROOTTE_SP.toFloat()
+    private var cachedPartialsTextSizeSp: Float = InstellingenScherm.DEFAULT_LETTERGROOTTE_SP.toFloat()
+    private var cachedFinalsTextSizeSp: Float = InstellingenScherm.DEFAULT_LETTERGROOTTE_SP.toFloat()
+    private var cachedPartialsTextColor: Int = android.graphics.Color.WHITE
+    private var cachedFinalsTextColor: Int = android.graphics.Color.WHITE
 
     object Diff : DiffUtil.ItemCallback<TellingScherm.SpeechLogRow>() {
         override fun areItemsTheSame(
@@ -66,13 +68,39 @@ class SpeechLogAdapter :
      * Update de gecachede lettergrootte. Roep dit aan bij onResume van de Activity.
      */
     fun updateTextSize(textSizeSp: Int) {
-        cachedTextSizeSp = textSizeSp.toFloat()
+        cachedPartialsTextSizeSp = textSizeSp.toFloat()
+        cachedFinalsTextSizeSp = textSizeSp.toFloat()
+    }
+
+    fun updatePartialsTextSize(textSizeSp: Int) {
+        cachedPartialsTextSizeSp = textSizeSp.toFloat()
+    }
+
+    fun updateFinalsTextSize(textSizeSp: Int) {
+        cachedFinalsTextSizeSp = textSizeSp.toFloat()
+    }
+
+    /**
+     * Update de gecachede tekstkleur voor partials logregels.
+     */
+    fun updatePartialsTextColor(argb: Int) {
+        cachedPartialsTextColor = argb
+    }
+
+    /**
+     * Update de gecachede tekstkleur voor finals logregels.
+     */
+    fun updateFinalsTextColor(argb: Int) {
+        cachedFinalsTextColor = argb
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val vb = ItemSpeechLogBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         // Initialiseer cache bij eerste ViewHolder creatie
-        cachedTextSizeSp = InstellingenScherm.getLettergrootteLogSp(parent.context).toFloat()
+        cachedPartialsTextSizeSp = InstellingenScherm.getPartialsTextSizeSp(parent.context).toFloat()
+        cachedFinalsTextSizeSp = InstellingenScherm.getFinalsTextSizeSp(parent.context).toFloat()
+        cachedPartialsTextColor = InstellingenScherm.getPartialsTextColor(parent.context)
+        cachedFinalsTextColor = InstellingenScherm.getFinalsTextColor(parent.context)
         return VH(vb)
     }
 
@@ -84,22 +112,31 @@ class SpeechLogAdapter :
         // Use the already-prepared text from TellingScherm; keep adapter logic minimal.
         val displayText = row.tekst ?: ""
         holder.vb.tvMsg.text = displayText
-        
-        // Pas gecachede lettergrootte toe
-        holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedTextSizeSp)
 
-        // Precomputed color constants (no parseColor allocations per bind)
-        val COLOR_FINAL = 0xFF00C853.toInt() // bright green
-        val COLOR_WHITE = Color.WHITE
-        val defaultColor = holder.vb.tvMsg.currentTextColor
+        val defaultPartials = cachedPartialsTextColor
+        val defaultFinals = cachedFinalsTextColor
 
         when (row.bron) {
-            "final" -> holder.vb.tvMsg.setTextColor(COLOR_FINAL)
-            "partial" -> holder.vb.tvMsg.setTextColor(COLOR_WHITE)
-            "alias" -> holder.vb.tvMsg.setTextColor(COLOR_WHITE)
-            "raw" -> holder.vb.tvMsg.setTextColor(COLOR_WHITE)
-            "systeem", "manueel" -> holder.vb.tvMsg.setTextColor(COLOR_WHITE)
-            else -> holder.vb.tvMsg.setTextColor(defaultColor)
+            "final" -> {
+                holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedFinalsTextSizeSp)
+                holder.vb.tvMsg.setTextColor(defaultFinals)
+                holder.vb.tvTime.setTextColor(defaultFinals)
+            }
+            "partial" -> {
+                holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
+                holder.vb.tvMsg.setTextColor(defaultPartials)
+                holder.vb.tvTime.setTextColor(defaultPartials)
+            }
+            "alias", "raw", "systeem", "manueel" -> {
+                holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
+                holder.vb.tvMsg.setTextColor(defaultPartials)
+                holder.vb.tvTime.setTextColor(defaultPartials)
+            }
+            else -> {
+                holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
+                holder.vb.tvMsg.setTextColor(defaultPartials)
+                holder.vb.tvTime.setTextColor(defaultPartials)
+            }
         }
     }
     override fun getItemId(position: Int): Long {

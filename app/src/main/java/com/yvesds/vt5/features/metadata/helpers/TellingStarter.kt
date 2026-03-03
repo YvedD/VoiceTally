@@ -11,6 +11,7 @@ import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.net.StartTellingApi
 import com.yvesds.vt5.net.TrektellenApi
 import com.yvesds.vt5.net.ServerTellingEnvelope
+import com.yvesds.vt5.features.telling.TellingUploadFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
@@ -68,7 +69,7 @@ class TellingStarter(
                 Log.w(TAG, "nextTellingId->Long failed: ${ex.message}")
                 (System.currentTimeMillis() / 1000L)
             }
-            
+
             // Get form values
             val begintijdEpoch = formManager.computeBeginEpochSec()
             val eindtijdEpoch = 0L // Live mode: empty end time
@@ -133,13 +134,16 @@ class TellingStarter(
                 Log.w(TAG, "Could not parse onlineId from response: $resp")
                 return@withContext StartResult(false, null, "Could not parse online ID: $resp")
             }
-            
+
             // Store in preferences
             prefs.edit {
                 putString(PREF_ONLINE_ID, onlineId)
                 putString(PREF_TELLING_ID, tellingIdLong.toString())
             }
-            
+
+            // Mark this telling as not sent yet
+            TellingUploadFlags.markNotSent(context, tellingIdLong.toString(), onlineId)
+
             // Initialize record counter
             try {
                 prefs.edit {
@@ -148,7 +152,7 @@ class TellingStarter(
             } catch (ex: Exception) {
                 Log.w(TAG, "Failed initializing next record id: ${ex.message}")
             }
-            
+
             // Save envelope JSON for later reuse
             try {
                 val envelopeJson = VT5App.json.encodeToString(
@@ -161,7 +165,7 @@ class TellingStarter(
             } catch (ex: Exception) {
                 Log.w(TAG, "Failed saving envelope JSON to prefs: ${ex.message}")
             }
-            
+
             return@withContext StartResult(true, onlineId, null)
         } catch (e: Exception) {
             Log.e(TAG, "startTelling failed: ${e.message}", e)

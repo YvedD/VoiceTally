@@ -240,6 +240,13 @@ class TellingAfrondHandler(
             Log.w(TAG, "Parsing/handling returned onlineId failed: ${ex.message}", ex)
         }
 
+        // Mark this telling as sent (uses original telling/online ids)
+        try {
+            TellingUploadFlags.markSent(context, finalEnv.tellingid, finalEnv.onlineid)
+        } catch (ex: Exception) {
+            Log.w(TAG, "Failed marking telling as sent: ${ex.message}", ex)
+        }
+
         // 10. Cleanup: remove backups and clear preferences
         try {
             pendingBackupDocs.forEach { doc -> 

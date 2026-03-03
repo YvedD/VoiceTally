@@ -18,6 +18,13 @@
     <string name="install_uitleg">
         Deze toepassing moet bestanden kunnen inlezen en wegschrijven. Bevestig het gebruik van de map ‘Documents’ in de volgende stap (kies ‘Deze map gebruiken’). Alle mappen/bestanden worden aangemaakt indien nodig. Bij herinstallatie wordt niets overschreven.
     </string>
+    <string name="install_permissions_title">Toestemmingen en uitleg</string>
+    <string name="perm_audio_checkbox">Microfoon (spraakherkenning) - nodig om soorten via spraak in te geven.</string>
+    <string name="perm_saf_checkbox">Bestanden in Documents (SAF) - nodig om tellingen en serverdata op te slaan.</string>
+    <string name="perm_location_checkbox">Locatie (weer Auto) - nodig om weergegevens automatisch op te halen.</string>
+    <string name="install_unknown_sources_title">Installatiehulp</string>
+    <string name="install_unknown_sources_desc">Als het toestel installatie van onbekende apps blokkeert, open de instellingen en sta installatie toe voor de gebruikte install-app (bv. Bestanden of je browser).</string>
+    <string name="install_unknown_sources_button">Open installatie-instellingen</string>
 
     <string name="btn_kies_documents">Map ‘Documents’ kiezen</string>
     <string name="btn_check_folders">Submappen controleren/aanmaken</string>
@@ -102,14 +109,19 @@
 
     <!-- InstellingenScherm -->
     <string name="instellingen_titel">Instellingen</string>
-    <string name="instellingen_lettergrootte_log_label">Lettergrootte logregels (partial/final):</string>
+    <string name="instellingen_lettergrootte_partials_label">Lettergrootte partials:</string>
+    <string name="instellingen_lettergrootte_finals_label">Lettergrootte finals:</string>
     <string name="instellingen_lettergrootte_tegels_label">Lettergrootte tegels (soortnaam + aantallen):</string>
     <string name="instellingen_sp_eenheid">sp</string>
     <string name="instellingen_placeholder3">Placeholder 3 (later in te vullen)</string>
     <string name="instellingen_colors_title">Kleuren</string>
     <string name="instellingen_bg_color_label">Achtergrondkleur</string>
     <string name="instellingen_text_color_label">Tekstkleur</string>
+    <string name="instellingen_partials_text_color_label">Tekstkleur partials</string>
+    <string name="instellingen_finals_text_color_label">Tekstkleur finals</string>
+    <string name="instellingen_log_text_color_label">Tekstkleur logregels</string>
     <string name="instellingen_back_arrow">←</string>
+    <string name="instellingen_permissions_title">Toestemmingen (info)</string>
 
     <!-- InstellingenScherm: favorieten/recents -->
     <string name="instellingen_fav_limit_title">Instellen aantal recente soorten</string>
@@ -119,6 +131,7 @@
     <string name="instellingen_fav_30">30</string>
     <string name="instellingen_fav_35">35</string>
     <string name="instellingen_fav_40">40</string>
+    <string name="instellingen_fav_75">75</string>
     <string name="instellingen_fav_all">ALLE</string>
 
     <!-- TellingBeheerScherm -->
@@ -294,8 +307,26 @@
     <string name="beheer_verwijder_meerdere_msg">Weet je zeker dat je %1$d tellingen lokaal wilt verwijderen? Dit kan niet ongedaan gemaakt worden.\n\nDit heeft geen invloed op de server.</string>
     <string name="beheer_verwijderd_meerdere">%1$d tellingen verwijderd</string>
 
+    <string name="beheer_status_verzonden">Status: verzonden</string>
+    <string name="beheer_status_niet_verzonden">Status: niet-verzonden</string>
+
     <string name="uploads_pending_title">Er staan nog uploads klaar in de wachtrij !</string>
     <string name="uploads_pending_message">Gegevens nu eerst uploaden?</string>
     <string name="uploads_pending_now">Nu uploaden</string>
     <string name="uploads_pending_on_exit">Uploaden bij afsluiten</string>
+
+    <!-- Pending telling restore dialog -->
+    <string name="pending_telling_title">Er zijn nog niet verzonden tellingen</string>
+    <string name="pending_telling_message">Wil je deze telling openen of verwijderen?</string>
+    <string name="pending_telling_open">Telling openen</string>
+    <string name="pending_telling_delete">Telling verwijderen</string>
+    <string name="pending_telling_restored">Niet-verzonden telling hersteld.</string>
+    <string name="pending_telling_deleted">Niet-verzonden telling verwijderd.</string>
+
+    <string name="perm_disable_title">Machtiging uitschakelen?</string>
+    <string name="perm_disable_confirm">Toch uitschakelen</string>
+    <string name="perm_disable_cancel">Annuleren</string>
+    <string name="perm_disable_message_audio">Zonder microfoon kan spraakinvoer niet werken. Manuele invoer blijft wel mogelijk.</string>
+    <string name="perm_disable_message_saf">Zonder toegang tot Documents kan de app geen tellingen opslaan of bestanden lezen/schrijven.</string>
+    <string name="perm_disable_message_location">Zonder locatie kan de knop "Auto" geen weergegevens ophalen.</string>
 </resources>

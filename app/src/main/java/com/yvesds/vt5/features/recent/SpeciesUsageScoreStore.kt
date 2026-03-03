@@ -29,7 +29,7 @@ object SpeciesUsageScoreStore {
     private const val MAX_SESSIONS = 10
 
     /** Hard cap for ALLE (to keep UI manageable). */
-    const val MAX_ALL_CAP = 75
+    const val MAX_ALL_CAP = 120
 
     /**
      * Week-ish decay: half-life around 7 days.

@@ -11,9 +11,11 @@
         android:id="@+id/etZoek"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
         android:hint="Zoek soort..."
         android:imeOptions="actionSearch"
-        android:singleLine="true" />
+        android:singleLine="true"
+        android:textSize="22sp" />
 
     <!-- divider top voor suggestiezone -->
     <View
