@@ -86,4 +86,12 @@
     <string name="mc_dialog_end_collab_cancel">Annuleren</string>
     <string name="mc_toast_session_ended_broadcast">Alle clients zijn verwittigd dat de telling beëindigd is</string>
 
+    <!-- ─── Master-overdracht (handover) ────────────────────────────── -->
+    <!-- Titel van de dialog die op een client-toestel verschijnt wanneer de master vertrekt -->
+    <string name="mc_handover_title">Master verlaat de telpost</string>
+    <!-- Bericht in de handover-dialog; %1$s = naam van het master-toestel -->
+    <string name="mc_handover_message">%1$s heeft de telling afgerond en verlaat de telpost zonder een nieuwe telling te starten.\n\nWil jij de masterfunctie overnemen en een vervolgtelling starten?</string>
+    <string name="mc_handover_confirm">Ja, overnemen</string>
+    <string name="mc_handover_decline">Nee, niet overnemen</string>
+
 </resources>

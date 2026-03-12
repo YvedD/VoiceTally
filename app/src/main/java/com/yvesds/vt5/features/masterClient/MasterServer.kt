@@ -7,10 +7,12 @@ import com.yvesds.vt5.features.masterClient.protocol.AckMessage
 import com.yvesds.vt5.features.masterClient.protocol.ExportDataMessage
 import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
 import com.yvesds.vt5.features.masterClient.protocol.LeaveMessage
+import com.yvesds.vt5.features.masterClient.protocol.MasterHandoverMessage
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_EXPORT_DATA
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_HEARTBEAT
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_LEAVE
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_MASTER_HANDOVER
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
@@ -276,6 +278,37 @@ class MasterServer(
             }
         }
         Log.i(TAG, "SessionEnd broadcast naar $sent/${writers.size} client(s). Reden: $reason")
+    }
+
+    /**
+     * Stuur een [MasterHandoverMessage] naar alle verbonden clients.
+     *
+     * Roep deze methode aan nadat alle pending records succesvol ge-upload zijn en
+     * de master de telpost verlaat zónder zelf een vervolgtelling te starten.
+     * Clients ontvangen het bericht en kunnen daarna de masterfunctie overnemen.
+     *
+     * @param eindtijdEpoch Eindtijd van de afgeronde telling (epoch-seconden als string),
+     *                      zodat de nieuwe master die als begintijd kan invullen.
+     * @param reason        Optionele beschrijving.
+     */
+    fun broadcastMasterHandover(eindtijdEpoch: String, reason: String = "") {
+        val msg = MasterHandoverMessage(
+            masterName    = android.os.Build.MODEL,
+            eindtijdEpoch = eindtijdEpoch,
+            reason        = reason
+        )
+        val payload = json.encodeToString(MasterHandoverMessage.serializer(), msg)
+        val writers = synchronized(clientWritersLock) { clientWriters.values.toList() }
+        var sent = 0
+        for (w in writers) {
+            try {
+                sendEnvelopeRaw(w, MC_MSG_MASTER_HANDOVER, payload)
+                sent++
+            } catch (e: Exception) {
+                Log.w(TAG, "broadcastMasterHandover: kon niet schrijven naar één client: ${e.message}")
+            }
+        }
+        Log.i(TAG, "MasterHandover broadcast naar $sent/${writers.size} client(s). EindtijdEpoch=$eindtijdEpoch")
     }
 
     private fun addConnectedClient(token: String, name: String, writer: PrintWriter) {

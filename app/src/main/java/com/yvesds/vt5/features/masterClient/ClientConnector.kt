@@ -6,9 +6,11 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.masterClient.protocol.AckMessage
 import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
 import com.yvesds.vt5.features.masterClient.protocol.LeaveMessage
+import com.yvesds.vt5.features.masterClient.protocol.MasterHandoverMessage
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_HEARTBEAT
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_LEAVE
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_MASTER_HANDOVER
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
@@ -74,6 +76,17 @@ class ClientConnector(
      */
     var onSessionEnded: ((reason: String) -> Unit)? = null
 
+    /**
+     * Optionele callback: aangeroepen op de IO-thread wanneer de master een
+     * [MasterHandoverMessage] stuurt. Dit betekent dat de master alle pending records
+     * heeft ge-upload en de telpost verlaat zónder een vervolgtelling te starten.
+     * Eén van de clients kan nu de masterfunctie overnemen.
+     *
+     * Parameters: eindtijdEpoch (te gebruiken als begintijd vervolgtelling), masterName, reason.
+     * De aanroeper moet UI-updates naar de Main-thread dispatchen.
+     */
+    var onMasterHandover: ((eindtijdEpoch: String, masterName: String, reason: String) -> Unit)? = null
+
     private var connectorScope: CoroutineScope? = null
 
     @Volatile private var running = false
@@ -100,8 +113,11 @@ class ClientConnector(
      * @param reason Optionele reden (bijv. "gebruiker gestopt met tellen").
      */
     fun leaveSession(reason: String = "") {
-        // Maak lokale kopieën om race-conditions te vermijden: @Volatile garandeert zichtbaarheid
-        // maar geen atomiciteit; door direct na de null-check lokaal vast te leggen is dit veilig.
+        // Maak lokale kopieën zodat de referenties stabiel zijn gedurende de rest van de methode.
+        // @Volatile garandeert zichtbaarheid maar geen atomiciteit; door de waarden onmiddellijk
+        // lokaal vast te leggen werken we met een stabiele snapshot van het moment van de aanroep.
+        // Een TOCTOU-race (bijv. writer wordt null ná de kopie) is theoretisch mogelijk maar heeft
+        // in de praktijk geen gevolg: de PrintWriter-write gooit dan een IOException die we opvangen.
         val w = writer
         val token = currentSessionToken
         if (w != null && token.isNotBlank()) {
@@ -260,6 +276,17 @@ class ClientConnector(
                         } else {
                             Log.w(TAG, "NACK voor event ${ack.clientEventId}: ${ack.error}")
                         }
+                    }
+                    MC_MSG_MASTER_HANDOVER -> {
+                        val msg = decodePayload<MasterHandoverMessage>(env.payload)
+                        val eindtijdEpoch = msg?.eindtijdEpoch ?: ""
+                        val masterName    = msg?.masterName    ?: ""
+                        val reason        = msg?.reason        ?: ""
+                        Log.i(TAG, "MasterHandover ontvangen van master $masterName. EindtijdEpoch=$eindtijdEpoch")
+                        onMasterHandover?.invoke(eindtijdEpoch, masterName, reason)
+                        // Stop reconnect: de master-sessie is definitief beëindigd
+                        running = false
+                        break
                     }
                     MC_MSG_SESSION_END -> {
                         val msg = decodePayload<SessionEndMessage>(env.payload)

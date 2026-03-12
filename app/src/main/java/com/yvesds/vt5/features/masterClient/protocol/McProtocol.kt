@@ -19,6 +19,12 @@ const val MC_MSG_LEAVE        = "leave"
 const val MC_MSG_SESSION_END  = "session_end"
 
 /**
+ * Master → client(s): de master heeft alle pending records ge-upload en verlaat de telpost
+ * zonder zelf een vervolgtelling te starten. Eén van de clients kan de masterfunctie overnemen.
+ */
+const val MC_MSG_MASTER_HANDOVER = "master_handover"
+
+/**
  * Envelope voor alle berichten over de TCP-verbinding.
  * [type] geeft aan welk payload-type [payload] bevat (JSON-gecodeerd).
  */
@@ -130,4 +136,22 @@ data class LeaveMessage(
 data class SessionEndMessage(
     @SerialName("masterName") val masterName: String = "",
     @SerialName("reason")     val reason: String = ""
+)
+
+// ─── Master-overdracht ────────────────────────────────────────────────────────
+
+/**
+ * Verstuurd door de **master** naar alle verbonden clients nadat alle pending records
+ * succesvol ge-upload zijn en de master de telpost verlaat zonder zelf een vervolgtelling
+ * te starten. Eén client kan op basis van deze melding de masterfunctie overnemen en
+ * een nieuwe telling starten.
+ *
+ * Het veld [eindtijdEpoch] bevat de eindtijd van de afgeronde telling en kan als
+ * begintijd worden gebruikt voor een vervolgtelling.
+ */
+@Serializable
+data class MasterHandoverMessage(
+    @SerialName("masterName")    val masterName: String = "",
+    @SerialName("eindtijdEpoch") val eindtijdEpoch: String = "",
+    @SerialName("reason")        val reason: String = ""
 )

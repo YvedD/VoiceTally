@@ -670,6 +670,15 @@ class TellingScherm : AppCompatActivity() {
                 }
             }
 
+            // Wanneer de master de telpost verlaat (pending records klaar), toon handover-dialog
+            connector.onMasterHandover = { eindtijdEpoch, masterName, _ ->
+                runOnUiThread {
+                    binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
+                        ?.visibility = android.view.View.GONE
+                    showMasterHandoverDialog(eindtijdEpoch, masterName)
+                }
+            }
+
             // Volg de verbindingsstatus en update de statusbalk
             lifecycleScope.launch {
                 connector.state.collect { state ->
@@ -737,6 +746,47 @@ class TellingScherm : AppCompatActivity() {
     }
 
     // ─── Pairing-dialogen ─────────────────────────────────────────────────────
+
+    /**
+     * Toon aan een client die een [MasterHandoverMessage] heeft ontvangen de
+     * mogelijkheid om de masterfunctie over te nemen.
+     *
+     * De master heeft op dit punt alle pending records al ge-upload. Als de client
+     * "Ja" kiest, navigeert die naar MetadataScherm (net als bij een normale
+     * vervolgtelling) zodat een nieuwe telling als nieuwe master gestart kan worden.
+     *
+     * @param eindtijdEpoch Eindtijd van de afgeronde telling (wordt als begintijd ingevuld).
+     * @param masterName    Naam van het vertrekkende master-toestel.
+     */
+    private fun showMasterHandoverDialog(eindtijdEpoch: String, masterName: String) {
+        val dlg = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mc_handover_title))
+            .setMessage(getString(R.string.mc_handover_message, masterName))
+            .setPositiveButton(getString(R.string.mc_handover_confirm)) { _, _ ->
+                // Schakel modus naar solo zodat het toestel niet als client opnieuw verbindt
+                com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMode(
+                    this,
+                    com.yvesds.vt5.features.masterClient.MasterClientPrefs.MODE_SOLO
+                )
+                // Navigeer naar MetadataScherm met de eindtijd van de afgeronde telling als begintijd
+                val intent = Intent(this, MetadataScherm::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                intent.putExtra(MetadataScherm.EXTRA_VERVOLG_BEGINTIJD_EPOCH, eindtijdEpoch)
+                startActivity(intent)
+                finish()
+            }
+            .setNegativeButton(getString(R.string.mc_handover_decline)) { _, _ ->
+                // Gebruiker neemt niet over; terug naar HoofdActiviteit
+                val intent = Intent(this, HoofdActiviteit::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                startActivity(intent)
+                finish()
+            }
+            .setCancelable(false)
+            .create()
+        com.yvesds.vt5.core.ui.DialogStyler.apply(dlg)
+        dlg.show()
+    }
 
     /** Toon de master-pairing dialog (PIN + lijst verbonden clients). */
     private fun showMasterPairingDialog() {
@@ -1543,7 +1593,12 @@ class TellingScherm : AppCompatActivity() {
     
     /**
      * Show dialog asking if user wants to create a follow-up telling.
-     * 
+     *
+     * Als de gebruiker NEEN kiest EN er zijn verbonden clients, stuurt de master
+     * eerst een [MasterHandoverMessage] zodat één van hen de masterfunctie kan overnemen.
+     * Alle pending records zijn op dit moment al ge-upload (afronden is geslaagd),
+     * zodat de overdracht veilig kan plaatsvinden.
+     *
      * @param eindtijdEpoch The eindtijd to use as begintijd for the follow-up telling
      */
     private fun showVervolgtellingDialog(eindtijdEpoch: String) {
@@ -1551,7 +1606,7 @@ class TellingScherm : AppCompatActivity() {
             .setTitle(getString(R.string.afrond_vervolgtelling_titel))
             .setMessage(getString(R.string.afrond_vervolgtelling_msg))
             .setPositiveButton("OK") { _, _ ->
-                // Navigate to MetadataScherm with begintijd preset to eindtijd of the previous telling
+                // Gebruiker start zelf een vervolgtelling: geen handover nodig
                 val intent = Intent(this@TellingScherm, MetadataScherm::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 intent.putExtra(MetadataScherm.EXTRA_VERVOLG_BEGINTIJD_EPOCH, eindtijdEpoch)
@@ -1559,7 +1614,17 @@ class TellingScherm : AppCompatActivity() {
                 finish()
             }
             .setNegativeButton(getString(R.string.dlg_cancel)) { _, _ ->
-                // Navigate to HoofdActiviteit (main screen) so user can close app or edit tellingen
+                // Master verlaat de telpost zonder vervolgtelling.
+                // Alle pending records zijn al ge-upload (afronden was succesvol).
+                // Stuur handover-bericht als er clients verbonden zijn.
+                val server = mcMasterServer
+                if (server != null && server.connectedClients.value.isNotEmpty()) {
+                    server.broadcastMasterHandover(
+                        eindtijdEpoch = eindtijdEpoch,
+                        reason        = "master verlaat telpost zonder vervolgtelling"
+                    )
+                }
+                // Navigeer naar HoofdActiviteit
                 val intent = Intent(this@TellingScherm, com.yvesds.vt5.hoofd.HoofdActiviteit::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 startActivity(intent)
