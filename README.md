@@ -34,7 +34,7 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 
 ## Bèta-Releases / Nightly builds
 
-[![Beta Version](https://img.shields.io/badge/Version-Beta-blue)](https://github.com/YvedD/VoiceTally/releases/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk)  
+[![Beta Version](https://img.shields.io/badge/Version-Beta-red)](https://github.com/YvedD/VoiceTally/releases/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk)  
 [![Download Beta APK](https://img.shields.io/badge/Download-Beta%20APK-blue)](https://github.com/YvedD/VoiceTally/releases/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk)  
 
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)  
