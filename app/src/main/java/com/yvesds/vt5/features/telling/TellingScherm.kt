@@ -120,6 +120,15 @@ class TellingScherm : AppCompatActivity() {
     // Restore guard to avoid applying restore multiple times
     private var restoredFromSavedEnvelope = false
 
+    // ─── Master-client ────────────────────────────────────────────────────────
+    private var mcPairingManager: com.yvesds.vt5.features.masterClient.PairingManager? = null
+    private var mcEventProcessor: com.yvesds.vt5.features.masterClient.MasterEventProcessor? = null
+    private var mcMasterServer: com.yvesds.vt5.features.masterClient.MasterServer? = null
+    private var mcDiscoveryService: com.yvesds.vt5.features.masterClient.DiscoveryService? = null
+    private var mcEventQueue: com.yvesds.vt5.features.masterClient.ClientEventQueue? = null
+    private var mcClientConnector: com.yvesds.vt5.features.masterClient.ClientConnector? = null
+    private var mcRecordsBeheer: com.yvesds.vt5.features.telling.RecordsBeheer? = null
+
     // BroadcastReceiver: listen for alias-reload events from AliasManager
     private val aliasReloadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -451,6 +460,272 @@ class TellingScherm : AppCompatActivity() {
 
         // Setup buttons
         uiManager.setupButtons()
+
+        // Initialiseer master-client statusbalk en knoppen
+        setupMasterClientUi()
+    }
+
+    /**
+     * Initialiseer de master-client statusbalk en actieknoppen die zichtbaar zijn in de
+     * TellingScherm-layout (mcStatusBar / tvMcStatus / btnMcAction).
+     *
+     * Tevens start de server (master) of connector (client) als de modus dat vereist.
+     */
+    private fun setupMasterClientUi() {
+        val mode = com.yvesds.vt5.features.masterClient.MasterClientPrefs.getMode(this)
+        val statusBar = binding.root.findViewById<android.view.View?>(R.id.mcStatusBar) ?: return
+        val tvStatus  = binding.root.findViewById<android.widget.TextView?>(R.id.tvMcStatus) ?: return
+        val btnAction = binding.root.findViewById<android.widget.Button?>(R.id.btnMcAction) ?: return
+
+        when (mode) {
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.MODE_MASTER -> {
+                statusBar.visibility = android.view.View.VISIBLE
+                tvStatus.text  = getString(R.string.mc_status_bar_master_no_clients)
+                btnAction.text = getString(R.string.mc_btn_clients)
+                btnAction.setOnClickListener { showMasterPairingDialog() }
+                startMasterServer()
+            }
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.MODE_CLIENT -> {
+                statusBar.visibility = android.view.View.VISIBLE
+                tvStatus.text  = getString(R.string.mc_status_bar_client_connecting)
+                btnAction.text = getString(R.string.mc_btn_connect_to_master)
+                btnAction.setOnClickListener { showClientPairingDialog() }
+                startClientConnector()
+            }
+            else -> {
+                statusBar.visibility = android.view.View.GONE
+            }
+        }
+    }
+
+    // ─── Master: server starten ───────────────────────────────────────────────
+
+    private fun startMasterServer() {
+        try {
+            val pm = com.yvesds.vt5.features.masterClient.PairingManager()
+            val ep = com.yvesds.vt5.features.masterClient.MasterEventProcessor()
+
+            // RecordsBeheer aanmaken (deelt persistentie met bestaande tellingflow)
+            val rb = RecordsBeheer(applicationContext, envelopePersistence = envelopePersistence)
+            lifecycleScope.launch { rb.restorePendingIndex() }
+            ep.setRecordsBeheer(rb)
+            mcRecordsBeheer = rb
+
+            val server = com.yvesds.vt5.features.masterClient.MasterServer(
+                context        = applicationContext,
+                pairingManager = pm,
+                eventProcessor = ep
+            )
+            server.start()
+
+            // NSD advertentie
+            val discovery = com.yvesds.vt5.features.masterClient.DiscoveryService(applicationContext)
+            discovery.startAdvertising(server.port)
+
+            mcPairingManager   = pm
+            mcEventProcessor   = ep
+            mcMasterServer     = server
+            mcDiscoveryService = discovery
+
+            // Live update van de statusbalk als het aantal clients verandert
+            lifecycleScope.launch {
+                server.connectedClients.collect { clients ->
+                    runOnUiThread { updateMasterStatusBar(clients.size) }
+                }
+            }
+
+            Log.i(TAG, "MasterServer gestart op poort ${server.port}")
+        } catch (e: Exception) {
+            Log.e(TAG, "startMasterServer fout: ${e.message}", e)
+            Toast.makeText(this, getString(R.string.mc_error_server_start, e.message), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun updateMasterStatusBar(clientCount: Int) {
+        val tvStatus = binding.root.findViewById<android.widget.TextView?>(R.id.tvMcStatus) ?: return
+        tvStatus.text = if (clientCount > 0) {
+            getString(R.string.mc_status_bar_master, clientCount)
+        } else {
+            getString(R.string.mc_status_bar_master_no_clients)
+        }
+    }
+
+    // ─── Client: connector starten ────────────────────────────────────────────
+
+    private fun startClientConnector() {
+        try {
+            val queue     = com.yvesds.vt5.features.masterClient.ClientEventQueue()
+            val connector = com.yvesds.vt5.features.masterClient.ClientConnector(
+                context    = applicationContext,
+                eventQueue = queue
+            )
+            mcEventQueue      = queue
+            mcClientConnector = connector
+
+            // Volg de verbindingsstatus en update de statusbalk
+            lifecycleScope.launch {
+                connector.state.collect { state ->
+                    runOnUiThread { updateClientStatusBar(state) }
+                }
+            }
+
+            // NSD-discovery voor automatische master-detectie
+            val discovery = com.yvesds.vt5.features.masterClient.DiscoveryService(applicationContext)
+            discovery.startDiscovery()
+            mcDiscoveryService = discovery
+
+            Log.i(TAG, "ClientConnector klaar; wacht op pairing-dialog")
+        } catch (e: Exception) {
+            Log.e(TAG, "startClientConnector fout: ${e.message}", e)
+        }
+    }
+
+    private fun updateClientStatusBar(state: com.yvesds.vt5.features.masterClient.ClientConnector.State) {
+        val tvStatus = binding.root.findViewById<android.widget.TextView?>(R.id.tvMcStatus) ?: return
+        tvStatus.text = when (state) {
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.PAIRED       -> getString(R.string.mc_status_bar_client_connected)
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.CONNECTING   -> getString(R.string.mc_status_bar_client_connecting)
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.ERROR        -> getString(R.string.mc_status_bar_client_error)
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.DISCONNECTED -> getString(R.string.mc_status_bar_client_connecting)
+        }
+    }
+
+    // ─── Pairing-dialogen ─────────────────────────────────────────────────────
+
+    /** Toon de master-pairing dialog (PIN + lijst verbonden clients). */
+    private fun showMasterPairingDialog() {
+        val pm = mcPairingManager ?: run {
+            Toast.makeText(this, getString(R.string.mc_error_no_telling), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_pairing_master, null)
+        val tvPin      = dialogView.findViewById<android.widget.TextView>(R.id.tvMasterPin)
+        val btnNewPin  = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnNewPin)
+        val btnClose   = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClosePairing)
+        val rvClients  = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvConnectedClients)
+
+        // Toon bestaande of nieuwe PIN
+        val pin = pm.getCurrentPin() ?: pm.generatePin()
+        tvPin.text = pin
+
+        // Simpele tekst-adapter voor verbonden clients
+        val connectedList = mcMasterServer?.connectedClients?.value?.values?.toList() ?: emptyList()
+        rvClients.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        rvClients.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+            val items = connectedList.toMutableList()
+            override fun getItemCount() = items.size
+            override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+                val tv = android.widget.TextView(parent.context).apply {
+                    layoutParams = android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+                    setPadding(24, 12, 24, 12)
+                    setTextColor(android.graphics.Color.WHITE)
+                }
+                return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(tv) {}
+            }
+            override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+                (holder.itemView as android.widget.TextView).text = "• ${items[position]}"
+            }
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        btnNewPin.setOnClickListener {
+            val newPin = pm.generatePin()
+            tvPin.text = newPin
+        }
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+        com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
+    }
+
+    /** Toon de client-pairing dialog (IP-invoer + PIN-invoer + NSD-lijst). */
+    private fun showClientPairingDialog() {
+        val connector = mcClientConnector ?: run {
+            Toast.makeText(this, getString(R.string.mc_error_no_telling), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val dialogView  = layoutInflater.inflate(R.layout.dialog_pairing_client, null)
+        val etIp        = dialogView.findViewById<android.widget.EditText>(R.id.etMasterIp)
+        val etPin       = dialogView.findViewById<android.widget.EditText>(R.id.etPin)
+        val tvStatus    = dialogView.findViewById<android.widget.TextView>(R.id.tvPairingStatus)
+        val btnCancel   = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCancelPairing)
+        val btnConnect  = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConnectToMaster)
+        val rvDiscovered = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvDiscoveredMasters)
+
+        // Vul eerder opgeslagen IP in
+        etIp.setText(com.yvesds.vt5.features.masterClient.MasterClientPrefs.getMasterIp(this))
+
+        // NSD-gevonden masters tonen
+        rvDiscovered.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        val discoveredItems = mcDiscoveryService?.discoveredMasters?.value ?: emptyList()
+        rvDiscovered.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+            val items = discoveredItems
+            override fun getItemCount() = items.size
+            override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+                val tv = android.widget.TextView(parent.context).apply {
+                    layoutParams = android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+                    setPadding(24, 12, 24, 12)
+                    setTextColor(android.graphics.Color.WHITE)
+                    isClickable = true
+                }
+                return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(tv) {}
+            }
+            override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+                val m = items[position]
+                val tv = holder.itemView as android.widget.TextView
+                tv.text = "${m.name} (${m.host}:${m.port})"
+                tv.setOnClickListener { etIp.setText(m.host) }
+            }
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnConnect.setOnClickListener {
+            val ip  = etIp.text.toString().trim()
+            val pin = etPin.text.toString().trim()
+            if (ip.isBlank()) {
+                tvStatus.text = getString(R.string.mc_error_no_ip)
+                return@setOnClickListener
+            }
+            if (pin.isBlank()) {
+                tvStatus.text = getString(R.string.mc_error_no_pin)
+                return@setOnClickListener
+            }
+            tvStatus.text = getString(R.string.mc_pairing_connecting)
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMasterIp(this, ip)
+            connector.setPendingPin(pin)
+            connector.start()
+            dialog.dismiss()
+        }
+
+        dialog.show()
+        com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
+    }
+
+    // ─── Offline export / import ──────────────────────────────────────────────
+
+    /**
+     * Exporteer de huidige waarnemingen naar een JSON-bestand en open het Android share-sheet.
+     * Kan gebruikt worden als de LAN-verbinding niet beschikbaar is.
+     */
+    fun exportRecordsOffline() {
+        val records = synchronized(pendingRecords) { pendingRecords.toList() }
+        if (records.isEmpty()) {
+            Toast.makeText(this, getString(R.string.mc_export_none), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val file = com.yvesds.vt5.features.masterClient.McShareHelper.exportRecordsToFile(this, records)
+        if (file != null) {
+            com.yvesds.vt5.features.masterClient.McShareHelper.shareFile(this, file)
+        } else {
+            Toast.makeText(this, getString(R.string.mc_import_failed), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun openInstellingenScherm() {
@@ -795,6 +1070,11 @@ class TellingScherm : AppCompatActivity() {
                 alarmHandler.cleanup()
             }
         } catch (_: Exception) {}
+        // Master-client cleanup
+        try { mcMasterServer?.stop() }        catch (_: Exception) {}
+        try { mcClientConnector?.stop() }     catch (_: Exception) {}
+        try { mcDiscoveryService?.stop() }    catch (_: Exception) {}
+        try { mcEventProcessor?.clearRecordsBeheer() } catch (_: Exception) {}
         super.onDestroy()
     }
 

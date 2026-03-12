@@ -21,6 +21,7 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.UiColorPrefs
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 
 /**
  * InstellingenScherm - Scherm voor app-instellingen
@@ -120,6 +121,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupFinalsTextColorSpinner()
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
+            setupMasterClientMode()
         } catch (t: Throwable) {
             // Fail-safe: avoid hard crash to background when a view/id mismatch occurs.
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
@@ -443,5 +445,34 @@ class InstellingenScherm : AppCompatActivity() {
             .show()
 
         DialogStyler.apply(dialog)
+    }
+
+    /**
+     * Stel de knoppen voor de master-client modus in.
+     * Solo / Master / Client – opgeslagen in [MasterClientPrefs].
+     */
+    private fun setupMasterClientMode() {
+        val btnSolo   = findViewById<MaterialButton?>(R.id.btnMcSolo)   ?: return
+        val btnMaster = findViewById<MaterialButton?>(R.id.btnMcMaster) ?: return
+        val btnClient = findViewById<MaterialButton?>(R.id.btnMcClient) ?: return
+
+        val allButtons = listOf(btnSolo, btnMaster, btnClient)
+
+        fun applyMode(mode: String) {
+            MasterClientPrefs.setMode(this, mode)
+            allButtons.forEach { it.isChecked = false }
+            when (mode) {
+                MasterClientPrefs.MODE_MASTER -> btnMaster.isChecked = true
+                MasterClientPrefs.MODE_CLIENT -> btnClient.isChecked = true
+                else                          -> btnSolo.isChecked   = true
+            }
+        }
+
+        // Initiële selectie op basis van opgeslagen voorkeur
+        applyMode(MasterClientPrefs.getMode(this))
+
+        btnSolo  .setOnClickListener { applyMode(MasterClientPrefs.MODE_SOLO)   }
+        btnMaster.setOnClickListener { applyMode(MasterClientPrefs.MODE_MASTER) }
+        btnClient.setOnClickListener { applyMode(MasterClientPrefs.MODE_CLIENT) }
     }
 }

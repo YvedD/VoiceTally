@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Titel -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_client_title"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingBottom="8dp" />
+
+    <!-- Master IP-adres -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_master_ip_label"
+        android:textSize="13sp"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etMasterIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/mc_pairing_master_ip_hint"
+        android:inputType="textNoSuggestions"
+        android:textColor="@color/vt5_on_surface"
+        android:textColorHint="#888888"
+        android:background="@android:color/transparent"
+        android:paddingBottom="4dp" />
+
+    <!-- Gevonden masters via NSD (auto-detect) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_discovered_label"
+        android:textSize="12sp"
+        android:textColor="@color/vt5_on_surface"
+        android:alpha="0.7"
+        android:paddingTop="6dp"
+        android:paddingBottom="2dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvDiscoveredMasters"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:background="#1A1A2E" />
+
+    <!-- PIN invoer -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_pin_input_label"
+        android:textSize="13sp"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingTop="10dp"
+        android:paddingBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etPin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/mc_pairing_pin_hint"
+        android:inputType="number"
+        android:maxLength="6"
+        android:textSize="24sp"
+        android:gravity="center_horizontal"
+        android:textColor="@color/vt5_on_surface"
+        android:textColorHint="#888888"
+        android:background="@android:color/transparent" />
+
+    <!-- Status -->
+    <TextView
+        android:id="@+id/tvPairingStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="13sp"
+        android:textColor="@color/vt5_on_surface"
+        android:gravity="center_horizontal"
+        android:paddingTop="6dp" />
+
+    <!-- Knoppen -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelPairing"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/mc_pairing_cancel" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnConnectToMaster"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/mc_pairing_connect" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
 
+    <!-- Master-client: lokale netwerk-discovery en TCP-server -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
     <!-- Permissies voor uurlijks alarm -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -107,6 +111,17 @@
             android:windowSoftInputMode="stateHidden|adjustResize"
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />
+
+        <!-- FileProvider voor offline MC-export (share via Android share-sheet) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/mc_file_paths" />
+        </provider>
 
         <!-- Uurlijks alarm receivers -->
         <receiver

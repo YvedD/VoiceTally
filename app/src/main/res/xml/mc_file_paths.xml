@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Tijdelijke bestanden voor offline MC-export (gedeeld via share-sheet) -->
+    <cache-path name="mc_export" path="mc_export/" />
+</paths>

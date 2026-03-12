@@ -1,0 +1,242 @@
+package com.yvesds.vt5.features.masterClient
+
+import android.content.Context
+import android.util.Log
+import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.features.masterClient.protocol.AckMessage
+import com.yvesds.vt5.features.masterClient.protocol.ExportDataMessage
+import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_EXPORT_DATA
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_HEARTBEAT
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
+import com.yvesds.vt5.features.masterClient.protocol.McEnvelope
+import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
+import com.yvesds.vt5.features.masterClient.protocol.PairingRequest
+import com.yvesds.vt5.features.masterClient.protocol.PairingResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.PrintWriter
+import java.net.ServerSocket
+import java.net.Socket
+
+/**
+ * MasterServer – lokale TCP-server die draait op het master-toestel.
+ *
+ * Luistert op [port] (default 50234). Voor elke inkomende verbinding:
+ *  1. Verwacht een PairingRequest om de client te authenticeren via de PIN.
+ *  2. Stuurt een PairingResponse terug.
+ *  3. Leest vervolgens ObservationEvent-berichten en verwerkt ze via [eventProcessor].
+ *
+ * Berichten worden uitgewisseld als newline-delimited JSON (McEnvelope).
+ */
+class MasterServer(
+    private val context: Context,
+    private val pairingManager: PairingManager,
+    private val eventProcessor: MasterEventProcessor,
+    val port: Int = MasterClientPrefs.DEFAULT_PORT
+) {
+    companion object {
+        private const val TAG = "MasterServer"
+    }
+
+    private val json = VT5App.json
+
+    // Verbonden clients: token → clientnaam
+    private val _connectedClients = MutableStateFlow<Map<String, String>>(emptyMap())
+    val connectedClients: StateFlow<Map<String, String>> = _connectedClients
+
+    private var serverScope: CoroutineScope? = null
+    private var serverSocket: ServerSocket? = null
+
+    @Volatile
+    private var running = false
+
+    // ─── Start / stop ─────────────────────────────────────────────────────────
+
+    /**
+     * Start de lokale TCP-server.
+     * Roep aan vanuit een coroutine-context (of gebruik de interne scope).
+     */
+    fun start() {
+        if (running) return
+        running = true
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        serverScope = scope
+        scope.launch {
+            try {
+                val ss = ServerSocket(port)
+                serverSocket = ss
+                Log.i(TAG, "MasterServer gestart op poort $port")
+                while (isActive && !ss.isClosed) {
+                    try {
+                        val socket = ss.accept()
+                        launch { handleClient(socket) }
+                    } catch (e: Exception) {
+                        if (isActive) Log.w(TAG, "accept() fout: ${e.message}", e)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "ServerSocket fout: ${e.message}", e)
+            } finally {
+                running = false
+                Log.i(TAG, "MasterServer gestopt")
+            }
+        }
+    }
+
+    /** Stop de server en verbreek alle verbindingen. */
+    fun stop() {
+        running = false
+        try { serverSocket?.close() } catch (_: Exception) {}
+        serverScope?.cancel()
+        serverScope = null
+        serverSocket = null
+        _connectedClients.value = emptyMap()
+        pairingManager.revokeAll()
+        Log.i(TAG, "MasterServer gestopt door aanroep stop()")
+    }
+
+    // ─── Client-afhandeling ───────────────────────────────────────────────────
+
+    private suspend fun handleClient(socket: Socket) = withContext(Dispatchers.IO) {
+        val remote = socket.remoteSocketAddress.toString()
+        Log.d(TAG, "Nieuwe verbinding van $remote")
+        try {
+            socket.use { s ->
+                val reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.UTF_8))
+                val writer = PrintWriter(s.getOutputStream(), true, Charsets.UTF_8)
+
+                // ── Stap 1: Pairing ──────────────────────────────────────────
+                val firstLine = reader.readLine() ?: return@withContext
+                val firstEnvelope = decodeEnvelope(firstLine) ?: return@withContext
+
+                if (firstEnvelope.type != MC_MSG_PAIRING_REQ) {
+                    Log.w(TAG, "Verwachtte PairingRequest, maar ontving: ${firstEnvelope.type}")
+                    return@withContext
+                }
+
+                val pairingReq = decodePayload<PairingRequest>(firstEnvelope.payload) ?: return@withContext
+                val (accepted, sessionToken) = pairingManager.validatePin(pairingReq.pin, pairingReq.clientId)
+
+                val pairingResp = PairingResponse(
+                    accepted     = accepted,
+                    sessionToken = if (accepted) sessionToken else "",
+                    masterName   = android.os.Build.MODEL,
+                    error        = if (!accepted) "Ongeldige of verlopen PIN" else ""
+                )
+                sendPairingResponse(writer, pairingResp)
+
+                if (!accepted) {
+                    Log.w(TAG, "Pairing geweigerd voor client ${pairingReq.clientId}")
+                    return@withContext
+                }
+
+                // Voeg toe aan verbonden clients
+                addConnectedClient(sessionToken, pairingReq.clientName)
+                Log.i(TAG, "Client verbonden: ${pairingReq.clientName} (${pairingReq.clientId})")
+
+                // ── Stap 2: Event-loop ───────────────────────────────────────
+                try {
+                    while (isActive) {
+                        val line = reader.readLine() ?: break
+                        if (line.isBlank()) continue
+                        val envelope = decodeEnvelope(line) ?: continue
+                        dispatchMessage(envelope, sessionToken, writer)
+                    }
+                } finally {
+                    removeConnectedClient(sessionToken)
+                    Log.i(TAG, "Client verbroken: ${pairingReq.clientName}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Fout bij afhandeling client $remote: ${e.message}", e)
+        }
+    }
+
+    private suspend fun dispatchMessage(
+        envelope: McEnvelope,
+        sessionToken: String,
+        writer: PrintWriter
+    ) {
+        when (envelope.type) {
+            MC_MSG_OBSERVATION -> {
+                val event = decodePayload<ObservationEvent>(envelope.payload) ?: return
+                if (event.sessionToken != sessionToken) {
+                    Log.w(TAG, "Ongeldig sessietoken in ObservationEvent – genegeerd")
+                    return
+                }
+                val ack = eventProcessor.processEvent(event)
+                sendAck(writer, ack)
+            }
+            MC_MSG_EXPORT_DATA -> {
+                val export = decodePayload<ExportDataMessage>(envelope.payload) ?: return
+                if (export.sessionToken != sessionToken) {
+                    Log.w(TAG, "Ongeldig sessietoken in ExportData – genegeerd")
+                    return
+                }
+                eventProcessor.processExport(export)
+            }
+            MC_MSG_HEARTBEAT -> {
+                // Pong terug sturen
+                sendHeartbeat(writer)
+            }
+            else -> Log.w(TAG, "Onbekend bericht-type: ${envelope.type}")
+        }
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private fun decodeEnvelope(line: String): McEnvelope? =
+        try { json.decodeFromString(McEnvelope.serializer(), line) }
+        catch (e: Exception) { Log.w(TAG, "Decode envelope fout: ${e.message}"); null }
+
+    private inline fun <reified T : Any> decodePayload(payload: String): T? =
+        try { json.decodeFromString(kotlinx.serialization.serializer<T>(), payload) }
+        catch (e: Exception) { Log.w(TAG, "Decode payload fout: ${e.message}"); null }
+
+    /** Stuur een envelop met een reeds gecodeerde JSON-payload. */
+    private fun sendEnvelopeRaw(writer: PrintWriter, type: String, payloadJson: String) {
+        try {
+            val envelope = McEnvelope(type = type, payload = payloadJson)
+            writer.println(json.encodeToString(McEnvelope.serializer(), envelope))
+        } catch (e: Exception) {
+            Log.w(TAG, "sendEnvelopeRaw fout: ${e.message}", e)
+        }
+    }
+
+    private fun sendAck(writer: PrintWriter, ack: AckMessage) =
+        sendEnvelopeRaw(writer, MC_MSG_ACK, json.encodeToString(AckMessage.serializer(), ack))
+
+    private fun sendHeartbeat(writer: PrintWriter) =
+        sendEnvelopeRaw(writer, MC_MSG_HEARTBEAT,
+            json.encodeToString(HeartbeatMessage.serializer(), HeartbeatMessage()))
+
+    private fun sendPairingResponse(writer: PrintWriter, resp: PairingResponse) =
+        sendEnvelopeRaw(writer, MC_MSG_PAIRING_RESP,
+            json.encodeToString(PairingResponse.serializer(), resp))
+
+    private fun addConnectedClient(token: String, name: String) {
+        val current = _connectedClients.value.toMutableMap()
+        current[token] = name
+        _connectedClients.value = current
+    }
+
+    private fun removeConnectedClient(token: String) {
+        val current = _connectedClients.value.toMutableMap()
+        current.remove(token)
+        _connectedClients.value = current
+        pairingManager.revokeToken(token)
+    }
+}

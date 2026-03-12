@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ─── Algemeen master-client ──────────────────────────────────── -->
+    <string name="mc_mode_solo">Solo-modus</string>
+    <string name="mc_mode_master">Master-modus</string>
+    <string name="mc_mode_client">Client-modus</string>
+    <string name="mc_mode_label">Samenwerkingsmodus</string>
+    <string name="mc_mode_description">Solo: enkel standalone gebruik.\nMaster: dit toestel ontvangt waarnemingen van clients.\nClient: dit toestel stuurt waarnemingen naar de master.</string>
+
+    <!-- ─── TellingScherm statusbalk ────────────────────────────────── -->
+    <string name="mc_status_bar_master">Master ▪ %1$d client(s) verbonden</string>
+    <string name="mc_status_bar_master_no_clients">Master ▪ geen clients</string>
+    <string name="mc_status_bar_client_connected">Client ▪ verbonden met master</string>
+    <string name="mc_status_bar_client_connecting">Client ▪ verbinding maken…</string>
+    <string name="mc_status_bar_client_error">Client ▪ verbindingsfout</string>
+    <string name="mc_btn_clients">Clients</string>
+    <string name="mc_btn_connect_to_master">Koppelen met master</string>
+    <string name="mc_btn_export_offline">Offline export</string>
+    <string name="mc_btn_import_offline">Offline import</string>
+
+    <!-- ─── Pairing – master ─────────────────────────────────────────── -->
+    <string name="mc_pairing_master_title">Master – clients koppelen</string>
+    <string name="mc_pairing_pin_label">PIN-code (geldig 10 min.):</string>
+    <string name="mc_pairing_pin_valid">Toon deze code aan de tellers op de client-toestellen</string>
+    <string name="mc_pairing_connected_clients">Verbonden clients:</string>
+    <string name="mc_pairing_no_clients">Geen clients verbonden</string>
+    <string name="mc_pairing_new_pin">Nieuwe PIN genereren</string>
+    <string name="mc_pairing_close">Sluiten</string>
+
+    <!-- ─── Pairing – client ─────────────────────────────────────────── -->
+    <string name="mc_pairing_client_title">Koppelen met master</string>
+    <string name="mc_pairing_master_ip_label">IP-adres master (of kies hieronder):</string>
+    <string name="mc_pairing_master_ip_hint">bijv. 192.168.43.1</string>
+    <string name="mc_pairing_discovered_label">Automatisch gevonden masters op het netwerk:</string>
+    <string name="mc_pairing_pin_input_label">PIN-code (van het master-toestel):</string>
+    <string name="mc_pairing_pin_hint">000000</string>
+    <string name="mc_pairing_cancel">Annuleren</string>
+    <string name="mc_pairing_connect">Verbinden</string>
+    <string name="mc_pairing_connecting">Verbinding maken…</string>
+    <string name="mc_pairing_success">Verbonden!</string>
+    <string name="mc_pairing_failed">Koppeling mislukt: %1$s</string>
+
+    <!-- ─── Instellingen ─────────────────────────────────────────────── -->
+    <string name="mc_settings_title">Samenwerken (master-client)</string>
+    <string name="mc_settings_description">Schakel samenwerking in tussen meerdere toestellen op hetzelfde Wi-Fi-netwerk of hotspot.</string>
+    <string name="mc_settings_btn_solo">Solo</string>
+    <string name="mc_settings_btn_master">Master</string>
+    <string name="mc_settings_btn_client">Client</string>
+
+    <!-- ─── Offline export / import ─────────────────────────────────── -->
+    <string name="mc_export_title">Offline export</string>
+    <string name="mc_export_description">Exporteer jouw waarnemingen als JSON-bestand en deel het met de master via Bluetooth, NFC of een andere methode.</string>
+    <string name="mc_export_btn">Exporteer en deel…</string>
+    <string name="mc_export_none">Geen waarnemingen om te exporteren</string>
+    <string name="mc_import_title">Offline import (master)</string>
+    <string name="mc_import_description">Importeer een JSON-export van een client-toestel.</string>
+    <string name="mc_import_btn">Importeer bestand…</string>
+    <string name="mc_import_success">%1$d records geïmporteerd</string>
+    <string name="mc_import_failed">Import mislukt</string>
+
+    <!-- ─── Foutmeldingen ────────────────────────────────────────────── -->
+    <string name="mc_error_no_telling">Geen actieve telling. Start eerst een telling.</string>
+    <string name="mc_error_server_start">Kon de master-server niet starten: %1$s</string>
+    <string name="mc_error_no_ip">Vul het IP-adres van de master in</string>
+    <string name="mc_error_no_pin">Vul de PIN-code in</string>
+
+</resources>

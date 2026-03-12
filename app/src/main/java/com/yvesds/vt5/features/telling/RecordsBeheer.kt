@@ -198,6 +198,83 @@ class RecordsBeheer(
     }
 
     /**
+     * Voeg een extern record toe dat afkomstig is van een master-client verbinding.
+     * Wordt aangeroepen door [com.yvesds.vt5.features.masterClient.MasterEventProcessor]
+     * nadat een [com.yvesds.vt5.features.masterClient.protocol.ObservationEvent] ontvangen is.
+     *
+     * De master kent een nieuw [idLocal] toe (via [DataUploader.getAndIncrementRecordId])
+     * en voegt het record toe aan de pending-queue en het persistente index-bestand.
+     */
+    suspend fun addExternalRecord(
+        soortId: String,
+        amount: Int,
+        aantalterug: Int = 0,
+        explicitTijdstip: Long? = null,
+        geslacht: String = "",
+        leeftijd: String = "",
+        kleed: String = "",
+        opmerkingen: String = ""
+    ): OperationResult {
+        return try {
+            val (item, tellingId) = withContext(Dispatchers.IO) {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val tellingId = prefs.getString(PREF_TELLING_ID, null)
+                if (tellingId.isNullOrBlank()) return@withContext null to null
+                val idLocal  = DataUploader.getAndIncrementRecordId(context, tellingId)
+                val tijdstip = (explicitTijdstip ?: (System.currentTimeMillis() / 1000L)).toString()
+                val item = ServerTellingDataItem(
+                    idLocal        = idLocal,
+                    tellingid      = tellingId,
+                    soortid        = soortId,
+                    aantal         = amount.toString(),
+                    richting       = "",
+                    aantalterug    = aantalterug.toString(),
+                    richtingterug  = "",
+                    sightingdirection = "",
+                    lokaal         = "0",
+                    aantal_plus    = "0",
+                    aantalterug_plus = "0",
+                    lokaal_plus    = "0",
+                    markeren       = "0",
+                    markerenlokaal = "0",
+                    geslacht       = geslacht,
+                    leeftijd       = leeftijd,
+                    kleed          = kleed,
+                    opmerkingen    = opmerkingen,
+                    trektype       = "",
+                    teltype        = "",
+                    location       = "",
+                    height         = "",
+                    tijdstip       = tijdstip,
+                    groupid        = idLocal,
+                    uploadtijdstip = "",
+                    totaalaantal   = amount.toString()
+                )
+                item to tellingId
+            }
+            if (item == null || tellingId == null) {
+                return OperationResult.Failure("Geen actieve telling (tellingId ontbreekt)")
+            }
+            mutex.withLock {
+                val newList = _pendingRecordsFlow.value.toMutableList()
+                newList.add(item)
+                _pendingRecordsFlow.value = newList.toList()
+            }
+            persistIndex()
+            try {
+                val currentRecords = _pendingRecordsFlow.value
+                envelopePersistence?.saveEnvelopeWithRecords(currentRecords)
+            } catch (ex: Exception) {
+                Log.w(TAG, "Envelope persistence failed after addExternalRecord: ${ex.message}", ex)
+            }
+            OperationResult.Success(item)
+        } catch (ex: Exception) {
+            Log.w(TAG, "addExternalRecord failed: ${ex.message}", ex)
+            OperationResult.Failure(ex.message ?: "unknown error")
+        }
+    }
+
+    /**
      * Suspend SAF writer for a single record (returns created DocumentFile or null).
      */
     suspend fun writeRecordBackupSaf(tellingId: String, item: ServerTellingDataItem): DocumentFile? {

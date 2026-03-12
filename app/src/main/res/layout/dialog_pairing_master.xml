@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Titel -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_master_title"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingBottom="8dp" />
+
+    <!-- PIN weergave -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_pin_label"
+        android:textSize="13sp"
+        android:textColor="@color/vt5_on_surface" />
+
+    <TextView
+        android:id="@+id/tvMasterPin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="------"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:gravity="center_horizontal"
+        android:letterSpacing="0.3"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:textColor="@color/vt5_on_surface" />
+
+    <TextView
+        android:id="@+id/tvPinExpiry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_pin_valid"
+        android:textSize="12sp"
+        android:gravity="center_horizontal"
+        android:textColor="@color/vt5_on_surface"
+        android:alpha="0.7"
+        android:paddingBottom="10dp" />
+
+    <!-- Verbonden clients -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_connected_clients"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvConnectedClients"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="#1A1A2E" />
+
+    <!-- Nieuwe PIN genereren -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnNewPin"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/mc_pairing_new_pin" />
+
+    <!-- Sluiten -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnClosePairing"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/mc_pairing_close" />
+
+</LinearLayout>
