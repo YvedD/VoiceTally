@@ -28,7 +28,8 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Last commit](https://img.shields.io/github/last-commit/YvedD/VoiceTally)
 
 ## Bèta-Releases / Nightly builds
-![Version](https://img.shields.io/github/v/release/YvedD/VoiceTally?include_prereleases)
+[![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/latest/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk)
+![Version](https://img.shields.io/github/v/release/YvedD/VoiceTally)?include_prereleases)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
@@ -38,6 +39,7 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 Bèta-releases en nightly builds bevatten nieuwe functies en experimentele wijzigingen die nog in ontwikkeling zijn.
 Deze versies kunnen instabiel zijn en onverwachte fouten bevatten. Gebruik ze vooral voor testen en feedback.
 Problemen of suggesties kunnen gemeld worden via de GitHub issue tracker.
+
 
 
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
