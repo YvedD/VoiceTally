@@ -26,6 +26,12 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 
+## Bèta-Releases / Nightly builds
+![Version](https://img.shields.io/github/v/release/USERNAME/REPO?include_prereleases)
+![License](https://img.shields.io/github/license/USERNAME/REPO)
+![Downloads](https://img.shields.io/github/downloads/USERNAME/REPO/total)
+![Last commit](https://img.shields.io/github/last-commit/USERNAME/REPO)
+
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
