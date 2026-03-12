@@ -12,6 +12,12 @@ const val MC_MSG_HEARTBEAT    = "heartbeat"
 const val MC_MSG_EXPORT_REQ   = "export_req"
 const val MC_MSG_EXPORT_DATA  = "export_data"
 
+/** Client → master: gebruiker verlaat de telling op zijn telpost. */
+const val MC_MSG_LEAVE        = "leave"
+
+/** Master → client(s): de master beëindigt de samenwerking (telling afgerond of gestopt). */
+const val MC_MSG_SESSION_END  = "session_end"
+
 /**
  * Envelope voor alle berichten over de TCP-verbinding.
  * [type] geeft aan welk payload-type [payload] bevat (JSON-gecodeerd).
@@ -100,4 +106,28 @@ data class ExportDataMessage(
     @SerialName("clientId")     val clientId: String,
     @SerialName("sessionToken") val sessionToken: String,
     @SerialName("records")      val records: List<String>   // JSON-gecodeerde ServerTellingDataItem-objecten
+)
+
+// ─── Verlaten / sessie-einde ──────────────────────────────────────────────────
+
+/**
+ * Verstuurd door de **client** wanneer de gebruiker zijn telpost verlaat en
+ * actief uit de telling stapt.
+ */
+@Serializable
+data class LeaveMessage(
+    @SerialName("clientId")     val clientId: String,
+    @SerialName("sessionToken") val sessionToken: String,
+    @SerialName("reason")       val reason: String = ""
+)
+
+/**
+ * Verstuurd door de **master** naar alle verbonden clients wanneer de telling
+ * beëindigd wordt of de samenwerking stopgezet wordt.
+ * Clients moeten na ontvangst stoppen met tellen en kunnen de verbinding sluiten.
+ */
+@Serializable
+data class SessionEndMessage(
+    @SerialName("masterName") val masterName: String = "",
+    @SerialName("reason")     val reason: String = ""
 )

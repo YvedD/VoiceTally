@@ -553,6 +553,15 @@ class TellingScherm : AppCompatActivity() {
             )
             server.start()
 
+            // Wanneer een client actief de telling verlaat: toon een toast op de master
+            server.onClientLeft = { clientName, reason ->
+                runOnUiThread {
+                    val msg = if (reason.isBlank()) "$clientName heeft de telling verlaten"
+                              else "$clientName heeft de telling verlaten: $reason"
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                }
+            }
+
             // NSD-advertentie zodat clients dit toestel automatisch kunnen vinden
             val discovery = com.yvesds.vt5.features.masterClient.DiscoveryService(applicationContext)
             discovery.startAdvertising(server.port)
@@ -652,6 +661,15 @@ class TellingScherm : AppCompatActivity() {
             mcEventQueue      = queue
             mcClientConnector = connector
 
+            // Wanneer de master de telling beëindigt, toon een melding en verberg de statusbalk
+            connector.onSessionEnded = { _ ->
+                runOnUiThread {
+                    Toast.makeText(this, getString(R.string.mc_status_session_ended), Toast.LENGTH_LONG).show()
+                    binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
+                        ?.visibility = android.view.View.GONE
+                }
+            }
+
             // Volg de verbindingsstatus en update de statusbalk
             lifecycleScope.launch {
                 connector.state.collect { state ->
@@ -671,13 +689,51 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun updateClientStatusBar(state: com.yvesds.vt5.features.masterClient.ClientConnector.State) {
-        val tvStatus = binding.root.findViewById<android.widget.TextView?>(R.id.tvMcStatus) ?: return
-        tvStatus.text = when (state) {
-            com.yvesds.vt5.features.masterClient.ClientConnector.State.PAIRED       -> getString(R.string.mc_status_bar_client_connected)
-            com.yvesds.vt5.features.masterClient.ClientConnector.State.CONNECTING   -> getString(R.string.mc_status_bar_client_connecting)
-            com.yvesds.vt5.features.masterClient.ClientConnector.State.ERROR        -> getString(R.string.mc_status_bar_client_error)
-            com.yvesds.vt5.features.masterClient.ClientConnector.State.DISCONNECTED -> getString(R.string.mc_status_bar_client_connecting)
+        val tvStatus  = binding.root.findViewById<android.widget.TextView?>(R.id.tvMcStatus) ?: return
+        val btnAction = binding.root.findViewById<android.widget.Button?>(R.id.btnMcAction) ?: return
+        when (state) {
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.PAIRED -> {
+                tvStatus.text  = getString(R.string.mc_status_bar_client_connected)
+                btnAction.text = getString(R.string.mc_btn_leave_session)
+                btnAction.setOnClickListener { showLeaveSessionDialog() }
+            }
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.CONNECTING -> {
+                tvStatus.text  = getString(R.string.mc_status_bar_client_connecting)
+                btnAction.text = getString(R.string.mc_btn_connect_to_master)
+                btnAction.setOnClickListener { showClientPairingDialog() }
+            }
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.ERROR -> {
+                tvStatus.text  = getString(R.string.mc_status_bar_client_error)
+                btnAction.text = getString(R.string.mc_btn_connect_to_master)
+                btnAction.setOnClickListener { showClientPairingDialog() }
+            }
+            com.yvesds.vt5.features.masterClient.ClientConnector.State.DISCONNECTED -> {
+                tvStatus.text  = getString(R.string.mc_status_bar_client_connecting)
+                btnAction.text = getString(R.string.mc_btn_connect_to_master)
+                btnAction.setOnClickListener { showClientPairingDialog() }
+            }
         }
+    }
+
+    /**
+     * Toon een bevestigingsdialog zodat de client de telling kan verlaten.
+     * Bij bevestiging wordt een [LeaveMessage] gestuurd naar de master en
+     * wordt de verbinding afgesloten.
+     */
+    private fun showLeaveSessionDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_dialog_leave_title)
+            .setMessage(R.string.mc_dialog_leave_message)
+            .setPositiveButton(R.string.mc_dialog_leave_confirm) { _, _ ->
+                mcClientConnector?.leaveSession("gebruiker verlaat telpost")
+                Toast.makeText(this, getString(R.string.mc_toast_left_session), Toast.LENGTH_SHORT).show()
+                binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
+                    ?.visibility = android.view.View.GONE
+            }
+            .setNegativeButton(R.string.mc_dialog_leave_cancel, null)
+            .create()
+        com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
+        dialog.show()
     }
 
     // ─── Pairing-dialogen ─────────────────────────────────────────────────────
@@ -725,8 +781,34 @@ class TellingScherm : AppCompatActivity() {
         }
         btnClose.setOnClickListener { dialog.dismiss() }
 
+        // "Beëindig samenwerking" – stuur SESSION_END naar alle clients
+        val btnEndCollab = dialogView.findViewById<com.google.android.material.button.MaterialButton?>(R.id.btnEndCollab)
+        btnEndCollab?.setOnClickListener {
+            dialog.dismiss()
+            showEndCollabDialog()
+        }
+
         dialog.show()
         com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
+    }
+
+    /**
+     * Toon een bevestigingsdialog om de samenwerking met alle clients te beëindigen.
+     * Na bevestiging stuurt de master een [SessionEndMessage] via [MasterServer.broadcastSessionEnd].
+     */
+    private fun showEndCollabDialog() {
+        val server = mcMasterServer ?: return
+        val dlg = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_dialog_end_collab_title)
+            .setMessage(R.string.mc_dialog_end_collab_message)
+            .setPositiveButton(R.string.mc_dialog_end_collab_confirm) { _, _ ->
+                server.broadcastSessionEnd("samenwerking beëindigd door master")
+                Toast.makeText(this, getString(R.string.mc_toast_session_ended_broadcast), Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.mc_dialog_end_collab_cancel, null)
+            .create()
+        com.yvesds.vt5.core.ui.DialogStyler.apply(dlg)
+        dlg.show()
     }
 
     /** Toon de client-pairing dialog (IP-invoer + PIN-invoer + NSD-lijst). */

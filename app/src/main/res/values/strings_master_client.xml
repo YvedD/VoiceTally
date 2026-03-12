@@ -69,4 +69,21 @@
     <!-- Prefix die voor waarnemingen afkomstig van een client-toestel getoond wordt in de log -->
     <string name="mc_log_client_prefix">[C]</string>
 
+    <!-- ─── Client: telling verlaten ────────────────────────────────── -->
+    <string name="mc_btn_leave_session">Verlaat telling</string>
+    <string name="mc_dialog_leave_title">Telling verlaten</string>
+    <string name="mc_dialog_leave_message">Wil je stoppen met tellen op deze telpost en de telling verlaten?\n\nJe waarnemingen zijn al overgedragen aan de master.</string>
+    <string name="mc_dialog_leave_confirm">Verlaten</string>
+    <string name="mc_dialog_leave_cancel">Annuleren</string>
+    <string name="mc_status_session_ended">Telling beëindigd door master</string>
+    <string name="mc_toast_left_session">Je hebt de telling verlaten</string>
+
+    <!-- ─── Master: samenwerking beëindigen ──────────────────────────── -->
+    <string name="mc_btn_end_collab">Beëindig samenwerking</string>
+    <string name="mc_dialog_end_collab_title">Samenwerking beëindigen</string>
+    <string name="mc_dialog_end_collab_message">Alle verbonden clients ontvangen een signaal dat de telling beëindigd is en worden losgekoppeld.</string>
+    <string name="mc_dialog_end_collab_confirm">Beëindigen</string>
+    <string name="mc_dialog_end_collab_cancel">Annuleren</string>
+    <string name="mc_toast_session_ended_broadcast">Alle clients zijn verwittigd dat de telling beëindigd is</string>
+
 </resources>

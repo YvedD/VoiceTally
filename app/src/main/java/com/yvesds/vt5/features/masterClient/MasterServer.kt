@@ -6,16 +6,20 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.masterClient.protocol.AckMessage
 import com.yvesds.vt5.features.masterClient.protocol.ExportDataMessage
 import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
+import com.yvesds.vt5.features.masterClient.protocol.LeaveMessage
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_EXPORT_DATA
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_HEARTBEAT
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_LEAVE
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_SESSION_END
 import com.yvesds.vt5.features.masterClient.protocol.McEnvelope
 import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
 import com.yvesds.vt5.features.masterClient.protocol.PairingRequest
 import com.yvesds.vt5.features.masterClient.protocol.PairingResponse
+import com.yvesds.vt5.features.masterClient.protocol.SessionEndMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -57,6 +61,13 @@ class MasterServer(
     private val _connectedClients = MutableStateFlow<Map<String, String>>(emptyMap())
     val connectedClients: StateFlow<Map<String, String>> = _connectedClients
 
+    // Writers per sessietoken zodat de master broadcast-berichten kan sturen
+    private val clientWriters = mutableMapOf<String, PrintWriter>()
+    private val clientWritersLock = Any()
+
+    /** Optionele callback: aangeroepen (op IO-thread) wanneer een client de telling verlaat. */
+    var onClientLeft: ((clientName: String, reason: String) -> Unit)? = null
+
     private var serverScope: CoroutineScope? = null
     private var serverSocket: ServerSocket? = null
 
@@ -96,14 +107,17 @@ class MasterServer(
         }
     }
 
-    /** Stop de server en verbreek alle verbindingen. */
+    /** Stop de server en stuur eerst een SessionEnd-broadcast naar alle verbonden clients. */
     fun stop() {
+        // Laat verbonden clients weten dat de sessie stopt vóór de socket gesloten wordt
+        try { broadcastSessionEnd("server gestopt") } catch (_: Exception) {}
         running = false
         try { serverSocket?.close() } catch (_: Exception) {}
         serverScope?.cancel()
         serverScope = null
         serverSocket = null
         _connectedClients.value = emptyMap()
+        synchronized(clientWritersLock) { clientWriters.clear() }
         pairingManager.revokeAll()
         Log.i(TAG, "MasterServer gestopt door aanroep stop()")
     }
@@ -144,7 +158,7 @@ class MasterServer(
                 }
 
                 // Voeg toe aan verbonden clients
-                addConnectedClient(sessionToken, pairingReq.clientName)
+                addConnectedClient(sessionToken, pairingReq.clientName, writer)
                 Log.i(TAG, "Client verbonden: ${pairingReq.clientName} (${pairingReq.clientId})")
 
                 // ── Stap 2: Event-loop ───────────────────────────────────────
@@ -158,8 +172,7 @@ class MasterServer(
                 } finally {
                     removeConnectedClient(sessionToken)
                     Log.i(TAG, "Client verbroken: ${pairingReq.clientName}")
-                }
-            }
+                }            }
         } catch (e: Exception) {
             Log.w(TAG, "Fout bij afhandeling client $remote: ${e.message}", e)
         }
@@ -187,6 +200,18 @@ class MasterServer(
                     return
                 }
                 eventProcessor.processExport(export)
+            }
+            MC_MSG_LEAVE -> {
+                val leave = decodePayload<LeaveMessage>(envelope.payload) ?: return
+                if (leave.sessionToken != sessionToken) {
+                    Log.w(TAG, "Ongeldig sessietoken in LeaveMessage – genegeerd")
+                    return
+                }
+                val clientName = _connectedClients.value[sessionToken] ?: "onbekend"
+                Log.i(TAG, "Client $clientName heeft de telling verlaten. Reden: ${leave.reason}")
+                onClientLeft?.invoke(clientName, leave.reason)
+                // Verwijder de client; de TCP-verbinding wordt daarna netjes gesloten
+                removeConnectedClient(sessionToken)
             }
             MC_MSG_HEARTBEAT -> {
                 // Pong terug sturen
@@ -227,16 +252,44 @@ class MasterServer(
         sendEnvelopeRaw(writer, MC_MSG_PAIRING_RESP,
             json.encodeToString(PairingResponse.serializer(), resp))
 
-    private fun addConnectedClient(token: String, name: String) {
+    /**
+     * Stuur een [SessionEndMessage] naar alle verbonden clients zodat zij weten dat
+     * de telling beëindigd is en zichzelf netjes kunnen afsluiten.
+     *
+     * @param reason Optionele reden (bijv. "telling afgerond" of "samenwerking gestopt").
+     */
+    fun broadcastSessionEnd(reason: String = "") {
+        val msg = SessionEndMessage(
+            masterName = android.os.Build.MODEL,
+            reason     = reason
+        )
+        val payload = json.encodeToString(SessionEndMessage.serializer(), msg)
+        val writers = synchronized(clientWritersLock) { clientWriters.values.toList() }
+        var sent = 0
+        for (w in writers) {
+            try {
+                sendEnvelopeRaw(w, MC_MSG_SESSION_END, payload)
+                sent++
+            } catch (e: Exception) {
+                // Verbinding al verbroken – overige clients ontvangen de broadcast gewoon
+                Log.w(TAG, "broadcastSessionEnd: kon niet schrijven naar één client: ${e.message}")
+            }
+        }
+        Log.i(TAG, "SessionEnd broadcast naar $sent/${writers.size} client(s). Reden: $reason")
+    }
+
+    private fun addConnectedClient(token: String, name: String, writer: PrintWriter) {
         val current = _connectedClients.value.toMutableMap()
         current[token] = name
         _connectedClients.value = current
+        synchronized(clientWritersLock) { clientWriters[token] = writer }
     }
 
     private fun removeConnectedClient(token: String) {
         val current = _connectedClients.value.toMutableMap()
         current.remove(token)
         _connectedClients.value = current
+        synchronized(clientWritersLock) { clientWriters.remove(token) }
         pairingManager.revokeToken(token)
     }
 }

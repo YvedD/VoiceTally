@@ -74,6 +74,15 @@
         android:layout_marginTop="10dp"
         android:text="@string/mc_pairing_new_pin" />
 
+    <!-- Samenwerking beëindigen (SessionEnd naar alle clients) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnEndCollab"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/mc_btn_end_collab" />
+
     <!-- Sluiten -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnClosePairing"

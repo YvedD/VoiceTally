@@ -5,15 +5,19 @@ import android.util.Log
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.masterClient.protocol.AckMessage
 import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
+import com.yvesds.vt5.features.masterClient.protocol.LeaveMessage
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_HEARTBEAT
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_LEAVE
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_SESSION_END
 import com.yvesds.vt5.features.masterClient.protocol.McEnvelope
 import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
 import com.yvesds.vt5.features.masterClient.protocol.PairingRequest
 import com.yvesds.vt5.features.masterClient.protocol.PairingResponse
+import com.yvesds.vt5.features.masterClient.protocol.SessionEndMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,11 +67,20 @@ class ClientConnector(
     private val _lastError = MutableStateFlow("")
     val lastError: StateFlow<String> = _lastError
 
+    /**
+     * Optionele callback: aangeroepen op de IO-thread wanneer de master een
+     * [SessionEndMessage] stuurt. De aanroeper moet UI-updates naar de Main-thread
+     * dispatchen.
+     */
+    var onSessionEnded: ((reason: String) -> Unit)? = null
+
     private var connectorScope: CoroutineScope? = null
 
     @Volatile private var running = false
     @Volatile private var socket: Socket? = null
     @Volatile private var writer: PrintWriter? = null
+    /** Sessietoken ontvangen na succesvolle pairing. */
+    @Volatile private var currentSessionToken: String = ""
 
     // ─── Start / stop ─────────────────────────────────────────────────────────
 
@@ -78,6 +91,35 @@ class ClientConnector(
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         connectorScope = scope
         scope.launch { connectionLoop() }
+    }
+
+    /**
+     * Stuur een [LeaveMessage] naar de master en stop daarna de verbinding.
+     * Mag aangeroepen worden vanuit elke thread; de stop() is thread-safe.
+     *
+     * @param reason Optionele reden (bijv. "gebruiker gestopt met tellen").
+     */
+    fun leaveSession(reason: String = "") {
+        // Maak lokale kopieën om race-conditions te vermijden: @Volatile garandeert zichtbaarheid
+        // maar geen atomiciteit; door direct na de null-check lokaal vast te leggen is dit veilig.
+        val w = writer
+        val token = currentSessionToken
+        if (w != null && token.isNotBlank()) {
+            try {
+                val msg = LeaveMessage(
+                    clientId     = prefs.getClientId(context),
+                    sessionToken = token,
+                    reason       = reason
+                )
+                val payload  = json.encodeToString(LeaveMessage.serializer(), msg)
+                val envelope = McEnvelope(type = MC_MSG_LEAVE, payload = payload)
+                w.println(json.encodeToString(McEnvelope.serializer(), envelope))
+                Log.i(TAG, "LeaveMessage verstuurd naar master. Reden: $reason")
+            } catch (e: Exception) {
+                Log.w(TAG, "Kon LeaveMessage niet versturen: ${e.message}")
+            }
+        }
+        stop()
     }
 
     /** Stop de verbinding en herstelpoging. */
@@ -151,6 +193,7 @@ class ClientConnector(
                 }
 
                 prefs.setSessionToken(context, resp.sessionToken)
+                currentSessionToken = resp.sessionToken
                 _state.value = State.PAIRED
                 _lastError.value = ""
                 backoffMs = RECONNECT_BASE_MS
@@ -217,6 +260,15 @@ class ClientConnector(
                         } else {
                             Log.w(TAG, "NACK voor event ${ack.clientEventId}: ${ack.error}")
                         }
+                    }
+                    MC_MSG_SESSION_END -> {
+                        val msg = decodePayload<SessionEndMessage>(env.payload)
+                        val reason = msg?.reason ?: ""
+                        Log.i(TAG, "SessionEnd ontvangen van master. Reden: $reason")
+                        onSessionEnded?.invoke(reason)
+                        // Stop reconnect: de telling is beëindigd door de master
+                        running = false
+                        break
                     }
                     MC_MSG_HEARTBEAT -> { /* pong ontvangen, verbinding OK */ }
                     else -> Log.w(TAG, "Onbekend bericht-type ontvangen: ${env.type}")
