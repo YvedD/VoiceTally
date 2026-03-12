@@ -35,6 +35,11 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 ![Last commit](https://img.shields.io/github/last-commit/YvedD/VoiceTally)
 
+Bèta-releases en nightly builds bevatten nieuwe functies en experimentele wijzigingen die nog in ontwikkeling zijn.
+Deze versies kunnen instabiel zijn en onverwachte fouten bevatten. Gebruik ze vooral voor testen en feedback.
+Problemen of suggesties kunnen gemeld worden via de GitHub issue tracker.
+
+
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
