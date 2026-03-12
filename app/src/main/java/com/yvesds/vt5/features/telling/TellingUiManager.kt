@@ -36,6 +36,8 @@ class TellingUiManager(
     var onAddSoortenCallback: (() -> Unit)? = null
     var onAfrondenCallback: (() -> Unit)? = null
     var onSaveCloseCallback: ((List<TellingScherm.SoortRow>) -> Unit)? = null
+    var onOpenSettingsCallback: (() -> Unit)? = null
+    var onToggleAlarmCallback: (() -> Unit)? = null
 
     /**
      * Setup partials RecyclerView with tap handling.
@@ -151,6 +153,14 @@ class TellingUiManager(
         binding.btnSaveClose.setOnClickListener {
             val current = tilesAdapter.currentList
             onSaveCloseCallback?.invoke(current)
+        }
+
+        binding.btnOpenSettings.setOnClickListener {
+            onOpenSettingsCallback?.invoke()
+        }
+
+        binding.btnToggleAlarm.setOnClickListener {
+            onToggleAlarmCallback?.invoke()
         }
     }
 

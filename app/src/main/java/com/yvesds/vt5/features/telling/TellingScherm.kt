@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.Toast
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermTellingBinding
@@ -35,6 +37,7 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.hoofd.InstellingenScherm
+import com.yvesds.vt5.hoofd.HoofdActiviteit
 
 /**
  * TellingScherm.kt
@@ -62,6 +65,7 @@ class TellingScherm : AppCompatActivity() {
         
         // Intent extra key for hourly alarm trigger
         const val EXTRA_SHOW_HUIDIGE_STAND = "SHOW_HUIDIGE_STAND"
+        const val EXTRA_RESTORE_PENDING_TELLING = "RESTORE_PENDING_TELLING"
     }
 
     // UI & adapters
@@ -115,8 +119,6 @@ class TellingScherm : AppCompatActivity() {
 
     // Restore guard to avoid applying restore multiple times
     private var restoredFromSavedEnvelope = false
-
-    private var pendingDialogShown = false
 
     // BroadcastReceiver: listen for alias-reload events from AliasManager
     private val aliasReloadReceiver = object : BroadcastReceiver() {
@@ -243,7 +245,9 @@ class TellingScherm : AppCompatActivity() {
 
         // Ask user if a pending, non-uploaded telling should be restored
         lifecycleScope.launch {
-            promptPendingTellingIfAvailable()
+            if (intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true) {
+                restorePendingTellingIfAvailable()
+            }
         }
     }
 
@@ -442,9 +446,31 @@ class TellingScherm : AppCompatActivity() {
         uiManager.onAddSoortenCallback = { openSoortSelectieForAdd() }
         uiManager.onAfrondenCallback = { handleAfrondenWithConfirmation() }
         uiManager.onSaveCloseCallback = { tiles -> handleSaveClose(tiles) }
+        uiManager.onOpenSettingsCallback = { openInstellingenScherm() }
+        uiManager.onToggleAlarmCallback = { toggleHourlyAlarm() }
 
         // Setup buttons
         uiManager.setupButtons()
+    }
+
+    private fun openInstellingenScherm() {
+        startActivity(Intent(this, InstellingenScherm::class.java))
+    }
+
+    private fun toggleHourlyAlarm() {
+        val currentlyEnabled = HourlyAlarmManager.isEnabled(this)
+        HourlyAlarmManager.setEnabled(this, !currentlyEnabled)
+        updateAlarmToggleUi()
+    }
+
+    private fun updateAlarmToggleUi() {
+        if (!::binding.isInitialized) return
+        val enabled = HourlyAlarmManager.isEnabled(this)
+        val color = if (enabled) Color.parseColor("#00C853") else Color.parseColor("#D50000")
+        binding.btnToggleAlarm.setColorFilter(color)
+        binding.btnToggleAlarm.contentDescription = getString(
+            if (enabled) R.string.hoofd_alarm_enabled else R.string.hoofd_alarm_disabled
+        )
     }
 
     /* ---------- UI Callback Handlers ---------- */
@@ -655,6 +681,7 @@ class TellingScherm : AppCompatActivity() {
         if (intent.getBooleanExtra(EXTRA_SHOW_HUIDIGE_STAND, false)) {
             showHuidigeStandScherm()
         }
+        updateAlarmToggleUi()
     }
     
     /**
@@ -690,6 +717,9 @@ class TellingScherm : AppCompatActivity() {
             alarmHandler.startMonitoring()
         }
 
+        updateAlarmToggleUi()
+        ensurePendingTellingPromptOnRestore()
+
         // Refresh log text size/color from settings
         val partialsSize = InstellingenScherm.getPartialsTextSizeSp(this)
         val finalsSize = InstellingenScherm.getFinalsTextSizeSp(this)
@@ -699,10 +729,38 @@ class TellingScherm : AppCompatActivity() {
         finalsAdapter.updateFinalsTextSize(finalsSize)
         partialsAdapter.updatePartialsTextColor(partialsColor)
         finalsAdapter.updateFinalsTextColor(finalsColor)
+
+        val tilesSize = InstellingenScherm.getLettergroottTegelsSp(this)
+        tilesAdapter.updateTextSize(tilesSize)
+        tilesAdapter.notifyDataSetChanged()
+
         uiManager.updatePartials(uiManager.getCurrentPartials())
         uiManager.updateFinals(uiManager.getCurrentFinals())
     }
-    
+
+    private fun ensurePendingTellingPromptOnRestore() {
+        if (intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true) return
+        if (restoredFromSavedEnvelope) return
+        if (pendingRecords.isNotEmpty()) return
+
+        lifecycleScope.launch {
+            try {
+                if (!envelopePersistence.hasSavedEnvelope()) return@launch
+                val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return@launch
+                if (savedEnvelope.data.isEmpty()) return@launch
+                if (TellingUploadFlags.isSent(this@TellingScherm, savedEnvelope.tellingid, savedEnvelope.onlineid)) return@launch
+
+                // Redirect to HoofdActiviteit so the resume prompt can be shown there.
+                val intent = Intent(this@TellingScherm, HoofdActiviteit::class.java)
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                startActivity(intent)
+                finish()
+            } catch (e: Exception) {
+                Log.w(TAG, "ensurePendingTellingPromptOnRestore failed: ${e.message}", e)
+            }
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         // Stop alarm monitoring when the screen is not visible
@@ -1167,76 +1225,6 @@ class TellingScherm : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.pending_telling_restored), Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Log.w(TAG, "restorePendingTellingIfAvailable failed: ${e.message}", e)
-        }
-    }
-
-    private suspend fun promptPendingTellingIfAvailable() {
-        if (pendingDialogShown || restoredFromSavedEnvelope) return
-        try {
-            val hasSaved = envelopePersistence.hasSavedEnvelope()
-            if (!hasSaved) return
-
-            val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
-            if (savedEnvelope.data.isEmpty()) return
-
-            // Skip prompt if this telling was already sent
-            if (TellingUploadFlags.isSent(this, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
-                Log.i(TAG, "Pending envelope already marked as sent; skipping prompt")
-                return
-            }
-
-            withContext(Dispatchers.Main) {
-                pendingDialogShown = true
-                val dlg = AlertDialog.Builder(this@TellingScherm)
-                    .setTitle(getString(R.string.pending_telling_title))
-                    .setMessage(getString(R.string.pending_telling_message))
-                    .setPositiveButton(getString(R.string.pending_telling_open)) { _, _ ->
-                        lifecycleScope.launch {
-                            restorePendingTellingIfAvailable()
-                        }
-                    }
-                    .setNegativeButton(getString(R.string.pending_telling_delete)) { _, _ ->
-                        lifecycleScope.launch {
-                            deletePendingTelling(savedEnvelope)
-                        }
-                    }
-                    .show()
-                DialogStyler.apply(dlg)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "promptPendingTellingIfAvailable failed: ${e.message}", e)
-        }
-    }
-
-    private suspend fun deletePendingTelling(savedEnvelope: ServerTellingEnvelope? = null) {
-        try {
-            envelopePersistence.clearSavedEnvelope()
-
-            if (savedEnvelope != null) {
-                TellingUploadFlags.clearFlag(this, savedEnvelope.tellingid, savedEnvelope.onlineid)
-            }
-
-            prefs.edit()
-                .remove("pref_saved_envelope_json")
-                .remove("pref_online_id")
-                .remove("pref_telling_id")
-                .apply()
-
-            synchronized(pendingRecords) { pendingRecords.clear() }
-            if (::viewModel.isInitialized) viewModel.clearPendingRecords()
-            logManager.clearAll()
-            uiManager.updateFinals(emptyList())
-            uiManager.updatePartials(emptyList())
-            if (::viewModel.isInitialized) {
-                viewModel.setFinals(emptyList())
-                viewModel.setPartials(emptyList())
-            }
-
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@TellingScherm, getString(R.string.pending_telling_deleted), Toast.LENGTH_LONG).show()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "deletePendingTelling failed: ${e.message}", e)
         }
     }
 }

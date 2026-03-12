@@ -17,6 +17,9 @@ import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
 import com.yvesds.vt5.features.telling.TellingBeheerScherm
+import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
+import com.yvesds.vt5.features.telling.TellingScherm
+import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.ui.DialogStyler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,6 +47,7 @@ class HoofdActiviteit : AppCompatActivity() {
     }
 
     private lateinit var safHelper: SaFStorageHelper
+    private var pendingTellingDialogShown = false
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +121,71 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         maybeShowPendingUploadsDialog()
+    }
+
+    private fun maybeShowPendingTellingDialog() {
+        if (pendingTellingDialogShown) return
+        lifecycleScope.launch {
+            try {
+                val envelopePersistence = TellingEnvelopePersistence(this@HoofdActiviteit, safHelper)
+                val hasSaved = envelopePersistence.hasSavedEnvelope()
+                if (!hasSaved) return@launch
+
+                val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return@launch
+                if (savedEnvelope.data.isEmpty()) return@launch
+
+                if (TellingUploadFlags.isSent(this@HoofdActiviteit, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
+                    Log.i(TAG, "Pending envelope already marked as sent; skipping prompt")
+                    return@launch
+                }
+
+                withContext(Dispatchers.Main) {
+                    pendingTellingDialogShown = true
+                    val dlg = AlertDialog.Builder(this@HoofdActiviteit)
+                        .setTitle(getString(R.string.pending_telling_title))
+                        .setMessage(getString(R.string.pending_telling_message))
+                        .setPositiveButton(getString(R.string.pending_telling_open)) { _, _ ->
+                            val intent = Intent(this@HoofdActiviteit, TellingScherm::class.java)
+                            intent.putExtra(TellingScherm.EXTRA_RESTORE_PENDING_TELLING, true)
+                            startActivity(intent)
+                        }
+                        .setNegativeButton(getString(R.string.pending_telling_delete)) { _, _ ->
+                            lifecycleScope.launch {
+                                deletePendingTelling(envelopePersistence, savedEnvelope.tellingid, savedEnvelope.onlineid)
+                            }
+                        }
+                        .setOnDismissListener { pendingTellingDialogShown = false }
+                        .show()
+                    DialogStyler.apply(dlg)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "maybeShowPendingTellingDialog failed: ${e.message}", e)
+            }
+        }
+    }
+
+    private suspend fun deletePendingTelling(
+        envelopePersistence: TellingEnvelopePersistence,
+        tellingId: String?,
+        onlineId: String?
+    ) {
+        try {
+            envelopePersistence.clearSavedEnvelope()
+            TellingUploadFlags.clearFlag(this@HoofdActiviteit, tellingId, onlineId)
+
+            val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
+            prefs.edit()
+                .remove("pref_saved_envelope_json")
+                .remove("pref_online_id")
+                .remove("pref_telling_id")
+                .apply()
+
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@HoofdActiviteit, getString(R.string.pending_telling_deleted), Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "deletePendingTelling failed: ${e.message}", e)
+        }
     }
 
     private fun maybeShowPendingUploadsDialog() {
@@ -219,6 +288,7 @@ class HoofdActiviteit : AppCompatActivity() {
         super.onResume()
         // Update status wanneer we terugkomen naar dit scherm
         updateAlarmStatus()
+        maybeShowPendingTellingDialog()
     }
     
     /**

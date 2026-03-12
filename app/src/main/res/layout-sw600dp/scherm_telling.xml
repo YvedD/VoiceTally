@@ -8,14 +8,41 @@
     android:padding="8dp">
 
     <!-- Titel -->
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:paddingBottom="1dp"
-        android:text="@string/telling_speech_results"
-        android:textSize="11sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="1dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:text="@string/telling_speech_results"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnToggleAlarm"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/hoofd_alarm_enabled"
+            android:src="@android:drawable/ic_lock_idle_alarm"
+            android:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/btnOpenSettings"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/instellingen_titel"
+            android:src="@android:drawable/ic_menu_preferences"
+            android:tint="@android:color/white" />
+    </LinearLayout>
 
     <!-- Bovenste kaart: PARTIALS / niet‑finals -->
     <com.google.android.material.card.MaterialCardView
