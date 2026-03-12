@@ -5,7 +5,6 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.masterClient.protocol.AckMessage
 import com.yvesds.vt5.features.masterClient.protocol.ExportDataMessage
 import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
-import com.yvesds.vt5.features.telling.RecordsBeheer
 import com.yvesds.vt5.net.ServerTellingDataItem
 import kotlinx.serialization.builtins.ListSerializer
 
@@ -14,10 +13,13 @@ import kotlinx.serialization.builtins.ListSerializer
  *
  * Taken:
  *  - Deduplicatie op basis van [clientEventId]
- *  - Aanmaak van een [ServerTellingDataItem] via [RecordsBeheer.addExternalRecord]
- *  - Terugsturen van een [AckMessage] met het toegewezen idLocal
+ *  - Doorsturen van waarnemingen via [onObservationReceived]-callback naar de lopende telling
  *
- * Roep [setRecordsBeheer] aan nadat de telling gestart is.
+ * De callback wordt ingesteld door [com.yvesds.vt5.features.telling.TellingScherm] en integreert
+ * client-waarnemingen rechtstreeks in de live telling (dezelfde codepath als spraak-waarnemingen).
+ * Zo verschijnen client-waarnemingen live in de tegels en het logscherm van de master.
+ *
+ * [onExportReceived] wordt aangeroepen bij een bulk-export aan het einde van een telling.
  */
 class MasterEventProcessor {
 
@@ -28,29 +30,40 @@ class MasterEventProcessor {
 
     private val json = VT5App.json
 
-    // RecordsBeheer wordt ingesteld vanuit TellingScherm na het starten van een telling
-    @Volatile
-    private var recordsBeheer: RecordsBeheer? = null
-
-    // Geziene clientEventIds voor deduplicatie (FIFO-bounded set via gesynchroniseerde LinkedHashMap)
+    // Geziene clientEventIds voor deduplicatie (FIFO-bounded set).
+    // Alle toegangen verlopen via synchronized(seenEventIds), zodat ook de removeEldestEntry-
+    // aanroep (die plaatsvindt tijdens put() binnen het gesynchroniseerde blok) thread-safe is.
     private val seenEventIds = object : LinkedHashMap<String, Unit>(256, 0.75f, false) {
         override fun removeEldestEntry(eldest: Map.Entry<String, Unit>): Boolean = size > MAX_SEEN_IDS
     }
 
-    fun setRecordsBeheer(rb: RecordsBeheer) {
-        recordsBeheer = rb
-    }
+    /**
+     * Callback ingesteld door TellingScherm.
+     * Wordt aangeroepen voor elke unieke, gevalideerde client-waarneming.
+     * Roept intern [speciesManager.updateSoortCountInternal] + [speciesManager.collectFinalAsRecord] aan.
+     */
+    var onObservationReceived: (suspend (
+        soortId: String,
+        amount: Int,
+        aantalterug: Int,
+        geslacht: String,
+        leeftijd: String,
+        kleed: String,
+        opmerkingen: String
+    ) -> Unit)? = null
 
-    fun clearRecordsBeheer() {
-        recordsBeheer = null
-    }
+    /**
+     * Callback voor bulk-export (einde telling / offline herstel).
+     * Wordt aangeroepen met de volledige lijst gedecodeerde records.
+     */
+    var onExportReceived: (suspend (List<ServerTellingDataItem>) -> Unit)? = null
 
     // ─── Observatie verwerken ─────────────────────────────────────────────────
 
     /**
      * Verwerk een ObservationEvent afkomstig van een client.
      * Deduplicatie: als [clientEventId] al eerder ontvangen is, wordt een ACK teruggestuurd
-     * zonder het record opnieuw aan te maken.
+     * zonder de callback opnieuw aan te roepen.
      *
      * @return [AckMessage] om terug te sturen naar de client.
      */
@@ -61,18 +74,14 @@ class MasterEventProcessor {
         synchronized(seenEventIds) {
             if (seenEventIds.containsKey(key)) {
                 Log.d(TAG, "Duplicaat event genegeerd: $key")
-                return AckMessage(
-                    clientEventId   = event.clientEventId,
-                    assignedIdLocal = "",
-                    success         = true   // idempotent ACK
-                )
+                return AckMessage(clientEventId = event.clientEventId, success = true)
             }
             seenEventIds[key] = Unit
         }
 
-        val rb = recordsBeheer
-        if (rb == null) {
-            Log.w(TAG, "RecordsBeheer niet beschikbaar; event genegeerd: $key")
+        val cb = onObservationReceived
+        if (cb == null) {
+            Log.w(TAG, "Geen onObservationReceived-callback; event genegeerd: $key")
             return AckMessage(
                 clientEventId = event.clientEventId,
                 success       = false,
@@ -80,32 +89,17 @@ class MasterEventProcessor {
             )
         }
 
-        // Voeg het record toe via RecordsBeheer
         return try {
-            val result = rb.addExternalRecord(
-                soortId           = event.soortid,
-                amount            = event.aantal,
-                aantalterug       = event.aantalterug,
-                explicitTijdstip  = event.tijdstip,
-                geslacht          = event.geslacht,
-                leeftijd          = event.leeftijd,
-                kleed             = event.kleed,
-                opmerkingen       = event.opmerkingen
+            cb(
+                event.soortid,
+                event.aantal,
+                event.aantalterug,
+                event.geslacht,
+                event.leeftijd,
+                event.kleed,
+                event.opmerkingen
             )
-            when (result) {
-                is com.yvesds.vt5.features.telling.OperationResult.Success ->
-                    AckMessage(
-                        clientEventId   = event.clientEventId,
-                        assignedIdLocal = result.item.idLocal,
-                        success         = true
-                    )
-                is com.yvesds.vt5.features.telling.OperationResult.Failure ->
-                    AckMessage(
-                        clientEventId = event.clientEventId,
-                        success       = false,
-                        error         = result.reason
-                    )
-            }
+            AckMessage(clientEventId = event.clientEventId, success = true)
         } catch (e: Exception) {
             Log.e(TAG, "processEvent fout: ${e.message}", e)
             AckMessage(
@@ -120,37 +114,43 @@ class MasterEventProcessor {
 
     /**
      * Verwerk een bulk-export van een client (einde telling of offline herstel).
-     * Records die al via event-verwerking binnenkwamen worden gededupliceerd
-     * via de [seenEventIds]-set – hier niet beschikbaar, dus dubbels zijn mogelijk.
-     * De aanroeper is verantwoordelijk voor deduplicatie op [idLocal] als dat gewenst is.
+     * Deduplicatie is niet volledig gegarandeerd bij bulk-export; de aanroeper kan
+     * op [ServerTellingDataItem.idLocal] dedupliceren indien gewenst.
      */
     suspend fun processExport(export: ExportDataMessage) {
-        val rb = recordsBeheer
-        if (rb == null) {
-            Log.w(TAG, "processExport: RecordsBeheer niet beschikbaar")
-            return
-        }
-        Log.i(TAG, "Verwerken bulk-export van client ${export.clientId}: ${export.records.size} records")
+        val cb = onExportReceived
+        Log.i(TAG, "Bulk-export van client ${export.clientId}: ${export.records.size} records")
+        val allItems = mutableListOf<ServerTellingDataItem>()
         for (recordJson in export.records) {
             try {
                 val items = json.decodeFromString(
                     ListSerializer(ServerTellingDataItem.serializer()),
                     recordJson
                 )
-                for (item in items) {
-                    rb.addExternalRecord(
-                        soortId          = item.soortid,
-                        amount           = item.aantal.toIntOrNull() ?: 1,
-                        aantalterug      = item.aantalterug.toIntOrNull() ?: 0,
-                        explicitTijdstip = item.tijdstip.toLongOrNull(),
-                        geslacht         = item.geslacht,
-                        leeftijd         = item.leeftijd,
-                        kleed            = item.kleed,
-                        opmerkingen      = item.opmerkingen
-                    )
-                }
+                allItems.addAll(items)
             } catch (e: Exception) {
                 Log.w(TAG, "processExport – kon record niet decoderen: ${e.message}")
+            }
+        }
+        if (allItems.isNotEmpty() && cb != null) {
+            cb(allItems)
+        } else if (cb == null) {
+            // Fallback: verwerk via onObservationReceived per item
+            val obs = onObservationReceived ?: return
+            for (item in allItems) {
+                try {
+                    obs(
+                        item.soortid,
+                        item.aantal.toIntOrNull() ?: 1,
+                        item.aantalterug.toIntOrNull() ?: 0,
+                        item.geslacht,
+                        item.leeftijd,
+                        item.kleed,
+                        item.opmerkingen
+                    )
+                } catch (e: Exception) {
+                    Log.w(TAG, "processExport – fout bij verwerken item: ${e.message}")
+                }
             }
         }
     }

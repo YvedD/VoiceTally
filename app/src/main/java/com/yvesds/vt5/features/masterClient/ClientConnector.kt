@@ -230,8 +230,6 @@ class ClientConnector(
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
-
     private fun sendObservation(writer: PrintWriter, event: ObservationEvent) {
         try {
             val payload  = json.encodeToString(ObservationEvent.serializer(), event)

@@ -65,4 +65,8 @@
     <string name="mc_error_no_ip">Vul het IP-adres van de master in</string>
     <string name="mc_error_no_pin">Vul de PIN-code in</string>
 
+    <!-- ─── Log-prefix voor client-waarnemingen ──────────────────────── -->
+    <!-- Prefix die voor waarnemingen afkomstig van een client-toestel getoond wordt in de log -->
+    <string name="mc_log_client_prefix">[C]</string>
+
 </resources>

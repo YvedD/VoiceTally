@@ -198,12 +198,16 @@ class RecordsBeheer(
     }
 
     /**
-     * Voeg een extern record toe dat afkomstig is van een master-client verbinding.
-     * Wordt aangeroepen door [com.yvesds.vt5.features.masterClient.MasterEventProcessor]
-     * nadat een [com.yvesds.vt5.features.masterClient.protocol.ObservationEvent] ontvangen is.
+     * Voeg een extern record toe aan de lopende telling.
      *
-     * De master kent een nieuw [idLocal] toe (via [DataUploader.getAndIncrementRecordId])
-     * en voegt het record toe aan de pending-queue en het persistente index-bestand.
+     * Dit is een alternatieve invoerroute voor records afkomstig van buiten de normale
+     * spraakherkenningsstroom (bijv. via offline import of als directe persistentie-fallback).
+     *
+     * **Primaire integratie** van client-waarnemingen verloopt via
+     * [com.yvesds.vt5.features.telling.TellingScherm.recordClientObservation], die
+     * [TellingSpeciesManager.collectFinalAsRecord] aanroept en zo tiles en het logscherm
+     * live bijwerkt. Deze methode is een aanvullend persistentiepad dat rechtstreeks een
+     * record aanmaakt zonder de UI bij te werken.
      */
     suspend fun addExternalRecord(
         soortId: String,

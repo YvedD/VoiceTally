@@ -33,7 +33,9 @@ object MasterClientPrefs {
         prefs(context).getString(KEY_MODE, MODE_SOLO) ?: MODE_SOLO
 
     fun setMode(context: Context, mode: String) {
-        require(mode in listOf(MODE_SOLO, MODE_MASTER, MODE_CLIENT))
+        require(mode in listOf(MODE_SOLO, MODE_MASTER, MODE_CLIENT)) {
+            "Ongeldige modus '$mode'. Geldige waarden: $MODE_SOLO, $MODE_MASTER, $MODE_CLIENT"
+        }
         prefs(context).edit { putString(KEY_MODE, mode) }
     }
 
