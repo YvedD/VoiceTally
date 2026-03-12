@@ -28,7 +28,6 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Last commit](https://img.shields.io/github/last-commit/YvedD/VoiceTally)
 
 ## Bèta-Releases / Nightly builds
-[![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/latest/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk)
 ![Version](https://img.shields.io/github/v/release/YvedD/VoiceTally)?include_prereleases)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
