@@ -18,13 +18,34 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 # VT5 — Gebruikershandleiding
 
 > **VT5** is een snelle, intuïtieve Android-app voor het vastleggen van vogeltrekwaarnemingen via spraakinvoer. De app is ontworpen voor gebruik in het veld door vogelwaarnemers en synchroniseert automatisch met [www.trektellen.nl](https://www.trektellen.nl).
+> 
+## Stable Releases
 
-## Releases
-[![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/latest/download/app-release-v1.0.1.apk)
-![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
-![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
-[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
+[![Stable Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/latest/download/app-release-v1.0.1.apk)  
+[![Download APK](https://img.shields.io/badge/Download-APK-green)](https://github.com/YvedD/VoiceTally/releases/latest/download/app-release-v1.0.1.apk)  
+![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)  
+![Platform](https://img.shields.io/badge/platform-Android-brightgreen)  
+![Min SDK](https://img.shields.io/badge/minSDK-33-blue)  
+[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)  
+![Last commit](https://img.shields.io/github/last-commit/YvedD/VoiceTally)  
+
+---
+
+## Bèta-Releases / Nightly builds
+
+[![Beta Version](https://img.shields.io/badge/Version-Beta-red)](https://github.com/YvedD/VoiceTally/releases/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk "Bèta versie: Master-client versie")
+[![Download Beta APK](https://img.shields.io/badge/Download-Beta%20APK-blue)](https://github.com/YvedD/VoiceTally/releases/download/VoiceTally_master_client_b%C3%A9ta_v1.0.0/VT5_master_client_beta.apk)
+![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)  
+![Platform](https://img.shields.io/badge/platform-Android-brightgreen)  
+![Min SDK](https://img.shields.io/badge/minSDK-33-blue)  
+[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)  
+![Last commit](https://img.shields.io/github/last-commit/YvedD/VoiceTally)  
+
+Bèta-releases en nightly builds bevatten nieuwe functies en experimentele wijzigingen die nog in ontwikkeling zijn.  
+Deze versies kunnen instabiel zijn en onverwachte fouten bevatten. Gebruik ze vooral voor testen en feedback.  
+Problemen of suggesties kunnen gemeld worden via de GitHub issue tracker.
+
+
 
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 
