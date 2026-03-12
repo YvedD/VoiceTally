@@ -47,9 +47,40 @@ class ClientEventQueue {
         opmerkingen: String = ""
     ): String {
         val eventId = UUID.randomUUID().toString().replace("-", "")
+        enqueueWithId(
+            clientEventId = eventId,
+            clientId = clientId,
+            sessionToken = sessionToken,
+            soortid = soortid,
+            aantal = aantal,
+            aantalterug = aantalterug,
+            tijdstip = tijdstip,
+            geslacht = geslacht,
+            leeftijd = leeftijd,
+            kleed = kleed,
+            opmerkingen = opmerkingen,
+            isUpdate = false
+        )
+        return eventId
+    }
+
+    fun enqueueWithId(
+        clientEventId: String,
+        clientId: String,
+        sessionToken: String,
+        soortid: String,
+        aantal: Int,
+        aantalterug: Int = 0,
+        tijdstip: Long = System.currentTimeMillis() / 1000L,
+        geslacht: String = "",
+        leeftijd: String = "",
+        kleed: String = "",
+        opmerkingen: String = "",
+        isUpdate: Boolean = false
+    ) {
         val event = ObservationEvent(
             clientId      = clientId,
-            clientEventId = eventId,
+            clientEventId = clientEventId,
             sessionToken  = sessionToken,
             soortid       = soortid,
             aantal        = aantal,
@@ -58,11 +89,11 @@ class ClientEventQueue {
             geslacht      = geslacht,
             leeftijd      = leeftijd,
             kleed         = kleed,
-            opmerkingen   = opmerkingen
+            opmerkingen   = opmerkingen,
+            isUpdate      = isUpdate
         )
         pendingQueue.add(event)
-        Log.d(TAG, "Event in wachtrij gezet: $eventId ($soortid ×$aantal)")
-        return eventId
+        Log.d(TAG, "Event in wachtrij gezet: $clientEventId ($soortid ×$aantal) update=$isUpdate")
     }
 
     // ─── Lezen voor verzending ─────────────────────────────────────────────────

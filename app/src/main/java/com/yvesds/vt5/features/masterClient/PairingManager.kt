@@ -8,7 +8,9 @@ import java.security.SecureRandom
  *
  * De master genereert een 6-cijferige PIN die zichtbaar wordt getoond op het scherm.
  * Een client voert deze PIN in om een sessietoken te ontvangen.
- * PIN's zijn 10 minuten geldig; daarna moeten ze vernieuwd worden.
+ * PIN's hebben een zachte vervaldatum: als de PIN verlopen is maar nog klopt,
+ * wordt de geldigheid verlengd zodat late tellers nog kunnen aansluiten.
+ * De PIN blijft bruikbaar tot de master expliciet een nieuwe PIN genereert.
  */
 class PairingManager {
 
@@ -55,9 +57,7 @@ class PairingManager {
     }
 
     /** Geeft de huidige PIN terug (of null als er geen actieve sessie is). */
-    fun getCurrentPin(): String? = activePairingSession
-        ?.takeIf { it.expiresAt > System.currentTimeMillis() }
-        ?.pin
+    fun getCurrentPin(): String? = activePairingSession?.pin
 
     // ─── PIN validatie (master-zijde) ─────────────────────────────────────────
 
@@ -72,14 +72,15 @@ class PairingManager {
             Log.w(TAG, "Geen actieve PIN-sessie voor validatie")
             return Pair(false, "")
         }
-        if (System.currentTimeMillis() > session.expiresAt) {
-            Log.w(TAG, "PIN verlopen")
-            activePairingSession = null
-            return Pair(false, "")
-        }
         if (!pin.equals(session.pin, ignoreCase = false)) {
             Log.w(TAG, "Ongeldige PIN ingevoerd door client $clientId")
             return Pair(false, "")
+        }
+        if (System.currentTimeMillis() > session.expiresAt) {
+            Log.i(TAG, "PIN verlopen, geldigheid wordt verlengd voor late aansluiting")
+            activePairingSession = session.copy(
+                expiresAt = System.currentTimeMillis() + PIN_VALIDITY_MS
+            )
         }
         // Genereer een uniek session-token voor deze client
         val token = generateToken()

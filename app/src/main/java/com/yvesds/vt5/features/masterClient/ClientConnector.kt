@@ -218,6 +218,9 @@ class ClientConnector(
                 // Event-lus + heartbeat
                 sessionLoop(reader, w, resp.sessionToken)
 
+                // Verbinding verbroken (remote sloot de socket); niet-ge-ack'te events terugzetten.
+                if (running) eventQueue.requeueInFlight()
+
             } catch (e: Exception) {
                 if (!running) break
                 Log.w(TAG, "Verbindingsfout: ${e.message}")
@@ -226,6 +229,7 @@ class ClientConnector(
                 try { socket?.close() } catch (_: Exception) {}
                 socket = null
                 writer = null
+                eventQueue.requeueInFlight()
                 delay(backoffMs)
                 backoffMs = (backoffMs * 2).coerceAtMost(RECONNECT_MAX_MS)
             }
@@ -367,5 +371,61 @@ class ClientConnector(
     /** Wis de PIN na gebruik. */
     fun clearPendingPin() {
         pendingPin = null
+    }
+
+    fun queueObservation(
+        soortid: String,
+        aantal: Int,
+        aantalterug: Int = 0,
+        tijdstip: Long = System.currentTimeMillis() / 1000L,
+        geslacht: String = "",
+        leeftijd: String = "",
+        kleed: String = "",
+        opmerkingen: String = ""
+    ): String? {
+        val token = currentSessionToken
+        if (token.isBlank()) return null
+        return eventQueue.enqueue(
+            clientId = prefs.getClientId(context),
+            sessionToken = token,
+            soortid = soortid,
+            aantal = aantal,
+            aantalterug = aantalterug,
+            tijdstip = tijdstip,
+            geslacht = geslacht,
+            leeftijd = leeftijd,
+            kleed = kleed,
+            opmerkingen = opmerkingen
+        )
+    }
+
+    fun queueObservationUpdate(
+        clientEventId: String,
+        soortid: String,
+        aantal: Int,
+        aantalterug: Int = 0,
+        tijdstip: Long = System.currentTimeMillis() / 1000L,
+        geslacht: String = "",
+        leeftijd: String = "",
+        kleed: String = "",
+        opmerkingen: String = ""
+    ): Boolean {
+        val token = currentSessionToken
+        if (token.isBlank()) return false
+        eventQueue.enqueueWithId(
+            clientEventId = clientEventId,
+            clientId = prefs.getClientId(context),
+            sessionToken = token,
+            soortid = soortid,
+            aantal = aantal,
+            aantalterug = aantalterug,
+            tijdstip = tijdstip,
+            geslacht = geslacht,
+            leeftijd = leeftijd,
+            kleed = kleed,
+            opmerkingen = opmerkingen,
+            isUpdate = true
+        )
+        return true
     }
 }

@@ -18,10 +18,17 @@
     <string name="mc_btn_connect_to_master">Koppelen met master</string>
     <string name="mc_btn_export_offline">Offline export</string>
     <string name="mc_btn_import_offline">Offline import</string>
+    <string name="mc_status_bar_pin">PIN: %1$s</string>
+
+    <string name="mc_dialog_choose_role_title">Samenwerken starten</string>
+    <string name="mc_dialog_choose_role_message">Wil je deze telling delen als master, of verbinden als client?</string>
+    <string name="mc_dialog_choose_master">Start als master</string>
+    <string name="mc_dialog_choose_client">Verbinden als client</string>
+    <string name="mc_dialog_choose_cancel">Annuleren</string>
 
     <!-- ─── Pairing – master ─────────────────────────────────────────── -->
     <string name="mc_pairing_master_title">Master – clients koppelen</string>
-    <string name="mc_pairing_pin_label">PIN-code (geldig 10 min.):</string>
+    <string name="mc_pairing_pin_label">PIN-code:</string>
     <string name="mc_pairing_pin_valid">Toon deze code aan de tellers op de client-toestellen</string>
     <string name="mc_pairing_connected_clients">Verbonden clients:</string>
     <string name="mc_pairing_no_clients">Geen clients verbonden</string>

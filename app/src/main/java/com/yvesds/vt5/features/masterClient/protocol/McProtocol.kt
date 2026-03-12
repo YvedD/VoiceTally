@@ -72,7 +72,8 @@ data class ObservationEvent(
     @SerialName("geslacht")      val geslacht: String    = "",
     @SerialName("leeftijd")      val leeftijd: String    = "",
     @SerialName("kleed")         val kleed: String       = "",
-    @SerialName("opmerkingen")   val opmerkingen: String = ""
+    @SerialName("opmerkingen")   val opmerkingen: String = "",
+    @SerialName("isUpdate")      val isUpdate: Boolean   = false
 )
 
 /**

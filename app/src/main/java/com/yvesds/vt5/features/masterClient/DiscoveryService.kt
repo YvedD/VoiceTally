@@ -3,6 +3,7 @@ package com.yvesds.vt5.features.masterClient
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -155,13 +156,13 @@ class DiscoveryService(private val context: Context) {
 
     private fun resolveService(serviceInfo: NsdServiceInfo) {
         try {
-            nsdManager.resolveService(serviceInfo, object : NsdManager.ResolveListener {
+            val listener = object : NsdManager.ResolveListener {
                 override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {
                     Log.w(TAG, "Resolve mislukt voor ${info.serviceName}: code $errorCode")
                 }
 
                 override fun onServiceResolved(info: NsdServiceInfo) {
-                    val host = info.host?.hostAddress ?: return
+                    val host = resolveHostAddress(info) ?: return
                     val port = info.port
                     Log.i(TAG, "Resolved ${info.serviceName} → $host:$port")
                     val master = MasterInfo(
@@ -174,9 +175,27 @@ class DiscoveryService(private val context: Context) {
                     current.add(master)
                     _discoveredMasters.value = current
                 }
-            })
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                @Suppress("DEPRECATION")
+                nsdManager.resolveService(serviceInfo, context.mainExecutor, listener)
+            } else {
+                @Suppress("DEPRECATION")
+                nsdManager.resolveService(serviceInfo, listener)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "resolveService exception: ${e.message}", e)
+        }
+    }
+
+    private fun resolveHostAddress(info: NsdServiceInfo): String? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val address = info.hostAddresses?.firstOrNull()
+            address?.hostAddress
+        } else {
+            @Suppress("DEPRECATION")
+            info.host?.hostAddress
         }
     }
 }

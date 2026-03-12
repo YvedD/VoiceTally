@@ -43,9 +43,13 @@ class MasterEventProcessor {
      * Roept intern [speciesManager.updateSoortCountInternal] + [speciesManager.collectFinalAsRecord] aan.
      */
     var onObservationReceived: (suspend (
+        clientId: String,
+        clientEventId: String,
+        isUpdate: Boolean,
         soortId: String,
         amount: Int,
         aantalterug: Int,
+        tijdstip: Long,
         geslacht: String,
         leeftijd: String,
         kleed: String,
@@ -70,13 +74,14 @@ class MasterEventProcessor {
     suspend fun processEvent(event: ObservationEvent): AckMessage {
         val key = "${event.clientId}::${event.clientEventId}"
 
-        // Deduplicatie
-        synchronized(seenEventIds) {
-            if (seenEventIds.containsKey(key)) {
-                Log.d(TAG, "Duplicaat event genegeerd: $key")
-                return AckMessage(clientEventId = event.clientEventId, success = true)
+        if (!event.isUpdate) {
+            synchronized(seenEventIds) {
+                if (seenEventIds.containsKey(key)) {
+                    Log.d(TAG, "Duplicaat event genegeerd: $key")
+                    return AckMessage(clientEventId = event.clientEventId, success = true)
+                }
+                seenEventIds[key] = Unit
             }
-            seenEventIds[key] = Unit
         }
 
         val cb = onObservationReceived
@@ -91,9 +96,13 @@ class MasterEventProcessor {
 
         return try {
             cb(
+                event.clientId,
+                event.clientEventId,
+                event.isUpdate,
                 event.soortid,
                 event.aantal,
                 event.aantalterug,
+                event.tijdstip,
                 event.geslacht,
                 event.leeftijd,
                 event.kleed,
@@ -135,23 +144,7 @@ class MasterEventProcessor {
         if (allItems.isNotEmpty() && cb != null) {
             cb(allItems)
         } else if (cb == null) {
-            // Fallback: verwerk via onObservationReceived per item
-            val obs = onObservationReceived ?: return
-            for (item in allItems) {
-                try {
-                    obs(
-                        item.soortid,
-                        item.aantal.toIntOrNull() ?: 1,
-                        item.aantalterug.toIntOrNull() ?: 0,
-                        item.geslacht,
-                        item.leeftijd,
-                        item.kleed,
-                        item.opmerkingen
-                    )
-                } catch (e: Exception) {
-                    Log.w(TAG, "processExport – fout bij verwerken item: ${e.message}")
-                }
-            }
+            Log.w(TAG, "processExport – geen onExportReceived-callback; items genegeerd")
         }
     }
 }

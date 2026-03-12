@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/annot_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -36,7 +37,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/annotatie_density_standard"
                 android:src="@drawable/ic_density_standard"
-                android:tint="@color/vt5_on_surface" />
+                app:tint="@color/vt5_on_surface" />
 
             <ImageButton
                 android:id="@+id/btn_density_compact"
@@ -46,7 +47,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/annotatie_density_compact"
                 android:src="@drawable/ic_density_compact"
-                android:tint="@color/vt5_on_surface" />
+                app:tint="@color/vt5_on_surface" />
 
             <ImageButton
                 android:id="@+id/btn_density_supercompact"
@@ -56,7 +57,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/annotatie_density_supercompact"
                 android:src="@drawable/ic_density_supercompact"
-                android:tint="@color/vt5_on_surface" />
+                app:tint="@color/vt5_on_surface" />
         </LinearLayout>
 
         <LinearLayout
