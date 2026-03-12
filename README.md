@@ -28,8 +28,10 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 
 ## Bèta-Releases / Nightly builds
 ![Version](https://img.shields.io/github/v/release/YvedD/VoiceTally?include_prereleases)
-![License](https://img.shields.io/github/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
+[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
+![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
+![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 ![Last commit](https://img.shields.io/github/last-commit/YvedD/VoiceTally)
 
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
