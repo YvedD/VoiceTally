@@ -32,6 +32,8 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ---
 
 ## Bèta-Releases / Nightly builds
+Latest release notes:
+Added master-client communication system.
 
 [![Beta Version](https://img.shields.io/badge/Version-Beta-red)](https://github.com/YvedD/VoiceTally/releases/download/Beta_release/beta-release.apk "Bèta versie: Master-client versie")
 [![Download Beta APK](https://img.shields.io/badge/Download-Beta%20APK-red)](https://github.com/YvedD/VoiceTally/releases/download/Beta_release/beta-release.apk)
