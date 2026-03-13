@@ -23,7 +23,6 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 
 [![Stable Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/latest/download/app-release-v1.0.1.apk)
 [![Download APK](https://img.shields.io/badge/Download-APK-green)](https://github.com/YvedD/VoiceTally/releases/latest/download/app-release-v1.0.1.apk)
-![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
@@ -38,7 +37,6 @@ Added master-client communication system.
 
 [![Beta Version](https://img.shields.io/badge/Version-Beta-red)](https://github.com/YvedD/VoiceTally/releases/download/Beta_release/beta-release.apk "Bèta versie: Master-client versie")
 [![Download Beta APK](https://img.shields.io/badge/Download-Beta%20APK-blue)](https://github.com/YvedD/VoiceTally/releases/download/Beta_release/beta-release.apk)
-![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
