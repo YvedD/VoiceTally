@@ -36,6 +36,15 @@
         android:textSize="16sp" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnJoinSession"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/mc_join_active_session"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAfsluiten"
         style="@style/Widget.VT5.Button.Outlined"
         android:layout_width="match_parent"

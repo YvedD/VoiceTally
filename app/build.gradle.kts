@@ -74,6 +74,9 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.8.1")
 
     implementation("androidx.media:media:1.7.1")
+
+    // QR-code scan + generatie (master-client pairing)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }
 // Tests uit
 tasks.matching {

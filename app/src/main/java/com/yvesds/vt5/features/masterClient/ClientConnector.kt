@@ -15,11 +15,14 @@ import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_SESSION_END
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_TILE_SYNC
 import com.yvesds.vt5.features.masterClient.protocol.McEnvelope
 import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
 import com.yvesds.vt5.features.masterClient.protocol.PairingRequest
 import com.yvesds.vt5.features.masterClient.protocol.PairingResponse
 import com.yvesds.vt5.features.masterClient.protocol.SessionEndMessage
+import com.yvesds.vt5.features.masterClient.protocol.TileSyncMessage
+import com.yvesds.vt5.features.masterClient.protocol.TileSyncItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,6 +89,9 @@ class ClientConnector(
      * De aanroeper moet UI-updates naar de Main-thread dispatchen.
      */
     var onMasterHandover: ((eindtijdEpoch: String, masterName: String, reason: String) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer de master de huidige tegelset stuurt. */
+    var onTileSyncReceived: ((tiles: List<TileSyncItem>) -> Unit)? = null
 
     private var connectorScope: CoroutineScope? = null
 
@@ -300,6 +306,13 @@ class ClientConnector(
                         // Stop reconnect: de telling is beëindigd door de master
                         running = false
                         break
+                    }
+                    MC_MSG_TILE_SYNC -> {
+                        val msg = decodePayload<TileSyncMessage>(env.payload)
+                        val tiles = msg?.tiles ?: emptyList()
+                        if (tiles.isNotEmpty()) {
+                            onTileSyncReceived?.invoke(tiles)
+                        }
                     }
                     MC_MSG_HEARTBEAT -> { /* pong ontvangen, verbinding OK */ }
                     else -> Log.w(TAG, "Onbekend bericht-type ontvangen: ${env.type}")

@@ -21,6 +21,7 @@ import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
 import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,11 +54,12 @@ class HoofdActiviteit : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_hoofd)
-        
+
         safHelper = SaFStorageHelper(this)
 
         val btnInstall   = findViewById<MaterialButton>(R.id.btnInstall)
         val btnVerder    = findViewById<MaterialButton>(R.id.btnVerder)
+        val btnJoin      = findViewById<MaterialButton>(R.id.btnJoinSession)
         val btnAfsluiten = findViewById<MaterialButton>(R.id.btnAfsluiten)
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
         val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
@@ -91,6 +93,15 @@ class HoofdActiviteit : AppCompatActivity() {
             }
             
             startActivity(Intent(this, MetadataScherm::class.java))
+            it.isEnabled = true
+        }
+
+        btnJoin.setOnClickListener {
+            it.isEnabled = false
+            MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+            val intent = Intent(this, TellingScherm::class.java)
+            intent.putExtra(TellingScherm.EXTRA_JOIN_AS_CLIENT, true)
+            startActivity(intent)
             it.isEnabled = true
         }
 

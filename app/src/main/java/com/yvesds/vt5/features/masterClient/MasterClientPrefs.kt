@@ -24,6 +24,9 @@ object MasterClientPrefs {
     private const val KEY_MASTER_IP    = "mc_master_ip"
     private const val KEY_MASTER_PORT  = "mc_master_port"
     private const val KEY_SESSION_TOKEN = "mc_session_token"
+    private const val KEY_HOTSPOT_SSID = "mc_hotspot_ssid"
+    private const val KEY_HOTSPOT_PASS = "mc_hotspot_pass"
+    private const val KEY_HOTSPOT_SEC  = "mc_hotspot_sec"
 
     const val DEFAULT_PORT = 50234
 
@@ -38,10 +41,6 @@ object MasterClientPrefs {
         }
         prefs(context).edit { putString(KEY_MODE, mode) }
     }
-
-    fun isMaster(context: Context) = getMode(context) == MODE_MASTER
-    fun isClient(context: Context) = getMode(context) == MODE_CLIENT
-    fun isSolo(context: Context)   = getMode(context) == MODE_SOLO
 
     // ─── Client identity ──────────────────────────────────────────────────────
 
@@ -84,6 +83,26 @@ object MasterClientPrefs {
             remove(KEY_MASTER_IP)
         }
     }
+
+    // ─── Hotspot credentials ──────────────────────────────────────────────────
+
+    fun getHotspotSsid(context: Context): String =
+        prefs(context).getString(KEY_HOTSPOT_SSID, "") ?: ""
+
+    fun setHotspotSsid(context: Context, ssid: String) =
+        prefs(context).edit { putString(KEY_HOTSPOT_SSID, ssid) }
+
+    fun getHotspotPassword(context: Context): String =
+        prefs(context).getString(KEY_HOTSPOT_PASS, "") ?: ""
+
+    fun setHotspotPassword(context: Context, pass: String) =
+        prefs(context).edit { putString(KEY_HOTSPOT_PASS, pass) }
+
+    fun getHotspotSecurity(context: Context): String =
+        prefs(context).getString(KEY_HOTSPOT_SEC, "WPA") ?: "WPA"
+
+    fun setHotspotSecurity(context: Context, sec: String) =
+        prefs(context).edit { putString(KEY_HOTSPOT_SEC, sec) }
 
     // ─── Helper ───────────────────────────────────────────────────────────────
 

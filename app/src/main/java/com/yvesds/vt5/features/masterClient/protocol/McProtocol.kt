@@ -11,6 +11,7 @@ const val MC_MSG_ACK          = "ack"
 const val MC_MSG_HEARTBEAT    = "heartbeat"
 const val MC_MSG_EXPORT_REQ   = "export_req"
 const val MC_MSG_EXPORT_DATA  = "export_data"
+const val MC_MSG_TILE_SYNC    = "tile_sync"
 
 /** Client → master: gebruiker verlaat de telling op zijn telpost. */
 const val MC_MSG_LEAVE        = "leave"
@@ -155,4 +156,19 @@ data class MasterHandoverMessage(
     @SerialName("masterName")    val masterName: String = "",
     @SerialName("eindtijdEpoch") val eindtijdEpoch: String = "",
     @SerialName("reason")        val reason: String = ""
+)
+
+// ─── Tile sync (master → client) ─────────────────────────────────────────────
+
+@Serializable
+data class TileSyncItem(
+    @SerialName("soortid")    val soortid: String,
+    @SerialName("naam")       val naam: String,
+    @SerialName("countMain")  val countMain: Int = 0,
+    @SerialName("countReturn") val countReturn: Int = 0
+)
+
+@Serializable
+data class TileSyncMessage(
+    @SerialName("tiles") val tiles: List<TileSyncItem>
 )

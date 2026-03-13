@@ -101,4 +101,37 @@
     <string name="mc_handover_confirm">Ja, overnemen</string>
     <string name="mc_handover_decline">Nee, niet overnemen</string>
 
+    <!-- ─── Nieuwe strings voor join-session knop en QR scan labels ──────── -->
+    <string name="mc_join_active_session">Invoegen in lopende sessie</string>
+    <string name="mc_pairing_scan_qr">Scan QR-code</string>
+    <string name="mc_pairing_qr_invalid">Ongeldige QR-code</string>
+    <string name="mc_pairing_qr_filled">QR-gegevens ingevuld</string>
+    <string name="mc_pairing_qr_label">QR-code (scan met client)</string>
+    <string name="mc_pairing_master_no_ip">Geen netwerk-IP gevonden</string>
+    <string name="mc_pairing_permission_title">Nieuwe client aanvragen</string>
+    <string name="mc_pairing_permission_message">Client "%1$s" wil aansluiten op deze telling. Toestaan?</string>
+    <string name="mc_pairing_permission_allow">Toestaan</string>
+    <string name="mc_pairing_permission_deny">Weigeren</string>
+
+    <!-- ─── Nieuwe strings voor hotspot-gegevens en QR-handling ──────────── -->
+    <string name="mc_pairing_hotspot_label">Hotspot gegevens</string>
+    <string name="mc_pairing_hotspot_ssid_hint">Hotspot SSID</string>
+    <string name="mc_pairing_hotspot_pass_hint">Hotspot wachtwoord</string>
+    <string name="mc_pairing_hotspot_save">Hotspot opslaan</string>
+    <string name="mc_pairing_hotspot_saved">Hotspot opgeslagen</string>
+    <string name="mc_pairing_hotspot_from_qr">Hotspot-gegevens uit QR opgeslagen</string>
+
+    <string name="mc_pairing_wifi_qr_label">Wi‑Fi QR (eerst verbinden)</string>
+    <string name="mc_pairing_wifi_qr_missing">Geen SSID/wachtwoord ingevuld</string>
+
+    <string name="mc_add_clients_confirm_title">Samenwerken starten</string>
+    <string name="mc_add_clients_confirm_message">Je staat momenteel in solo‑modus. Wil je nu samenwerken met andere tellers?</string>
+
+    <string name="mc_pairing_scan_wifi_qr">Scan Wi‑Fi QR</string>
+    <string name="mc_pairing_scan_pairing_qr">Scan pairing‑QR</string>
+    <string name="mc_pairing_wifi_qr_invalid">Geen geldige Wi‑Fi QR</string>
+    <string name="mc_pairing_wifi_qr_ok">Wi‑Fi QR ok. Scan nu de pairing‑QR.</string>
+
+    <string name="mc_tile_sync_toast">Tegels overgenomen van master</string>
+
 </resources>

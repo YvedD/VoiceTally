@@ -48,6 +48,109 @@
         android:alpha="0.7"
         android:paddingBottom="10dp" />
 
+    <!-- Hotspot gegevens (voor QR) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_hotspot_label"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingTop="6dp"
+        android:paddingBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etHotspotSsid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/mc_pairing_hotspot_ssid_hint"
+        android:inputType="textNoSuggestions"
+        android:textColor="@color/vt5_on_surface"
+        android:textColorHint="#888888"
+        android:background="@android:color/transparent"
+        android:paddingBottom="4dp" />
+
+    <EditText
+        android:id="@+id/etHotspotPass"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/mc_pairing_hotspot_pass_hint"
+        android:inputType="textPassword"
+        android:textColor="@color/vt5_on_surface"
+        android:textColorHint="#888888"
+        android:background="@android:color/transparent"
+        android:paddingBottom="8dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSaveHotspot"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:text="@string/mc_pairing_hotspot_save" />
+
+    <!-- Wi-Fi QR (voor verbinding met hotspot) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_wifi_qr_label"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingTop="6dp"
+        android:paddingBottom="4dp" />
+
+    <ImageView
+        android:id="@+id/ivWifiQr"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:layout_gravity="center_horizontal"
+        android:contentDescription="@string/mc_pairing_wifi_qr_label"
+        android:background="#1A1A2E" />
+
+    <TextView
+        android:id="@+id/tvWifiQrInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="12sp"
+        android:gravity="center_horizontal"
+        android:textColor="@color/vt5_on_surface"
+        android:alpha="0.7"
+        android:paddingTop="6dp"
+        android:paddingBottom="10dp" />
+
+    <!-- QR-code voor snelle koppeling -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_qr_label"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/vt5_on_surface"
+        android:paddingTop="6dp"
+        android:paddingBottom="4dp" />
+
+    <ImageView
+        android:id="@+id/ivPairingQr"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:layout_gravity="center_horizontal"
+        android:contentDescription="@string/mc_pairing_qr_label"
+        android:background="#1A1A2E" />
+
+    <TextView
+        android:id="@+id/tvPairingQrInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="12sp"
+        android:gravity="center_horizontal"
+        android:textColor="@color/vt5_on_surface"
+        android:alpha="0.7"
+        android:paddingTop="6dp"
+        android:paddingBottom="10dp" />
+
     <!-- Verbonden clients -->
     <TextView
         android:layout_width="match_parent"

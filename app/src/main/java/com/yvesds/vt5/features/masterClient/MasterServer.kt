@@ -17,6 +17,9 @@ import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_SESSION_END
+import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_TILE_SYNC
+import com.yvesds.vt5.features.masterClient.protocol.TileSyncMessage
+import com.yvesds.vt5.features.masterClient.protocol.TileSyncItem
 import com.yvesds.vt5.features.masterClient.protocol.McEnvelope
 import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
 import com.yvesds.vt5.features.masterClient.protocol.PairingRequest
@@ -69,6 +72,12 @@ class MasterServer(
 
     /** Optionele callback: aangeroepen (op IO-thread) wanneer een client de telling verlaat. */
     var onClientLeft: ((clientName: String, reason: String) -> Unit)? = null
+
+    /** Optionele callback: vraag master-operator om toestemming voor nieuwe client. */
+    var onPairingRequest: (suspend (clientId: String, clientName: String) -> Boolean)? = null
+
+    /** Optionele callback: lever huidige tegelset voor tile-sync naar clients. */
+    var onTilesSnapshot: (suspend () -> List<TileSyncItem>)? = null
 
     private var serverScope: CoroutineScope? = null
     private var serverSocket: ServerSocket? = null
@@ -144,24 +153,48 @@ class MasterServer(
                 }
 
                 val pairingReq = decodePayload<PairingRequest>(firstEnvelope.payload) ?: return@withContext
-                val (accepted, sessionToken) = pairingManager.validatePin(pairingReq.pin, pairingReq.clientId)
+                val (acceptedPin, sessionToken) = pairingManager.validatePin(pairingReq.pin, pairingReq.clientId)
 
-                val pairingResp = PairingResponse(
-                    accepted     = accepted,
-                    sessionToken = if (accepted) sessionToken else "",
-                    masterName   = android.os.Build.MODEL,
-                    error        = if (!accepted) "Ongeldige of verlopen PIN" else ""
-                )
-                sendPairingResponse(writer, pairingResp)
-
-                if (!accepted) {
+                if (!acceptedPin) {
+                    val pairingResp = PairingResponse(
+                        accepted     = false,
+                        sessionToken = "",
+                        masterName   = android.os.Build.MODEL,
+                        error        = "Ongeldige of verlopen PIN"
+                    )
+                    sendPairingResponse(writer, pairingResp)
                     Log.w(TAG, "Pairing geweigerd voor client ${pairingReq.clientId}")
                     return@withContext
                 }
 
+                val approvedByMaster = onPairingRequest?.invoke(pairingReq.clientId, pairingReq.clientName) ?: true
+                if (!approvedByMaster) {
+                    pairingManager.revokeToken(sessionToken)
+                    val pairingResp = PairingResponse(
+                        accepted     = false,
+                        sessionToken = "",
+                        masterName   = android.os.Build.MODEL,
+                        error        = "Afgewezen door master"
+                    )
+                    sendPairingResponse(writer, pairingResp)
+                    Log.w(TAG, "Pairing afgewezen door master voor client ${pairingReq.clientId}")
+                    return@withContext
+                }
+
+                val pairingResp = PairingResponse(
+                    accepted     = true,
+                    sessionToken = sessionToken,
+                    masterName   = android.os.Build.MODEL,
+                    error        = ""
+                )
+                sendPairingResponse(writer, pairingResp)
+
                 // Voeg toe aan verbonden clients
                 addConnectedClient(sessionToken, pairingReq.clientName, writer)
                 Log.i(TAG, "Client verbonden: ${pairingReq.clientName} (${pairingReq.clientId})")
+
+                // Stuur huidige tegelset naar de client (indien beschikbaar)
+                sendTileSyncIfAvailable(writer)
 
                 // ── Stap 2: Event-loop ───────────────────────────────────────
                 try {
@@ -324,5 +357,13 @@ class MasterServer(
         _connectedClients.value = current
         synchronized(clientWritersLock) { clientWriters.remove(token) }
         pairingManager.revokeToken(token)
+    }
+
+    private suspend fun sendTileSyncIfAvailable(writer: PrintWriter) {
+        val tiles = onTilesSnapshot?.invoke().orEmpty()
+        if (tiles.isEmpty()) return
+        val payload = json.encodeToString(TileSyncMessage.serializer(), TileSyncMessage(tiles))
+        sendEnvelopeRaw(writer, MC_MSG_TILE_SYNC, payload)
+        Log.i(TAG, "TileSync gestuurd naar client (${tiles.size} tegels)")
     }
 }

@@ -7,15 +7,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
+import android.Manifest
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
+import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.journeyapps.barcodescanner.BarcodeEncoder
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
@@ -28,19 +36,22 @@ import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.jvm.Volatile
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
-import kotlin.jvm.Volatile
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import com.yvesds.vt5.features.network.DataUploader
+import com.yvesds.vt5.features.masterClient.protocol.TileSyncItem
 
 /**
  * TellingScherm.kt
@@ -69,6 +80,7 @@ class TellingScherm : AppCompatActivity() {
         // Intent extra key for hourly alarm trigger
         const val EXTRA_SHOW_HUIDIGE_STAND = "SHOW_HUIDIGE_STAND"
         const val EXTRA_RESTORE_PENDING_TELLING = "RESTORE_PENDING_TELLING"
+        const val EXTRA_JOIN_AS_CLIENT = "JOIN_AS_CLIENT"
     }
 
     // UI & adapters
@@ -180,12 +192,92 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
+    private var pendingJoinAsClient = false
+    private var pendingOpenSoortSelectieOnPair = false
+
+    private data class ClientPairingDialogRefs(
+        val etIp: EditText,
+        val etPin: EditText,
+        val tvStatus: android.widget.TextView
+    )
+
+    private var activeClientPairingDialog: ClientPairingDialogRefs? = null
+
+    private enum class QrScanMode {
+        WIFI,
+        PAIRING
+    }
+
+    private var pendingQrScanMode: QrScanMode = QrScanMode.WIFI
+
+    private val qrScanLauncher = registerForActivityResult(ScanContract()) { result ->
+        val raw = result.contents ?: return@registerForActivityResult
+
+        when (pendingQrScanMode) {
+            QrScanMode.WIFI -> {
+                if (!raw.startsWith("WIFI:")) {
+                    Toast.makeText(this, getString(R.string.mc_pairing_wifi_qr_invalid), Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
+                pendingQrScanMode = QrScanMode.PAIRING
+                Toast.makeText(this, getString(R.string.mc_pairing_wifi_qr_ok), Toast.LENGTH_SHORT).show()
+                launchQrScan(getString(R.string.mc_pairing_scan_pairing_qr))
+            }
+            QrScanMode.PAIRING -> {
+                val payload = com.yvesds.vt5.features.masterClient.McQrPayloadCodec.decode(raw)
+                if (payload == null) {
+                    Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
+                com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMasterIp(this, payload.ip)
+                com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMasterPort(this, payload.port)
+                if (payload.ssid.isNotBlank()) {
+                    com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSsid(this, payload.ssid)
+                    com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotPassword(this, payload.pass)
+                    com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSecurity(this, payload.sec)
+                    Toast.makeText(this, getString(R.string.mc_pairing_hotspot_from_qr), Toast.LENGTH_SHORT).show()
+                }
+                activeClientPairingDialog?.let { refs ->
+                    refs.etIp.setText(payload.ip)
+                    refs.etPin.setText(payload.pin)
+                    refs.tvStatus.text = getString(R.string.mc_pairing_qr_filled)
+                }
+            }
+        }
+    }
+
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pendingQrScanMode = QrScanMode.WIFI
+            launchQrScan(getString(R.string.mc_pairing_scan_wifi_qr))
+        } else {
+            Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun launchQrScan(prompt: String) {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            setBeepEnabled(false)
+            setOrientationLocked(true)
+            setPrompt(prompt)
+        }
+        qrScanLauncher.launch(options)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = SchermTellingBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
+        pendingJoinAsClient = intent.getBooleanExtra(EXTRA_JOIN_AS_CLIENT, false)
+        if (pendingJoinAsClient) {
+            pendingOpenSoortSelectieOnPair = true
+        }
 
         // Check if this is triggered by the hourly alarm (from HourlyAlarmManager)
         // Store the flag to show HuidigeStandScherm after tiles are loaded
@@ -523,6 +615,14 @@ class TellingScherm : AppCompatActivity() {
 
         // Initialiseer master-client statusbalk en knoppen
         setupMasterClientUi()
+
+        if (pendingJoinAsClient) {
+            pendingJoinAsClient = false
+            if (mcClientConnector == null) {
+                setupClientMode()
+            }
+            showClientPairingDialog()
+        }
     }
 
     /**
@@ -569,8 +669,17 @@ class TellingScherm : AppCompatActivity() {
                 showClientPairingDialog()
             }
             else -> {
-                // Solo-modus: gebruiker kiest ad-hoc master of client
-                showMasterClientRoleChooser()
+                // Solo-modus: eerst bevestigen, daarna role-chooser
+                val dlg = AlertDialog.Builder(this)
+                    .setTitle(R.string.mc_add_clients_confirm_title)
+                    .setMessage(R.string.mc_add_clients_confirm_message)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        showMasterClientRoleChooser()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .create()
+                DialogStyler.apply(dlg)
+                dlg.show()
             }
         }
     }
@@ -610,6 +719,10 @@ class TellingScherm : AppCompatActivity() {
             return
         }
         try {
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMode(
+                this,
+                com.yvesds.vt5.features.masterClient.MasterClientPrefs.MODE_MASTER
+            )
             val pm = com.yvesds.vt5.features.masterClient.PairingManager()
             val ep = com.yvesds.vt5.features.masterClient.MasterEventProcessor()
 
@@ -645,6 +758,12 @@ class TellingScherm : AppCompatActivity() {
                 pairingManager = pm,
                 eventProcessor = ep
             )
+            server.onPairingRequest = { _, clientName ->
+                requestClientApproval(clientName)
+            }
+            server.onTilesSnapshot = {
+                buildTileSyncItems()
+            }
             server.start()
 
             // Wanneer een client actief de telling verlaat: toon een toast op de master
@@ -681,6 +800,27 @@ class TellingScherm : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.mc_error_server_start, e.message), Toast.LENGTH_LONG).show()
         }
     }
+
+    private suspend fun requestClientApproval(clientName: String): Boolean =
+        suspendCancellableCoroutine { cont ->
+            runOnUiThread {
+                val dlg = AlertDialog.Builder(this)
+                    .setTitle(R.string.mc_pairing_permission_title)
+                    .setMessage(getString(R.string.mc_pairing_permission_message, clientName))
+                    .setPositiveButton(R.string.mc_pairing_permission_allow) { _, _ ->
+                        if (cont.isActive) cont.resume(true)
+                    }
+                    .setNegativeButton(R.string.mc_pairing_permission_deny) { _, _ ->
+                        if (cont.isActive) cont.resume(false)
+                    }
+                    .setOnCancelListener {
+                        if (cont.isActive) cont.resume(false)
+                    }
+                    .create()
+                DialogStyler.apply(dlg)
+                dlg.show()
+            }
+        }
 
     /**
      * Verwerk een client-waarneming in de lopende telling.
@@ -978,28 +1118,28 @@ class TellingScherm : AppCompatActivity() {
     private fun getCurrentEnvelopeData(): EnvelopeData {
         return try {
             val savedEnvelopeJson = prefs.getString("pref_saved_envelope_json", null)
-            if (savedEnvelopeJson.isNullOrBlank()) {
+            if (savedEnvelopeJson != null) {
+                val envelopeList = VT5App.json.decodeFromString(
+                    ListSerializer(ServerTellingEnvelope.serializer()),
+                    savedEnvelopeJson
+                )
+
+                if (envelopeList.isEmpty()) {
+                    val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
+                    return EnvelopeData(nowEpoch, nowEpoch, "")
+                }
+
+                val envelope = envelopeList[0]
+                EnvelopeData(
+                    begintijd = envelope.begintijd,
+                    eindtijd = envelope.eindtijd.ifBlank { (System.currentTimeMillis() / 1000L).toString() },
+                    opmerkingen = envelope.opmerkingen
+                )
+            } else {
                 // Return defaults with current time
                 val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
                 return EnvelopeData(nowEpoch, nowEpoch, "")
             }
-            
-            val envelopeList = VT5App.json.decodeFromString(
-                ListSerializer(ServerTellingEnvelope.serializer()),
-                savedEnvelopeJson
-            )
-            
-            if (envelopeList.isEmpty()) {
-                val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
-                return EnvelopeData(nowEpoch, nowEpoch, "")
-            }
-            
-            val envelope = envelopeList[0]
-            EnvelopeData(
-                begintijd = envelope.begintijd,
-                eindtijd = envelope.eindtijd.ifBlank { (System.currentTimeMillis() / 1000L).toString() },
-                opmerkingen = envelope.opmerkingen
-            )
         } catch (e: Exception) {
             Log.w(TAG, "Failed to get envelope data: ${e.message}")
             val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
@@ -1785,6 +1925,7 @@ class TellingScherm : AppCompatActivity() {
 
             connector.onSessionEnded = { _ ->
                 runOnUiThread {
+                    tilesSyncedFromMaster = false
                     Toast.makeText(this, getString(R.string.mc_status_session_ended), Toast.LENGTH_LONG).show()
                     binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
                         ?.visibility = android.view.View.GONE
@@ -1796,6 +1937,12 @@ class TellingScherm : AppCompatActivity() {
                     binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
                         ?.visibility = android.view.View.GONE
                     showMasterHandoverDialog(eindtijd, masterName)
+                }
+            }
+
+            connector.onTileSyncReceived = { tiles ->
+                runOnUiThread {
+                    applyTileSync(tiles)
                 }
             }
 
@@ -1823,6 +1970,10 @@ class TellingScherm : AppCompatActivity() {
                 tvStatus.text  = getString(R.string.mc_status_bar_client_connected)
                 btnAction.text = getString(R.string.mc_btn_leave_session)
                 btnAction.setOnClickListener { showLeaveSessionDialog() }
+                if (pendingOpenSoortSelectieOnPair && !tilesSyncedFromMaster) {
+                    pendingOpenSoortSelectieOnPair = false
+                    openSoortSelectieForAdd()
+                }
             }
             com.yvesds.vt5.features.masterClient.ClientConnector.State.CONNECTING -> {
                 tvStatus.text  = getString(R.string.mc_status_bar_client_connecting)
@@ -1847,6 +1998,7 @@ class TellingScherm : AppCompatActivity() {
             .setTitle(R.string.mc_dialog_leave_title)
             .setMessage(R.string.mc_dialog_leave_message)
             .setPositiveButton(R.string.mc_dialog_leave_confirm) { _, _ ->
+                tilesSyncedFromMaster = false
                 mcClientConnector?.leaveSession("gebruiker verlaat telpost")
                 Toast.makeText(this, getString(R.string.mc_toast_left_session), Toast.LENGTH_SHORT).show()
                 binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
@@ -1906,9 +2058,60 @@ class TellingScherm : AppCompatActivity() {
         val btnClose   = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClosePairing)
         val rvClients  = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvConnectedClients)
         val btnImport  = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnImportOffline)
+        val ivQr       = dialogView.findViewById<ImageView>(R.id.ivPairingQr)
+        val tvQrInfo   = dialogView.findViewById<android.widget.TextView>(R.id.tvPairingQrInfo)
+        val ivWifiQr   = dialogView.findViewById<ImageView>(R.id.ivWifiQr)
+        val tvWifiInfo = dialogView.findViewById<android.widget.TextView>(R.id.tvWifiQrInfo)
+        val etSsid     = dialogView.findViewById<EditText>(R.id.etHotspotSsid)
+        val etPass     = dialogView.findViewById<EditText>(R.id.etHotspotPass)
+        val btnSaveHotspot = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveHotspot)
+
+        etSsid.setText(com.yvesds.vt5.features.masterClient.MasterClientPrefs.getHotspotSsid(this))
+        etPass.setText(com.yvesds.vt5.features.masterClient.MasterClientPrefs.getHotspotPassword(this))
 
         val pin = pm.getCurrentPin() ?: pm.generatePin()
         tvPin.text = pin
+
+        val masterPort = mcMasterServer?.port ?: com.yvesds.vt5.features.masterClient.MasterClientPrefs.DEFAULT_PORT
+        val sec = com.yvesds.vt5.features.masterClient.MasterClientPrefs.getHotspotSecurity(this)
+
+        fun updateWifiQr() {
+            val ssid = etSsid.text.toString().trim()
+            val pass = etPass.text.toString().trim()
+            if (ssid.isBlank() || pass.isBlank()) {
+                ivWifiQr.setImageDrawable(null)
+                tvWifiInfo.text = getString(R.string.mc_pairing_wifi_qr_missing)
+                return
+            }
+            val payload = buildWifiQrPayload(ssid, pass, sec)
+            val bmp = BarcodeEncoder().encodeBitmap(payload, com.google.zxing.BarcodeFormat.QR_CODE, 360, 360)
+            ivWifiQr.setImageBitmap(bmp)
+            tvWifiInfo.text = ssid
+        }
+
+        fun updatePairingQr() {
+            val masterIp = com.yvesds.vt5.features.masterClient.McNetworkUtils.getLocalIpv4()
+            if (masterIp.isNullOrBlank()) {
+                tvQrInfo.text = getString(R.string.mc_pairing_master_no_ip)
+                ivQr.setImageDrawable(null)
+                return
+            }
+            val payload = com.yvesds.vt5.features.masterClient.McQrPayload(
+                ip = masterIp,
+                port = masterPort,
+                pin = tvPin.text.toString(),
+                ssid = etSsid.text.toString().trim(),
+                pass = etPass.text.toString().trim(),
+                sec = sec
+            )
+            val qrData = com.yvesds.vt5.features.masterClient.McQrPayloadCodec.encode(payload)
+            val bitmap = BarcodeEncoder().encodeBitmap(qrData, com.google.zxing.BarcodeFormat.QR_CODE, 360, 360)
+            ivQr.setImageBitmap(bitmap)
+            tvQrInfo.text = "$masterIp:$masterPort"
+        }
+
+        updateWifiQr()
+        updatePairingQr()
 
         val connectedList = mcMasterServer?.connectedClients?.value?.toList() ?: emptyList()
         rvClients.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
@@ -1917,7 +2120,10 @@ class TellingScherm : AppCompatActivity() {
             override fun getItemCount() = items.size
             override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
                 val tv = android.widget.TextView(parent.context).apply {
-                    layoutParams = android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+                    layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
                     setPadding(24, 12, 24, 12)
                     setTextColor(android.graphics.Color.WHITE)
                 }
@@ -1932,9 +2138,19 @@ class TellingScherm : AppCompatActivity() {
             .setView(dialogView)
             .create()
 
+        btnSaveHotspot.setOnClickListener {
+            val ssid = etSsid.text.toString().trim()
+            val pass = etPass.text.toString().trim()
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSsid(this, ssid)
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotPassword(this, pass)
+            Toast.makeText(this, getString(R.string.mc_pairing_hotspot_saved), Toast.LENGTH_SHORT).show()
+            updateWifiQr()
+            updatePairingQr()
+        }
+
         btnNewPin.setOnClickListener {
-            val newPin = pm.generatePin()
-            tvPin.text = newPin
+            tvPin.text = pm.generatePin()
+            updatePairingQr()
             updateMasterStatusBar(mcMasterServer?.connectedClients?.value?.size ?: 0)
         }
         btnClose.setOnClickListener { dialog.dismiss() }
@@ -1954,7 +2170,7 @@ class TellingScherm : AppCompatActivity() {
         com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
     }
 
-    private fun showEndCollabDialog() {
+        private fun showEndCollabDialog() {
         val server = mcMasterServer ?: return
         val dlg = AlertDialog.Builder(this)
             .setTitle(R.string.mc_dialog_end_collab_title)
@@ -1965,7 +2181,7 @@ class TellingScherm : AppCompatActivity() {
             }
             .setNegativeButton(R.string.mc_dialog_end_collab_cancel, null)
             .create()
-        com.yvesds.vt5.core.ui.DialogStyler.apply(dlg)
+        DialogStyler.apply(dlg)
         dlg.show()
     }
 
@@ -1980,9 +2196,21 @@ class TellingScherm : AppCompatActivity() {
         val tvStatus     = dialogView.findViewById<android.widget.TextView>(R.id.tvPairingStatus)
         val btnCancel    = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCancelPairing)
         val btnConnect   = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnConnectToMaster)
+        val btnScanQr    = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnScanQr)
         val rvDiscovered = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvDiscoveredMasters)
 
         etIp.setText(com.yvesds.vt5.features.masterClient.MasterClientPrefs.getMasterIp(this))
+        activeClientPairingDialog = ClientPairingDialogRefs(etIp, etPin, tvStatus)
+
+        btnScanQr.setOnClickListener {
+            pendingQrScanMode = QrScanMode.WIFI
+            val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            if (hasCamera) {
+                launchQrScan(getString(R.string.mc_pairing_scan_wifi_qr))
+            } else {
+                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
 
         rvDiscovered.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         val discoveredItems = mcDiscoveryService?.discoveredMasters?.value ?: emptyList()
@@ -1991,7 +2219,10 @@ class TellingScherm : AppCompatActivity() {
             override fun getItemCount() = items.size
             override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
                 val tv = android.widget.TextView(parent.context).apply {
-                    layoutParams = android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+                    layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
                     setPadding(24, 12, 24, 12)
                     setTextColor(android.graphics.Color.WHITE)
                     isClickable = true
@@ -2006,11 +2237,14 @@ class TellingScherm : AppCompatActivity() {
             }
         }
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
 
-        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnCancel.setOnClickListener {
+            activeClientPairingDialog = null
+            dialog.dismiss()
+        }
         btnConnect.setOnClickListener {
             val ip  = etIp.text.toString().trim()
             val pin = etPin.text.toString().trim()
@@ -2020,24 +2254,54 @@ class TellingScherm : AppCompatActivity() {
             com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMasterIp(this, ip)
             connector.setPendingPin(pin)
             connector.start()
+            activeClientPairingDialog = null
             dialog.dismiss()
         }
 
         dialog.show()
-        com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
+        DialogStyler.apply(dialog)
     }
 
-    fun exportRecordsOffline() {
-        val records = synchronized(pendingRecords) { pendingRecords.toList() }
-        if (records.isEmpty()) {
-            Toast.makeText(this, getString(R.string.mc_export_none), Toast.LENGTH_SHORT).show()
-            return
+    private fun buildWifiQrPayload(ssid: String, pass: String, sec: String): String {
+        fun esc(input: String) = input
+            .replace("\\", "\\\\")
+            .replace(";", "\\;")
+            .replace(",", "\\,")
+            .replace(":", "\\:")
+        val t = sec.ifBlank { "WPA" }
+        return "WIFI:T:${esc(t)};S:${esc(ssid)};P:${esc(pass)};;"
+    }
+
+    private var tilesSyncedFromMaster = false
+
+    private fun buildTileSyncItems(): List<TileSyncItem> {
+        return tegelBeheer.getTiles().map { tile ->
+            TileSyncItem(
+                soortid = tile.soortId,
+                naam = tile.naam,
+                countMain = tile.countMain,
+                countReturn = tile.countReturn
+            )
         }
-        val file = com.yvesds.vt5.features.masterClient.McShareHelper.exportRecordsToFile(this, records)
-        if (file != null) {
-            com.yvesds.vt5.features.masterClient.McShareHelper.shareFile(this, file)
-        } else {
-            Toast.makeText(this, getString(R.string.mc_import_failed), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun applyTileSync(items: List<TileSyncItem>) {
+        if (items.isEmpty()) return
+        val tiles = items.map { item ->
+            SoortTile(item.soortid, item.naam, item.countMain, item.countReturn)
+        }
+        tegelBeheer.setTiles(tiles)
+        updateSelectedSpeciesMap()
+        tilesSyncedFromMaster = true
+        pendingOpenSoortSelectieOnPair = false
+        Toast.makeText(this, getString(R.string.mc_tile_sync_toast), Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch(Dispatchers.Default) {
+            try {
+                val ids = tiles.map { it.soortId }.toSet()
+                val mc = initializer.buildMatchContext(ids)
+                speechHandler.updateCachedMatchContext(mc)
+            } catch (_: Exception) {
+            }
         }
     }
 }
