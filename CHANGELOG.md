@@ -4,7 +4,7 @@
 
 ## Unreleased / Nog niet uitgebracht
 
-- _NL/EN: (vul later aan)_
+- Master/Client versie
 
 ## 1.0.3 — 2026-02-05
 
