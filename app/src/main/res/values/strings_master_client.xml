@@ -134,4 +134,21 @@
 
     <string name="mc_tile_sync_toast">Tegels overgenomen van master</string>
 
+    <string name="mc_pairing_wifi_scan">Wi‑Fi scannen</string>
+    <string name="mc_pairing_wifi_scan_failed">Wi‑Fi scan niet gelukt</string>
+    <string name="mc_pairing_wifi_scan_empty">Geen netwerken gevonden</string>
+    <string name="mc_pairing_wifi_scan_permission">Locatie-toestemming nodig voor Wi‑Fi scan</string>
+
+    <string name="mc_wifi_select_title">Kies Wi‑Fi netwerk</string>
+    <string name="mc_wifi_connect_cancel">Annuleren</string>
+    <string name="mc_wifi_password_title">Wachtwoord voor %1$s</string>
+    <string name="mc_wifi_password_hint">Wi‑Fi wachtwoord</string>
+    <string name="mc_wifi_connect_failed">Verbinden met Wi‑Fi mislukt</string>
+    <string name="mc_wifi_connect_approve">Bevestig de Wi‑Fi-verbinding in Android</string>
+    <string name="mc_wifi_connected_or_suggested">Wi‑Fi verbinding aangevraagd</string>
+
+    <string name="mc_wifi_status_unknown">Wi‑Fi status: onbekend</string>
+    <string name="mc_wifi_status_connected">Wi‑Fi verbonden: %1$s</string>
+    <string name="mc_wifi_status_disconnected">Wi‑Fi niet verbonden</string>
+
 </resources>

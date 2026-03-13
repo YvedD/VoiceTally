@@ -32,14 +32,21 @@ object MasterClientPrefs {
 
     // ─── Mode ─────────────────────────────────────────────────────────────────
 
+    @Volatile
+    private var runtimeMode: String? = null
+
     fun getMode(context: Context): String =
-        prefs(context).getString(KEY_MODE, MODE_SOLO) ?: MODE_SOLO
+        runtimeMode ?: MODE_SOLO
 
     fun setMode(context: Context, mode: String) {
         require(mode in listOf(MODE_SOLO, MODE_MASTER, MODE_CLIENT)) {
             "Ongeldige modus '$mode'. Geldige waarden: $MODE_SOLO, $MODE_MASTER, $MODE_CLIENT"
         }
-        prefs(context).edit { putString(KEY_MODE, mode) }
+        runtimeMode = mode
+    }
+
+    fun resetModeToSolo() {
+        runtimeMode = MODE_SOLO
     }
 
     // ─── Client identity ──────────────────────────────────────────────────────

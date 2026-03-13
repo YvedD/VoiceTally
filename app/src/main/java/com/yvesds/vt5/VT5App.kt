@@ -19,6 +19,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import androidx.core.content.edit
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 
 /**
  * VT5 – App singleton
@@ -43,7 +44,10 @@ class VT5App : Application() {
             Log.w(TAG, "Failed to start MatchLogWriter in Application.onCreate: ${ex.message}", ex)
         }
         instance = this
-        
+
+        // Altijd opstarten in solo-modus (niet persistent bewaren)
+        MasterClientPrefs.resetModeToSolo()
+
         // Initialiseer uurlijks alarm
         try {
             com.yvesds.vt5.core.app.HourlyAlarmManager.scheduleNextAlarm(this)

@@ -344,6 +344,26 @@ class MasterServer(
         Log.i(TAG, "MasterHandover broadcast naar $sent/${writers.size} client(s). EindtijdEpoch=$eindtijdEpoch")
     }
 
+    /**
+     * Stuur een TileSyncMessage naar alle verbonden clients.
+     * Wordt gebruikt om de tegelset (soorten + aantallen) te synchroniseren.
+     */
+    fun broadcastTileSync(tiles: List<TileSyncItem>) {
+        if (tiles.isEmpty()) return
+        val payload = json.encodeToString(TileSyncMessage.serializer(), TileSyncMessage(tiles))
+        val writers = synchronized(clientWritersLock) { clientWriters.values.toList() }
+        var sent = 0
+        for (w in writers) {
+            try {
+                sendEnvelopeRaw(w, MC_MSG_TILE_SYNC, payload)
+                sent++
+            } catch (e: Exception) {
+                Log.w(TAG, "broadcastTileSync: kon niet schrijven naar één client: ${e.message}")
+            }
+        }
+        Log.i(TAG, "TileSync broadcast naar $sent/${writers.size} client(s).")
+    }
+
     private fun addConnectedClient(token: String, name: String, writer: PrintWriter) {
         val current = _connectedClients.value.toMutableMap()
         current[token] = name
