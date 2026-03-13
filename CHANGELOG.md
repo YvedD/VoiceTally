@@ -8,7 +8,7 @@
 
 ## Unreleased / Nog niet uitgebracht
 
-- Master/Client versie/version
+- Master/Client versie/version (see Bèta releases below / zie Bèta-releases hieronder)
 
 ---
 
