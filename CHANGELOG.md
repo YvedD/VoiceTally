@@ -8,7 +8,7 @@
 
 ## Unreleased / Nog niet uitgebracht
 
-- _NL/EN: (vul later aan / to be filled in)_
+- Master/Client versie/version
 
 ---
 
