@@ -65,11 +65,12 @@ class TellingAnnotationHandler(
      * Prefills count fields with existing record values if a matching pending record is found.
      * Falls back to parsing the count from the text if no record is found.
      */
-    fun launchAnnotatieScherm(text: String, timestamp: Long, rowPosition: Int) {
+    fun launchAnnotatieScherm(text: String, timestamp: Long, rowPosition: Int, recordId: String? = null) {
         val intent = Intent(activity, AnnotatieScherm::class.java).apply {
             putExtra(AnnotatieScherm.EXTRA_TEXT, text)
             putExtra(AnnotatieScherm.EXTRA_TS, timestamp)
             putExtra("extra_row_pos", rowPosition)
+            putExtra(AnnotatieScherm.EXTRA_RECORD_ID, recordId)
             
             // Pass telpostid for dynamic direction labels
             val telpostId = onGetTelpostId?.invoke()
@@ -80,14 +81,17 @@ class TellingAnnotationHandler(
             // Find matching pending record to prefill count fields
             val pendingRecords = onGetPendingRecords?.invoke() ?: emptyList()
             val finalsList = onGetFinalsList?.invoke() ?: emptyList()
-            
-            // Find matching record by position
-            val finalRowTs = finalsList.getOrNull(rowPosition)?.ts
-            val matchingRecord = if (finalRowTs != null) {
-                pendingRecords.firstOrNull { it.tijdstip == finalRowTs.toString() }
-            } else {
-                // Fallback: try by explicit timestamp
-                pendingRecords.firstOrNull { it.tijdstip == timestamp.toString() }
+
+            // Find matching record by stable recordId first, then fall back to row position/timestamp.
+            val matchingRecord = recordId?.let { id ->
+                pendingRecords.firstOrNull { it.idLocal == id }
+            } ?: run {
+                val finalRowTs = finalsList.getOrNull(rowPosition)?.ts
+                if (finalRowTs != null) {
+                    pendingRecords.firstOrNull { it.tijdstip == finalRowTs.toString() }
+                } else {
+                    pendingRecords.firstOrNull { it.tijdstip == timestamp.toString() }
+                }
             }
             
             // Prefill count values - either from record or parse from text
@@ -125,10 +129,11 @@ class TellingAnnotationHandler(
         val legacyText = data.getStringExtra(AnnotatieScherm.EXTRA_TEXT)
         val legacyTs = data.getLongExtra(AnnotatieScherm.EXTRA_TS, 0L)
         val rowPos = data.getIntExtra("extra_row_pos", -1)
+        val recordId = data.getStringExtra(AnnotatieScherm.EXTRA_RECORD_ID)
 
         if (!annotationsJson.isNullOrBlank()) {
             try {
-                applyAnnotationsToPendingRecord(annotationsJson, rowTs = legacyTs, rowPos = rowPos)
+                applyAnnotationsToPendingRecord(annotationsJson, rowTs = legacyTs, rowPos = rowPos, recordId = recordId)
             } catch (ex: Exception) {
                 Log.w(TAG, "applyAnnotationsToPendingRecord failed: ${ex.message}", ex)
             }
@@ -139,7 +144,7 @@ class TellingAnnotationHandler(
                     val singleMapJson = kotlinx.serialization.json.Json.encodeToString(
                         mapOf("opmerkingen" to legacyText)
                     )
-                    applyAnnotationsToPendingRecord(singleMapJson, rowTs = legacyTs, rowPos = rowPos)
+                    applyAnnotationsToPendingRecord(singleMapJson, rowTs = legacyTs, rowPos = rowPos, recordId = recordId)
                 } catch (ex: Exception) {
                     Log.w(TAG, "legacy apply failed: ${ex.message}", ex)
                 }
@@ -168,7 +173,8 @@ class TellingAnnotationHandler(
     private fun applyAnnotationsToPendingRecord(
         annotationsJson: String,
         rowTs: Long = 0L,
-        rowPos: Int = -1
+        rowPos: Int = -1,
+        recordId: String? = null
     ) {
         try {
             val parser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
@@ -189,9 +195,15 @@ class TellingAnnotationHandler(
                 return
             }
 
-            // Find matching record by position or timestamp
             var idx = -1
-            if (rowPos >= 0) {
+
+            // First preference: stable recordId passed from SpeechLogRow.
+            if (!recordId.isNullOrBlank()) {
+                idx = pendingRecords.indexOfFirst { it.idLocal == recordId }
+            }
+
+            // Fallback: match by row position or timestamp for older finals rows.
+            if (idx == -1 && rowPos >= 0) {
                 val finalsList = onGetFinalsList?.invoke() ?: emptyList()
                 val finalRowTs = finalsList.getOrNull(rowPos)?.ts
                 if (finalRowTs != null) {

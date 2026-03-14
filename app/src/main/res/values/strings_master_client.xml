@@ -12,8 +12,11 @@
     <string name="mc_status_bar_master">Master ▪ %1$d client(s) verbonden</string>
     <string name="mc_status_bar_master_no_clients">Master ▪ geen clients</string>
     <string name="mc_status_bar_client_connected">Client ▪ verbonden met master</string>
+    <string name="mc_status_bar_client_pending">Client ▪ %1$d waarneming(en) wachten op bevestiging</string>
     <string name="mc_status_bar_client_connecting">Client ▪ verbinding maken…</string>
     <string name="mc_status_bar_client_error">Client ▪ verbindingsfout</string>
+    <string name="mc_status_bar_client_retrying_pending">Client ▪ opnieuw proberen (%1$d wachten op bevestiging)</string>
+    <string name="mc_status_bar_client_last_delivery">Client ▪ laatste waarneming ontvangen door master</string>
     <string name="mc_btn_clients">Clients</string>
     <string name="mc_btn_connect_to_master">Koppelen met master</string>
     <string name="mc_btn_export_offline">Offline export</string>
@@ -47,6 +50,8 @@
     <string name="mc_pairing_connecting">Verbinding maken…</string>
     <string name="mc_pairing_success">Verbonden!</string>
     <string name="mc_pairing_failed">Koppeling mislukt: %1$s</string>
+    <string name="mc_observation_received_master">Ontvangen op master</string>
+    <string name="mc_observation_retry_master">Master kon deze waarneming nog niet verwerken; opnieuw proberen…</string>
 
     <!-- ─── Instellingen ─────────────────────────────────────────────── -->
     <string name="mc_settings_title">Samenwerken (master-client)</string>
@@ -79,11 +84,17 @@
     <!-- ─── Client: telling verlaten ────────────────────────────────── -->
     <string name="mc_btn_leave_session">Verlaat telling</string>
     <string name="mc_dialog_leave_title">Telling verlaten</string>
-    <string name="mc_dialog_leave_message">Wil je stoppen met tellen op deze telpost en de telling verlaten?\n\nJe waarnemingen zijn al overgedragen aan de master.</string>
+    <string name="mc_dialog_leave_message">Wil je stoppen met tellen op deze telpost en de telling verlaten?\n\nAlle waarnemingen zijn overgedragen aan de master en bevestigd voor ontvangst.</string>
     <string name="mc_dialog_leave_confirm">Verlaten</string>
     <string name="mc_dialog_leave_cancel">Annuleren</string>
+    <string name="mc_dialog_leave_pending_title">Nog niet alles bevestigd</string>
+    <string name="mc_dialog_leave_pending_message">Er wachten nog %1$d waarneming(en) op ontvangstbevestiging door de master.\n\nDit toestel blijft automatisch opnieuw proberen. Je kunt de telling pas verlaten zodra alles bevestigd is.</string>
     <string name="mc_status_session_ended">Telling beëindigd door master</string>
     <string name="mc_toast_left_session">Je hebt de telling verlaten</string>
+    <string name="mc_dialog_post_leave_title">Wat wil je nu doen?</string>
+    <string name="mc_dialog_post_leave_message">Je hebt de telling verlaten.\n\nKies of je de app volledig wilt afsluiten, of de app wilt herstarten en terugkeren naar het hoofdscherm met een propere solo-start.</string>
+    <string name="mc_dialog_post_leave_close_app">App sluiten</string>
+    <string name="mc_dialog_post_leave_restart_app">App herstarten</string>
 
     <!-- ─── Master: samenwerking beëindigen ──────────────────────────── -->
     <string name="mc_btn_end_collab">Beëindig samenwerking</string>

@@ -12,7 +12,6 @@ import android.net.Uri
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
-import android.net.wifi.WifiConfiguration
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -24,6 +23,7 @@ import android.widget.AutoCompleteTextView
 import android.widget.ImageView
 import android.widget.Toast
 import android.content.pm.PackageManager
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -35,6 +35,7 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.app.AppShutdown
 import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
@@ -63,6 +64,7 @@ import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import com.yvesds.vt5.features.network.DataUploader
 import com.yvesds.vt5.features.masterClient.protocol.TileSyncItem
+import com.yvesds.vt5.splash.SplashActiviteit
 
 /**
  * TellingScherm.kt
@@ -82,6 +84,10 @@ class TellingScherm : AppCompatActivity() {
 
         // Preferences keys
         private const val PREFS_NAME = "vt5_prefs"
+        private const val KEY_CLIENT_EVENT_MAP_JSON = "pref_client_event_map_json"
+        private const val PREFS_UPLOADS = "vt5_uploads"
+        private const val KEY_PENDING_UPLOADS = "pending_uploads"
+        private const val KEY_UPLOAD_ON_EXIT = "upload_on_exit"
 
         private const val MAX_LOG_ROWS = 600
         
@@ -92,6 +98,8 @@ class TellingScherm : AppCompatActivity() {
         const val EXTRA_SHOW_HUIDIGE_STAND = "SHOW_HUIDIGE_STAND"
         const val EXTRA_RESTORE_PENDING_TELLING = "RESTORE_PENDING_TELLING"
         const val EXTRA_JOIN_AS_CLIENT = "JOIN_AS_CLIENT"
+        const val EXTRA_AUTO_START_CLIENT_QR_SCAN = "AUTO_START_CLIENT_QR_SCAN"
+        const val EXTRA_OPEN_MASTER_PAIRING = "OPEN_MASTER_PAIRING"
     }
 
     // UI & adapters
@@ -191,7 +199,22 @@ class TellingScherm : AppCompatActivity() {
         // Backwards compatible total count property
         val count: Int get() = countMain + countReturn
     }
-    data class SpeechLogRow(val ts: Long, val tekst: String, val bron: String)
+    enum class DeliveryStatus {
+        NONE,
+        PENDING,
+        RETRYING,
+        ACKED,
+        FAILED
+    }
+
+    data class SpeechLogRow(
+        val ts: Long,
+        val tekst: String,
+        val bron: String,
+        val recordId: String? = null,
+        val clientEventId: String? = null,
+        val deliveryStatus: DeliveryStatus = DeliveryStatus.NONE
+    )
 
     // Import records launcher
     private val importRecordsLauncher = registerForActivityResult(
@@ -204,7 +227,10 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private var pendingJoinAsClient = false
+    private var pendingAutoStartClientQrScan = false
+    private var pendingOpenMasterPairing = false
     private var pendingOpenSoortSelectieOnPair = false
+    private var pendingPairingQrScanAfterWifiConnect = false
     private var tilesSyncedFromMaster = false
 
     private data class ClientPairingDialogRefs(
@@ -222,6 +248,7 @@ class TellingScherm : AppCompatActivity() {
     private var pendingWifiScanRefs: WifiScanUiRefs? = null
 
     private var activeClientPairingDialog: ClientPairingDialogRefs? = null
+    private var activeClientPairingDialogDismiss: (() -> Unit)? = null
 
     private enum class QrScanMode {
         WIFI,
@@ -252,8 +279,14 @@ class TellingScherm : AppCompatActivity() {
                 activeClientPairingDialog?.tvStatus?.text = getString(R.string.mc_pairing_wifi_qr_ok)
 
                 pendingQrScanMode = QrScanMode.PAIRING
+                val waitForWifiApproval = connectToWifi(wifi.ssid, wifi.pass, wifi.sec)
                 Toast.makeText(this, getString(R.string.mc_pairing_wifi_qr_ok), Toast.LENGTH_SHORT).show()
-                launchQrScan(getString(R.string.mc_pairing_scan_pairing_qr))
+                if (waitForWifiApproval) {
+                    pendingPairingQrScanAfterWifiConnect = true
+                    activeClientPairingDialog?.tvStatus?.text = getString(R.string.mc_wifi_connect_approve)
+                } else {
+                    launchQrScan(getString(R.string.mc_pairing_scan_pairing_qr))
+                }
             }
             QrScanMode.PAIRING -> {
                 val payload = com.yvesds.vt5.features.masterClient.McQrPayloadCodec.decode(raw)
@@ -273,6 +306,7 @@ class TellingScherm : AppCompatActivity() {
                     refs.etIp.setText(payload.ip)
                     refs.etPin.setText(payload.pin)
                     refs.tvStatus.text = getString(R.string.mc_pairing_qr_filled)
+                    connectClientToMaster(payload.ip, payload.pin, refs.tvStatus)
                 }
             }
         }
@@ -317,17 +351,21 @@ class TellingScherm : AppCompatActivity() {
         setContentView(binding.root)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        restoreClientEventMappings()
 
-        pendingJoinAsClient = intent.getBooleanExtra(EXTRA_JOIN_AS_CLIENT, false)
-        if (pendingJoinAsClient) {
-            pendingOpenSoortSelectieOnPair = true
-        }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (hasUndeliveredClientObservations()) {
+                    showPendingDeliveryRequiredDialog()
+                    return
+                }
+                isEnabled = false
+                onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        })
 
-        // Check if this is triggered by the hourly alarm (from HourlyAlarmManager)
-        // Store the flag to show HuidigeStandScherm after tiles are loaded
-        if (intent.getBooleanExtra(EXTRA_SHOW_HUIDIGE_STAND, false)) {
-            pendingShowHuidigeStand = true
-        }
+        applyIntentFlags(intent, immediate = false)
         
         // Initialize helper classes BEFORE registering launchers
         // (partial initialization for those that need it)
@@ -401,8 +439,13 @@ class TellingScherm : AppCompatActivity() {
             Log.w(TAG, "Failed to register aliasReloadReceiver: ${ex.message}", ex)
         }
 
-        // Preload tiles (if preselected) then initialize ASR
-        initializer.loadPreselection()
+        // Preload tiles for solo/master, but allow a new client to join without local preselection.
+        if (intent?.getBooleanExtra(EXTRA_JOIN_AS_CLIENT, false) == true) {
+            addLog("Client koppelen: scan Wi‑Fi QR en daarna pairing‑QR.", "systeem")
+            initializer.checkAndRequestPermissions()
+        } else {
+            initializer.loadPreselection()
+        }
 
         // Ask user if a pending, non-uploaded telling should be restored
         lifecycleScope.launch {
@@ -504,21 +547,10 @@ class TellingScherm : AppCompatActivity() {
         speciesManager.onTilesUpdated = { updateSelectedSpeciesMap() }
         speciesManager.onRecordCollected = { item ->
             synchronized(pendingRecords) { pendingRecords.add(item) }
-            mcEventQueue?.enqueue(
-                clientId = com.yvesds.vt5.features.masterClient.MasterClientPrefs.getClientId(applicationContext),
-                sessionToken = com.yvesds.vt5.features.masterClient.MasterClientPrefs.getSessionToken(applicationContext),
-                soortid = item.soortid,
-                aantal = item.aantal.toIntOrNull() ?: 0,
-                aantalterug = item.aantalterug.toIntOrNull() ?: 0,
-                tijdstip = item.tijdstip.toLongOrNull() ?: (System.currentTimeMillis() / 1000L),
-                geslacht = item.geslacht,
-                leeftijd = item.leeftijd,
-                kleed = item.kleed,
-                opmerkingen = item.opmerkingen
-            )
             if (::viewModel.isInitialized) viewModel.addPendingRecord(item)
 
             if (mcMasterServer == null && mcClientConnector != null) {
+                val recordPayload = encodeObservationRecordPayload(item)
                 val clientEventId = mcClientConnector?.queueObservation(
                     soortid = item.soortid,
                     aantal = item.aantal.toIntOrNull() ?: 0,
@@ -527,10 +559,19 @@ class TellingScherm : AppCompatActivity() {
                     geslacht = item.geslacht,
                     leeftijd = item.leeftijd,
                     kleed = item.kleed,
-                    opmerkingen = item.opmerkingen
+                    opmerkingen = item.opmerkingen,
+                    recordPayload = recordPayload
                 )
                 if (!clientEventId.isNullOrBlank()) {
                     mcClientEventIdByRecordId[item.idLocal] = clientEventId
+                    mcClientRecordIdByEvent[clientEventId] = item.idLocal
+                    persistClientEventMappings()
+                    markClientFinalDelivery(item.idLocal, clientEventId, DeliveryStatus.PENDING)
+                    refreshClientDeliveryUi()
+                } else {
+                    markClientFinalDelivery(item.idLocal, null, DeliveryStatus.FAILED)
+                    refreshClientDeliveryUi()
+                    Log.w(TAG, "Client observation not queued live; missing active session token for record ${item.idLocal}")
                 }
             }
 
@@ -566,7 +607,8 @@ class TellingScherm : AppCompatActivity() {
             if (mcMasterServer == null && mcClientConnector != null) {
                 val eventId = mcClientEventIdByRecordId[updated.idLocal]
                 if (!eventId.isNullOrBlank()) {
-                    mcClientConnector?.queueObservationUpdate(
+                    val recordPayload = encodeObservationRecordPayload(updated)
+                    val queued = mcClientConnector?.queueObservationUpdate(
                         clientEventId = eventId,
                         soortid = updated.soortid,
                         aantal = updated.aantal.toIntOrNull() ?: 0,
@@ -575,8 +617,17 @@ class TellingScherm : AppCompatActivity() {
                         geslacht = updated.geslacht,
                         leeftijd = updated.leeftijd,
                         kleed = updated.kleed,
-                        opmerkingen = updated.opmerkingen
+                        opmerkingen = updated.opmerkingen,
+                        recordPayload = recordPayload
                     )
+                    if (queued == true) {
+                        val updatedFinals = logManager.updateFinalDeliveryStatus(updated.idLocal, DeliveryStatus.PENDING, eventId)
+                        pushUpdatedFinals(updatedFinals)
+                    } else {
+                        val updatedFinals = logManager.updateFinalDeliveryStatus(updated.idLocal, DeliveryStatus.FAILED, eventId)
+                        pushUpdatedFinals(updatedFinals)
+                    }
+                    refreshClientDeliveryUi()
                 }
             }
 
@@ -661,12 +712,63 @@ class TellingScherm : AppCompatActivity() {
         // Initialiseer master-client statusbalk en knoppen
         setupMasterClientUi()
 
+        handlePendingPairingRequests()
+    }
+
+    private fun applyIntentFlags(intent: Intent?, immediate: Boolean) {
+        if (intent == null) return
+
+        if (intent.getBooleanExtra(EXTRA_JOIN_AS_CLIENT, false)) {
+            pendingJoinAsClient = true
+            pendingOpenSoortSelectieOnPair = true
+        }
+
+        if (intent.getBooleanExtra(EXTRA_AUTO_START_CLIENT_QR_SCAN, false)) {
+            pendingAutoStartClientQrScan = true
+        }
+
+        if (intent.getBooleanExtra(EXTRA_OPEN_MASTER_PAIRING, false)) {
+            pendingOpenMasterPairing = true
+        }
+
+        if (intent.getBooleanExtra(EXTRA_SHOW_HUIDIGE_STAND, false)) {
+            pendingShowHuidigeStand = true
+            if (immediate) {
+                showHuidigeStandScherm()
+                pendingShowHuidigeStand = false
+            }
+        }
+
+        if (intent.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) && immediate) {
+            lifecycleScope.launch {
+                if (!restoredFromSavedEnvelope && pendingRecords.isEmpty()) {
+                    restorePendingTellingIfAvailable()
+                }
+            }
+        }
+
+        if (immediate) {
+            handlePendingPairingRequests()
+            updateAlarmToggleUi()
+        }
+    }
+
+    private fun handlePendingPairingRequests() {
+        if (pendingOpenMasterPairing) {
+            pendingOpenMasterPairing = false
+            startMasterServerOnDemand {
+                showMasterPairingDialog()
+            }
+        }
+
         if (pendingJoinAsClient) {
             pendingJoinAsClient = false
+            val autoStartQrScan = pendingAutoStartClientQrScan
+            pendingAutoStartClientQrScan = false
             if (mcClientConnector == null) {
                 setupClientMode()
             }
-            showClientPairingDialog()
+            showClientPairingDialog(autoStartQrScan = autoStartQrScan)
         }
     }
 
@@ -773,7 +875,7 @@ class TellingScherm : AppCompatActivity() {
 
             // Koppel client-observaties aan de live telling via dezelfde codepath als
             // eigen spraakwaarnemingen (tile-update + log + record-opslag).
-            ep.onObservationReceived = { clientId, clientEventId, isUpdate, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen ->
+            ep.onObservationReceived = { clientId, clientEventId, isUpdate, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen, recordPayload ->
                 withContext(Dispatchers.Main) {
                     handleLiveClientEvent(
                         clientId = clientId,
@@ -786,7 +888,8 @@ class TellingScherm : AppCompatActivity() {
                         geslacht = geslacht,
                         leeftijd = leeftijd,
                         kleed = kleed,
-                        opmerkingen = opmerkingen
+                        opmerkingen = opmerkingen,
+                        recordPayload = recordPayload
                     )
                 }
             }
@@ -883,20 +986,25 @@ class TellingScherm : AppCompatActivity() {
         kleed: String,
         opmerkingen: String
     ) {
-        val naam = tegelBeheer.findNaamBySoortId(soortId) ?: soortId
-        val prefix = getString(R.string.mc_log_client_prefix)
-        val logText = "$prefix $naam -> +$amount" +
-            (if (aantalterug > 0) " / ↩ +$aantalterug" else "")
-        addFinalLog(logText)
         lifecycleScope.launch {
+            val naam = speciesManager.ensureSpeciesTilePresent(soortId)
+            val prefix = getString(R.string.mc_log_client_prefix)
+            val logText = "$prefix $naam -> +$amount" +
+                (if (aantalterug > 0) " / ↩ +$aantalterug" else "")
+            addFinalLog(logText)
             // Bijwerken tegeltelling (zichtbaar voor de master)
-            speciesManager.updateSoortCountInternal(soortId, amount)
+            if (amount > 0) {
+                speciesManager.updateSoortCountInternal(soortId, amount)
+            }
+            if (aantalterug > 0) {
+                tegelBeheer.verhoogSoortAantalReturn(soortId, aantalterug)
+            }
             // Record opslaan (dezelfde codepath als eigen spraakwaarnemingen)
             speciesManager.collectFinalAsRecord(soortId, amount, aantalterug)
         }
     }
 
-    private fun handleLiveClientEvent(
+    private suspend fun handleLiveClientEvent(
         clientId: String,
         clientEventId: String,
         isUpdate: Boolean,
@@ -907,12 +1015,13 @@ class TellingScherm : AppCompatActivity() {
         geslacht: String,
         leeftijd: String,
         kleed: String,
-        opmerkingen: String
+        opmerkingen: String,
+        recordPayload: String
     ) {
         val key = "$clientId::$clientEventId"
         val existingIdLocal = mcClientRecordIdByEvent[key]
         if (isUpdate && !existingIdLocal.isNullOrBlank()) {
-            applyClientRecordUpdate(existingIdLocal, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen)
+            applyClientRecordUpdate(existingIdLocal, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen, recordPayload)
             return
         }
 
@@ -920,33 +1029,20 @@ class TellingScherm : AppCompatActivity() {
         val idLocal = DataUploader.getAndIncrementRecordId(this, tellingId)
         val nowStamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", resources.configuration.locales[0])
             .format(java.util.Date())
-        val item = ServerTellingDataItem(
+        val payloadRecord = decodeObservationRecordPayload(recordPayload)
+        val item = buildMasterClientRecord(
             idLocal = idLocal,
-            tellingid = tellingId,
-            soortid = soortId,
-            aantal = amount.toString(),
-            richting = "",
-            aantalterug = aantalterug.toString(),
-            richtingterug = "",
-            sightingdirection = "",
-            lokaal = "0",
-            aantal_plus = "0",
-            aantalterug_plus = "0",
-            lokaal_plus = "0",
-            markeren = "0",
-            markerenlokaal = "0",
-            geslacht = geslacht,
-            leeftijd = leeftijd,
-            kleed = kleed,
-            opmerkingen = opmerkingen,
-            trektype = "",
-            teltype = "",
-            location = "",
-            height = "",
-            tijdstip = tijdstip.toString(),
-            groupid = idLocal,
+            tellingId = tellingId,
+            fallbackSoortId = soortId,
+            fallbackAmount = amount,
+            fallbackAantalterug = aantalterug,
+            fallbackTijdstip = tijdstip,
+            fallbackGeslacht = geslacht,
+            fallbackLeeftijd = leeftijd,
+            fallbackKleed = kleed,
+            fallbackOpmerkingen = opmerkingen,
             uploadtijdstip = nowStamp,
-            totaalaantal = (amount + aantalterug).toString()
+            payloadRecord = payloadRecord
         )
 
         synchronized(pendingRecords) { pendingRecords.add(item) }
@@ -954,17 +1050,21 @@ class TellingScherm : AppCompatActivity() {
 
         mcClientRecordIdByEvent[key] = idLocal
 
-        if (amount > 0) {
-            speciesManager.updateSoortCountInternal(soortId, amount)
+        val naam = speciesManager.ensureSpeciesTilePresent(item.soortid)
+
+        val mainCount = item.aantal.toIntOrNull() ?: amount
+        val returnCount = item.aantalterug.toIntOrNull() ?: aantalterug
+
+        if (mainCount > 0) {
+            speciesManager.updateSoortCountInternal(item.soortid, mainCount)
         }
-        if (aantalterug > 0) {
-            tegelBeheer.verhoogSoortAantalReturn(soortId, aantalterug)
+        if (returnCount > 0) {
+            tegelBeheer.verhoogSoortAantalReturn(item.soortid, returnCount)
         }
 
-        val naam = tegelBeheer.findNaamBySoortId(soortId) ?: soortId
         val prefix = getString(R.string.mc_log_client_prefix)
-        val logText = "$prefix $naam -> +$amount" + (if (aantalterug > 0) " / ↩ +$aantalterug" else "")
-        addFinalLog(logText)
+        val logText = "$prefix $naam -> +$mainCount" + (if (returnCount > 0) " / ↩ +$returnCount" else "")
+        addFinalLog(logText, recordId = idLocal)
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -980,7 +1080,7 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
-    private fun applyClientRecordUpdate(
+    private suspend fun applyClientRecordUpdate(
         idLocal: String,
         soortId: String,
         amount: Int,
@@ -989,22 +1089,25 @@ class TellingScherm : AppCompatActivity() {
         geslacht: String,
         leeftijd: String,
         kleed: String,
-        opmerkingen: String
+        opmerkingen: String,
+        recordPayload: String
     ) {
         val idx = synchronized(pendingRecords) { pendingRecords.indexOfFirst { it.idLocal == idLocal } }
         if (idx < 0) return
 
         val existing = synchronized(pendingRecords) { pendingRecords[idx] }
-        val updated = existing.copy(
-            soortid = soortId,
-            aantal = amount.toString(),
-            aantalterug = aantalterug.toString(),
-            geslacht = geslacht,
-            leeftijd = leeftijd,
-            kleed = kleed,
-            opmerkingen = opmerkingen,
-            tijdstip = tijdstip.toString(),
-            totaalaantal = (amount + aantalterug).toString()
+        val payloadRecord = decodeObservationRecordPayload(recordPayload)
+        val updated = mergeClientRecordUpdate(
+            existing = existing,
+            fallbackSoortId = soortId,
+            fallbackAmount = amount,
+            fallbackAantalterug = aantalterug,
+            fallbackTijdstip = tijdstip,
+            fallbackGeslacht = geslacht,
+            fallbackLeeftijd = leeftijd,
+            fallbackKleed = kleed,
+            fallbackOpmerkingen = opmerkingen,
+            payloadRecord = payloadRecord
         )
 
         synchronized(pendingRecords) {
@@ -1012,21 +1115,26 @@ class TellingScherm : AppCompatActivity() {
         }
         if (::viewModel.isInitialized) viewModel.setPendingRecords(synchronized(pendingRecords) { pendingRecords.toList() })
 
+        val naam = speciesManager.ensureSpeciesTilePresent(updated.soortid)
         tegelBeheer.recalculateCountsFromRecords(synchronized(pendingRecords) { pendingRecords.toList() })
 
-        val naam = tegelBeheer.findNaamBySoortId(soortId) ?: soortId
         val prefix = getString(R.string.mc_log_client_prefix)
         val oldMain = existing.aantal.toIntOrNull() ?: 0
         val oldRet = existing.aantalterug.toIntOrNull() ?: 0
-        val changedCounts = oldMain != amount || oldRet != aantalterug
-        val changedAnn = existing.geslacht != geslacht || existing.leeftijd != leeftijd || existing.kleed != kleed || existing.opmerkingen != opmerkingen
+        val newMain = updated.aantal.toIntOrNull() ?: amount
+        val newRet = updated.aantalterug.toIntOrNull() ?: aantalterug
+        val changedCounts =
+            oldMain != newMain ||
+            oldRet != newRet ||
+            existing.lokaal != updated.lokaal
+        val changedAnn = hasClientAnnotationChanges(existing, updated)
         if (changedCounts || changedAnn) {
             val logText = if (changedCounts) {
-                "$prefix $naam bijgewerkt -> $oldMain/$oldRet → $amount/$aantalterug"
+                "$prefix $naam bijgewerkt -> $oldMain/$oldRet → $newMain/$newRet"
             } else {
                 "$prefix $naam annotatie bijgewerkt"
             }
-            addFinalLog(logText)
+            addFinalLog(logText, recordId = idLocal)
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
@@ -1104,7 +1212,7 @@ class TellingScherm : AppCompatActivity() {
      */
     private fun handleFinalTap(pos: Int, row: SpeechLogRow) {
         if (row.bron == "final") {
-            annotationHandler.launchAnnotatieScherm(row.tekst, row.ts, pos)
+            annotationHandler.launchAnnotatieScherm(row.tekst, row.ts, pos, row.recordId)
         }
     }
 
@@ -1250,11 +1358,8 @@ class TellingScherm : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Check if this is triggered by the hourly alarm
-        if (intent.getBooleanExtra(EXTRA_SHOW_HUIDIGE_STAND, false)) {
-            showHuidigeStandScherm()
-        }
-        updateAlarmToggleUi()
+        setIntent(intent)
+        applyIntentFlags(intent, immediate = true)
     }
     
     /**
@@ -1293,6 +1398,12 @@ class TellingScherm : AppCompatActivity() {
         updateAlarmToggleUi()
         ensurePendingTellingPromptOnRestore()
 
+        if (pendingPairingQrScanAfterWifiConnect) {
+            pendingPairingQrScanAfterWifiConnect = false
+            pendingQrScanMode = QrScanMode.PAIRING
+            launchQrScan(getString(R.string.mc_pairing_scan_pairing_qr))
+        }
+
         // Refresh log text size/color from settings
         val partialsSize = InstellingenScherm.getPartialsTextSizeSp(this)
         val finalsSize = InstellingenScherm.getFinalsTextSizeSp(this)
@@ -1312,6 +1423,7 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun ensurePendingTellingPromptOnRestore() {
+        if (intent?.getBooleanExtra(EXTRA_JOIN_AS_CLIENT, false) == true) return
         if (intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true) return
         if (restoredFromSavedEnvelope) return
         if (pendingRecords.isNotEmpty()) return
@@ -1370,7 +1482,16 @@ class TellingScherm : AppCompatActivity() {
         } catch (_: Exception) {}
         // Master-client cleanup
         try { mcMasterServer?.stop() }        catch (_: Exception) {}
-        try { mcClientConnector?.stop() }     catch (_: Exception) {}
+        try {
+            val connector = mcClientConnector
+            if (isFinishing && !hasUndeliveredClientObservations() &&
+                connector?.state?.value == com.yvesds.vt5.features.masterClient.ClientConnector.State.PAIRED
+            ) {
+                connector.leaveSession("telscherm gesloten")
+            } else {
+                connector?.stop()
+            }
+        } catch (_: Exception) {}
         try { mcDiscoveryService?.stop() }    catch (_: Exception) {}
         super.onDestroy()
     }
@@ -1543,10 +1664,171 @@ class TellingScherm : AppCompatActivity() {
     }
 
     // Delegate to logManager for addFinalLog
-    private fun addFinalLog(text: String) {
-        val updatedFinals = logManager.addFinalLog(text)
+    private fun addFinalLog(
+        text: String,
+        recordId: String? = null,
+        clientEventId: String? = null,
+        deliveryStatus: DeliveryStatus = DeliveryStatus.NONE
+    ) {
+        val updatedFinals = logManager.addFinalLog(text, recordId, clientEventId, deliveryStatus)
+        pushUpdatedFinals(updatedFinals)
+    }
+
+    private fun encodeObservationRecordPayload(record: ServerTellingDataItem): String {
+        return try {
+            VT5App.json.encodeToString(ServerTellingDataItem.serializer(), record)
+        } catch (ex: Exception) {
+            Log.w(TAG, "Kon client record payload niet serialiseren: ${ex.message}", ex)
+            ""
+        }
+    }
+
+    private fun decodeObservationRecordPayload(recordPayload: String?): ServerTellingDataItem? {
+        if (recordPayload.isNullOrBlank()) return null
+        return try {
+            VT5App.json.decodeFromString(ServerTellingDataItem.serializer(), recordPayload)
+        } catch (ex: Exception) {
+            Log.w(TAG, "Kon client record payload niet decoderen: ${ex.message}", ex)
+            null
+        }
+    }
+
+    private fun buildMasterClientRecord(
+        idLocal: String,
+        tellingId: String,
+        fallbackSoortId: String,
+        fallbackAmount: Int,
+        fallbackAantalterug: Int,
+        fallbackTijdstip: Long,
+        fallbackGeslacht: String,
+        fallbackLeeftijd: String,
+        fallbackKleed: String,
+        fallbackOpmerkingen: String,
+        uploadtijdstip: String,
+        payloadRecord: ServerTellingDataItem?
+    ): ServerTellingDataItem {
+        val source = payloadRecord
+        val soortid = source?.soortid?.ifBlank { fallbackSoortId } ?: fallbackSoortId
+        val aantal = source?.aantal?.ifBlank { fallbackAmount.toString() } ?: fallbackAmount.toString()
+        val aantalterug = source?.aantalterug?.ifBlank { fallbackAantalterug.toString() } ?: fallbackAantalterug.toString()
+        val lokaal = source?.lokaal ?: "0"
+        return ServerTellingDataItem(
+            idLocal = idLocal,
+            tellingid = tellingId,
+            soortid = soortid,
+            aantal = aantal,
+            richting = source?.richting ?: "",
+            aantalterug = aantalterug,
+            richtingterug = source?.richtingterug ?: "",
+            sightingdirection = source?.sightingdirection ?: "",
+            lokaal = lokaal,
+            aantal_plus = source?.aantal_plus ?: "0",
+            aantalterug_plus = source?.aantalterug_plus ?: "0",
+            lokaal_plus = source?.lokaal_plus ?: "0",
+            markeren = source?.markeren ?: "0",
+            markerenlokaal = source?.markerenlokaal ?: "0",
+            geslacht = source?.geslacht ?: fallbackGeslacht,
+            leeftijd = source?.leeftijd ?: fallbackLeeftijd,
+            kleed = source?.kleed ?: fallbackKleed,
+            opmerkingen = source?.opmerkingen ?: fallbackOpmerkingen,
+            trektype = source?.trektype ?: "",
+            teltype = source?.teltype ?: "",
+            location = source?.location ?: "",
+            height = source?.height ?: "",
+            tijdstip = source?.tijdstip?.ifBlank { fallbackTijdstip.toString() } ?: fallbackTijdstip.toString(),
+            groupid = idLocal,
+            uploadtijdstip = source?.uploadtijdstip?.ifBlank { uploadtijdstip } ?: uploadtijdstip,
+            totaalaantal = source?.totaalaantal?.ifBlank { calculateObservationTotal(aantal, aantalterug, lokaal) }
+                ?: calculateObservationTotal(aantal, aantalterug, lokaal)
+        )
+    }
+
+    private fun mergeClientRecordUpdate(
+        existing: ServerTellingDataItem,
+        fallbackSoortId: String,
+        fallbackAmount: Int,
+        fallbackAantalterug: Int,
+        fallbackTijdstip: Long,
+        fallbackGeslacht: String,
+        fallbackLeeftijd: String,
+        fallbackKleed: String,
+        fallbackOpmerkingen: String,
+        payloadRecord: ServerTellingDataItem?
+    ): ServerTellingDataItem {
+        val source = payloadRecord
+        val soortid = source?.soortid?.ifBlank { fallbackSoortId } ?: fallbackSoortId
+        val aantal = source?.aantal?.ifBlank { fallbackAmount.toString() } ?: fallbackAmount.toString()
+        val aantalterug = source?.aantalterug?.ifBlank { fallbackAantalterug.toString() } ?: fallbackAantalterug.toString()
+        val lokaal = source?.lokaal ?: existing.lokaal
+        return existing.copy(
+            soortid = soortid,
+            aantal = aantal,
+            richting = source?.richting ?: existing.richting,
+            aantalterug = aantalterug,
+            richtingterug = source?.richtingterug ?: existing.richtingterug,
+            sightingdirection = source?.sightingdirection ?: existing.sightingdirection,
+            lokaal = lokaal,
+            aantal_plus = source?.aantal_plus ?: existing.aantal_plus,
+            aantalterug_plus = source?.aantalterug_plus ?: existing.aantalterug_plus,
+            lokaal_plus = source?.lokaal_plus ?: existing.lokaal_plus,
+            markeren = source?.markeren ?: existing.markeren,
+            markerenlokaal = source?.markerenlokaal ?: existing.markerenlokaal,
+            geslacht = source?.geslacht ?: fallbackGeslacht,
+            leeftijd = source?.leeftijd ?: fallbackLeeftijd,
+            kleed = source?.kleed ?: fallbackKleed,
+            opmerkingen = source?.opmerkingen ?: fallbackOpmerkingen,
+            trektype = source?.trektype ?: existing.trektype,
+            teltype = source?.teltype ?: existing.teltype,
+            location = source?.location ?: existing.location,
+            height = source?.height ?: existing.height,
+            tijdstip = source?.tijdstip?.ifBlank { fallbackTijdstip.toString() } ?: fallbackTijdstip.toString(),
+            uploadtijdstip = source?.uploadtijdstip ?: existing.uploadtijdstip,
+            totaalaantal = source?.totaalaantal?.ifBlank { calculateObservationTotal(aantal, aantalterug, lokaal) }
+                ?: calculateObservationTotal(aantal, aantalterug, lokaal)
+        )
+    }
+
+    private fun hasClientAnnotationChanges(existing: ServerTellingDataItem, updated: ServerTellingDataItem): Boolean {
+        return existing.geslacht != updated.geslacht ||
+            existing.leeftijd != updated.leeftijd ||
+            existing.kleed != updated.kleed ||
+            existing.opmerkingen != updated.opmerkingen ||
+            existing.location != updated.location ||
+            existing.height != updated.height ||
+            existing.lokaal != updated.lokaal ||
+            existing.lokaal_plus != updated.lokaal_plus ||
+            existing.markeren != updated.markeren ||
+            existing.markerenlokaal != updated.markerenlokaal ||
+            existing.richting != updated.richting ||
+            existing.richtingterug != updated.richtingterug ||
+            existing.sightingdirection != updated.sightingdirection ||
+            existing.teltype != updated.teltype ||
+            existing.trektype != updated.trektype ||
+            existing.aantal_plus != updated.aantal_plus ||
+            existing.aantalterug_plus != updated.aantalterug_plus
+    }
+
+    private fun calculateObservationTotal(aantal: String, aantalterug: String, lokaal: String): String {
+        val main = aantal.toIntOrNull() ?: 0
+        val ret = aantalterug.toIntOrNull() ?: 0
+        val local = lokaal.toIntOrNull() ?: 0
+        return (main + ret + local).toString()
+    }
+
+    private fun markClientFinalDelivery(recordId: String, clientEventId: String?, status: DeliveryStatus) {
+        val updatedFinals = logManager.attachDeliveryToLatestFinal(recordId, clientEventId, status)
+        pushUpdatedFinals(updatedFinals)
+    }
+
+    private fun markClientFinalDeliveryByEvent(clientEventId: String, status: DeliveryStatus) {
+        val recordId = mcClientRecordIdByEvent[clientEventId] ?: return
+        val updatedFinals = logManager.updateFinalDeliveryStatus(recordId, status, clientEventId)
+        pushUpdatedFinals(updatedFinals)
+    }
+
+    private fun pushUpdatedFinals(updatedFinals: List<SpeechLogRow>) {
         val updatedPartials = logManager.getPartials().filter { it.bron != "partial" }
-        
+
         lifecycleScope.launch(Dispatchers.Main) {
             if (::viewModel.isInitialized) {
                 viewModel.setFinals(updatedFinals)
@@ -1555,6 +1837,61 @@ class TellingScherm : AppCompatActivity() {
                 uiManager.updateFinals(updatedFinals)
                 uiManager.updatePartials(updatedPartials)
             }
+        }
+    }
+
+    private fun getClientPendingObservationCount(): Int {
+        return mcClientConnector?.pendingObservationCount()
+            ?: mcEventQueue?.totalUnacknowledged()
+            ?: 0
+    }
+
+    private fun hasUndeliveredClientObservations(): Boolean = getClientPendingObservationCount() > 0
+
+    private fun refreshClientDeliveryUi() {
+        if (!::binding.isInitialized) return
+        val connector = mcClientConnector ?: return
+        updateClientStatusBar(connector.state.value)
+    }
+
+    private fun showPendingDeliveryRequiredDialog() {
+        val count = getClientPendingObservationCount()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_dialog_leave_pending_title)
+            .setMessage(getString(R.string.mc_dialog_leave_pending_message, count))
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun restoreClientEventMappings() {
+        val raw = prefs.getString(KEY_CLIENT_EVENT_MAP_JSON, null) ?: return
+        try {
+            val json = org.json.JSONObject(raw)
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val recordId = keys.next()
+                val eventId = json.optString(recordId)
+                if (recordId.isNotBlank() && eventId.isNotBlank()) {
+                    mcClientEventIdByRecordId[recordId] = eventId
+                    mcClientRecordIdByEvent[eventId] = recordId
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Kon client event mapping niet herstellen: ${e.message}", e)
+        }
+    }
+
+    private fun persistClientEventMappings() {
+        try {
+            val json = org.json.JSONObject()
+            mcClientEventIdByRecordId.forEach { (recordId, eventId) ->
+                json.put(recordId, eventId)
+            }
+            prefs.edit().putString(KEY_CLIENT_EVENT_MAP_JSON, json.toString()).apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Kon client event mapping niet bewaren: ${e.message}", e)
         }
     }
 
@@ -1766,8 +2103,8 @@ class TellingScherm : AppCompatActivity() {
             val speciesById = snapshot.speciesById
             val countsBySoort = savedRecords.groupBy { it.soortid }
 
-            val restoredTiles = countsBySoort.mapNotNull { (soortId, items) ->
-                val soortNaam = speciesById[soortId]?.soortnaam ?: return@mapNotNull null
+            val restoredTiles = countsBySoort.map { (soortId, items) ->
+                val soortNaam = speciesById[soortId]?.soortnaam ?: soortId
                 val countMain = items.sumOf { it.aantal.toIntOrNull() ?: 0 }
                 val countReturn = items.sumOf { it.aantalterug.toIntOrNull() ?: 0 }
                 SoortTile(soortId, soortNaam, countMain, countReturn)
@@ -1801,7 +2138,7 @@ class TellingScherm : AppCompatActivity() {
                         append(ret)
                     }
                 }
-                SpeechLogRow(System.currentTimeMillis() / 1000L, display, "final")
+                SpeechLogRow(System.currentTimeMillis() / 1000L, display, "final", recordId = rec.idLocal)
             }
             logManager.setFinals(restoredFinals)
             logManager.setPartials(emptyList())
@@ -1859,13 +2196,13 @@ class TellingScherm : AppCompatActivity() {
         ).show()
     }
 
-    private fun applyImportedRecords(items: List<ServerTellingDataItem>) {
+    private suspend fun applyImportedRecords(items: List<ServerTellingDataItem>) {
         if (items.isEmpty()) return
 
         for (item in items) {
             val amount = item.aantal.toIntOrNull() ?: 0
             val returnAmount = item.aantalterug.toIntOrNull() ?: 0
-            val naam = tegelBeheer.findNaamBySoortId(item.soortid) ?: item.soortid
+            val naam = speciesManager.ensureSpeciesTilePresent(item.soortid)
             val prefix = getString(R.string.mc_log_client_prefix)
 
             if (amount > 0) {
@@ -1959,7 +2296,7 @@ class TellingScherm : AppCompatActivity() {
 
     private fun startClientConnector() {
         try {
-            val queue     = com.yvesds.vt5.features.masterClient.ClientEventQueue()
+            val queue     = com.yvesds.vt5.features.masterClient.ClientEventQueue(applicationContext)
             val connector = com.yvesds.vt5.features.masterClient.ClientConnector(
                 context    = applicationContext,
                 eventQueue = queue
@@ -1990,6 +2327,29 @@ class TellingScherm : AppCompatActivity() {
                 }
             }
 
+            connector.onObservationAcknowledged = { clientEventId ->
+                runOnUiThread {
+                    markClientFinalDeliveryByEvent(clientEventId, DeliveryStatus.ACKED)
+                    refreshClientDeliveryUi()
+                    Toast.makeText(this, getString(R.string.mc_observation_received_master), Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            connector.onObservationRejected = { clientEventId, _ ->
+                runOnUiThread {
+                    markClientFinalDeliveryByEvent(clientEventId, DeliveryStatus.RETRYING)
+                    refreshClientDeliveryUi()
+                    Toast.makeText(this, getString(R.string.mc_observation_retry_master), Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            connector.onObservationRetrying = { clientEventId ->
+                runOnUiThread {
+                    markClientFinalDeliveryByEvent(clientEventId, DeliveryStatus.RETRYING)
+                    refreshClientDeliveryUi()
+                }
+            }
+
             lifecycleScope.launch {
                 connector.state.collect { state ->
                     runOnUiThread { updateClientStatusBar(state) }
@@ -2009,28 +2369,41 @@ class TellingScherm : AppCompatActivity() {
     private fun updateClientStatusBar(state: com.yvesds.vt5.features.masterClient.ClientConnector.State) {
         val tvStatus  = binding.root.findViewById<android.widget.TextView?>(R.id.tvMcStatus) ?: return
         val btnAction = binding.root.findViewById<android.widget.Button?>(R.id.btnMcAction) ?: return
+        val pendingCount = getClientPendingObservationCount()
         when (state) {
             com.yvesds.vt5.features.masterClient.ClientConnector.State.PAIRED -> {
-                tvStatus.text  = getString(R.string.mc_status_bar_client_connected)
+                tvStatus.text  = if (pendingCount > 0) {
+                    getString(R.string.mc_status_bar_client_pending, pendingCount)
+                } else {
+                    getString(R.string.mc_status_bar_client_connected)
+                }
                 btnAction.text = getString(R.string.mc_btn_leave_session)
                 btnAction.setOnClickListener { showLeaveSessionDialog() }
-                if (pendingOpenSoortSelectieOnPair && !tilesSyncedFromMaster) {
-                    pendingOpenSoortSelectieOnPair = false
-                    openSoortSelectieForAdd()
-                }
             }
             com.yvesds.vt5.features.masterClient.ClientConnector.State.CONNECTING -> {
-                tvStatus.text  = getString(R.string.mc_status_bar_client_connecting)
+                tvStatus.text  = if (pendingCount > 0) {
+                    getString(R.string.mc_status_bar_client_retrying_pending, pendingCount)
+                } else {
+                    getString(R.string.mc_status_bar_client_connecting)
+                }
                 btnAction.text = getString(R.string.mc_btn_connect_to_master)
                 btnAction.setOnClickListener { showClientPairingDialog() }
             }
             com.yvesds.vt5.features.masterClient.ClientConnector.State.ERROR -> {
-                tvStatus.text  = getString(R.string.mc_status_bar_client_error)
+                tvStatus.text  = if (pendingCount > 0) {
+                    getString(R.string.mc_status_bar_client_retrying_pending, pendingCount)
+                } else {
+                    getString(R.string.mc_status_bar_client_error)
+                }
                 btnAction.text = getString(R.string.mc_btn_connect_to_master)
                 btnAction.setOnClickListener { showClientPairingDialog() }
             }
             com.yvesds.vt5.features.masterClient.ClientConnector.State.DISCONNECTED -> {
-                tvStatus.text  = getString(R.string.mc_status_bar_client_connecting)
+                tvStatus.text  = if (pendingCount > 0) {
+                    getString(R.string.mc_status_bar_client_retrying_pending, pendingCount)
+                } else {
+                    getString(R.string.mc_status_bar_client_connecting)
+                }
                 btnAction.text = getString(R.string.mc_btn_connect_to_master)
                 btnAction.setOnClickListener { showClientPairingDialog() }
             }
@@ -2038,20 +2411,128 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun showLeaveSessionDialog() {
+        if (hasUndeliveredClientObservations()) {
+            showPendingDeliveryRequiredDialog()
+            return
+        }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.mc_dialog_leave_title)
             .setMessage(R.string.mc_dialog_leave_message)
             .setPositiveButton(R.string.mc_dialog_leave_confirm) { _, _ ->
-                tilesSyncedFromMaster = false
-                mcClientConnector?.leaveSession("gebruiker verlaat telpost")
-                Toast.makeText(this, getString(R.string.mc_toast_left_session), Toast.LENGTH_SHORT).show()
-                binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
-                    ?.visibility = android.view.View.GONE
+                if (mcClientConnector?.leaveSession("gebruiker verlaat telpost") == true) {
+                    tilesSyncedFromMaster = false
+                    Toast.makeText(this, getString(R.string.mc_toast_left_session), Toast.LENGTH_SHORT).show()
+                    binding.root.findViewById<android.view.View?>(R.id.mcStatusBar)
+                        ?.visibility = android.view.View.GONE
+                    showPostLeaveAppActionDialog()
+                } else {
+                    showPendingDeliveryRequiredDialog()
+                }
             }
             .setNegativeButton(R.string.mc_dialog_leave_cancel, null)
             .create()
         com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
         dialog.show()
+    }
+
+    private fun showPostLeaveAppActionDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_dialog_post_leave_title)
+            .setMessage(R.string.mc_dialog_post_leave_message)
+            .setPositiveButton(R.string.mc_dialog_post_leave_close_app) { _, _ ->
+                closeAppLikeHoofdScherm()
+            }
+            .setNegativeButton(R.string.mc_dialog_post_leave_restart_app) { _, _ ->
+                restartToHoofdSchermAfterClientLeave()
+            }
+            .setCancelable(false)
+            .create()
+        com.yvesds.vt5.core.ui.DialogStyler.apply(dialog)
+        dialog.setCanceledOnTouchOutside(false)
+        dialog.show()
+    }
+
+    private fun closeAppLikeHoofdScherm() {
+        val uploadPrefs = getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
+        val pendingUploads = uploadPrefs.getBoolean(KEY_PENDING_UPLOADS, false)
+        val uploadOnExit = uploadPrefs.getBoolean(KEY_UPLOAD_ON_EXIT, false)
+        if (pendingUploads && uploadOnExit) {
+            startActivity(Intent(this, TellingBeheerScherm::class.java))
+            finish()
+            return
+        }
+
+        Log.i(TAG, "Client verliet telling en koos voor app afsluiten")
+        try {
+            AppShutdown.shutdownApp(this)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during shutdown cleanup from client leave flow: ${e.message}", e)
+        }
+        finishAndRemoveTask()
+    }
+
+    private fun restartToHoofdSchermAfterClientLeave() {
+        lifecycleScope.launch {
+            clearClientSessionMetadataForRestart()
+            val intent = Intent(this@TellingScherm, SplashActiviteit::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(intent)
+            finish()
+        }
+    }
+
+    private suspend fun clearClientSessionMetadataForRestart() {
+        val tellingId = prefs.getString("pref_telling_id", null)
+        val onlineId = prefs.getString("pref_online_id", null)
+
+        try {
+            mcClientConnector?.stop()
+        } catch (_: Exception) {}
+
+        try {
+            withContext(Dispatchers.IO) {
+                envelopePersistence.clearSavedEnvelope()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "clearSavedEnvelope failed during client restart: ${e.message}", e)
+        }
+
+        try {
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.clearSession(this)
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.resetModeToSolo()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed resetting master-client prefs during restart: ${e.message}", e)
+        }
+
+        try {
+            com.yvesds.vt5.features.masterClient.ClientEventQueue(applicationContext).clear()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed clearing client queue during restart: ${e.message}", e)
+        }
+
+        mcClientEventIdByRecordId.clear()
+        mcClientRecordIdByEvent.clear()
+        TellingSessionManager.clear()
+        synchronized(pendingRecords) { pendingRecords.clear() }
+
+        try {
+            TellingUploadFlags.clearFlag(this@TellingScherm, tellingId, onlineId)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed clearing upload flag during client restart: ${e.message}", e)
+        }
+
+        prefs.edit()
+            .remove("pref_saved_envelope_json")
+            .remove("pref_online_id")
+            .remove("pref_telling_id")
+            .remove(KEY_CLIENT_EVENT_MAP_JSON)
+            .apply()
+
+        if (!tellingId.isNullOrBlank()) {
+            prefs.edit()
+                .remove("pref_next_record_id_$tellingId")
+                .apply()
+        }
     }
 
     private fun showMasterHandoverDialog(eindtijdEpoch: String, masterName: String) {
@@ -2219,8 +2700,8 @@ class TellingScherm : AppCompatActivity() {
         dlg.show()
     }
 
-    private fun showClientPairingDialog() {
-        val connector = mcClientConnector ?: run {
+    private fun showClientPairingDialog(autoStartQrScan: Boolean = false) {
+        if (mcClientConnector == null) {
             Toast.makeText(this, getString(R.string.mc_error_no_telling), Toast.LENGTH_SHORT).show()
             return
         }
@@ -2236,15 +2717,7 @@ class TellingScherm : AppCompatActivity() {
         etIp.setText(com.yvesds.vt5.features.masterClient.MasterClientPrefs.getMasterIp(this))
         activeClientPairingDialog = ClientPairingDialogRefs(etIp, etPin, tvStatus)
 
-        btnScanQr.setOnClickListener {
-            pendingQrScanMode = QrScanMode.WIFI
-            val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            if (hasCamera) {
-                launchQrScan(getString(R.string.mc_pairing_scan_wifi_qr))
-            } else {
-                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-        }
+        btnScanQr.setOnClickListener { startClientQrPairingFlow() }
 
         rvDiscovered.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         val discoveredItems = mcDiscoveryService?.discoveredMasters?.value ?: emptyList()
@@ -2275,25 +2748,55 @@ class TellingScherm : AppCompatActivity() {
             .setView(dialogView)
             .create()
 
-        btnCancel.setOnClickListener {
+        activeClientPairingDialogDismiss = { dialog.dismiss() }
+        dialog.setOnDismissListener {
             activeClientPairingDialog = null
+            activeClientPairingDialogDismiss = null
+        }
+
+        btnCancel.setOnClickListener {
             dialog.dismiss()
         }
         btnConnect.setOnClickListener {
-            val ip  = etIp.text.toString().trim()
-            val pin = etPin.text.toString().trim()
-            if (ip.isBlank()) { tvStatus.text = getString(R.string.mc_error_no_ip); return@setOnClickListener }
-            if (pin.isBlank()) { tvStatus.text = getString(R.string.mc_error_no_pin); return@setOnClickListener }
-            tvStatus.text = getString(R.string.mc_pairing_connecting)
-            com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMasterIp(this, ip)
-            connector.setPendingPin(pin)
-            connector.start()
-            activeClientPairingDialog = null
-            dialog.dismiss()
+            connectClientToMaster(etIp.text.toString().trim(), etPin.text.toString().trim(), tvStatus)
         }
 
         dialog.show()
         DialogStyler.apply(dialog)
+        if (autoStartQrScan) {
+            startClientQrPairingFlow()
+        }
+    }
+
+    private fun startClientQrPairingFlow() {
+        pendingQrScanMode = QrScanMode.WIFI
+        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (hasCamera) {
+            launchQrScan(getString(R.string.mc_pairing_scan_wifi_qr))
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun connectClientToMaster(ip: String, pin: String, statusView: android.widget.TextView? = null) {
+        val connector = mcClientConnector ?: run {
+            Toast.makeText(this, getString(R.string.mc_error_no_telling), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (ip.isBlank()) {
+            statusView?.text = getString(R.string.mc_error_no_ip)
+            return
+        }
+        if (pin.isBlank()) {
+            statusView?.text = getString(R.string.mc_error_no_pin)
+            return
+        }
+
+        statusView?.text = getString(R.string.mc_pairing_connecting)
+        com.yvesds.vt5.features.masterClient.MasterClientPrefs.setMasterIp(this, ip)
+        connector.setPendingPin(pin)
+        connector.start()
+        activeClientPairingDialogDismiss?.invoke()
     }
 
     private fun buildWifiQrPayload(ssid: String, pass: String, sec: String): String {
@@ -2469,7 +2972,7 @@ class TellingScherm : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun connectToWifi(ssid: String, pass: String, sec: String) {
+    private fun connectToWifi(ssid: String, pass: String, sec: String): Boolean {
         com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSsid(this, ssid)
         com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotPassword(this, pass)
         com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSecurity(this, sec)
@@ -2477,7 +2980,7 @@ class TellingScherm : AppCompatActivity() {
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         if (wifiManager == null) {
             Toast.makeText(this, getString(R.string.mc_wifi_connect_failed), Toast.LENGTH_SHORT).show()
-            return
+            return false
         }
         if (!wifiManager.isWifiEnabled) {
             Toast.makeText(this, getString(R.string.mc_wifi_connect_approve), Toast.LENGTH_LONG).show()
@@ -2485,44 +2988,25 @@ class TellingScherm : AppCompatActivity() {
                 startActivity(Intent(Settings.Panel.ACTION_WIFI))
             } catch (_: Exception) {
             }
-            return
+            return true
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val suggestionBuilder = WifiNetworkSuggestion.Builder().setSsid(ssid)
-            if (sec != "NOPASS") {
-                suggestionBuilder.setWpa2Passphrase(pass)
-            }
-            val status = wifiManager.addNetworkSuggestions(listOf(suggestionBuilder.build()))
-            if (status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
-                Toast.makeText(this, getString(R.string.mc_wifi_connect_approve), Toast.LENGTH_LONG).show()
-                try {
-                    startActivity(Intent(Settings.Panel.ACTION_WIFI))
-                } catch (_: Exception) {
-                }
-            } else {
-                Toast.makeText(this, getString(R.string.mc_wifi_connect_failed), Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            val config = WifiConfiguration().apply {
-                SSID = "\"$ssid\""
-                if (sec == "NOPASS") {
-                    allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE)
-                } else {
-                    preSharedKey = "\"$pass\""
-                }
-            }
-            @Suppress("DEPRECATION")
-            val netId = wifiManager.addNetwork(config)
-            @Suppress("DEPRECATION")
-            val ok = netId != -1 && wifiManager.enableNetwork(netId, true)
-            if (ok) {
-                Toast.makeText(this, getString(R.string.mc_wifi_connected_or_suggested), Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, getString(R.string.mc_wifi_connect_failed), Toast.LENGTH_SHORT).show()
-            }
+        val suggestionBuilder = WifiNetworkSuggestion.Builder().setSsid(ssid)
+        if (sec != "NOPASS") {
+            suggestionBuilder.setWpa2Passphrase(pass)
         }
+        val status = wifiManager.addNetworkSuggestions(listOf(suggestionBuilder.build()))
+        if (status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+            Toast.makeText(this, getString(R.string.mc_wifi_connect_approve), Toast.LENGTH_LONG).show()
+            try {
+                startActivity(Intent(Settings.Panel.ACTION_WIFI))
+            } catch (_: Exception) {
+            }
+            return true
+        }
+
+        Toast.makeText(this, getString(R.string.mc_wifi_connect_failed), Toast.LENGTH_SHORT).show()
+        return false
     }
 
     private fun buildTileSyncItems(): List<TileSyncItem> {
@@ -2549,6 +3033,7 @@ class TellingScherm : AppCompatActivity() {
 
         tegelBeheer.setTiles(tiles)
         tilesSyncedFromMaster = true
+        pendingOpenSoortSelectieOnPair = false
         updateSelectedSpeciesMap()
         Toast.makeText(this, getString(R.string.mc_tile_sync_toast), Toast.LENGTH_SHORT).show()
 

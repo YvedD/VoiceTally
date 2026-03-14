@@ -60,6 +60,7 @@ class AnnotatieScherm : AppCompatActivity() {
         const val EXTRA_RECORD_AANTAL = "extra_record_aantal"           // record.aantal (main direction)
         const val EXTRA_RECORD_AANTALTERUG = "extra_record_aantalterug" // record.aantalterug (opposite direction)
         const val EXTRA_LOKAAL = "extra_lokaal"
+        const val EXTRA_RECORD_ID = "extra_record_id"
         
         // Key for telpostid to get site-specific direction labels
         const val EXTRA_TELPOSTID = "extra_telpostid"
@@ -299,6 +300,7 @@ class AnnotatieScherm : AppCompatActivity() {
                 putExtra(EXTRA_TS, tsSeconds)
                 // CRITICAL FIX: Preserve row position so handler can match the correct record
                 putExtra("extra_row_pos", rowPosition)
+                putExtra(EXTRA_RECORD_ID, intent.getStringExtra(EXTRA_RECORD_ID))
             }
 
             setResult(RESULT_OK, out)

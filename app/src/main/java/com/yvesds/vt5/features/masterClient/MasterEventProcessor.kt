@@ -53,7 +53,8 @@ class MasterEventProcessor {
         geslacht: String,
         leeftijd: String,
         kleed: String,
-        opmerkingen: String
+        opmerkingen: String,
+        recordPayload: String
     ) -> Unit)? = null
 
     /**
@@ -106,7 +107,8 @@ class MasterEventProcessor {
                 event.geslacht,
                 event.leeftijd,
                 event.kleed,
-                event.opmerkingen
+                event.opmerkingen,
+                event.recordPayload
             )
             AckMessage(clientEventId = event.clientEventId, success = true)
         } catch (e: Exception) {

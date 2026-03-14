@@ -185,6 +185,7 @@ class MasterServer(
                     accepted     = true,
                     sessionToken = sessionToken,
                     masterName   = android.os.Build.MODEL,
+                    tellingId    = getActiveTellingId(),
                     error        = ""
                 )
                 sendPairingResponse(writer, pairingResp)
@@ -270,7 +271,10 @@ class MasterServer(
     private fun sendEnvelopeRaw(writer: PrintWriter, type: String, payloadJson: String) {
         try {
             val envelope = McEnvelope(type = type, payload = payloadJson)
-            writer.println(json.encodeToString(McEnvelope.serializer(), envelope))
+            synchronized(writer) {
+                writer.println(json.encodeToString(McEnvelope.serializer(), envelope))
+                writer.flush()
+            }
         } catch (e: Exception) {
             Log.w(TAG, "sendEnvelopeRaw fout: ${e.message}", e)
         }
@@ -286,6 +290,11 @@ class MasterServer(
     private fun sendPairingResponse(writer: PrintWriter, resp: PairingResponse) =
         sendEnvelopeRaw(writer, MC_MSG_PAIRING_RESP,
             json.encodeToString(PairingResponse.serializer(), resp))
+
+    private fun getActiveTellingId(): String {
+        val prefs = context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("pref_telling_id", "") ?: ""
+    }
 
     /**
      * Stuur een [SessionEndMessage] naar alle verbonden clients zodat zij weten dat
@@ -365,17 +374,21 @@ class MasterServer(
     }
 
     private fun addConnectedClient(token: String, name: String, writer: PrintWriter) {
-        val current = _connectedClients.value.toMutableMap()
-        current[token] = name
-        _connectedClients.value = current
-        synchronized(clientWritersLock) { clientWriters[token] = writer }
+        synchronized(clientWritersLock) {
+            val current = _connectedClients.value.toMutableMap()
+            current[token] = name
+            _connectedClients.value = current
+            clientWriters[token] = writer
+        }
     }
 
     private fun removeConnectedClient(token: String) {
-        val current = _connectedClients.value.toMutableMap()
-        current.remove(token)
-        _connectedClients.value = current
-        synchronized(clientWritersLock) { clientWriters.remove(token) }
+        synchronized(clientWritersLock) {
+            val current = _connectedClients.value.toMutableMap()
+            current.remove(token)
+            _connectedClients.value = current
+            clientWriters.remove(token)
+        }
         pairingManager.revokeToken(token)
     }
 

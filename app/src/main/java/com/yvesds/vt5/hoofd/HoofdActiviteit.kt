@@ -100,7 +100,9 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = false
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             val intent = Intent(this, TellingScherm::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             intent.putExtra(TellingScherm.EXTRA_JOIN_AS_CLIENT, true)
+            intent.putExtra(TellingScherm.EXTRA_AUTO_START_CLIENT_QR_SCAN, true)
             startActivity(intent)
             it.isEnabled = true
         }
@@ -218,6 +220,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
         DialogStyler.apply(dlg)
     }
+
 
     /**
      * Voert een veilige shutdown uit:

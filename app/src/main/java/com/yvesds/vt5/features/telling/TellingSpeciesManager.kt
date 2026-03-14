@@ -209,6 +209,38 @@ class TellingSpeciesManager(
         }
     }
 
+    suspend fun resolveSpeciesDisplayName(soortId: String, fallbackName: String? = null): String {
+        val tileName = tegelBeheer.findNaamBySoortId(soortId)
+        if (!tileName.isNullOrBlank() && tileName != soortId) {
+            return tileName
+        }
+
+        val canonical = try {
+            withContext(Dispatchers.IO) {
+                ServerDataCache.getOrLoad(activity).speciesById[soortId]?.soortnaam
+            }
+        } catch (ex: Exception) {
+            Log.w(TAG, "resolveSpeciesDisplayName failed for $soortId: ${ex.message}", ex)
+            null
+        }
+
+        return canonical?.takeIf { it.isNotBlank() }
+            ?: tileName?.takeIf { it.isNotBlank() }
+            ?: fallbackName?.takeIf { it.isNotBlank() }
+            ?: soortId
+    }
+
+    suspend fun ensureSpeciesTilePresent(soortId: String, fallbackName: String? = null): String {
+        val canonical = resolveSpeciesDisplayName(soortId, fallbackName)
+        val changed = withContext(Dispatchers.Main) {
+            tegelBeheer.ensureSoortTile(soortId, canonical)
+        }
+        if (changed) {
+            onTilesUpdated?.invoke()
+        }
+        return canonical
+    }
+
     /**
      * Update species count internally (no log message).
      */

@@ -132,8 +132,8 @@
 
             <ImageView
                 android:id="@+id/ivWifiQr"
-                android:layout_width="180dp"
-                android:layout_height="180dp"
+                android:layout_width="300dp"
+                android:layout_height="300dp"
                 android:layout_gravity="center_horizontal"
                 android:contentDescription="@string/mc_pairing_wifi_qr_label"
                 android:background="#1A1A2E" />
@@ -163,8 +163,8 @@
 
             <ImageView
                 android:id="@+id/ivPairingQr"
-                android:layout_width="180dp"
-                android:layout_height="180dp"
+                android:layout_width="300dp"
+                android:layout_height="300dp"
                 android:layout_gravity="center_horizontal"
                 android:contentDescription="@string/mc_pairing_qr_label"
                 android:background="#1A1A2E" />

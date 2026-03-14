@@ -1,6 +1,7 @@
 package com.yvesds.vt5.features.telling
 
 import android.util.TypedValue
+import android.view.View
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -110,8 +111,35 @@ class SpeechLogAdapter :
         holder.vb.tvTime.text = fmt.format(Date(row.ts * 1000L))
 
         // Use the already-prepared text from TellingScherm; keep adapter logic minimal.
-        val displayText = row.tekst ?: ""
+        val displayText = row.tekst
         holder.vb.tvMsg.text = displayText
+
+        when (row.deliveryStatus) {
+            TellingScherm.DeliveryStatus.ACKED -> {
+                holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
+                holder.vb.tvDeliveryStatus.text = "✓"
+                holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_green))
+            }
+            TellingScherm.DeliveryStatus.PENDING -> {
+                holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
+                holder.vb.tvDeliveryStatus.text = "…"
+                holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_light_blue))
+            }
+            TellingScherm.DeliveryStatus.RETRYING -> {
+                holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
+                holder.vb.tvDeliveryStatus.text = "↻"
+                holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_warning))
+            }
+            TellingScherm.DeliveryStatus.FAILED -> {
+                holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
+                holder.vb.tvDeliveryStatus.text = "!"
+                holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_red))
+            }
+            TellingScherm.DeliveryStatus.NONE -> {
+                holder.vb.tvDeliveryStatus.visibility = View.GONE
+                holder.vb.tvDeliveryStatus.text = ""
+            }
+        }
 
         val defaultPartials = cachedPartialsTextColor
         val defaultFinals = cachedFinalsTextColor

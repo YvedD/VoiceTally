@@ -22,6 +22,15 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textColor="@color/vt5_light_blue"
         android:textSize="15sp" />
+    <TextView
+        android:id="@+id/tvDeliveryStatus"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="@color/vt5_green"
+        android:textSize="18sp"
+        android:visibility="gone" />
     <!-- Message / parsed summary -->
     <TextView
         android:id="@+id/tvMsg"

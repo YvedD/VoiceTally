@@ -74,6 +74,7 @@ data class ObservationEvent(
     @SerialName("leeftijd")      val leeftijd: String    = "",
     @SerialName("kleed")         val kleed: String       = "",
     @SerialName("opmerkingen")   val opmerkingen: String = "",
+    @SerialName("recordPayload") val recordPayload: String = "",
     @SerialName("isUpdate")      val isUpdate: Boolean   = false
 )
 

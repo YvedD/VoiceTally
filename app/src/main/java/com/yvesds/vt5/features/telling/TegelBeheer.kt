@@ -106,6 +106,30 @@ class TegelBeheer(private val ui: TegelUi) {
         }
     }
 
+    fun ensureSoortTile(soortId: String, naam: String): Boolean {
+        synchronized(lock) {
+            val idx = tiles.indexOfFirst { it.soortId == soortId }
+            if (idx == -1) {
+                val new = SoortTile(soortId = soortId, naam = naam, countMain = 0, countReturn = 0)
+                tiles.add(new)
+                tiles.sortBy { it.naam.lowercase() }
+                ui.submitTiles(tiles.map { it.copy() })
+                return true
+            }
+
+            val current = tiles[idx]
+            val shouldRename = naam.isNotBlank() &&
+                current.naam != naam &&
+                (current.naam.isBlank() || current.naam == soortId)
+            if (!shouldRename) return false
+
+            tiles[idx] = current.copy(naam = naam)
+            tiles.sortBy { it.naam.lowercase() }
+            ui.submitTiles(tiles.map { it.copy() })
+            return true
+        }
+    }
+
     fun verhoogSoortAantal(soortId: String, delta: Int): Boolean {
         if (delta == 0) return true
         synchronized(lock) {

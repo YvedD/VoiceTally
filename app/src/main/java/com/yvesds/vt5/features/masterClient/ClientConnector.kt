@@ -34,6 +34,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.Socket
@@ -59,6 +60,8 @@ class ClientConnector(
         private const val RECONNECT_BASE_MS = 3_000L
         private const val RECONNECT_MAX_MS  = 60_000L
         private const val HEARTBEAT_INTERVAL_MS = 15_000L
+        private const val FLUSH_POLL_INTERVAL_MS = 500L
+        private const val ACK_TIMEOUT_MS = 10_000L
     }
 
     private val json = VT5App.json
@@ -93,7 +96,17 @@ class ClientConnector(
     /** Optionele callback: aangeroepen wanneer de master de huidige tegelset stuurt. */
     var onTileSyncReceived: ((tiles: List<TileSyncItem>) -> Unit)? = null
 
+    /** Optionele callback: aangeroepen wanneer een client-waarneming bevestigd is door de master. */
+    var onObservationAcknowledged: ((clientEventId: String) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer de master een waarneming tijdelijk weigert. */
+    var onObservationRejected: ((clientEventId: String, reason: String) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer een event opnieuw ingepland wordt voor resend. */
+    var onObservationRetrying: ((clientEventId: String) -> Unit)? = null
+
     private var connectorScope: CoroutineScope? = null
+    private val writerLock = Any()
 
     @Volatile private var running = false
     @Volatile private var socket: Socket? = null
@@ -118,7 +131,12 @@ class ClientConnector(
      *
      * @param reason Optionele reden (bijv. "gebruiker gestopt met tellen").
      */
-    fun leaveSession(reason: String = "") {
+    fun leaveSession(reason: String = ""): Boolean {
+        if (eventQueue.totalUnacknowledged() > 0) {
+            Log.w(TAG, "LeaveSession geweigerd: er zijn nog ${eventQueue.totalUnacknowledged()} onbevestigde event(s)")
+            return false
+        }
+
         // Maak lokale kopieën zodat de referenties stabiel zijn gedurende de rest van de methode.
         // @Volatile garandeert zichtbaarheid maar geen atomiciteit; door de waarden onmiddellijk
         // lokaal vast te leggen werken we met een stabiele snapshot van het moment van de aanroep.
@@ -135,13 +153,14 @@ class ClientConnector(
                 )
                 val payload  = json.encodeToString(LeaveMessage.serializer(), msg)
                 val envelope = McEnvelope(type = MC_MSG_LEAVE, payload = payload)
-                w.println(json.encodeToString(McEnvelope.serializer(), envelope))
+                writeEnvelope(w, envelope)
                 Log.i(TAG, "LeaveMessage verstuurd naar master. Reden: $reason")
             } catch (e: Exception) {
                 Log.w(TAG, "Kon LeaveMessage niet versturen: ${e.message}")
             }
         }
         stop()
+        return true
     }
 
     /** Stop de verbinding en herstelpoging. */
@@ -164,9 +183,16 @@ class ClientConnector(
         val items = eventQueue.getAllPending()
         for (item in items) {
             if (!running) break
-            sendObservation(w, item)
+            if (!sendObservation(w, item)) {
+                eventQueue.requeue(item.clientEventId)
+                onObservationRetrying?.invoke(item.clientEventId)
+                disconnectCurrentSocket("flushQueue write failure")
+                break
+            }
         }
     }
+
+    fun pendingObservationCount(): Int = eventQueue.totalUnacknowledged()
 
     // ─── Verbindingslus ───────────────────────────────────────────────────────
 
@@ -215,6 +241,13 @@ class ClientConnector(
                 }
 
                 prefs.setSessionToken(context, resp.sessionToken)
+                if (resp.tellingId.isNotBlank()) {
+                    context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("pref_telling_id", resp.tellingId)
+                        .apply()
+                }
+                eventQueue.replaceSessionToken(resp.sessionToken, prefs.getClientId(context))
                 currentSessionToken = resp.sessionToken
                 _state.value = State.PAIRED
                 _lastError.value = ""
@@ -263,11 +296,19 @@ class ClientConnector(
         // Queue-flush job: stuur in afwachting staande events
         val flushJob = scope.launch {
             while (isActive) {
+                val expired = eventQueue.requeueExpiredInFlight(ACK_TIMEOUT_MS)
+                expired.forEach { onObservationRetrying?.invoke(it) }
+
                 val pending = eventQueue.getNextPending()
                 if (pending != null) {
-                    sendObservation(writer, pending)
+                    if (!sendObservation(writer, pending)) {
+                        eventQueue.requeue(pending.clientEventId)
+                        onObservationRetrying?.invoke(pending.clientEventId)
+                        disconnectCurrentSocket("observation write failure")
+                        delay(FLUSH_POLL_INTERVAL_MS)
+                    }
                 } else {
-                    delay(500L)
+                    delay(FLUSH_POLL_INTERVAL_MS)
                 }
             }
         }
@@ -283,8 +324,12 @@ class ClientConnector(
                         if (ack.success) {
                             eventQueue.acknowledge(ack.clientEventId)
                             Log.d(TAG, "ACK ontvangen voor event ${ack.clientEventId}")
+                            onObservationAcknowledged?.invoke(ack.clientEventId)
                         } else {
                             Log.w(TAG, "NACK voor event ${ack.clientEventId}: ${ack.error}")
+                            eventQueue.requeue(ack.clientEventId)
+                            onObservationRetrying?.invoke(ack.clientEventId)
+                            onObservationRejected?.invoke(ack.clientEventId, ack.error)
                         }
                     }
                     MC_MSG_MASTER_HANDOVER -> {
@@ -326,13 +371,15 @@ class ClientConnector(
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private fun sendObservation(writer: PrintWriter, event: ObservationEvent) {
-        try {
+    private fun sendObservation(writer: PrintWriter, event: ObservationEvent): Boolean {
+        return try {
             val payload  = json.encodeToString(ObservationEvent.serializer(), event)
             val envelope = McEnvelope(type = MC_MSG_OBSERVATION, payload = payload)
-            writer.println(json.encodeToString(McEnvelope.serializer(), envelope))
+            writeEnvelope(writer, envelope)
+            true
         } catch (e: Exception) {
             Log.w(TAG, "Kon event niet versturen: ${e.message}")
+            false
         }
     }
 
@@ -340,20 +387,32 @@ class ClientConnector(
         try {
             val payload  = json.encodeToString(HeartbeatMessage.serializer(), HeartbeatMessage())
             val envelope = McEnvelope(type = MC_MSG_HEARTBEAT, payload = payload)
-            writer.println(json.encodeToString(McEnvelope.serializer(), envelope))
+            writeEnvelope(writer, envelope)
         } catch (e: Exception) {
             Log.w(TAG, "sendHeartbeat fout: ${e.message}")
+            disconnectCurrentSocket("heartbeat write failure")
         }
     }
 
     private fun sendPairingRequest(writer: PrintWriter, req: PairingRequest) {
-        try {
-            val payload  = json.encodeToString(PairingRequest.serializer(), req)
-            val envelope = McEnvelope(type = MC_MSG_PAIRING_REQ, payload = payload)
+        val payload  = json.encodeToString(PairingRequest.serializer(), req)
+        val envelope = McEnvelope(type = MC_MSG_PAIRING_REQ, payload = payload)
+        writeEnvelope(writer, envelope)
+    }
+
+    private fun writeEnvelope(writer: PrintWriter, envelope: McEnvelope) {
+        synchronized(writerLock) {
             writer.println(json.encodeToString(McEnvelope.serializer(), envelope))
-        } catch (e: Exception) {
-            Log.w(TAG, "sendPairingRequest fout: ${e.message}")
+            writer.flush()
+            if (writer.checkError()) {
+                throw IOException("Socket write failed")
+            }
         }
+    }
+
+    private fun disconnectCurrentSocket(reason: String) {
+        Log.w(TAG, "Socket wordt gesloten om reconnect af te dwingen: $reason")
+        try { socket?.close() } catch (_: Exception) {}
     }
 
     private fun decodeEnvelope(line: String): McEnvelope? =
@@ -394,7 +453,8 @@ class ClientConnector(
         geslacht: String = "",
         leeftijd: String = "",
         kleed: String = "",
-        opmerkingen: String = ""
+        opmerkingen: String = "",
+        recordPayload: String = ""
     ): String? {
         val token = currentSessionToken
         if (token.isBlank()) return null
@@ -408,7 +468,8 @@ class ClientConnector(
             geslacht = geslacht,
             leeftijd = leeftijd,
             kleed = kleed,
-            opmerkingen = opmerkingen
+            opmerkingen = opmerkingen,
+            recordPayload = recordPayload
         )
     }
 
@@ -421,7 +482,8 @@ class ClientConnector(
         geslacht: String = "",
         leeftijd: String = "",
         kleed: String = "",
-        opmerkingen: String = ""
+        opmerkingen: String = "",
+        recordPayload: String = ""
     ): Boolean {
         val token = currentSessionToken
         if (token.isBlank()) return false
@@ -437,6 +499,7 @@ class ClientConnector(
             leeftijd = leeftijd,
             kleed = kleed,
             opmerkingen = opmerkingen,
+            recordPayload = recordPayload,
             isUpdate = true
         )
         return true

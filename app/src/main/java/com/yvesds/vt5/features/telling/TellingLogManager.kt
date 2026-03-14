@@ -113,8 +113,42 @@ class TellingLogManager(
     /**
      * Add final log entry.
      */
-    fun addFinalLog(text: String): List<TellingScherm.SpeechLogRow> {
-        return addToFinals(text, "final")
+    fun addFinalLog(
+        text: String,
+        recordId: String? = null,
+        clientEventId: String? = null,
+        deliveryStatus: TellingScherm.DeliveryStatus = TellingScherm.DeliveryStatus.NONE
+    ): List<TellingScherm.SpeechLogRow> {
+        return addToFinals(text, "final", recordId, clientEventId, deliveryStatus)
+    }
+
+    fun attachDeliveryToLatestFinal(
+        recordId: String,
+        clientEventId: String?,
+        deliveryStatus: TellingScherm.DeliveryStatus
+    ): List<TellingScherm.SpeechLogRow> {
+        val idx = finalsLog.indexOfLast { it.bron == "final" && it.recordId == null }
+        if (idx < 0) return finalsLog.toList()
+        finalsLog[idx] = finalsLog[idx].copy(
+            recordId = recordId,
+            clientEventId = clientEventId,
+            deliveryStatus = deliveryStatus
+        )
+        return finalsLog.toList()
+    }
+
+    fun updateFinalDeliveryStatus(
+        recordId: String,
+        deliveryStatus: TellingScherm.DeliveryStatus,
+        clientEventId: String? = null
+    ): List<TellingScherm.SpeechLogRow> {
+        val idx = finalsLog.indexOfLast { it.recordId == recordId }
+        if (idx < 0) return finalsLog.toList()
+        finalsLog[idx] = finalsLog[idx].copy(
+            clientEventId = clientEventId ?: finalsLog[idx].clientEventId,
+            deliveryStatus = deliveryStatus
+        )
+        return finalsLog.toList()
     }
 
     /**
@@ -200,9 +234,24 @@ class TellingLogManager(
         return partialsLog.toList()
     }
 
-    private fun addToFinals(msg: String, bron: String): List<TellingScherm.SpeechLogRow> {
+    private fun addToFinals(
+        msg: String,
+        bron: String,
+        recordId: String? = null,
+        clientEventId: String? = null,
+        deliveryStatus: TellingScherm.DeliveryStatus = TellingScherm.DeliveryStatus.NONE
+    ): List<TellingScherm.SpeechLogRow> {
         val now = System.currentTimeMillis() / 1000L  // Use seconds for consistency
-        finalsLog.add(TellingScherm.SpeechLogRow(now, msg, bron))
+        finalsLog.add(
+            TellingScherm.SpeechLogRow(
+                ts = now,
+                tekst = msg,
+                bron = bron,
+                recordId = recordId,
+                clientEventId = clientEventId,
+                deliveryStatus = deliveryStatus
+            )
+        )
         
         if (finalsLog.size > maxLogRows) {
             finalsLog.removeAt(0)
