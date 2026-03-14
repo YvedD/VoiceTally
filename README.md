@@ -570,6 +570,8 @@ VT5 gebruikt de Open-Meteo API voor weergegevens (gratis, geen API-key nodig).
 
 ## 16. Samenwerken met Meerdere Toestellen (Master-Client)
 
+> Voor een volledige, aparte stap-voor-stap handleiding voor de master/client-opstart, QR-flow, exit-flows, handover en annotaties: zie [`MASTER-CLIËNT.md`](MASTER-CLIËNT.md).
+
 > **Wat is de master-client modus?**
 > Met deze functie kunnen twee of meer Android-toestellen tegelijkertijd aan dezelfde telling deelnemen via een gedeeld Wi-Fi-netwerk of mobiele hotspot. Eén toestel neemt de rol van **master** op zich: dit toestel beheert de telling, verzamelt alle waarnemingen en uploadt uiteindelijk alles naar trektellen.nl. De andere toestellen werken als **client**: zij sturen hun waarnemingen via het netwerk door naar de master.
 >
