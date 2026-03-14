@@ -8,6 +8,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,6 +38,10 @@ class SplashActiviteit : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Relaunches moeten altijd in SOLO starten, ook als het proces nog leeft.
+        MasterClientPrefs.resetModeToSolo()
+
         setContentView(R.layout.scherm_splash)
         
         // Voorkom dat de gebruiker terug kan naar de splash screen

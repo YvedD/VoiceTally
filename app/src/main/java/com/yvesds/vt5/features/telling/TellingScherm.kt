@@ -9,12 +9,14 @@ import android.content.IntentFilter
 import android.graphics.Color
 import android.Manifest
 import android.net.Uri
+import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
 import android.net.wifi.WifiConfiguration
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.location.LocationManager
 import android.view.KeyEvent
 import android.widget.EditText
 import android.widget.ArrayAdapter
@@ -49,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.jvm.Volatile
 import android.util.Log
@@ -2169,8 +2172,12 @@ class TellingScherm : AppCompatActivity() {
         btnSaveHotspot.setOnClickListener {
             val ssid = etSsid.text.toString().trim()
             val pass = etPass.text.toString().trim()
+            val sec = if (pass.isBlank()) "NOPASS" else "WPA"
             com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSsid(this, ssid)
             com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotPassword(this, pass)
+            com.yvesds.vt5.features.masterClient.MasterClientPrefs.setHotspotSecurity(this, sec)
+            // Na manueel invullen meteen een verbindingspoging starten.
+            connectToWifi(ssid, pass, sec)
             Toast.makeText(this, getString(R.string.mc_pairing_hotspot_saved), Toast.LENGTH_SHORT).show()
             refreshQr()
         }
@@ -2318,6 +2325,14 @@ class TellingScherm : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_failed), Toast.LENGTH_SHORT).show()
             return
         }
+        if (!isLocationServicesEnabled()) {
+            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_permission), Toast.LENGTH_LONG).show()
+            try {
+                startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            } catch (_: Exception) {
+            }
+            return
+        }
         if (!wifiManager.isWifiEnabled) {
             Toast.makeText(this, getString(R.string.mc_wifi_connect_approve), Toast.LENGTH_LONG).show()
             try {
@@ -2326,69 +2341,115 @@ class TellingScherm : AppCompatActivity() {
             }
             return
         }
-        try {
-            wifiManager.startScan()
-        } catch (_: Exception) {
-        }
-        val results = try {
-            wifiManager.scanResults
-        } catch (_: SecurityException) {
-            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_permission), Toast.LENGTH_SHORT).show()
-            return
-        }
 
-        val ssids = results
-            .mapNotNull { it.SSID?.trim() }
-            .filter { it.isNotEmpty() }
-            .distinct()
-            .sorted()
+        lifecycleScope.launch {
+            val results = fetchLatestWifiResults(wifiManager)
+            if (results == null) {
+                Toast.makeText(this@TellingScherm, getString(R.string.mc_pairing_wifi_scan_permission), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
 
-        if (ssids.isEmpty()) {
-            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_empty), Toast.LENGTH_SHORT).show()
-            return
-        }
+            val ssids = results
+                .mapNotNull { it.SSID?.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .sorted()
 
-        val capabilitiesBySsid = results
-            .filter { !it.SSID.isNullOrBlank() }
-            .associate { it.SSID.trim() to (it.capabilities ?: "") }
+            if (ssids.isEmpty()) {
+                Toast.makeText(this@TellingScherm, getString(R.string.mc_pairing_wifi_scan_empty), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, ssids)
-        refs.ssidField.setAdapter(adapter)
-        refs.ssidField.showDropDown()
+            val capabilitiesBySsid = results
+                .filter { !it.SSID.isNullOrBlank() }
+                .associate { it.SSID.trim() to (it.capabilities ?: "") }
 
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.mc_wifi_select_title)
-            .setItems(ssids.toTypedArray()) { _, index ->
-                val selected = ssids[index]
-                refs.ssidField.setText(selected)
-                val caps = capabilitiesBySsid[selected] ?: ""
-                val sec = when {
-                    caps.contains("WEP", ignoreCase = true) -> "WEP"
-                    caps.contains("WPA", ignoreCase = true) -> "WPA"
-                    caps.contains("SAE", ignoreCase = true) -> "WPA"
-                    else -> "NOPASS"
-                }
+            val adapter = ArrayAdapter(this@TellingScherm, android.R.layout.simple_dropdown_item_1line, ssids)
+            refs.ssidField.setAdapter(adapter)
+            refs.ssidField.showDropDown()
 
-                if (sec == "NOPASS") {
-                    refs.passField.setText("")
-                    connectToWifi(selected, "", sec)
-                    refs.onUpdated()
-                } else if (refs.passField.text.toString().isBlank()) {
-                    showWifiPasswordDialog(selected) { pass ->
-                        refs.passField.setText(pass)
+            val dialog = AlertDialog.Builder(this@TellingScherm)
+                .setTitle(R.string.mc_wifi_select_title)
+                .setItems(ssids.toTypedArray()) { _, index ->
+                    val selected = ssids[index]
+                    refs.ssidField.setText(selected)
+                    val caps = capabilitiesBySsid[selected] ?: ""
+                    val sec = when {
+                        caps.contains("WEP", ignoreCase = true) -> "WEP"
+                        caps.contains("WPA", ignoreCase = true) || caps.contains("SAE", ignoreCase = true) -> "WPA"
+                        else -> "NOPASS"
+                    }
+
+                    if (sec == "NOPASS") {
+                        refs.passField.setText("")
+                        connectToWifi(selected, "", sec)
+                        refs.onUpdated()
+                    } else if (refs.passField.text.toString().isBlank()) {
+                        showWifiPasswordDialog(selected) { pass ->
+                            refs.passField.setText(pass)
+                            connectToWifi(selected, pass, sec)
+                            refs.onUpdated()
+                        }
+                    } else {
+                        val pass = refs.passField.text.toString()
                         connectToWifi(selected, pass, sec)
                         refs.onUpdated()
                     }
-                } else {
-                    val pass = refs.passField.text.toString()
-                    connectToWifi(selected, pass, sec)
-                    refs.onUpdated()
+                }
+                .setNegativeButton(R.string.mc_wifi_connect_cancel, null)
+                .create()
+            DialogStyler.apply(dialog)
+            dialog.show()
+        }
+    }
+
+    private suspend fun fetchLatestWifiResults(wifiManager: WifiManager): List<ScanResult>? {
+        val startOk = try {
+            wifiManager.startScan()
+        } catch (_: SecurityException) {
+            return null
+        } catch (_: Exception) {
+            false
+        }
+
+        if (startOk) {
+            withTimeoutOrNull(2500L) {
+                suspendCancellableCoroutine { cont ->
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            runCatching { unregisterReceiver(this) }
+                            if (cont.isActive) cont.resume(Unit)
+                        }
+                    }
+                    val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        registerReceiver(receiver, filter)
+                    }
+                    cont.invokeOnCancellation {
+                        runCatching { unregisterReceiver(receiver) }
+                    }
                 }
             }
-            .setNegativeButton(R.string.mc_wifi_connect_cancel, null)
-            .create()
-        DialogStyler.apply(dialog)
-        dialog.show()
+        }
+
+        return try {
+            wifiManager.scanResults
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
+    private fun isLocationServicesEnabled(): Boolean {
+        val lm = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            lm.isLocationEnabled
+        } else {
+            @Suppress("DEPRECATION")
+            lm.isProviderEnabled(LocationManager.GPS_PROVIDER) || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        }
     }
 
     private fun showWifiPasswordDialog(ssid: String, onPassword: (String) -> Unit) {
@@ -2581,14 +2642,15 @@ class TellingScherm : AppCompatActivity() {
         pass: String
     ) {
         val currentSec = com.yvesds.vt5.features.masterClient.MasterClientPrefs.getHotspotSecurity(this)
-        if (ssid.isBlank() || pass.isBlank()) {
+        val requiresPass = !currentSec.equals("NOPASS", ignoreCase = true)
+        if (ssid.isBlank() || (requiresPass && pass.isBlank())) {
             ivWifiQr.setImageDrawable(null)
             tvWifiInfo.text = getString(R.string.mc_pairing_wifi_qr_missing)
         } else {
             val payload = buildWifiQrPayload(ssid, pass, currentSec)
             val bmp = BarcodeEncoder().encodeBitmap(payload, com.google.zxing.BarcodeFormat.QR_CODE, 360, 360)
             ivWifiQr.setImageBitmap(bmp)
-            tvWifiInfo.text = ssid
+            tvWifiInfo.text = if (requiresPass) ssid else "$ssid (open)"
         }
     }
 

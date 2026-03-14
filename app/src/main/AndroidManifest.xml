@@ -12,6 +12,7 @@
 
     <!-- Master-client: lokale netwerk-discovery en TCP-server -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <!-- Permissies voor uurlijks alarm -->
@@ -22,6 +23,7 @@
     <!-- Declare microphone as required hardware feature (prevents install on devices without a mic).
          Remove or set android:required="false" if you want to allow install on devices without mic. -->
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:name=".VT5App"

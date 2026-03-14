@@ -7,6 +7,7 @@ import com.yvesds.vt5.features.opstart.usecases.ServerJsonDownloader
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.speech.MatchLogWriter
 import com.yvesds.vt5.core.app.AlarmSoundHelper
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 
 /**
  * Centrale, nette afsluiter voor de VT5-app.
@@ -44,6 +45,10 @@ object AppShutdown {
         Log.i(TAG, "Starting graceful app shutdown")
 
         try {
+            // Zorg dat een volgende appstart altijd vanuit SOLO vertrekt.
+            MasterClientPrefs.resetModeToSolo()
+            MasterClientPrefs.clearSession(context)
+
             // 1. Stop any pending logs/writes and release alarm sound resources
             try {
                 MatchLogWriter.stop()
