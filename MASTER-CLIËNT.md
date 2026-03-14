@@ -114,16 +114,28 @@ Als u met hotspot werkt, is het belangrijk dat de clients **eerst correct met di
 
 ---
 
-## 4. Stap 1 — Het master-toestel opzetten
+## 4.0 Het master-toestel opzetten
 
 De volledige sessie begint altijd op het master-toestel.
 
-### 4.1 Zet het toestel in master-modus
+### 4.1 Zet het toestel in master-modus gedurende een lopende sessie/telling
 
 1. Open VT5.
-2. Ga naar **Instellingen**.
-3. Zoek het onderdeel **Samenwerken (master-client)**.
-4. Kies **Master**.
+2. Ga naar **Invullen telpostgegevens**.
+3. Voer alle gegevens in zoals **telpost** (noodzakelijk), **type telling** (noodzakelijk), druk op **Auto** om het lokale weerbeeld op te halen, vul eventueel het vak **Opmerkingen weer/Opmerkingen** in (optioneel)
+4. Kies **Verder**.
+5. Kies eventueel nu reeds de te verwachten soorten of hergebruik **Alle recente** soorten
+6. Kies **OK**, zolang er géén cliënts aangemeld zijn verloopt de telling net zoals in de 'solo-modus'
+7. Je komt nu terecht in het Tellingscherm, kies bovenaan het **cirkeltje met kruis erin** om cliënts toe te voegen gedurende een lopende sessie/telling
+8. Je krijgt de melding **Samenwerken starten** -> **OK**
+9. Kies **Start als master**
+10. Scan de wifi-signalen, en maak je keuze (je kan deze gegevens ook opslaan voor hergebruik via hetzelfde netwerk op een ander tijdstip/datum met hetzelfde toestel.
+11. Bevestig Wifi **Gereed**
+12. Kies onderaan **Sluiten**
+13. Hiermee is de setup van de master ingesteld.
+14. Als er medetellers actief aan deze lopende sessie/telling willen deelnemen kies dan bovenaan de knop **Cliënts**
+15. Laat de collega tellers **beide QR-codes inscannen, eerst de Wi-Fi QR, vervolgens de QR-code voor Cliënts**
+16. Bevestig het deelnemen van een client in de melding die je nadien krijgt!
 
 Hiermee vertelt u aan VT5 dat dit toestel:
 
@@ -131,57 +143,9 @@ Hiermee vertelt u aan VT5 dat dit toestel:
 - de sessie mag beheren;
 - en als centraal punt zal werken.
 
-### 4.2 Start daarna de telling zoals gewoonlijk
+### 4.2 Doe daarna de telling verder zoals gewoonlijk
 
-Ga vervolgens terug en start de telling via de normale tellingflow.
-
-Met andere woorden:
-
-1. open de metadata/telpost-invoer;
-2. vul de telling in zoals u dat in solo-modus ook zou doen;
-3. ga door tot u in het actieve **telscherm** zit.
-
-Belangrijk:
-
-- u zet **niet eerst alle clients op** en pas daarna de telling op de master;
-- u start **eerst de mastertelling**;
-- daarna maakt u de sessie open voor clients.
-
----
-
-## 5. Stap 2 — Het master-toestel klaarzetten om clients te koppelen
-
-Zodra de telling loopt op de master:
-
-1. open in het telscherm de knop **Clients**;
-2. VT5 opent het koppelvenster voor de master;
-3. daar ziet u de gegevens die nodig zijn om clients te laten aansluiten.
-
-### 5.1 Wat de master daar toont
-
-In dit venster ziet de master onder meer:
-
-- een **PIN-code**;
-- een **pairing-QR**;
-- een **Wi‑Fi QR**;
-- en een overzicht van verbonden clients zodra die aansluiten.
-
-### 5.2 Wat de PIN doet
-
-De PIN-code dient om de client toe te laten tot de sessie.
-
-Die PIN:
-
-- is tijdelijk;
-- hoort bij de huidige pairing-sessie;
-- en wordt gebruikt wanneer de client zich aanmeldt bij de master.
-
-De master kan indien nodig:
-
-- een nieuwe PIN genereren;
-- en zo de vorige code ongeldig maken voor nieuwe koppelingen.
-
-### 5.3 Wat de twee QR-codes doen
+## 4.3 Wat de twee QR-codes doen
 
 De master toont twee verschillende QR-codes omdat ze twee verschillende taken hebben:
 
@@ -196,7 +160,7 @@ Dat onderscheid is belangrijk:
 - netwerktoegang alleen is **niet genoeg**;
 - pairing alleen is **ook niet genoeg** als de client nog niet op het juiste netwerk zit.
 
-### 5.4 Wat de master verder nog moet doen
+### 4.4 Wat de master verder nog moet doen
 
 De master moet tijdens het koppelen:
 
@@ -208,129 +172,34 @@ Pas nadat de clients gekoppeld zijn, kan de gezamenlijke telling vlot live lopen
 
 ---
 
-## 6. Stap 3 — Wat elke client precies moet doen
+## 5.0 Wat elke client precies moet doen
 
 Elke client moet zijn toestel apart voorbereiden en koppelen.
 
 Doe deze stappen **op elk client-toestel afzonderlijk**.
 
-### 6.1 Zet het toestel in client-modus
-
 1. Open VT5.
-2. Ga naar **Instellingen**.
-3. Zoek **Samenwerken (master-client)**.
-4. Kies **Client**.
+2. Ga naar **Invoegen in lopende sessie**.
+3. Scan beide QR-codes afzonderlijk, beginnende met de **Wi-Fi QR**
+4. Nadat ook de onderste QR-code ingescant is de **Client** actief deelnemer aan de lopende sessie/telling.
 
 Daarmee staat dit toestel klaar om:
 
-- met een master te verbinden;
 - observaties door te sturen;
 - en niet zelf de centrale sessie te beheren.
 
-### 6.2 Start ook op de client de tellingflow
+### 5.1 Ga ook op de client gewoon verder met de normale tellingflow
 
-De client gaat vervolgens ook naar het telscherm.
+De client gaat vervolgens ook automatisch naar het telscherm.
+In het telscherm van de cliënt zijn ineens ook alle reeds waargenomen soorten, op de master, actief !
 
 Praktisch betekent dit:
 
-1. open de telling via de normale flow;
-2. zorg dat u in het actieve telscherm zit;
-3. tik daar op **Koppelen met master**.
+1. alle waarnemingen van een cliënt worden doorgezonden en verwerkt door de master;
+2. nieuwe soorten, door een cliënt waargenomen en ingevoerd, die niet actief zijn op het telscherm van de master worden daar nu ook weergegeven;
+3. annotaties bij waarnemingen op een cliënt worden ook correct doorgegeven en verwerkt door de master.
 
-Pas vanuit dat scherm start de effectieve koppelprocedure.
-
-### 6.3 Open het client-koppelvenster
-
-In het koppelvenster kan de client:
-
-- de master scannen via QR;
-- of in sommige situaties handmatig IP en PIN invullen.
-
-Voor de **volledige QR-flow** in VT5 geldt echter:
-
-1. eerst de **Wi‑Fi QR** scannen;
-2. daarna de **pairing-QR** scannen.
-
-### 6.4 De correcte volgorde voor de client
-
-De juiste volgorde is:
-
-1. **Scan de Wi‑Fi QR**
-   - de client krijgt daarmee de netwerk/hotspotgegevens;
-   - VT5 kan vervolgens de verbinding met het juiste Wi‑Fi-netwerk aanvragen;
-   - op sommige toestellen moet Android die Wi‑Fi-verbinding nog bevestigen.
-
-2. **Wacht tot de client op het juiste netwerk zit**
-   - dit is essentieel;
-   - zonder die netwerkstap kan live koppeling niet goed werken.
-
-3. **Scan daarna de pairing-QR**
-   - pas nu worden master-IP, poort en PIN voor de sessie ingevuld;
-   - daarna kan VT5 effectief proberen koppelen met de master.
-
-### 6.5 Wat u op het scherm ziet als het lukt
-
-Wanneer de koppeling geslaagd is, toont de clientstatus:
-
-- **Client ▪ verbonden met master**
-
-Vanaf dat moment kan de teller gewoon beginnen tellen.
-
----
-
-## 7. Waarom elke client twee verschillende QR-codes moet scannen
-
-Dit punt is zo belangrijk dat het apart herhaald wordt.
-
-### 7.1 Er zijn echt twee verschillende QR-codes
-
-De master toont:
-
-1. een **Wi‑Fi QR**;
-2. een **pairing-QR**.
-
-Dat zijn **niet** twee versies van dezelfde code.
-
-Ze hebben elk een eigen functie:
-
-- de ene is voor het netwerk;
-- de andere voor de sessiekoppeling.
-
-### 7.2 Waarom één QR-code niet volstaat
-
-Als een client alleen de pairing-QR scant:
-
-- dan kent het toestel wel de mastergegevens;
-- maar het zit mogelijk nog niet op het juiste netwerk;
-- en dan kan de live verbinding alsnog mislukken.
-
-Als een client alleen de Wi‑Fi QR scant:
-
-- dan zit het toestel misschien wél op het juiste netwerk;
-- maar het is nog niet gekoppeld aan de lopende telling;
-- en het kan dus nog geen geldige sessie starten.
-
-### 7.3 Daarom is de juiste volgorde noodzakelijk
-
-Voor de QR-flow moet de client dus steeds:
-
-1. **eerst de Wi‑Fi QR scannen**;
-2. **daarna de pairing-QR scannen**.
-
-Schakel dus niet over naar tellen na slechts één scan.
-
-Pas na beide scans is de client volledig klaar voor de gezamenlijke sessie.
-
----
-
-## 8. Wat er gebeurt zodra de client verbonden is
-
-Na een succesvolle koppeling werkt de client in de praktijk bijna zoals in solo-modus, maar met één groot verschil:
-
-- de waarnemingen blijven niet alleen lokaal;
-- ze worden doorgegeven aan de master.
-
-### 8.1 Wat de client doet
+### 6.1 Wat de client doet
 
 De client kan daarna:
 
@@ -339,7 +208,7 @@ De client kan daarna:
 - bestaande invoerflows gebruiken;
 - en observaties annoteren.
 
-### 8.2 Wat de master doet
+### 6.2 Wat de master doet
 
 De master:
 
@@ -353,7 +222,7 @@ Dat betekent:
 - clientwaarnemingen zijn geen aparte bijlage;
 - ze worden geïntegreerd in de telling zelf.
 
-### 8.3 Wat als de verbinding even wegvalt?
+### 6.3 Wat als de verbinding even wegvalt?
 
 Als de client tijdelijk geen verbinding heeft:
 
@@ -365,11 +234,11 @@ Dat is precies waarom een client de sessie niet zomaar mag verlaten terwijl er n
 
 ---
 
-## 9. Hoe een client een waarneming annoteert
+## 7. Hoe een client een waarneming annoteert
 
 Een client kan, net zoals in een gewone telling, een waarneming annoteren.
 
-### 9.1 Wat annoteren betekent
+### 7.1 Wat annoteren betekent
 
 Annoteren betekent dat u extra informatie toevoegt aan een waarneming, zoals bijvoorbeeld:
 
@@ -379,17 +248,17 @@ Annoteren betekent dat u extra informatie toevoegt aan een waarneming, zoals bij
 - **opmerkingen**;
 - en andere beschikbare annotatievelden.
 
-### 9.2 Hoe een client dat praktisch doet
+### 7.2 Hoe een client dat praktisch doet
 
 De precieze invoer blijft dezelfde als elders in VT5:
 
 1. voer eerst de waarneming in;
-2. open daarna het annotatiescherm voor die waarneming;
+2. open daarna het annotatiescherm voor die waarneming door in het groene kader op de gewenste waarneming te tikken;
 3. kies de gewenste annotaties;
 4. vul eventueel opmerkingen of aanvullende gegevens in;
 5. bevestig de annotatie.
 
-### 9.3 Welke soorten annotaties er beschikbaar zijn
+### 7.3 Welke soorten annotaties er beschikbaar zijn
 
 De annotatie-opties komen uit de annotatieconfiguratie van VT5 en kunnen onder meer velden bevatten zoals:
 
@@ -398,8 +267,9 @@ De annotatie-opties komen uit de annotatieconfiguratie van VT5 en kunnen onder m
 - kleed;
 - opmerkingen;
 - en andere voorgedefinieerde keuzes.
-
-### 9.4 Wat er technisch met die annotatie gebeurt
+- een werkend kompas om een afwijkende vliegrichting door te geven
+- 
+### 7.4 Wat er technisch met die annotatie gebeurt
 
 Wanneer de client bevestigt:
 
@@ -409,11 +279,11 @@ Wanneer de client bevestigt:
 
 ---
 
-## 10. Wat het effect van annotaties is op de telling
+## 8. Wat het effect van annotaties is op de telling
 
 Dit is een cruciaal punt voor gebruikers.
 
-### 10.1 Annotaties blijven niet enkel op de client
+### 8.1 Annotaties blijven niet enkel op de client
 
 Annotaties die een client invult:
 
@@ -422,7 +292,7 @@ Annotaties die een client invult:
 
 De master ontvangt dus niet alleen “er is een waarneming”, maar ook de meegegeven details van die waarneming.
 
-### 10.2 Impact op de sessie/telling
+### 8.2 Impact op de sessie/telling
 
 De impact is als volgt:
 
@@ -442,7 +312,7 @@ De impact is als volgt:
 5. **Als een client een observatie bijwerkt, moet de master die update mee verwerken**
    - Een latere aanpassing aan de waarneming of haar annotaties hoort dus nog steeds bij dezelfde gedeelde sessie.
 
-### 10.3 Wat de mastergebruiker daarvan merkt
+### 8.3 Wat de mastergebruiker daarvan merkt
 
 De mastergebruiker merkt dit doordat:
 
@@ -456,11 +326,11 @@ Samengevat:
 
 ---
 
-## 11. Exit-flows: een sessie verlaten of beëindigen
+## 9. Exit-flows: een sessie verlaten of beëindigen
 
 In een gezamenlijke telling zijn er meerdere manieren waarop iemand uit de sessie kan gaan. Het is belangrijk dat gebruikers het onderscheid goed begrijpen.
 
-### 11.1 Exit-flow A — een client verlaat zelf de telling
+### 9.1 Exit-flow A — een client verlaat zelf de telling
 
 Dit is de flow wanneer **één client** wil stoppen, terwijl de master en eventuele andere clients verder kunnen werken.
 
@@ -492,7 +362,7 @@ Daarna:
 2. stopt de clientverbinding;
 3. krijgt de gebruiker daarna nog een vervolgvraag.
 
-### 11.2 Wat een client na het verlaten van de sessie kan doen
+### 9.2 Wat een client na het verlaten van de sessie kan doen
 
 Na een geslaagde client-exit biedt VT5 twee vervolgstappen:
 
@@ -507,7 +377,7 @@ Kies dit als de teller klaar is en het toestel gewoon uit de sessie mag verdwijn
 
 Kies dit als de teller opnieuw proper wil beginnen vanaf het hoofdscherm, zonder restanten van de clientsessie.
 
-### 11.3 Exit-flow B — de master beëindigt de samenwerking handmatig
+### 9.3 Exit-flow B — de master beëindigt de samenwerking handmatig
 
 Dit is de flow wanneer de **master zelf beslist om de samenwerking stop te zetten**.
 
@@ -528,7 +398,7 @@ Alle clients:
 
 Dit is dus een **centrale beëindiging** vanuit de master.
 
-### 11.4 Exit-flow C — de master rondt de telling af
+### 9.4 Exit-flow C — de master rondt de telling af
 
 Wanneer de master de telling normaal afrondt, is de situatie iets subtieler.
 
@@ -539,7 +409,7 @@ Er zijn dan twee mogelijke vervolgen:
 
 Dat tweede geval leidt tot een **handover-flow** voor de clients. Die wordt hieronder apart uitgelegd.
 
-### 11.5 Exit-flow D — teruggaan of scherm sluiten terwijl er nog pending observaties zijn
+### 9.5 Exit-flow D — teruggaan of scherm sluiten terwijl er nog pending observaties zijn
 
 Ook dit is belangrijk:
 
@@ -550,13 +420,13 @@ De app doet dat bewust om te vermijden dat gegevens verdwijnen vóór de master 
 
 ---
 
-## 12. Handover-flows: wanneer een client de masterrol overneemt
+## 10. Handover-flows: wanneer een client de masterrol overneemt
 
 Een handover is **niet hetzelfde** als “samenwerking beëindigen”.
 
 Bij een handover stopt de oude master, maar krijgt een client de kans om de rol over te nemen en een vervolgtelling te starten.
 
-### 12.1 Wanneer een handover gebeurt
+### 10.1 Wanneer een handover gebeurt
 
 Een handover is bedoeld voor de situatie waarin:
 
@@ -564,7 +434,7 @@ Een handover is bedoeld voor de situatie waarin:
 - de oude master de telpost verlaat;
 - en de telling op de telpost toch moet doorgaan via iemand anders.
 
-### 12.2 Wat de clients dan zien
+### 10.2 Wat de clients dan zien
 
 De clients krijgen een dialoog in de stijl van:
 
@@ -576,7 +446,7 @@ Daarin wordt uitgelegd dat:
 - de telpost verlaat;
 - en dat een client de masterfunctie kan overnemen voor een vervolgtelling.
 
-### 12.3 Handover-flow A — client accepteert de overname
+### 10.3 Handover-flow A — client accepteert de overname
 
 Als een client kiest voor **Ja, overnemen**:
 
@@ -593,7 +463,7 @@ Praktisch gevolg:
 - de oude master is dan uit beeld;
 - en de telling kan op de telpost verdergezet worden.
 
-### 12.4 Handover-flow B — client weigert de overname
+### 10.4 Handover-flow B — client weigert de overname
 
 Als de client kiest voor **Nee, niet overnemen**:
 
@@ -603,7 +473,7 @@ Als de client kiest voor **Nee, niet overnemen**:
 
 Die client neemt dan dus **niet** de rol van nieuwe master op.
 
-### 12.5 Belangrijk onderscheid tussen handover en sessie-einde
+### 10.5 Belangrijk onderscheid tussen handover en sessie-einde
 
 Dit is het onderscheid:
 
@@ -619,11 +489,11 @@ Dit is het onderscheid:
 
 ---
 
-## 13. Offline fallback: export/import
+## 11. Offline fallback: export/import
 
 Niet elke situatie laat stabiele live samenwerking toe. Daarom bestaat er ook een fallback.
 
-### 13.1 Wanneer gebruikt u dit?
+### 11.1 Wanneer gebruikt u dit?
 
 Gebruik offline export/import wanneer:
 
@@ -631,13 +501,13 @@ Gebruik offline export/import wanneer:
 - een client niet live kon koppelen;
 - of u observaties achteraf toch nog naar de master wilt overbrengen.
 
-### 13.2 Flow op de client
+### 11.2 Flow op de client
 
 1. Kies **Offline export**.
 2. VT5 maakt een exportbestand van de lokale observaties.
 3. Deel dat bestand via een geschikte methode.
 
-### 13.3 Flow op de master
+### 11.3 Flow op de master
 
 1. Kies **Offline import**.
 2. Selecteer het ontvangen bestand.
@@ -647,9 +517,9 @@ Dit is geen vervanging van de live master/client-flow, maar wel een nuttige nood
 
 ---
 
-## 14. Praktische aandachtspunten en veelvoorkomende fouten
+## Praktische aandachtspunten en veelvoorkomende fouten
 
-### 14.1 Een client scant alleen de pairing-QR
+### Een client scant alleen de pairing-QR
 
 Gevolg:
 
@@ -660,7 +530,7 @@ Oplossing:
 - laat de client eerst de **Wi‑Fi QR** scannen;
 - en daarna pas de **pairing-QR**.
 
-### 14.2 Een client wil vertrekken terwijl er nog waarnemingen wachten
+### Een client wil vertrekken terwijl er nog waarnemingen wachten
 
 Gevolg:
 
@@ -671,7 +541,7 @@ Oplossing:
 - wacht op bevestiging door de master;
 - of herstel eerst de verbinding.
 
-### 14.3 De master sluit te vroeg het koppelvenster
+### De master sluit te vroeg het koppelvenster
 
 Gevolg:
 
@@ -682,7 +552,7 @@ Oplossing:
 - houd het mastervenster open totdat alle noodzakelijke clients gekoppeld zijn;
 - of open het opnieuw en genereer zo nodig een nieuwe PIN.
 
-### 14.4 Gebruikers denken dat annotaties alleen lokaal zijn
+### Gebruikers denken dat annotaties alleen lokaal zijn
 
 Dat is onjuist.
 
@@ -692,7 +562,7 @@ Annotaties van een client:
 - worden meegestuurd;
 - en worden ook aan de master gemeld.
 
-### 14.5 Gebruikers verwarren “sessie beëindigen” met “handover”
+### Gebruikers verwarren “sessie beëindigen” met “handover”
 
 Onthoud:
 
@@ -701,25 +571,24 @@ Onthoud:
 
 ---
 
-## 15. Korte checklist in het veld
+## Korte checklist in het veld
 
 ### Voor de master
 
-- [ ] Zet VT5 in **Master-modus**
-- [ ] Start de telling
+- [ ] Zet VT5 in **Master-modus** via het cirkeltje met het kruis erin bovenaan het tellingscherm gedurende een lopende sessie/telling
 - [ ] Open **Clients**
 - [ ] Controleer PIN, Wi‑Fi QR en pairing-QR
 - [ ] Laat nieuwe clientverzoeken toe
 
 ### Voor elke client
 
-- [ ] Zet VT5 in **Client-modus**
-- [ ] Open het telscherm
-- [ ] Tik op **Koppelen met master**
+- [ ] Zet VT5 in **Client-modus** via het hoofdscherm **Invoegen in lopende sessie**
 - [ ] **Scan eerst de Wi‑Fi QR**
 - [ ] **Scan daarna de pairing-QR**
 - [ ] Controleer of de status **verbonden met master** toont
-
+- [ ] Het tellingscherm word geopend met alle reeds waargenomen soorten bij de master
+- [ ] Voer de waarnemingen in via spraakinvoer of via de soorten tegels
+- [ ] 
 ### Tijdens de telling
 
 - [ ] Gebruik VT5 normaal voor waarnemingen
