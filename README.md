@@ -49,7 +49,7 @@ Problemen of suggesties kunnen gemeld worden via de GitHub issue tracker.
 
 
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
-- **Uitgebreide repo-wiki:** zie [`WIKI.md`](WIKI.md)
+- **Uitgebreide repo-wiki:** zie [`WIKI`]([https://github.com/YvedD/VoiceTally/wiki])
 
 ---
 
