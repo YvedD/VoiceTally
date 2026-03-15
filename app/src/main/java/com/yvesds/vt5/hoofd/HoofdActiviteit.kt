@@ -1,12 +1,18 @@
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+
 package com.yvesds.vt5.hoofd
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -49,8 +55,25 @@ class HoofdActiviteit : AppCompatActivity() {
 
     private lateinit var safHelper: SaFStorageHelper
     private var pendingTellingDialogShown = false
+    private var pendingStartMasterButton: MaterialButton? = null
 
-    @OptIn(ExperimentalSerializationApi::class)
+    private val requestNearbyWifiPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val button = pendingStartMasterButton
+        pendingStartMasterButton = null
+        if (granted && button != null) {
+            startMasterFlow(button)
+        } else {
+            button?.isEnabled = true
+            Toast.makeText(
+                this,
+                getString(R.string.mc_nearby_wifi_permission_required),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_hoofd)
@@ -59,6 +82,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
         val btnInstall   = findViewById<MaterialButton>(R.id.btnInstall)
         val btnVerder    = findViewById<MaterialButton>(R.id.btnVerder)
+        val btnStartMaster = findViewById<MaterialButton>(R.id.btnStartMaster)
         val btnJoin      = findViewById<MaterialButton>(R.id.btnJoinSession)
         val btnAfsluiten = findViewById<MaterialButton>(R.id.btnAfsluiten)
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
@@ -76,24 +100,13 @@ class HoofdActiviteit : AppCompatActivity() {
 
         btnVerder.setOnClickListener {
             it.isEnabled = false
-            // OPTIMIZATION: Trigger preload during toast display for faster MetadataScherm startup
-            Toast.makeText(this, getString(R.string.hoofd_metadata_loading), Toast.LENGTH_SHORT).show()
-            
-            // Start preloading minimal data in background
-            lifecycleScope.launch {
-                try {
-                    val repo = com.yvesds.vt5.features.serverdata.model.ServerDataRepository(this@HoofdActiviteit)
-                    withContext(Dispatchers.IO) {
-                        // Trigger background preload (non-blocking)
-                        repo.loadMinimalData()
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Background preload failed (non-critical): ${e.message}")
-                }
-            }
-            
-            startActivity(Intent(this, MetadataScherm::class.java))
+            openMetadataScherm(startAsMaster = false)
             it.isEnabled = true
+        }
+
+        btnStartMaster.setOnClickListener {
+            it.isEnabled = false
+            ensureNearbyWifiPermissionThenStartMaster(it as MaterialButton)
         }
 
         btnJoin.setOnClickListener {
@@ -174,6 +187,78 @@ class HoofdActiviteit : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.w(TAG, "maybeShowPendingTellingDialog failed: ${e.message}", e)
             }
+        }
+    }
+
+    private fun openMetadataScherm(startAsMaster: Boolean, showLoadingToast: Boolean = true) {
+        if (showLoadingToast) {
+            Toast.makeText(this, getString(R.string.hoofd_metadata_loading), Toast.LENGTH_SHORT).show()
+        }
+
+        lifecycleScope.launch {
+            try {
+                preloadMetadataData()
+            } catch (e: Exception) {
+                Log.w(TAG, "Background preload failed (non-critical): ${e.message}")
+            }
+        }
+
+        val intent = Intent(this, MetadataScherm::class.java)
+        intent.putExtra(com.yvesds.vt5.features.metadata.ui.MetadataScherm.EXTRA_START_AS_MASTER, startAsMaster)
+        startActivity(intent)
+    }
+
+    private fun startMasterFlow(button: MaterialButton) {
+        // Als reeds verbonden met extern Wi-Fi netwerk: geen LocalOnlyHotspot nodig
+        val netCtx = com.yvesds.vt5.features.masterClient.McNetworkUtils.resolveMasterNetworkContext(this)
+        if (netCtx.mode == com.yvesds.vt5.features.masterClient.McNetworkUtils.MasterNetworkMode.WIFI_CLIENT) {
+            Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
+            openMetadataScherm(startAsMaster = true, showLoadingToast = false)
+            button.isEnabled = true
+            return
+        }
+
+        com.yvesds.vt5.features.masterClient.McLocalHotspotManager.start(
+            context = this,
+            onStarted = {
+                Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
+                openMetadataScherm(startAsMaster = true, showLoadingToast = false)
+                button.isEnabled = true
+            },
+            onFailed = { reason ->
+                // Fallback: als Wi-Fi tussentijds beschikbaar is geworden, start toch als master
+                val fallback = com.yvesds.vt5.features.masterClient.McNetworkUtils.resolveMasterNetworkContext(this)
+                if (fallback.mode == com.yvesds.vt5.features.masterClient.McNetworkUtils.MasterNetworkMode.WIFI_CLIENT) {
+                    Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
+                    openMetadataScherm(startAsMaster = true, showLoadingToast = false)
+                    button.isEnabled = true
+                } else {
+                    Toast.makeText(this, getString(R.string.mc_local_network_failed, reason), Toast.LENGTH_LONG).show()
+                    button.isEnabled = true
+                }
+            }
+        )
+    }
+
+    private fun ensureNearbyWifiPermissionThenStartMaster(button: MaterialButton) {
+        if (hasNearbyWifiPermission()) {
+            startMasterFlow(button)
+            return
+        }
+
+        pendingStartMasterButton = button
+        requestNearbyWifiPermission.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+    }
+
+    private fun hasNearbyWifiPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES) ==
+                PackageManager.PERMISSION_GRANTED
+    }
+
+    private suspend fun preloadMetadataData() {
+        val repo = com.yvesds.vt5.features.serverdata.model.ServerDataRepository(this@HoofdActiviteit)
+        withContext(Dispatchers.IO) {
+            repo.loadMinimalData()
         }
     }
 

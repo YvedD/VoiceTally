@@ -50,6 +50,8 @@ Problemen of suggesties kunnen gemeld worden via de GitHub issue tracker.
 
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 - **Uitgebreide repo-wiki:** zie [`WIKI`](https://github.com/YvedD/VoiceTally/wiki)
+- **Master/client-handleiding:** zie [`MASTER-CLIËNT.md`](MASTER-CLIËNT.md)
+- **Spiekbriefje voor tellers:** zie [`SPIEKBRIEFJE-TELLERS.md`](SPIEKBRIEFJE-TELLERS.md)
 
 ---
 
@@ -570,177 +572,100 @@ VT5 gebruikt de Open-Meteo API voor weergegevens (gratis, geen API-key nodig).
 
 ## 16. Samenwerken met Meerdere Toestellen (Master-Client)
 
-> Voor een volledige, aparte stap-voor-stap handleiding voor de master/client-opstart, QR-flow, exit-flows, handover en annotaties: zie [`MASTER-CLIËNT.md`](MASTER-CLIËNT.md).
+Voor de actuele samenwerking zijn er nu twee aparte hulppagina's:
 
-> **Wat is de master-client modus?**
-> Met deze functie kunnen twee of meer Android-toestellen tegelijkertijd aan dezelfde telling deelnemen via een gedeeld Wi-Fi-netwerk of mobiele hotspot. Eén toestel neemt de rol van **master** op zich: dit toestel beheert de telling, verzamelt alle waarnemingen en uploadt uiteindelijk alles naar trektellen.nl. De andere toestellen werken als **client**: zij sturen hun waarnemingen via het netwerk door naar de master.
->
-> **Praktisch voorbeeld:** op een drukke telpost werken drie vogelaars. Toestel A is de master. Toestellen B en C zijn clients. Alles wat B en C inspreeken of intikken, wordt meteen doorgestuurd naar A. Alleen A doet de uiteindelijke upload.
+- **Volledige handleiding:** [`MASTER-CLIËNT.md`](MASTER-CLIËNT.md)
+- **Korte veldversie:** [`SPIEKBRIEFJE-TELLERS.md`](SPIEKBRIEFJE-TELLERS.md)
+
+> De korte samenvatting hieronder houdt de README begrijpelijk, maar de detailflow staat in de aparte handleidingen.
 
 ---
 
-### Overzicht van de drie modi
+### Wat is de actuele workflow?
+
+De belangrijkste wijziging is dat een teller nu **niet meer vooraf alles als master hoeft op te zetten**.
+
+De voorkeursflow is nu:
+
+1. start de telling gewoon in **solo-modus**;
+2. kom in `TellingScherm` terecht;
+3. zodra een collega wil aansluiten, tik op het **wifi-icoon** in de header;
+4. VT5 kiest dan automatisch de **veiligste bruikbare netwerkroute**:
+   - is het master-toestel al verbonden met een extern Wi‑Fi-netwerk of hotspot, dan hergebruikt VT5 dat netwerk;
+   - anders start VT5 zelf een **LocalOnlyHotspot** op het toestel;
+5. bij succes verschijnt de melding **Lokaal netwerk actief**;
+6. daarna toont VT5 de twee QR-codes voor clients.
+
+Het grote voordeel is dat u de lopende telling **niet hoeft te verlaten** om naar master-modus over te schakelen.
+
+---
+
+### Betekenis van de drie modi
 
 | Modus | Beschrijving |
 |-------|-------------|
-| **Solo** | Klassiek standalone gebruik — één toestel, geen netwerksamenwerking (standaard) |
-| **Master** | Dit toestel is de "coordinator": het ontvangt waarnemingen van alle clients en uploadt ze |
-| **Client** | Dit toestel stuurt zijn waarnemingen door naar de master |
+| **Solo** | Klassiek gebruik met één toestel, zonder actieve samenwerking |
+| **Master** | Dit toestel beheert de gedeelde telling en ontvangt waarnemingen van clients |
+| **Client** | Dit toestel telt mee en stuurt observaties door naar de master |
 
 ---
 
-### Vereisten
+### Nieuwe voorkeursflow op het master-toestel
 
-- Alle toestellen draaien VT5 en zijn **aangemeld met hun eigen trektellen.nl-account**.
-- Alle toestellen bevinden zich op **hetzelfde lokale Wi-Fi-netwerk of dezelfde mobiele hotspot**.
-- Een internetverbinding is **alleen vereist op het master-toestel** (voor de uiteindelijke upload).
-- Op client-toestellen volstaat een verbinding met het lokale netwerk (intern Wi-Fi of hotspot).
+1. Start VT5 en begin een gewone telling via **Invoeren telpostgegevens**.
+2. Werk door tot u in `TellingScherm` zit.
+3. Telt u alleen, dan blijft alles gewoon solo werken.
+4. Zodra een tweede teller wil aansluiten, tikt u op het **wifi-icoon**.
+5. Staat Android daarom te vragen, geef dan toestemming voor **Nabije wifi-apparaten**.
+6. Wacht op de melding **Lokaal netwerk actief**.
+7. Zit het master-toestel al op een extern Wi‑Fi-netwerk, dan vraagt VT5 indien nodig éénmalig om het wachtwoord van dat netwerk zodat de Wi‑Fi QR correct kan worden aangemaakt.
+8. Toon daarna de **Wi‑Fi QR** en de **pairing-QR** aan de client.
+9. Laat de client daarna via zijn eigen toestel aansluiten.
 
-> 💡 **Tip:** Als er geen extern Wi-Fi beschikbaar is, kan het master-toestel een **mobiele hotspot** activeren en de client-toestellen daarmee verbinden.
-
----
-
-### Stap-voor-stap: Instelling vóór de telling
-
-#### Op het master-toestel
-
-1. Open VT5 en ga naar **Instellingen** (tandwiel-icoon op het Hoofdscherm).
-2. Zoek het onderdeel **"Samenwerken (master-client)"**.
-3. Kies **"Master"** en bevestig.
-4. Ga terug naar het Hoofdscherm en start een telling via **"Invoeren telpostgegevens"** (metadata invullen zoals gewoonlijk).
-5. Eenmaal in het telscherm: tik op de knop **"Clients"** (rechtsboven in de statusbalk).
-6. Een venster verschijnt met een **PIN-code** (6 cijfers, geldig 10 minuten).
-7. **Deel deze PIN-code mondeling of via berichtje** met de tellers op de client-toestellen.
-
-> De PIN is 10 minuten geldig. Tik op **"Nieuwe PIN genereren"** als de code verlopen is voordat alle clients verbonden zijn.
-
-#### Op elk client-toestel
-
-1. Open VT5 en ga naar **Instellingen**.
-2. Kies **"Client"** onder "Samenwerken (master-client)" en bevestig.
-3. Ga terug naar het Hoofdscherm en start de telling (**"Invoeren telpostgegevens"** — vul dezelfde telpost en datum in als op de master).
-4. Eenmaal in het telscherm: tik op de knop **"Koppelen met master"** (statusbalk onderaan).
-5. Het koppelvenster verschijnt:
-   - **IP-adres van de master** — vul dit in, of kies het master-toestel uit de lijst van **automatisch gevonden masters** die VT5 op het netwerk detecteert.
-   - **PIN-code** — voer de 6-cijferige code in die u van de master gekregen heeft.
-6. Tik op **"Verbinden"**.
-7. Bij succes toont de statusbalk **"Client ▪ verbonden met master"**. U bent klaar om te tellen!
-
-> 💡 **Hoe vind ik het IP-adres van de master?**
-> Op het master-toestel: ga naar Android Instellingen → Wi-Fi → tik op het verbonden netwerk → noteer het "IP-adres" (bv. `192.168.43.1`). In de meeste gevallen detecteert VT5 de master automatisch in de lijst — handmatig invullen is zelden nodig.
+> Het wifi-icoon staat in `TellingScherm` **links naast het QR-icoon**.
 
 ---
 
-### Tijdens de telling
+### Flow op elk client-toestel
 
-- **Op client-toestellen:** gebruik de app zoals gewoonlijk — via spraakinvoer of door op tegels te tikken. Elke waarneming wordt automatisch en in real-time naar de master gestuurd.
-- **Op het master-toestel:** waarnemingen van clients verschijnen in de tellog met het prefix **[C]** zodat u ze kunt onderscheiden van uw eigen invoer.
-- **Statusbalk (master):** toont hoeveel clients er verbonden zijn, bv. `Master ▪ 2 client(s) verbonden`.
-- **Statusbalk (client):** toont de verbindingsstatus, bv. `Client ▪ verbonden met master`.
-- Als de verbinding kort wegvalt, slaat het client-toestel de nieuwe waarnemingen lokaal op en stuurt ze automatisch door zodra de verbinding hersteld is.
+1. Open VT5.
+2. Kies op het hoofdscherm **Invoegen in lopende telling**.
+3. Scan eerst de **Wi‑Fi QR** van de master.
+4. Scan daarna de **pairing-QR**.
+5. Controleer of de status **verbonden met master** toont.
 
----
+Dat is de standaardflow voor:
 
-### Samenwerking beëindigen (normaal verloop)
-
-#### Variant A — master rondt de telling af
-
-1. De master tikt op **"Afronden"** in het telscherm.
-2. VT5 verwerkt automatisch alle nog openstaande ("pending") waarnemingen van clients.
-3. Na een succesvolle upload naar trektellen.nl vraagt de app:  
-   *"Wil je een aansluitende vervolgtelling starten?"*
-   - **"OK" (ja):** de master navigeert naar het MetadataScherm om een nieuwe telling te starten. De clients blijven verbonden.
-   - **"Annuleren" (nee):** de master verlaat de telpost.  
-     ➜ Als er clients verbonden zijn, ontvangen die automatisch het bericht **"Master verlaat de telpost"** (zie hieronder: *Master-overdracht*).
-
-#### Variant B — master beëindigt de samenwerking handmatig
-
-1. Tik in het telscherm op **"Beëindig samenwerking"** (in de statusbalk).
-2. Een bevestigingsvenster verschijnt: *"Alle verbonden clients ontvangen een signaal dat de telling beëindigd is."*
-3. Tik op **"Beëindigen"** om te bevestigen.
-4. Alle clients ontvangen een melding en worden automatisch losgekoppeld.
-
-#### Een client verlaat de telling zelf
-
-1. De client tikt op **"Verlaat telling"** in de statusbalk.
-2. Een bevestigingsvenster verschijnt: *"Wil je stoppen met tellen op deze telpost?"*
-3. Tik op **"Verlaten"**.
-4. De waarnemingen zijn al overgedragen aan de master; de client kan de app veilig sluiten of een solo-telling starten.
+- de eerste client;
+- alle latere extra clients;
+- en volgende tellingen zolang hetzelfde toestel master blijft.
 
 ---
 
-### Master-overdracht: één client neemt de masterfunctie over
+### Belangrijk om te onthouden
 
-**Wanneer gebeurt dit?**  
-Als de master de telling succesvol afgerond heeft (alle pending records zijn ge-upload) en daarna kiest om **geen vervolgtelling** te starten, verlaat het master-toestel de telpost. De verbonden clients ontvangen dan automatisch een **master-overdracht** bericht.
-
-**Hoe werkt het op het client-toestel?**
-
-Een dialoogvenster verschijnt:
-
-> **"Master verlaat de telpost"**  
-> *"[naam master-toestel] heeft de telling afgerond en verlaat de telpost zonder een nieuwe telling te starten.*  
-> *Wil jij de masterfunctie overnemen en een vervolgtelling starten?"*
-
-- **"Ja, overnemen":**
-  1. Het client-toestel schakelt automatisch naar **solo-modus** (het werkt nu zelfstandig, niet meer als client van de vorige master).
-  2. De app navigeert naar het MetadataScherm met de eindtijd van de afgeronde telling al ingevuld als begintijd.
-  3. Vul de overige metadata in en start de nieuwe telling. Dit toestel is nu de facto de nieuwe "coordinator" voor de vervolgtelling.
-- **"Nee, niet overnemen":**
-  1. Het toestel gaat terug naar het Hoofdscherm.
-  2. Andere verbonden clients kunnen de overdracht nog accepteren.
-
-> ⚠️ **Belangrijk:** de master-overdracht gebeurt **altijd ná** een succesvolle upload. U kunt er dus zeker van zijn dat geen enkel record verloren gaat op het moment van overdracht.
+- **Eerst** activeert u master via het **wifi-icoon**.
+- VT5 gebruikt daarna automatisch het bestaande Wi‑Fi-netwerk van de master of start zelf een lokaal hotspot.
+- Een client scant **altijd eerst de Wi‑Fi QR** en **dan pas de pairing-QR**.
+- Clientwaarnemingen worden live doorgestuurd naar de master.
+- Annotaties van clients worden ook naar de master meegestuurd.
+- Als de clientverbinding even wegvalt, probeert VT5 automatisch opnieuw en bewaart het wachtrijen lokaal.
 
 ---
 
-### Offline export en import (zonder netwerk)
+### Einde van de samenwerking
 
-Wanneer een client-toestel tijdelijk **geen verbinding** heeft (of nooit verbonden was):
-
-1. **Op het client-toestel:**  
-   Tik op **"Offline export"** in het telscherm.  
-   VT5 exporteert alle lokaal opgeslagen waarnemingen als een JSON-bestand en biedt de optie om het te delen via Bluetooth, e-mail, bestandsbeheer, enz.
-
-2. **Op het master-toestel:**  
-   Tik op **"Offline import"**.  
-   Selecteer het ontvangen JSON-bestand.  
-   VT5 importeert de records en vermeldt hoeveel items zijn toegevoegd.
-
-Deze methode werkt ook als alternatief voor de LAN-verbinding als de netwerkomgeving onbetrouwbaar is.
+- Een client kan de sessie verlaten via **Verlaat telling**, maar alleen als alle waarnemingen bevestigd zijn.
+- De master kan de samenwerking centraal stopzetten via **Beëindig samenwerking**.
+- Als de master een telling afrondt en geen vervolgtelling start, kan een client via de **handover-flow** de masterrol overnemen.
+- Een vervolgtelling op hetzelfde master-toestel kan de samenwerking verderzetten.
 
 ---
 
-### Snel overzicht: knoppen en meldingen
+### Waar leest u best verder?
 
-| Knop / Melding | Waar | Betekenis |
-|----------------|------|-----------|
-| **Clients** | Master — statusbalk | Toon verbonden clients en de koppel-PIN |
-| **Koppelen met master** | Client — statusbalk | Start het koppelproces |
-| **Master ▪ N client(s) verbonden** | Master — statusbalk | Aantal actief verbonden clients |
-| **Client ▪ verbonden met master** | Client — statusbalk | Verbinding actief en in orde |
-| **Client ▪ verbinding maken…** | Client — statusbalk | Bezig met verbinden (even geduld) |
-| **Client ▪ verbindingsfout** | Client — statusbalk | Verbinding verbroken; app probeert automatisch opnieuw |
-| **Verlaat telling** | Client — statusbalk | Client verlaat de sessie netjes |
-| **Beëindig samenwerking** | Master — statusbalk | Stuurt "sessie beëindigd" naar alle clients |
-| **[C]** prefix in tellog | Master — telscherm | Waarneming afkomstig van een client |
-| **Telling beëindigd door master** | Client — melding | Master heeft de samenwerking beëindigd |
-| **Master verlaat de telpost** | Client — dialoogvenster | Master-overdracht: u kunt de masterfunctie overnemen |
-| **Offline export** | Client — telscherm | Exporteer waarnemingen als JSON voor handmatige overdracht |
-| **Offline import** | Master — telscherm | Importeer JSON-export van een client |
-
----
-
-### Veelgemaakte fouten en oplossingen
-
-| Probleem | Mogelijke oorzaak | Oplossing |
-|----------|------------------|-----------|
-| Client ziet de master niet in de lijst | Toestellen zitten op verschillende netwerken | Zorg dat alle toestellen op hetzelfde Wi-Fi of dezelfde hotspot zitten |
-| "Koppeling mislukt" foutmelding | PIN verlopen of onjuist | Vraag de master om een nieuwe PIN te genereren en voer die opnieuw in |
-| Statusbalk toont "verbindingsfout" | Wi-Fi/hotspot tijdelijk weg | VT5 probeert automatisch opnieuw; controleer netwerk als het lang duurt |
-| Geen clients zichtbaar bij master | Clients hebben de modus nog niet ingesteld | Controleer of elk client-toestel in "Client-modus" staat én verbonden is met het netwerk |
-| Waarnemingen van client ontbreken | Verbinding was verbroken tijdens invoer | Gebruik "Offline export" op de client en "Offline import" op de master |
-| Master-overdracht dialog verschijnt niet | Master heeft "OK" gekozen (vervolgtelling gestart) of had geen clients | Overdracht-dialog verschijnt alleen bij "Annuleren" én als er clients verbonden zijn |
+- Voor de volledige stap-voor-stap uitleg: [`MASTER-CLIËNT.md`](MASTER-CLIËNT.md)
+- Voor een snelle veldchecklist: [`SPIEKBRIEFJE-TELLERS.md`](SPIEKBRIEFJE-TELLERS.md)
 
 ---
 
@@ -771,7 +696,7 @@ Deze methode werkt ook als alternatief voor de LAN-verbinding als de netwerkomge
 **A:** VT5 garandeert dat alle openstaande ("pending") records volledig verwerkt en ge-upload zijn vóórdat het overdracht- of afsluit-bericht naar de clients wordt gestuurd. Er gaan dus geen records verloren.
 
 ### Q: Ik zie de master niet in de automatische lijst. Wat nu?
-**A:** Controleer of beide toestellen op hetzelfde netwerk zitten. Voer indien nodig het IP-adres van de master handmatig in (te vinden via Android Instellingen → Wi-Fi → verbonden netwerk → IP-adres).
+**A:** Gebruik opnieuw de standaardflow met de **2 QR-codes**. Laat de client eerst de **Wi‑Fi QR** en daarna de **pairing-QR** scannen. Controleer op het master-toestel of VT5 het juiste netwerk gebruikt en, bij extern Wi‑Fi, of het wachtwoord éénmalig is ingevuld zodat de Wi‑Fi QR correct gegenereerd kan worden.
 
 ### Q: Kan een client de masterfunctie overnemen als de master vertrekt?
 **A:** Ja. Zodra de master na een succesvolle upload kiest om geen vervolgtelling te starten, ontvangen alle verbonden clients een **"Master verlaat de telpost"** dialoog. Één client kan "Ja, overnemen" kiezen en wordt automatisch de nieuwe solo-coordinator voor de vervolgtelling.

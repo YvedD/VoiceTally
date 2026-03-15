@@ -41,6 +41,8 @@ class SplashActiviteit : AppCompatActivity() {
 
         // Relaunches moeten altijd in SOLO starten, ook als het proces nog leeft.
         MasterClientPrefs.resetModeToSolo()
+        com.yvesds.vt5.features.masterClient.McLocalHotspotManager.stop(this)
+        MasterClientPrefs.clearHotspotCredentials(this)
 
         setContentView(R.layout.scherm_splash)
         

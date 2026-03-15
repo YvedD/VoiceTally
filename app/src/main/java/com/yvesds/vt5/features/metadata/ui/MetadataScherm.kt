@@ -3,7 +3,6 @@
 package com.yvesds.vt5.features.metadata.ui
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
@@ -12,12 +11,12 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermMetadataBinding
 import com.yvesds.vt5.features.alias.AliasManager
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 import com.yvesds.vt5.features.metadata.helpers.MetadataFormManager
 import com.yvesds.vt5.features.metadata.helpers.TellingStarter
 import com.yvesds.vt5.features.metadata.helpers.WeatherDataFetcher
@@ -48,6 +47,7 @@ import kotlinx.coroutines.withContext
 class MetadataScherm : AppCompatActivity() {
     companion object {
         private const val TAG = "MetadataScherm"
+        const val EXTRA_START_AS_MASTER = "EXTRA_START_AS_MASTER"
         
         /**
          * Extra key for vervolgtelling: contains the eindtijd of the previous telling
@@ -74,6 +74,7 @@ class MetadataScherm : AppCompatActivity() {
     private lateinit var formManager: MetadataFormManager
     private lateinit var weatherFetcher: WeatherDataFetcher
     private lateinit var tellingStarter: TellingStarter
+    private var startAsMaster: Boolean = false
 
     private val requestLocationPerms = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -109,6 +110,7 @@ class MetadataScherm : AppCompatActivity() {
         // Check for vervolgtelling: if begintijd is passed from previous telling,
         // use it to preset the time field and ensure weather button is enabled
         handleVervolgtellingIntent()
+        syncLaunchModeFromIntent()
 
         // Acties
         binding.btnVerder.setOnClickListener { onVerderClicked() }
@@ -329,13 +331,21 @@ class MetadataScherm : AppCompatActivity() {
     private val soortSelectieLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { res ->
-        if (res.resultCode == Activity.RESULT_OK) {
+        if (res.resultCode == RESULT_OK) {
             val ids = res.data?.getStringArrayListExtra(SoortSelectieScherm.EXTRA_SELECTED_SOORT_IDS).orEmpty()
             formManager.gekozenTelpostId?.let { TellingSessionManager.setTelpost(it) }
             TellingSessionManager.setPreselectedSoorten(ids)
             val intent = Intent(this, com.yvesds.vt5.features.telling.TellingScherm::class.java)
+            if (startAsMaster) {
+                intent.putExtra(com.yvesds.vt5.features.telling.TellingScherm.EXTRA_OPEN_MASTER_PAIRING, true)
+            }
             startActivity(intent)
         }
+    }
+
+    private fun syncLaunchModeFromIntent() {
+        startAsMaster = intent?.getBooleanExtra(EXTRA_START_AS_MASTER, false) == true ||
+                MasterClientPrefs.getMode(this) == MasterClientPrefs.MODE_MASTER
     }
 
     /**
@@ -365,7 +375,7 @@ class MetadataScherm : AppCompatActivity() {
                     }
                     
                     // Success! Setup session and open SoortSelectieScherm
-                    val speciesForTelpost = fullSnapshot.siteSpeciesBySite[telpostId]?.mapNotNull { it.soortid } ?: emptyList()
+                    val speciesForTelpost = fullSnapshot.siteSpeciesBySite[telpostId].orEmpty().map { it.soortid }
                     TellingSessionManager.setTelpost(telpostId)
                     TellingSessionManager.setPreselectedSoorten(speciesForTelpost)
                     
@@ -418,5 +428,6 @@ class MetadataScherm : AppCompatActivity() {
         
         // Re-check for vervolgtelling intent data
         handleVervolgtellingIntent()
+        syncLaunchModeFromIntent()
     }
 }

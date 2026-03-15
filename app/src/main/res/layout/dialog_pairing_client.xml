@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:importantForAutofill="noExcludeDescendants"
     android:orientation="vertical"
     android:padding="16dp">
 
@@ -14,6 +15,15 @@
         android:textStyle="bold"
         android:textColor="@color/vt5_on_surface"
         android:paddingBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_client_qr_required"
+        android:textSize="13sp"
+        android:textColor="@color/vt5_on_surface"
+        android:alpha="0.8"
+        android:paddingBottom="10dp" />
 
     <!-- Master IP-adres -->
     <TextView
@@ -28,6 +38,7 @@
         android:id="@+id/etMasterIp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:autofillHints="postalAddress"
         android:hint="@string/mc_pairing_master_ip_hint"
         android:inputType="textNoSuggestions"
         android:textColor="@color/vt5_on_surface"
@@ -37,6 +48,7 @@
 
     <!-- Gevonden masters via NSD (auto-detect) -->
     <TextView
+        android:id="@+id/tvDiscoveredMastersLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/mc_pairing_discovered_label"
@@ -61,28 +73,6 @@
         android:layout_marginTop="6dp"
         android:text="@string/mc_pairing_scan_qr" />
 
-    <!-- PIN invoer -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/mc_pairing_pin_input_label"
-        android:textSize="13sp"
-        android:textColor="@color/vt5_on_surface"
-        android:paddingTop="10dp"
-        android:paddingBottom="4dp" />
-
-    <EditText
-        android:id="@+id/etPin"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/mc_pairing_pin_hint"
-        android:inputType="number"
-        android:maxLength="6"
-        android:textSize="24sp"
-        android:gravity="center_horizontal"
-        android:textColor="@color/vt5_on_surface"
-        android:textColorHint="#888888"
-        android:background="@android:color/transparent" />
 
     <!-- Status -->
     <TextView

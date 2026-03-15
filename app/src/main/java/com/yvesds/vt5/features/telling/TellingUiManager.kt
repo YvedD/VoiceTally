@@ -38,6 +38,8 @@ class TellingUiManager(
     var onSaveCloseCallback: ((List<TellingScherm.SoortRow>) -> Unit)? = null
     var onOpenSettingsCallback: (() -> Unit)? = null
     var onToggleAlarmCallback: (() -> Unit)? = null
+    var onEnableMasterModeCallback: (() -> Unit)? = null
+    var onShowMasterQrCallback: (() -> Unit)? = null
 
     /**
      * Setup partials RecyclerView with tap handling.
@@ -161,6 +163,14 @@ class TellingUiManager(
 
         binding.btnToggleAlarm.setOnClickListener {
             onToggleAlarmCallback?.invoke()
+        }
+
+        binding.btnEnableMasterMode.setOnClickListener {
+            onEnableMasterModeCallback?.invoke()
+        }
+
+        binding.btnShowMasterQr.setOnClickListener {
+            onShowMasterQrCallback?.invoke()
         }
     }
 

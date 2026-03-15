@@ -35,6 +35,18 @@ object MasterClientPrefs {
     @Volatile
     private var runtimeMode: String? = null
 
+    @Volatile
+    private var runtimeHotspotSsid: String? = null
+
+    @Volatile
+    private var runtimeHotspotPass: String? = null
+
+    @Volatile
+    private var runtimeHotspotSec: String? = null
+
+    @Volatile
+    private var legacyHotspotPrefsCleared = false
+
     fun getMode(context: Context): String =
         runtimeMode ?: MODE_SOLO
 
@@ -89,29 +101,66 @@ object MasterClientPrefs {
             remove(KEY_SESSION_TOKEN)
             remove(KEY_MASTER_IP)
         }
+        McLocalHotspotManager.stop(context)
+        clearHotspotCredentials(context)
     }
 
     // ─── Hotspot credentials ──────────────────────────────────────────────────
 
     fun getHotspotSsid(context: Context): String =
-        prefs(context).getString(KEY_HOTSPOT_SSID, "") ?: ""
+        runtimeHotspotSsid ?: run {
+            clearLegacyHotspotPrefsIfNeeded(context)
+            ""
+        }
 
     fun setHotspotSsid(context: Context, ssid: String) =
-        prefs(context).edit { putString(KEY_HOTSPOT_SSID, ssid) }
+        clearLegacyHotspotPrefsIfNeeded(context).also {
+            runtimeHotspotSsid = ssid.trim()
+        }
 
     fun getHotspotPassword(context: Context): String =
-        prefs(context).getString(KEY_HOTSPOT_PASS, "") ?: ""
+        runtimeHotspotPass ?: run {
+            clearLegacyHotspotPrefsIfNeeded(context)
+            ""
+        }
 
     fun setHotspotPassword(context: Context, pass: String) =
-        prefs(context).edit { putString(KEY_HOTSPOT_PASS, pass) }
+        clearLegacyHotspotPrefsIfNeeded(context).also {
+            runtimeHotspotPass = pass.trim()
+        }
 
     fun getHotspotSecurity(context: Context): String =
-        prefs(context).getString(KEY_HOTSPOT_SEC, "WPA") ?: "WPA"
+        runtimeHotspotSec ?: run {
+            clearLegacyHotspotPrefsIfNeeded(context)
+            "WPA"
+        }
 
     fun setHotspotSecurity(context: Context, sec: String) =
-        prefs(context).edit { putString(KEY_HOTSPOT_SEC, sec) }
+        clearLegacyHotspotPrefsIfNeeded(context).also {
+            runtimeHotspotSec = sec.ifBlank { "WPA" }
+        }
+
+    fun clearHotspotCredentials(context: Context) {
+        clearLegacyHotspotPrefsIfNeeded(context)
+        runtimeHotspotSsid = null
+        runtimeHotspotPass = null
+        runtimeHotspotSec = null
+    }
 
     // ─── Helper ───────────────────────────────────────────────────────────────
+
+    private fun clearLegacyHotspotPrefsIfNeeded(context: Context) {
+        if (legacyHotspotPrefsCleared) return
+        synchronized(this) {
+            if (legacyHotspotPrefsCleared) return
+            prefs(context).edit {
+                remove(KEY_HOTSPOT_SSID)
+                remove(KEY_HOTSPOT_PASS)
+                remove(KEY_HOTSPOT_SEC)
+            }
+            legacyHotspotPrefsCleared = true
+        }
+    }
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -47,6 +47,8 @@ class VT5App : Application() {
 
         // Altijd opstarten in solo-modus (niet persistent bewaren)
         MasterClientPrefs.resetModeToSolo()
+        com.yvesds.vt5.features.masterClient.McLocalHotspotManager.stop(this)
+        MasterClientPrefs.clearHotspotCredentials(this)
 
         // Initialiseer uurlijks alarm
         try {

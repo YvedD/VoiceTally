@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mc_qr_dialog_title"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mc_pairing_master_qr_required"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp"
+            android:alpha="0.85"
+            android:paddingBottom="12dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mc_pairing_wifi_qr_label"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <ImageView
+            android:id="@+id/ivWifiQr"
+            android:layout_width="350dp"
+            android:layout_height="350dp"
+            android:layout_gravity="center_horizontal"
+            android:adjustViewBounds="true"
+            android:background="#1A1A2E"
+            android:contentDescription="@string/mc_pairing_wifi_qr_label" />
+
+        <TextView
+            android:id="@+id/tvWifiQrInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="12sp"
+            android:alpha="0.8"
+            android:paddingTop="100dp"
+            android:paddingBottom="100dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mc_pairing_qr_label"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <ImageView
+            android:id="@+id/ivPairingQr"
+            android:layout_width="350dp"
+            android:layout_height="350dp"
+            android:layout_gravity="center_horizontal"
+            android:adjustViewBounds="true"
+            android:background="#1A1A2E"
+            android:contentDescription="@string/mc_pairing_qr_label" />
+
+        <TextView
+            android:id="@+id/tvPairingQrInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="12sp"
+            android:alpha="0.8"
+            android:paddingTop="6dp"
+            android:paddingBottom="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClose"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/mc_pairing_close" />
+    </LinearLayout>
+</ScrollView>
+

@@ -2,27 +2,9 @@ package com.yvesds.vt5.features.masterClient
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import com.yvesds.vt5.VT5App
-import com.yvesds.vt5.features.masterClient.protocol.AckMessage
-import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
-import com.yvesds.vt5.features.masterClient.protocol.LeaveMessage
-import com.yvesds.vt5.features.masterClient.protocol.MasterHandoverMessage
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_HEARTBEAT
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_LEAVE
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_MASTER_HANDOVER
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_OBSERVATION
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_REQ
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_PAIRING_RESP
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_SESSION_END
-import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_TILE_SYNC
-import com.yvesds.vt5.features.masterClient.protocol.McEnvelope
-import com.yvesds.vt5.features.masterClient.protocol.ObservationEvent
-import com.yvesds.vt5.features.masterClient.protocol.PairingRequest
-import com.yvesds.vt5.features.masterClient.protocol.PairingResponse
-import com.yvesds.vt5.features.masterClient.protocol.SessionEndMessage
-import com.yvesds.vt5.features.masterClient.protocol.TileSyncMessage
-import com.yvesds.vt5.features.masterClient.protocol.TileSyncItem
+import com.yvesds.vt5.features.masterClient.protocol.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,11 +25,11 @@ import java.net.Socket
  * ClientConnector – verbindt als client met de MasterServer.
  *
  * Verbindingsflow:
- *  1. Maak verbinding met master op [ip]:[port].
- *  2. Stuur PairingRequest met PIN.
- *  3. Ontvang PairingResponse (sessietoken of fout).
- *  4. Stuur verzamelde ObservationEvents; wacht op ACK per event.
- *  5. Bewaar tijdelijk niet-ge-ack'te events in [ClientEventQueue].
+ *  1. Maak verbinding met master op `ip:port`.
+ *  2. Stuur `PairingRequest` met PIN.
+ *  3. Ontvang `PairingResponse` (sessietoken of fout).
+ *  4. Stuur verzamelde `ObservationEvent`-berichten; wacht op ACK per event.
+ *  5. Bewaar tijdelijk niet-ge-ack'te events in `ClientEventQueue`.
  *
  * Bij verbrekingen herverbindt de connector automatisch (met exponentieel backoff).
  */
@@ -73,18 +55,17 @@ class ClientConnector(
     val state: StateFlow<State> = _state
 
     private val _lastError = MutableStateFlow("")
-    val lastError: StateFlow<String> = _lastError
 
     /**
      * Optionele callback: aangeroepen op de IO-thread wanneer de master een
-     * [SessionEndMessage] stuurt. De aanroeper moet UI-updates naar de Main-thread
+     * `SessionEndMessage` stuurt. De aanroeper moet UI-updates naar de Main-thread
      * dispatchen.
      */
     var onSessionEnded: ((reason: String) -> Unit)? = null
 
     /**
      * Optionele callback: aangeroepen op de IO-thread wanneer de master een
-     * [MasterHandoverMessage] stuurt. Dit betekent dat de master alle pending records
+     * `MasterHandoverMessage` stuurt. Dit betekent dat de master alle pending records
      * heeft ge-upload en de telpost verlaat zónder een vervolgtelling te starten.
      * Eén van de clients kan nu de masterfunctie overnemen.
      *
@@ -178,7 +159,7 @@ class ClientConnector(
      * Stuur alle events in de wachtrij onmiddellijk (voor bulk-export bij einde telling).
      * Roep aan nadat een verbinding al tot stand is gebracht.
      */
-    suspend fun flushQueue() {
+    fun flushQueue() {
         val w = writer ?: return
         val items = eventQueue.getAllPending()
         for (item in items) {
@@ -202,10 +183,10 @@ class ClientConnector(
             try {
                 val ip   = prefs.getMasterIp(context)
                 val port = prefs.getMasterPort(context)
-                val pin  = requestPin()          // UI-laag moet PIN beschikbaar stellen
+                val pin  = requestPin()
 
-                if (ip.isBlank() || pin.isBlank()) {
-                    Log.w(TAG, "Geen master-IP of PIN beschikbaar; wachten…")
+                if (ip.isBlank()) {
+                    Log.w(TAG, "Geen master-IP beschikbaar; wachten…")
                     delay(RECONNECT_BASE_MS)
                     continue
                 }
@@ -242,10 +223,9 @@ class ClientConnector(
 
                 prefs.setSessionToken(context, resp.sessionToken)
                 if (resp.tellingId.isNotBlank()) {
-                    context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
-                        .edit()
-                        .putString("pref_telling_id", resp.tellingId)
-                        .apply()
+                    context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE).edit {
+                        putString("pref_telling_id", resp.tellingId)
+                    }
                 }
                 eventQueue.replaceSessionToken(resp.sessionToken, prefs.getClientId(context))
                 currentSessionToken = resp.sessionToken
@@ -255,7 +235,7 @@ class ClientConnector(
                 Log.i(TAG, "Verbonden met master: ${resp.masterName}")
 
                 // Event-lus + heartbeat
-                sessionLoop(reader, w, resp.sessionToken)
+                sessionLoop(reader, w)
 
                 // Verbinding verbroken (remote sloot de socket); niet-ge-ack'te events terugzetten.
                 if (running) eventQueue.requeueInFlight()
@@ -278,8 +258,7 @@ class ClientConnector(
 
     private suspend fun sessionLoop(
         reader: BufferedReader,
-        writer: PrintWriter,
-        sessionToken: String
+        writer: PrintWriter
     ) {
         val scope = connectorScope ?: return
 
@@ -424,9 +403,8 @@ class ClientConnector(
         catch (e: Exception) { Log.w(TAG, "Decode payload fout: ${e.message}"); null }
 
     /**
-     * Haal de PIN op die door de UI is ingesteld via [setPendingPin].
-     * Geeft een lege string terug als er nog geen PIN ingesteld is
-     * → de verbindingslus wacht dan totdat de gebruiker een PIN invoert.
+     * Haal de optionele PIN op die door de UI is ingesteld via [setPendingPin].
+     * In de vereenvoudigde QR-flow mag deze leeg blijven.
      */
     private fun requestPin(): String = pendingPin ?: ""
 
@@ -440,10 +418,6 @@ class ClientConnector(
         pendingPin = pin
     }
 
-    /** Wis de PIN na gebruik. */
-    fun clearPendingPin() {
-        pendingPin = null
-    }
 
     fun queueObservation(
         soortid: String,

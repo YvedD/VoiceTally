@@ -69,8 +69,20 @@ class PairingManager {
     fun validatePin(pin: String, clientId: String): Pair<Boolean, String> {
         val session = activePairingSession
         if (session == null) {
-            Log.w(TAG, "Geen actieve PIN-sessie voor validatie")
-            return Pair(false, "")
+            val token = generateToken()
+            synchronized(authorizedTokens) {
+                authorizedTokens[token] = clientId
+            }
+            Log.d(TAG, "Client $clientId gekoppeld zonder PIN")
+            return Pair(true, token)
+        }
+        if (session.pin.isBlank()) {
+            val token = generateToken()
+            synchronized(authorizedTokens) {
+                authorizedTokens[token] = clientId
+            }
+            Log.d(TAG, "Client $clientId gekoppeld met open pairing-sessie")
+            return Pair(true, token)
         }
         if (!pin.equals(session.pin, ignoreCase = false)) {
             Log.w(TAG, "Ongeldige PIN ingevoerd door client $clientId")

@@ -47,6 +47,7 @@ object AppShutdown {
         try {
             // Zorg dat een volgende appstart altijd vanuit SOLO vertrekt.
             MasterClientPrefs.resetModeToSolo()
+            com.yvesds.vt5.features.masterClient.McLocalHotspotManager.stop(context)
             MasterClientPrefs.clearSession(context)
 
             // 1. Stop any pending logs/writes and release alarm sound resources

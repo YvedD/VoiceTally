@@ -40,7 +40,7 @@
 
     <!-- ─── Pairing – client ─────────────────────────────────────────── -->
     <string name="mc_pairing_client_title">Koppelen met master</string>
-    <string name="mc_pairing_master_ip_label">IP-adres master (of kies hieronder):</string>
+    <string name="mc_pairing_master_ip_label">Master-IP (wordt automatisch ingevuld via pairing-QR):</string>
     <string name="mc_pairing_master_ip_hint">bijv. 192.168.43.1</string>
     <string name="mc_pairing_discovered_label">Automatisch gevonden masters op het netwerk:</string>
     <string name="mc_pairing_pin_input_label">PIN-code (van het master-toestel):</string>
@@ -113,11 +113,22 @@
     <string name="mc_handover_decline">Nee, niet overnemen</string>
 
     <!-- ─── Nieuwe strings voor join-session knop en QR scan labels ──────── -->
-    <string name="mc_join_active_session">Invoegen in lopende sessie</string>
-    <string name="mc_pairing_scan_qr">Scan QR-code</string>
+    <string name="mc_start_as_master">Telling starten als master</string>
+    <string name="mc_join_active_session">Invoegen in lopende telling</string>
+    <string name="mc_local_network_active">Lokaal netwerk actief</string>
+    <string name="mc_local_network_failed">Lokaal netwerk kon niet gestart worden: %1$s</string>
+    <string name="mc_nearby_wifi_permission_required">Toestemming ‘Nabije wifi-apparaten’ is nodig om het lokale netwerk te starten.</string>
+    <string name="mc_enable_master_mode">Samenwerken inschakelen</string>
+    <string name="mc_master_mode_active">Samenwerken is actief</string>
+    <string name="mc_master_mode_already_active">Samenwerken is al actief op deze telling</string>
+    <string name="mc_show_qr_codes">Toon QR-codes</string>
+    <string name="mc_qr_dialog_title">Client koppelen</string>
+    <string name="mc_pairing_scan_qr">Scan 2 QR-codes</string>
     <string name="mc_pairing_qr_invalid">Ongeldige QR-code</string>
     <string name="mc_pairing_qr_filled">QR-gegevens ingevuld</string>
     <string name="mc_pairing_qr_label">QR-code (scan met client)</string>
+    <string name="mc_pairing_master_qr_required">Elke nieuwe client gebruikt altijd dezelfde 2 stappen: 1) scan eerst de Wi‑Fi QR zodat het toestel op het juiste netwerk komt, 2) scan daarna de pairing-QR zodat VT5 automatisch met deze telling verbindt.</string>
+    <string name="mc_pairing_client_qr_required">Nieuwe clients koppelen altijd via 2 QR-codes: scan eerst de Wi‑Fi QR van de master en daarna de pairing-QR. Na de tweede scan verbindt VT5 automatisch.</string>
     <string name="mc_pairing_master_no_ip">Geen netwerk-IP gevonden</string>
     <string name="mc_pairing_permission_title">Nieuwe client aanvragen</string>
     <string name="mc_pairing_permission_message">Client "%1$s" wil aansluiten op deze telling. Toestaan?</string>
@@ -128,12 +139,19 @@
     <string name="mc_pairing_hotspot_label">Hotspot gegevens</string>
     <string name="mc_pairing_hotspot_ssid_hint">Hotspot SSID</string>
     <string name="mc_pairing_hotspot_pass_hint">Hotspot wachtwoord</string>
+    <string name="mc_pairing_hotspot_wpa2_hint">Beveiliging: WPA2</string>
     <string name="mc_pairing_hotspot_save">Hotspot opslaan</string>
     <string name="mc_pairing_hotspot_saved">Hotspot opgeslagen</string>
     <string name="mc_pairing_hotspot_from_qr">Hotspot-gegevens uit QR opgeslagen</string>
+    <string name="mc_pairing_hotspot_manual_needed">Dit toestel levert zelf de hotspot. Vul hieronder de actuele hotspotnaam en het WPA2-wachtwoord in, of open eerst de hotspotinstellingen van Android.</string>
+    <string name="mc_pairing_hotspot_missing_both">Vul eerst de hotspotnaam én het WPA2-wachtwoord in voordat je clients laat koppelen.</string>
+    <string name="mc_pairing_hotspot_ssid_required">Vul eerst de hotspotnaam (SSID) in.</string>
+    <string name="mc_pairing_hotspot_pass_required">Vul eerst het WPA2-wachtwoord van de hotspot in.</string>
 
     <string name="mc_pairing_wifi_qr_label">Wi‑Fi QR (eerst verbinden)</string>
     <string name="mc_pairing_wifi_qr_missing">Geen SSID/wachtwoord ingevuld</string>
+    <string name="mc_pairing_generate_qrs">QR codes maken</string>
+    <string name="mc_pairing_generate_qrs_ready">QR codes aangemaakt</string>
 
     <string name="mc_add_clients_confirm_title">Samenwerken starten</string>
     <string name="mc_add_clients_confirm_message">Je staat momenteel in solo‑modus. Wil je nu samenwerken met andere tellers?</string>
@@ -145,7 +163,14 @@
 
     <string name="mc_tile_sync_toast">Tegels overgenomen van master</string>
 
+    <!-- ─── Master op extern Wi-Fi netwerk ──────────────────────────── -->
+    <string name="mc_pairing_wifi_password_for_qr_title">Wi‑Fi wachtwoord voor QR</string>
+    <string name="mc_pairing_wifi_client_info">Dit toestel is verbonden met \'%1$s\'.\nVoer het wachtwoord van dit netwerk in zodat de QR-codes gegenereerd kunnen worden voor de clients.</string>
+    <string name="mc_wifi_client_mode_active">Master actief via Wi‑Fi netwerk: %1$s</string>
+
     <string name="mc_pairing_wifi_scan">Wi‑Fi scannen</string>
+    <string name="mc_pairing_open_hotspot_settings">Open hotspotinstellingen</string>
+    <string name="mc_pairing_wifi_scan_disabled_hotspot">Hotspot actief op dit toestel</string>
     <string name="mc_pairing_wifi_scan_failed">Wi‑Fi scan niet gelukt</string>
     <string name="mc_pairing_wifi_scan_empty">Geen netwerken gevonden</string>
     <string name="mc_pairing_wifi_scan_permission">Locatie-toestemming nodig voor Wi‑Fi scan</string>
@@ -161,5 +186,9 @@
     <string name="mc_wifi_status_unknown">Wi‑Fi status: onbekend</string>
     <string name="mc_wifi_status_connected">Wi‑Fi verbonden: %1$s</string>
     <string name="mc_wifi_status_disconnected">Wi‑Fi niet verbonden</string>
+    <string name="mc_wifi_status_hotspot_provider">Hotspot actief op dit toestel: %1$s ▪ master bereikbaar via %2$s</string>
+    <string name="mc_wifi_status_local_only">Lokaal netwerkadres: %1$s</string>
+    <string name="mc_pairing_qr_info_hotspot_provider">Master hotspot ▪ %1$s:%2$d</string>
+    <string name="mc_pairing_qr_info_wifi_network">Master netwerk ▪ %1$s:%2$d</string>
 
 </resources>

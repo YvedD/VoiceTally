@@ -9,6 +9,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
 
     <!-- Master-client: lokale netwerk-discovery en TCP-server -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

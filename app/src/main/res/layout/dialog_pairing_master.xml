@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:importantForAutofill="noExcludeDescendants"
     android:orientation="vertical"
     android:padding="12dp">
 
@@ -17,7 +18,6 @@
             android:orientation="vertical"
             android:paddingBottom="4dp">
 
-            <!-- Titel -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -26,39 +26,6 @@
                 android:textStyle="bold"
                 android:textColor="@color/vt5_on_surface"
                 android:paddingBottom="6dp" />
-
-            <!-- PIN weergave -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/mc_pairing_pin_label"
-                android:textSize="13sp"
-                android:textColor="@color/vt5_on_surface" />
-
-            <TextView
-                android:id="@+id/tvMasterPin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text=""
-                android:contentDescription="@string/mc_pairing_pin_label"
-                android:textSize="36sp"
-                android:textStyle="bold"
-                android:gravity="center_horizontal"
-                android:letterSpacing="0.3"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp"
-                android:textColor="@color/vt5_on_surface" />
-
-            <TextView
-                android:id="@+id/tvPinExpiry"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/mc_pairing_pin_valid"
-                android:textSize="12sp"
-                android:gravity="center_horizontal"
-                android:textColor="@color/vt5_on_surface"
-                android:alpha="0.7"
-                android:paddingBottom="8dp" />
 
             <!-- Hotspot gegevens (voor QR) -->
             <TextView
@@ -75,6 +42,7 @@
                 android:id="@+id/etHotspotSsid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:autofillHints="username"
                 android:hint="@string/mc_pairing_hotspot_ssid_hint"
                 android:inputType="textNoSuggestions"
                 android:textColor="@color/vt5_on_surface"
@@ -90,6 +58,23 @@
                 android:layout_marginBottom="4dp"
                 android:text="@string/mc_pairing_wifi_scan" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenHotspotSettings"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="@string/mc_pairing_open_hotspot_settings" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/mc_pairing_hotspot_wpa2_hint"
+                android:textSize="12sp"
+                android:textColor="@color/vt5_on_surface"
+                android:alpha="0.7"
+                android:paddingBottom="6dp" />
+
             <TextView
                 android:id="@+id/tvWifiStatus"
                 android:layout_width="match_parent"
@@ -104,6 +89,7 @@
                 android:id="@+id/etHotspotPass"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:autofillHints="password"
                 android:hint="@string/mc_pairing_hotspot_pass_hint"
                 android:inputType="textPassword"
                 android:textColor="@color/vt5_on_surface"
@@ -112,12 +98,13 @@
                 android:paddingBottom="6dp" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSaveHotspot"
+                android:id="@+id/btnGenerateQrs"
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
-                android:text="@string/mc_pairing_hotspot_save" />
+                android:enabled="false"
+                android:text="@string/mc_pairing_generate_qrs" />
 
             <!-- Wi-Fi QR (voor verbinding met hotspot) -->
             <TextView
@@ -181,50 +168,6 @@
                 android:paddingTop="4dp"
                 android:paddingBottom="8dp" />
 
-            <!-- Verbonden clients -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/mc_pairing_connected_clients"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/vt5_on_surface"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvConnectedClients"
-                android:layout_width="match_parent"
-                android:layout_height="100dp"
-                android:background="#1A1A2E" />
-
-            <!-- Nieuwe PIN genereren -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnNewPin"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/mc_pairing_new_pin" />
-
-            <!-- Samenwerking beëindigen (SessionEnd naar alle clients) -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEndCollab"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/mc_btn_end_collab" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnImportOffline"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/mc_import_btn" />
-
-            <!-- Sluiten -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnClosePairing"
                 style="@style/Widget.VT5.Button.Outlined"
