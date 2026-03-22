@@ -86,14 +86,36 @@ class ClientConnector(
     /** Optionele callback: aangeroepen wanneer een event opnieuw ingepland wordt voor resend. */
     var onObservationRetrying: ((clientEventId: String) -> Unit)? = null
 
+    /** Optionele callback: aangeroepen zodra een event is verstuurd maar nog niet bevestigd is door de master. */
+    var onObservationSentUnconfirmed: ((clientEventId: String) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer een reconnect ingepland wordt. */
+    var onReconnectScheduled: ((reason: String, delayMs: Long) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer de socket of sessie is weggevallen. */
+    var onDisconnected: ((reason: String) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer niet-bevestigde events lokaal behouden blijven na een disconnect. */
+    var onPendingObservationsRetained: ((count: Int, reason: String) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen zodra een sessie hersteld is en wachtende events opnieuw kunnen doorstromen. */
+    var onSessionRecovered: ((pendingCount: Int) -> Unit)? = null
+
+    /** Optionele callback: aangeroepen wanneer het aantal onbevestigde events wijzigt. */
+    var onPendingObservationCountChanged: ((count: Int) -> Unit)? = null
+
     private var connectorScope: CoroutineScope? = null
     private val writerLock = Any()
 
     @Volatile private var running = false
     @Volatile private var socket: Socket? = null
     @Volatile private var writer: PrintWriter? = null
-    /** Sessietoken ontvangen na succesvolle pairing. */
-    @Volatile private var currentSessionToken: String = ""
+    /**
+     * Laatst bekende sessietoken. Mag tijdelijk ook een oud of leeg token zijn zolang
+     * events enkel lokaal gequeued worden; bij een succesvolle (re)pair wordt het token
+     * over alle pending/inFlight events herschreven.
+     */
+    @Volatile private var currentSessionToken: String = prefs.getSessionToken(context)
 
     // ─── Start / stop ─────────────────────────────────────────────────────────
 
@@ -162,18 +184,24 @@ class ClientConnector(
     fun flushQueue() {
         val w = writer ?: return
         val items = eventQueue.getAllPending()
+        notifyPendingObservationCountChanged()
         for (item in items) {
             if (!running) break
             if (!sendObservation(w, item)) {
                 eventQueue.requeue(item.clientEventId)
+                notifyPendingObservationCountChanged()
                 onObservationRetrying?.invoke(item.clientEventId)
                 disconnectCurrentSocket("flushQueue write failure")
                 break
+            } else {
+                onObservationSentUnconfirmed?.invoke(item.clientEventId)
             }
         }
     }
 
     fun pendingObservationCount(): Int = eventQueue.totalUnacknowledged()
+
+    fun unacknowledgedObservationEventIds(): List<String> = eventQueue.unacknowledgedEventIds()
 
     // ─── Verbindingslus ───────────────────────────────────────────────────────
 
@@ -184,6 +212,9 @@ class ClientConnector(
                 val ip   = prefs.getMasterIp(context)
                 val port = prefs.getMasterPort(context)
                 val pin  = requestPin()
+                val sessionTokenHint = queuedSessionToken()
+                val pendingBeforePair = eventQueue.totalUnacknowledged()
+                val recoveringSession = pendingBeforePair > 0 || sessionTokenHint.isNotBlank()
 
                 if (ip.isBlank()) {
                     Log.w(TAG, "Geen master-IP beschikbaar; wachten…")
@@ -203,7 +234,15 @@ class ClientConnector(
                 // Pairing
                 val clientId   = prefs.getClientId(context)
                 val clientName = android.os.Build.MODEL
-                sendPairingRequest(w, PairingRequest(pin, clientId, clientName))
+                sendPairingRequest(
+                    w,
+                    PairingRequest(
+                        pin = pin,
+                        clientId = clientId,
+                        clientName = clientName,
+                        sessionToken = sessionTokenHint
+                    )
+                )
 
                 val respLine = reader.readLine() ?: throw Exception("Verbinding verbroken tijdens pairing")
                 val respEnv  = decodeEnvelope(respLine)
@@ -217,6 +256,9 @@ class ClientConnector(
                     _state.value = State.ERROR
                     _lastError.value = resp.error.ifBlank { "Pairing geweigerd" }
                     Log.w(TAG, "Pairing geweigerd: ${resp.error}")
+                    try { s.close() } catch (_: Exception) {}
+                    socket = null
+                    writer = null
                     delay(RECONNECT_MAX_MS)
                     continue
                 }
@@ -232,28 +274,35 @@ class ClientConnector(
                 _state.value = State.PAIRED
                 _lastError.value = ""
                 backoffMs = RECONNECT_BASE_MS
+                notifyPendingObservationCountChanged()
                 Log.i(TAG, "Verbonden met master: ${resp.masterName}")
+                if (recoveringSession) {
+                    onSessionRecovered?.invoke(eventQueue.totalUnacknowledged())
+                }
 
                 // Event-lus + heartbeat
                 sessionLoop(reader, w)
 
                 // Verbinding verbroken (remote sloot de socket); niet-ge-ack'te events terugzetten.
-                if (running) eventQueue.requeueInFlight()
+                if (running) retainPendingObservations("verbinding verbroken")
 
             } catch (e: Exception) {
                 if (!running) break
                 Log.w(TAG, "Verbindingsfout: ${e.message}")
                 _state.value = State.ERROR
                 _lastError.value = e.message ?: "Onbekende fout"
+                onDisconnected?.invoke(e.message ?: "verbindingsfout")
                 try { socket?.close() } catch (_: Exception) {}
                 socket = null
                 writer = null
-                eventQueue.requeueInFlight()
+                retainPendingObservations(e.message ?: "verbindingsfout")
+                onReconnectScheduled?.invoke(e.message ?: "verbindingsfout", backoffMs)
                 delay(backoffMs)
                 backoffMs = (backoffMs * 2).coerceAtMost(RECONNECT_MAX_MS)
             }
         }
         _state.value = State.DISCONNECTED
+        onDisconnected?.invoke("verbinding gestopt")
     }
 
     private suspend fun sessionLoop(
@@ -285,6 +334,8 @@ class ClientConnector(
                         onObservationRetrying?.invoke(pending.clientEventId)
                         disconnectCurrentSocket("observation write failure")
                         delay(FLUSH_POLL_INTERVAL_MS)
+                    } else {
+                        onObservationSentUnconfirmed?.invoke(pending.clientEventId)
                     }
                 } else {
                     delay(FLUSH_POLL_INTERVAL_MS)
@@ -302,13 +353,18 @@ class ClientConnector(
                         val ack = decodePayload<AckMessage>(env.payload) ?: continue
                         if (ack.success) {
                             eventQueue.acknowledge(ack.clientEventId)
+                            notifyPendingObservationCountChanged()
                             Log.d(TAG, "ACK ontvangen voor event ${ack.clientEventId}")
                             onObservationAcknowledged?.invoke(ack.clientEventId)
                         } else {
                             Log.w(TAG, "NACK voor event ${ack.clientEventId}: ${ack.error}")
                             eventQueue.requeue(ack.clientEventId)
+                            notifyPendingObservationCountChanged()
                             onObservationRetrying?.invoke(ack.clientEventId)
                             onObservationRejected?.invoke(ack.clientEventId, ack.error)
+                            if (ack.error == MC_ACK_ERROR_SESSION_RECONNECT) {
+                                disconnectCurrentSocket("master requires session reconnect for ${ack.clientEventId}")
+                            }
                         }
                     }
                     MC_MSG_MASTER_HANDOVER -> {
@@ -408,6 +464,14 @@ class ClientConnector(
      */
     private fun requestPin(): String = pendingPin ?: ""
 
+    /**
+     * Gebruik het laatst bekende token als placeholder voor lokaal gequeue-de events.
+     * Ook een leeg token is toegestaan: na (re)pair herschrijft de eventqueue
+     * alle nog niet bevestigde events naar het nieuwe sessietoken.
+     */
+    private fun queuedSessionToken(): String =
+        currentSessionToken.takeIf { it.isNotBlank() } ?: prefs.getSessionToken(context)
+
     // ─── PIN-invoer (vanuit UI) ───────────────────────────────────────────────
 
     @Volatile
@@ -429,12 +493,10 @@ class ClientConnector(
         kleed: String = "",
         opmerkingen: String = "",
         recordPayload: String = ""
-    ): String? {
-        val token = currentSessionToken
-        if (token.isBlank()) return null
+    ): String {
         return eventQueue.enqueue(
             clientId = prefs.getClientId(context),
-            sessionToken = token,
+            sessionToken = queuedSessionToken(),
             soortid = soortid,
             aantal = aantal,
             aantalterug = aantalterug,
@@ -444,7 +506,9 @@ class ClientConnector(
             kleed = kleed,
             opmerkingen = opmerkingen,
             recordPayload = recordPayload
-        )
+        ).also {
+            notifyPendingObservationCountChanged()
+        }
     }
 
     fun queueObservationUpdate(
@@ -459,12 +523,10 @@ class ClientConnector(
         opmerkingen: String = "",
         recordPayload: String = ""
     ): Boolean {
-        val token = currentSessionToken
-        if (token.isBlank()) return false
         eventQueue.enqueueWithId(
             clientEventId = clientEventId,
             clientId = prefs.getClientId(context),
-            sessionToken = token,
+            sessionToken = queuedSessionToken(),
             soortid = soortid,
             aantal = aantal,
             aantalterug = aantalterug,
@@ -476,6 +538,20 @@ class ClientConnector(
             recordPayload = recordPayload,
             isUpdate = true
         )
+        notifyPendingObservationCountChanged()
         return true
+    }
+
+    private fun retainPendingObservations(reason: String) {
+        eventQueue.requeueInFlight()
+        notifyPendingObservationCountChanged()
+        val pendingCount = eventQueue.totalUnacknowledged()
+        if (pendingCount > 0) {
+            onPendingObservationsRetained?.invoke(pendingCount, reason)
+        }
+    }
+
+    private fun notifyPendingObservationCountChanged() {
+        onPendingObservationCountChanged?.invoke(eventQueue.totalUnacknowledged())
     }
 }

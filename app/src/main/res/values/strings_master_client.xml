@@ -52,6 +52,14 @@
     <string name="mc_pairing_failed">Koppeling mislukt: %1$s</string>
     <string name="mc_observation_received_master">Ontvangen op master</string>
     <string name="mc_observation_retry_master">Master kon deze waarneming nog niet verwerken; opnieuw proberen…</string>
+    <string name="mc_client_pending_preserved">Verbinding weggevallen. %1$d waarneming(en) blijven lokaal bewaard en worden na reconnect opnieuw verzonden.</string>
+    <string name="mc_client_reconnected_resuming">Verbinding hersteld. %1$d wachtende waarneming(en) worden nu opnieuw doorgestuurd naar de master.</string>
+    <string name="mc_client_resume_pending_startup">Vorige clientsessie hervat. %1$d lokale waarneming(en) wachten nog op overdracht naar de master.</string>
+    <string name="mc_delivery_status_queued">IN QUEUE</string>
+    <string name="mc_delivery_status_sent_unconfirmed">NIET BEV.</string>
+    <string name="mc_delivery_status_retrying">HERSTEL</string>
+    <string name="mc_delivery_status_acked">MASTER OK</string>
+    <string name="mc_delivery_status_failed">FOUT</string>
 
     <!-- ─── Instellingen ─────────────────────────────────────────────── -->
     <string name="mc_settings_title">Samenwerken (master-client)</string>
@@ -118,17 +126,19 @@
     <string name="mc_local_network_active">Lokaal netwerk actief</string>
     <string name="mc_local_network_failed">Lokaal netwerk kon niet gestart worden: %1$s</string>
     <string name="mc_nearby_wifi_permission_required">Toestemming ‘Nabije wifi-apparaten’ is nodig om het lokale netwerk te starten.</string>
+    <string name="mc_local_network_requires_wifi">Master starten vereist een extern Wi‑Fi netwerk.</string>
     <string name="mc_enable_master_mode">Samenwerken inschakelen</string>
     <string name="mc_master_mode_active">Samenwerken is actief</string>
     <string name="mc_master_mode_already_active">Samenwerken is al actief op deze telling</string>
     <string name="mc_show_qr_codes">Toon QR-codes</string>
     <string name="mc_qr_dialog_title">Client koppelen</string>
-    <string name="mc_pairing_scan_qr">Scan 2 QR-codes</string>
+    <string name="mc_pairing_scan_qr">Scan sessie-QR</string>
     <string name="mc_pairing_qr_invalid">Ongeldige QR-code</string>
     <string name="mc_pairing_qr_filled">QR-gegevens ingevuld</string>
     <string name="mc_pairing_qr_label">QR-code (scan met client)</string>
-    <string name="mc_pairing_master_qr_required">Elke nieuwe client gebruikt altijd dezelfde 2 stappen: 1) scan eerst de Wi‑Fi QR zodat het toestel op het juiste netwerk komt, 2) scan daarna de pairing-QR zodat VT5 automatisch met deze telling verbindt.</string>
-    <string name="mc_pairing_client_qr_required">Nieuwe clients koppelen altijd via 2 QR-codes: scan eerst de Wi‑Fi QR van de master en daarna de pairing-QR. Na de tweede scan verbindt VT5 automatisch.</string>
+    <string name="mc_pairing_session_qr_label">Sessie-QR (primair)</string>
+    <string name="mc_pairing_master_qr_required">Nieuwe clients kunnen in deze fase al rechtstreeks via één sessie-QR aansluiten op een Wi‑Fi Direct sessie. Op klassieke Wi‑Fi/hotspot blijft de bestaande QR-flow beschikbaar.</string>
+    <string name="mc_pairing_client_qr_required">Scan de sessie-QR van de master. Bij Wi‑Fi Direct probeert VT5 daarna automatisch te verbinden; Android kan nog een systeembevestiging vragen. Op klassieke Wi‑Fi/hotspot kan nog een extra Wi‑Fi stap nodig zijn.</string>
     <string name="mc_pairing_master_no_ip">Geen netwerk-IP gevonden</string>
     <string name="mc_pairing_permission_title">Nieuwe client aanvragen</string>
     <string name="mc_pairing_permission_message">Client "%1$s" wil aansluiten op deze telling. Toestaan?</string>
@@ -147,9 +157,11 @@
     <string name="mc_pairing_hotspot_missing_both">Vul eerst de hotspotnaam én het WPA2-wachtwoord in voordat je clients laat koppelen.</string>
     <string name="mc_pairing_hotspot_ssid_required">Vul eerst de hotspotnaam (SSID) in.</string>
     <string name="mc_pairing_hotspot_pass_required">Vul eerst het WPA2-wachtwoord van de hotspot in.</string>
+    <string name="mc_pairing_manual_fallback_label">Handmatige / oudere fallback-info</string>
 
     <string name="mc_pairing_wifi_qr_label">Wi‑Fi QR (eerst verbinden)</string>
     <string name="mc_pairing_wifi_qr_missing">Geen SSID/wachtwoord ingevuld</string>
+    <string name="mc_pairing_wifi_qr_not_needed">Niet nodig bij Wi‑Fi Direct: de client gebruikt enkel de sessie-QR en Android vraagt daarna eventueel nog om bevestiging.</string>
     <string name="mc_pairing_generate_qrs">QR codes maken</string>
     <string name="mc_pairing_generate_qrs_ready">QR codes aangemaakt</string>
 
@@ -158,6 +170,7 @@
 
     <string name="mc_pairing_scan_wifi_qr">Scan Wi‑Fi QR</string>
     <string name="mc_pairing_scan_pairing_qr">Scan pairing‑QR</string>
+    <string name="mc_pairing_scan_session_qr">Scan sessie-QR</string>
     <string name="mc_pairing_wifi_qr_invalid">Geen geldige Wi‑Fi QR</string>
     <string name="mc_pairing_wifi_qr_ok">Wi‑Fi QR ok. Scan nu de pairing‑QR.</string>
 
@@ -167,6 +180,7 @@
     <string name="mc_pairing_wifi_password_for_qr_title">Wi‑Fi wachtwoord voor QR</string>
     <string name="mc_pairing_wifi_client_info">Dit toestel is verbonden met \'%1$s\'.\nVoer het wachtwoord van dit netwerk in zodat de QR-codes gegenereerd kunnen worden voor de clients.</string>
     <string name="mc_wifi_client_mode_active">Master actief via Wi‑Fi netwerk: %1$s</string>
+    <string name="mc_master_requires_external_wifi">Master starten vereist een extern Wi‑Fi netwerk. Verbind eerst met een netwerk en probeer opnieuw.</string>
 
     <string name="mc_pairing_wifi_scan">Wi‑Fi scannen</string>
     <string name="mc_pairing_open_hotspot_settings">Open hotspotinstellingen</string>
@@ -188,7 +202,28 @@
     <string name="mc_wifi_status_disconnected">Wi‑Fi niet verbonden</string>
     <string name="mc_wifi_status_hotspot_provider">Hotspot actief op dit toestel: %1$s ▪ master bereikbaar via %2$s</string>
     <string name="mc_wifi_status_local_only">Lokaal netwerkadres: %1$s</string>
+    <string name="mc_wifi_status_transport_idle">Transport: sessie wacht op koppeling</string>
+    <string name="mc_wifi_status_transport_p2p_discovering">Transport: Wi‑Fi Direct zoekt peer…</string>
+    <string name="mc_wifi_status_transport_p2p_connecting">Transport: Wi‑Fi Direct verbinden…</string>
+    <string name="mc_wifi_status_transport_p2p_ready">Transport: Wi‑Fi Direct actief ▪ %1$s</string>
+    <string name="mc_wifi_status_transport_recovering">Transport: Wi‑Fi Direct herstellen…</string>
+    <string name="mc_wifi_status_transport_fallback">Transport: fallback via Wi‑Fi / hotspot</string>
+    <string name="mc_wifi_status_transport_error">Transport: %1$s</string>
+    <string name="mc_pairing_transport_hint_wifi_direct">Voorkeur: sessie-QR → Wi‑Fi Direct → automatische koppeling</string>
+    <string name="mc_pairing_transport_hint_fallback">Geen Wi‑Fi Direct context actief. De app blijft compatibel met klassieke Wi‑Fi/hotspot-koppeling.</string>
+    <string name="mc_pairing_transport_master_wifi_direct">Master gebruikt Wi‑Fi Direct als primaire transportlaag.</string>
+    <string name="mc_pairing_transport_master_fallback">Master gebruikt momenteel klassieke Wi‑Fi/hotspot-fallback.</string>
     <string name="mc_pairing_qr_info_hotspot_provider">Master hotspot ▪ %1$s:%2$d</string>
     <string name="mc_pairing_qr_info_wifi_network">Master netwerk ▪ %1$s:%2$d</string>
+    <string name="mc_pairing_qr_info_wifi_direct">Master Wi‑Fi Direct ▪ %1$s:%2$d</string>
+    <string name="mc_wifi_direct_starting">Wi‑Fi Direct groep wordt gestart…</string>
+    <string name="mc_wifi_direct_start_failed">Wi‑Fi Direct starten mislukt: %1$s</string>
+    <string name="mc_wifi_direct_connecting">Wi‑Fi Direct verbinden met master…</string>
+    <string name="mc_wifi_direct_matching_master">Wi‑Fi Direct zoekt master: %1$s</string>
+    <string name="mc_wifi_direct_connected">Wi‑Fi Direct verbonden ▪ master bereikbaar via %1$s</string>
+    <string name="mc_wifi_direct_connect_failed">Wi‑Fi Direct verbinden mislukt: %1$s</string>
+    <string name="mc_wifi_direct_recovering">Wi‑Fi Direct sessie herstellen: %1$s</string>
+    <string name="mc_wifi_direct_recovery_failed">Wi‑Fi Direct herstel mislukt: %1$s</string>
+    <string name="mc_wifi_direct_owner_missing">De sessie-QR bevat onvoldoende Wi‑Fi Direct hints om de master te vinden.</string>
 
 </resources>

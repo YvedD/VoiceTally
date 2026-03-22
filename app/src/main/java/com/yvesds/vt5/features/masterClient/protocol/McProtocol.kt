@@ -13,6 +13,9 @@ const val MC_MSG_EXPORT_REQ   = "export_req"
 const val MC_MSG_EXPORT_DATA  = "export_data"
 const val MC_MSG_TILE_SYNC    = "tile_sync"
 
+/** ACK-foutcode: client moet de sessie opnieuw opbouwen en daarna pending data opnieuw aanbieden. */
+const val MC_ACK_ERROR_SESSION_RECONNECT = "session_reconnect_required"
+
 /** Client → master: gebruiker verlaat de telling op zijn telpost. */
 const val MC_MSG_LEAVE        = "leave"
 
@@ -42,7 +45,8 @@ data class McEnvelope(
 data class PairingRequest(
     @SerialName("pin")        val pin: String,
     @SerialName("clientId")   val clientId: String,
-    @SerialName("clientName") val clientName: String
+    @SerialName("clientName") val clientName: String,
+    @SerialName("sessionToken") val sessionToken: String = ""
 )
 
 /** Antwoord van de master op een PairingRequest. */

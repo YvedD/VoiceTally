@@ -25,11 +25,21 @@
         android:alpha="0.8"
         android:paddingBottom="10dp" />
 
-    <!-- Master IP-adres -->
     <TextView
+        android:id="@+id/tvPairingTransportHint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/mc_pairing_master_ip_label"
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp" />
+
+    <!-- Handmatige / legacy fallback info -->
+    <TextView
+        android:id="@+id/tvManualFallbackLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mc_pairing_manual_fallback_label"
         android:textSize="13sp"
         android:textColor="@color/vt5_on_surface"
         android:paddingBottom="4dp" />
@@ -82,7 +92,7 @@
         android:text=""
         android:textSize="13sp"
         android:textColor="@color/vt5_on_surface"
-        android:gravity="center_horizontal"
+        android:gravity="start"
         android:paddingTop="6dp" />
 
     <!-- Knoppen -->

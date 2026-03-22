@@ -109,6 +109,12 @@ class PairingManager {
     fun isTokenValid(token: String): Boolean =
         synchronized(authorizedTokens) { authorizedTokens.containsKey(token) }
 
+    /** Laat een bestaande client zijn sessie hervatten zonder nieuwe PIN zolang het token nog geldig is. */
+    fun canResumeSession(sessionToken: String, clientId: String): Boolean {
+        if (sessionToken.isBlank() || clientId.isBlank()) return false
+        return synchronized(authorizedTokens) { authorizedTokens[sessionToken] == clientId }
+    }
+
     /** Geeft de clientId terug voor een geldig token, of null. */
     fun getClientId(token: String): String? =
         synchronized(authorizedTokens) { authorizedTokens[token] }

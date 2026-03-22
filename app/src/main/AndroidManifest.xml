@@ -27,6 +27,7 @@
          Remove or set android:required="false" if you want to allow install on devices without mic. -->
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi.direct" android:required="false" />
 
     <application
         android:name=".VT5App"

@@ -117,22 +117,27 @@ class SpeechLogAdapter :
         when (row.deliveryStatus) {
             TellingScherm.DeliveryStatus.ACKED -> {
                 holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
-                holder.vb.tvDeliveryStatus.text = "✓"
+                holder.vb.tvDeliveryStatus.text = holder.itemView.context.getString(com.yvesds.vt5.R.string.mc_delivery_status_acked)
                 holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_green))
             }
-            TellingScherm.DeliveryStatus.PENDING -> {
+            TellingScherm.DeliveryStatus.QUEUED_LOCAL -> {
                 holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
-                holder.vb.tvDeliveryStatus.text = "…"
+                holder.vb.tvDeliveryStatus.text = holder.itemView.context.getString(com.yvesds.vt5.R.string.mc_delivery_status_queued)
                 holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_light_blue))
+            }
+            TellingScherm.DeliveryStatus.SENT_UNCONFIRMED -> {
+                holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
+                holder.vb.tvDeliveryStatus.text = holder.itemView.context.getString(com.yvesds.vt5.R.string.mc_delivery_status_sent_unconfirmed)
+                holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_warning))
             }
             TellingScherm.DeliveryStatus.RETRYING -> {
                 holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
-                holder.vb.tvDeliveryStatus.text = "↻"
+                holder.vb.tvDeliveryStatus.text = holder.itemView.context.getString(com.yvesds.vt5.R.string.mc_delivery_status_retrying)
                 holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_warning))
             }
             TellingScherm.DeliveryStatus.FAILED -> {
                 holder.vb.tvDeliveryStatus.visibility = View.VISIBLE
-                holder.vb.tvDeliveryStatus.text = "!"
+                holder.vb.tvDeliveryStatus.text = holder.itemView.context.getString(com.yvesds.vt5.R.string.mc_delivery_status_failed)
                 holder.vb.tvDeliveryStatus.setTextColor(holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_red))
             }
             TellingScherm.DeliveryStatus.NONE -> {
@@ -154,6 +159,12 @@ class SpeechLogAdapter :
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
                 holder.vb.tvMsg.setTextColor(defaultPartials)
                 holder.vb.tvTime.setTextColor(defaultPartials)
+            }
+            "twijfel" -> {
+                val attentionColor = holder.itemView.context.getColor(com.yvesds.vt5.R.color.vt5_red)
+                holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
+                holder.vb.tvMsg.setTextColor(attentionColor)
+                holder.vb.tvTime.setTextColor(attentionColor)
             }
             "alias", "raw", "systeem", "manueel" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)

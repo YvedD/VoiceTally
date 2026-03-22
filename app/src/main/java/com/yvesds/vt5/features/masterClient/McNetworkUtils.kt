@@ -13,6 +13,7 @@ object McNetworkUtils {
     enum class MasterNetworkMode {
         WIFI_CLIENT,
         HOTSPOT_PROVIDER,
+        WIFI_DIRECT_PROVIDER,
         LOCAL_NETWORK
     }
 
@@ -23,7 +24,9 @@ object McNetworkUtils {
         val hotspotSsid: String,
         val hotspotPass: String,
         val hotspotSecurity: String,
-        val interfaceName: String? = null
+        val interfaceName: String? = null,
+        val transportKind: McTransportKind = McTransportKind.UNKNOWN,
+        val pairingNetworkName: String = ""
     )
 
     private data class Ipv4Candidate(
@@ -49,6 +52,23 @@ object McNetworkUtils {
     ): MasterNetworkContext {
         val connectedWifiSsid = getConnectedWifiSsid(context)
         val normalizedSecurity = fallbackHotspotSecurity.ifBlank { if (fallbackHotspotPass.isBlank()) "NOPASS" else "WPA" }
+        val storedTransport = MasterClientPrefs.getPairingTransportKind(context)
+        val storedOwnerAddress = MasterClientPrefs.getGroupOwnerAddress(context)
+        val storedNetworkName = fallbackHotspotSsid.ifBlank { MasterClientPrefs.getHotspotSsid(context) }
+        val storedPassphrase = fallbackHotspotPass.ifBlank { MasterClientPrefs.getHotspotPassword(context) }
+
+        if (storedTransport == McTransportKind.WIFI_DIRECT && storedOwnerAddress.isNotBlank()) {
+            return MasterNetworkContext(
+                mode = MasterNetworkMode.WIFI_DIRECT_PROVIDER,
+                hostAddress = storedOwnerAddress,
+                connectedWifiSsid = null,
+                hotspotSsid = storedNetworkName,
+                hotspotPass = storedPassphrase,
+                hotspotSecurity = normalizedSecurity,
+                transportKind = McTransportKind.WIFI_DIRECT,
+                pairingNetworkName = storedNetworkName
+            )
+        }
 
         if (!connectedWifiSsid.isNullOrBlank()) {
             return MasterNetworkContext(
@@ -57,7 +77,9 @@ object McNetworkUtils {
                 connectedWifiSsid = connectedWifiSsid,
                 hotspotSsid = fallbackHotspotSsid,
                 hotspotPass = fallbackHotspotPass,
-                hotspotSecurity = normalizedSecurity
+                hotspotSecurity = normalizedSecurity,
+                transportKind = McTransportKind.WIFI_LAN,
+                pairingNetworkName = connectedWifiSsid
             )
         }
 
@@ -70,7 +92,9 @@ object McNetworkUtils {
                 hotspotSsid = fallbackHotspotSsid,
                 hotspotPass = fallbackHotspotPass,
                 hotspotSecurity = normalizedSecurity,
-                interfaceName = hotspotCandidate.interfaceName
+                interfaceName = hotspotCandidate.interfaceName,
+                transportKind = McTransportKind.HOTSPOT,
+                pairingNetworkName = fallbackHotspotSsid
             )
         }
 
@@ -80,7 +104,9 @@ object McNetworkUtils {
             connectedWifiSsid = null,
             hotspotSsid = fallbackHotspotSsid,
             hotspotPass = fallbackHotspotPass,
-            hotspotSecurity = normalizedSecurity
+            hotspotSecurity = normalizedSecurity,
+            transportKind = McTransportKind.UNKNOWN,
+            pairingNetworkName = fallbackHotspotSsid
         )
     }
 

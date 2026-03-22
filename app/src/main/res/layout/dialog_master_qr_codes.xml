@@ -29,38 +29,54 @@
             android:paddingBottom="12dp" />
 
         <TextView
+            android:id="@+id/tvTransportMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/mc_pairing_wifi_qr_label"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:paddingBottom="4dp" />
-
-        <ImageView
-            android:id="@+id/ivWifiQr"
-            android:layout_width="350dp"
-            android:layout_height="350dp"
-            android:layout_gravity="center_horizontal"
-            android:adjustViewBounds="true"
-            android:background="#1A1A2E"
-            android:contentDescription="@string/mc_pairing_wifi_qr_label" />
-
-        <TextView
-            android:id="@+id/tvWifiQrInfo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
             android:textColor="@color/vt5_on_surface"
             android:textSize="12sp"
-            android:alpha="0.8"
-            android:paddingTop="100dp"
-            android:paddingBottom="100dp" />
+            android:textStyle="bold"
+            android:paddingBottom="10dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutWifiFallbackSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/mc_pairing_wifi_qr_label"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingBottom="4dp" />
+
+            <ImageView
+                android:id="@+id/ivWifiQr"
+                android:layout_width="350dp"
+                android:layout_height="350dp"
+                android:layout_gravity="center_horizontal"
+                android:adjustViewBounds="true"
+                android:background="#1A1A2E"
+                android:contentDescription="@string/mc_pairing_wifi_qr_label" />
+
+            <TextView
+                android:id="@+id/tvWifiQrInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp"
+                android:alpha="0.8"
+                android:paddingTop="100dp"
+                android:paddingBottom="24dp" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/mc_pairing_qr_label"
+            android:text="@string/mc_pairing_session_qr_label"
             android:textColor="@color/vt5_on_surface"
             android:textSize="13sp"
             android:textStyle="bold"

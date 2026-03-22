@@ -32,7 +32,9 @@ class TellingUiManager(
     // Callbacks
     var onPartialTapCallback: ((Int, TellingScherm.SpeechLogRow) -> Unit)? = null
     var onFinalTapCallback: ((Int, TellingScherm.SpeechLogRow) -> Unit)? = null
-    var onTileTapCallback: ((Int) -> Unit)? = null
+    var onTileSingleTapCallback: ((Int) -> Unit)? = null
+    var onTileDoubleTapCallback: ((Int) -> Unit)? = null
+    var onTileLongPressCallback: ((Int) -> Unit)? = null
     var onAddSoortenCallback: (() -> Unit)? = null
     var onAfrondenCallback: (() -> Unit)? = null
     var onSaveCloseCallback: ((List<TellingScherm.SoortRow>) -> Unit)? = null
@@ -127,9 +129,11 @@ class TellingUiManager(
         }
         binding.recyclerViewSpecies.layoutManager = flexboxLayoutManager
 
-        tilesAdapter = SpeciesTileAdapter { position ->
-            onTileTapCallback?.invoke(position)
-        }
+        tilesAdapter = SpeciesTileAdapter(
+            onTileSingleTap = { position -> onTileSingleTapCallback?.invoke(position) },
+            onTileDoubleTap = { position -> onTileDoubleTapCallback?.invoke(position) },
+            onTileLongPress = { position -> onTileLongPressCallback?.invoke(position) }
+        )
         binding.recyclerViewSpecies.adapter = tilesAdapter
     }
 

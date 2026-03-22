@@ -45,6 +45,24 @@ object MasterClientPrefs {
     private var runtimeHotspotSec: String? = null
 
     @Volatile
+    private var runtimePairingTransport: String? = null
+
+    @Volatile
+    private var runtimePairingSessionId: String? = null
+
+    @Volatile
+    private var runtimeGroupOwnerAddress: String? = null
+
+    @Volatile
+    private var runtimeGroupOwnerDeviceAddress: String? = null
+
+    @Volatile
+    private var runtimeGroupOwnerDeviceName: String? = null
+
+    @Volatile
+    private var runtimePairingServiceTag: String? = null
+
+    @Volatile
     private var legacyHotspotPrefsCleared = false
 
     fun getMode(context: Context): String =
@@ -101,8 +119,59 @@ object MasterClientPrefs {
             remove(KEY_SESSION_TOKEN)
             remove(KEY_MASTER_IP)
         }
-        McLocalHotspotManager.stop(context)
         clearHotspotCredentials(context)
+        clearPairingTransportMetadata(context)
+    }
+
+    // ─── Pairing transport metadata ────────────────────────────────────────────
+
+    fun getPairingTransport(context: Context): String =
+        runtimePairingTransport ?: inferLegacyPairingTransport(context).wireValue
+
+    fun getPairingTransportKind(context: Context): McTransportKind =
+        McTransportKind.fromWireValue(getPairingTransport(context))
+
+    fun setPairingTransport(context: Context, transport: String) {
+        runtimePairingTransport = McTransportKind.fromWireValue(transport).wireValue
+    }
+
+    fun getPairingSessionId(context: Context): String = runtimePairingSessionId ?: ""
+
+    fun setPairingSessionId(context: Context, sessionId: String) {
+        runtimePairingSessionId = sessionId.trim()
+    }
+
+    fun getGroupOwnerAddress(context: Context): String = runtimeGroupOwnerAddress ?: ""
+
+    fun setGroupOwnerAddress(context: Context, hostAddress: String) {
+        runtimeGroupOwnerAddress = hostAddress.trim()
+    }
+
+    fun getGroupOwnerDeviceAddress(context: Context): String = runtimeGroupOwnerDeviceAddress ?: ""
+
+    fun setGroupOwnerDeviceAddress(context: Context, deviceAddress: String) {
+        runtimeGroupOwnerDeviceAddress = deviceAddress.trim()
+    }
+
+    fun getGroupOwnerDeviceName(context: Context): String = runtimeGroupOwnerDeviceName ?: ""
+
+    fun setGroupOwnerDeviceName(context: Context, deviceName: String) {
+        runtimeGroupOwnerDeviceName = deviceName.trim()
+    }
+
+    fun getPairingServiceTag(context: Context): String = runtimePairingServiceTag ?: ""
+
+    fun setPairingServiceTag(context: Context, serviceTag: String) {
+        runtimePairingServiceTag = serviceTag.trim()
+    }
+
+    fun clearPairingTransportMetadata(context: Context) {
+        runtimePairingTransport = null
+        runtimePairingSessionId = null
+        runtimeGroupOwnerAddress = null
+        runtimeGroupOwnerDeviceAddress = null
+        runtimeGroupOwnerDeviceName = null
+        runtimePairingServiceTag = null
     }
 
     // ─── Hotspot credentials ──────────────────────────────────────────────────
@@ -159,6 +228,14 @@ object MasterClientPrefs {
                 remove(KEY_HOTSPOT_SEC)
             }
             legacyHotspotPrefsCleared = true
+        }
+    }
+
+    private fun inferLegacyPairingTransport(context: Context): McTransportKind {
+        return when {
+            runtimeHotspotSsid?.isNotBlank() == true -> McTransportKind.HOTSPOT
+            getMasterIp(context).isNotBlank() -> McTransportKind.WIFI_LAN
+            else -> McTransportKind.UNKNOWN
         }
     }
 

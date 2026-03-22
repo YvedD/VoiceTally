@@ -18,14 +18,31 @@
         android:padding="6dp"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/tvMcStatus"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textSize="12sp"
-            android:textColor="@android:color/white"
-            android:text="" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvMcStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@android:color/white"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/tvMcTransportStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="11sp"
+                android:textColor="@android:color/white"
+                android:alpha="0.8"
+                android:text=""
+                android:visibility="gone" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvMcPin"
@@ -113,7 +130,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSpeechPartials"
         android:layout_width="match_parent"
-        android:layout_height="150dp"
+        android:layout_height="130dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
         app:cardCornerRadius="8dp"
@@ -133,7 +150,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSpeechFinals"
         android:layout_width="match_parent"
-        android:layout_height="150dp"
+        android:layout_height="130dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
         app:cardCornerRadius="8dp"

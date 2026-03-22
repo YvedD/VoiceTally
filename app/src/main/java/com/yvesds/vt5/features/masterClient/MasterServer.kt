@@ -7,6 +7,7 @@ import com.yvesds.vt5.features.masterClient.protocol.AckMessage
 import com.yvesds.vt5.features.masterClient.protocol.ExportDataMessage
 import com.yvesds.vt5.features.masterClient.protocol.HeartbeatMessage
 import com.yvesds.vt5.features.masterClient.protocol.LeaveMessage
+import com.yvesds.vt5.features.masterClient.protocol.MC_ACK_ERROR_SESSION_RECONNECT
 import com.yvesds.vt5.features.masterClient.protocol.MasterHandoverMessage
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_ACK
 import com.yvesds.vt5.features.masterClient.protocol.MC_MSG_EXPORT_DATA
@@ -153,7 +154,13 @@ class MasterServer(
                 }
 
                 val pairingReq = decodePayload<PairingRequest>(firstEnvelope.payload) ?: return@withContext
-                val (acceptedPin, sessionToken) = pairingManager.validatePin(pairingReq.pin, pairingReq.clientId)
+                val requestedSessionToken = pairingReq.sessionToken.trim()
+                val resumeAccepted = pairingManager.canResumeSession(requestedSessionToken, pairingReq.clientId)
+                val (acceptedPin, sessionToken) = if (resumeAccepted) {
+                    true to requestedSessionToken
+                } else {
+                    pairingManager.validatePin(pairingReq.pin, pairingReq.clientId)
+                }
 
                 if (!acceptedPin) {
                     val pairingResp = PairingResponse(
@@ -167,7 +174,11 @@ class MasterServer(
                     return@withContext
                 }
 
-                val approvedByMaster = onPairingRequest?.invoke(pairingReq.clientId, pairingReq.clientName) ?: true
+                val approvedByMaster = if (resumeAccepted) {
+                    true
+                } else {
+                    onPairingRequest?.invoke(pairingReq.clientId, pairingReq.clientName) ?: true
+                }
                 if (!approvedByMaster) {
                     pairingManager.revokeToken(sessionToken)
                     val pairingResp = PairingResponse(
@@ -192,7 +203,11 @@ class MasterServer(
 
                 // Voeg toe aan verbonden clients
                 addConnectedClient(sessionToken, pairingReq.clientName, writer)
-                Log.i(TAG, "Client verbonden: ${pairingReq.clientName} (${pairingReq.clientId})")
+                if (resumeAccepted) {
+                    Log.i(TAG, "Client-sessie hervat: ${pairingReq.clientName} (${pairingReq.clientId})")
+                } else {
+                    Log.i(TAG, "Client verbonden: ${pairingReq.clientName} (${pairingReq.clientId})")
+                }
 
                 // Stuur huidige tegelset naar de client (indien beschikbaar)
                 sendTileSyncIfAvailable(writer)
@@ -223,7 +238,15 @@ class MasterServer(
             MC_MSG_OBSERVATION -> {
                 val event = decodePayload<ObservationEvent>(envelope.payload) ?: return
                 if (event.sessionToken != sessionToken) {
-                    Log.w(TAG, "Ongeldig sessietoken in ObservationEvent – genegeerd")
+                    Log.w(TAG, "Ongeldig sessietoken in ObservationEvent – reconnect vereist voor ${event.clientId}/${event.clientEventId}")
+                    sendAck(
+                        writer,
+                        AckMessage(
+                            clientEventId = event.clientEventId,
+                            success = false,
+                            error = MC_ACK_ERROR_SESSION_RECONNECT
+                        )
+                    )
                     return
                 }
                 val ack = eventProcessor.processEvent(event)
@@ -247,7 +270,7 @@ class MasterServer(
                 Log.i(TAG, "Client $clientName heeft de telling verlaten. Reden: ${leave.reason}")
                 onClientLeft?.invoke(clientName, leave.reason)
                 // Verwijder de client; de TCP-verbinding wordt daarna netjes gesloten
-                removeConnectedClient(sessionToken)
+                removeConnectedClient(sessionToken, revokeToken = true)
             }
             MC_MSG_HEARTBEAT -> {
                 // Pong terug sturen
@@ -382,14 +405,16 @@ class MasterServer(
         }
     }
 
-    private fun removeConnectedClient(token: String) {
+    private fun removeConnectedClient(token: String, revokeToken: Boolean = false) {
         synchronized(clientWritersLock) {
             val current = _connectedClients.value.toMutableMap()
             current.remove(token)
             _connectedClients.value = current
             clientWriters.remove(token)
         }
-        pairingManager.revokeToken(token)
+        if (revokeToken) {
+            pairingManager.revokeToken(token)
+        }
     }
 
     private suspend fun sendTileSyncIfAvailable(writer: PrintWriter) {

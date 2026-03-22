@@ -1,7 +1,11 @@
 package com.yvesds.vt5.features.telling
 
 import android.util.TypedValue
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.view.LayoutInflater
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -17,8 +21,14 @@ import com.yvesds.vt5.hoofd.InstellingenScherm
  * - Lettergrootte is nu configureerbaar via InstellingenScherm (gecached voor performance)
  */
 class SpeciesTileAdapter(
-    private val onTileClick: (position: Int) -> Unit
+    private val onTileSingleTap: (position: Int) -> Unit,
+    private val onTileDoubleTap: (position: Int) -> Unit,
+    private val onTileLongPress: (position: Int) -> Unit
 ) : ListAdapter<TellingScherm.SoortRow, SpeciesTileAdapter.VH>(Diff) {
+
+    companion object {
+        private const val NO_POSITION_MARKER = -1
+    }
 
     init {
         setHasStableIds(true)
@@ -26,6 +36,10 @@ class SpeciesTileAdapter(
     
     // Gecachede lettergrootte voor betere performance
     private var cachedTextSizeSp: Float = InstellingenScherm.DEFAULT_LETTERGROOTTE_SP.toFloat()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingSingleTapPosition: Int = NO_POSITION_MARKER
+    private var pendingSingleTapAtMs: Long = 0L
+    private var pendingSingleTapRunnable: Runnable? = null
 
     object Diff : DiffUtil.ItemCallback<TellingScherm.SoortRow>() {
         override fun areItemsTheSame(
@@ -82,11 +96,55 @@ class SpeciesTileAdapter(
         holder.vb.tvCountMain.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedTextSizeSp)
         holder.vb.tvCountReturn.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedTextSizeSp)
 
-        holder.vb.tileRoot.setOnClickListener {
+        holder.vb.tileRoot.setOnLongClickListener {
+            cancelPendingSingleTap()
             val pos = holder.bindingAdapterPosition
             if (pos != RecyclerView.NO_POSITION) {
-                onTileClick(pos)
+                onTileLongPress(pos)
+                true
+            } else {
+                false
             }
+        }
+
+        holder.vb.tileRoot.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
+
+            val now = SystemClock.elapsedRealtime()
+            val timeout = ViewConfiguration.getDoubleTapTimeout().toLong()
+            val isDoubleTap = pendingSingleTapPosition == pos && (now - pendingSingleTapAtMs) <= timeout
+
+            if (isDoubleTap) {
+                cancelPendingSingleTap()
+                onTileDoubleTap(pos)
+            } else {
+                scheduleSingleTap(pos, timeout)
+            }
+        }
+    }
+
+    private fun scheduleSingleTap(position: Int, delayMs: Long) {
+        cancelPendingSingleTap()
+        pendingSingleTapPosition = position
+        pendingSingleTapAtMs = SystemClock.elapsedRealtime()
+        pendingSingleTapRunnable = Runnable {
+            val pos = pendingSingleTapPosition
+            cancelPendingSingleTap(resetTimestamp = false)
+            if (pos != NO_POSITION_MARKER) {
+                onTileSingleTap(pos)
+            }
+        }.also { runnable ->
+            mainHandler.postDelayed(runnable, delayMs)
+        }
+    }
+
+    private fun cancelPendingSingleTap(resetTimestamp: Boolean = true) {
+        pendingSingleTapRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingSingleTapRunnable = null
+        pendingSingleTapPosition = NO_POSITION_MARKER
+        if (resetTimestamp) {
+            pendingSingleTapAtMs = 0L
         }
     }
 
