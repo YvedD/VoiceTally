@@ -45,6 +45,7 @@ sealed class MatchResult {
      */
     data class MultiMatch(
         val matches: List<MatchWithAmount>,
+        val unmatchedFragments: List<String> = emptyList(),
         override val hypothesis: String,
         override val source: String? = null
     ) : MatchResult()

@@ -140,7 +140,7 @@ class AliasSpeechParser(
         // === HEAVY-PATH: Try fuzzy match with timeout ===
         var bestCombined = Double.NEGATIVE_INFINITY
         var bestResult: MatchResult = MatchResult.NoMatch(hypotheses.first().first, "none")
-        var enqueuedAny = false
+        var pendingCandidate: Pair<String, Float>? = null
 
         for ((hyp, asrConf) in normalizedHyps.take(HEAVY_HYP_COUNT)) {
             ensureActive()
@@ -165,19 +165,8 @@ class AliasSpeechParser(
                     }
                 }
                 is HeavyPathMatcher.HeavyMatchResult.TimedOut -> {
-                    // Enqueue to pending buffer
-                    val pendingId = pendingBuffer.enqueuePending(hyp, asrConf, matchContext, filteredPartials)
-                    if (pendingId != null) {
-                        enqueuedAny = true
-                        logger.logMatchResult(hyp, MatchResult.NoMatch(hyp, "queued"), filteredPartials, asrHypotheses = hypotheses)
-                    } else {
-                        // Buffer full - try inline fallback
-                        val fallback = heavyPathMatcher.tryInlineFallback(hyp, matchContext)
-                        if (fallback != null) {
-                            logger.logMatchResult(hyp, fallback, filteredPartials, asrHypotheses = hypotheses)
-                            return@withContext fallback
-                        }
-                        Log.w(TAG, "Pending buffer full and fallback failed for: '$hyp'")
+                    if (pendingCandidate == null) {
+                        pendingCandidate = hyp to asrConf
                     }
                 }
                 null -> continue
@@ -201,10 +190,24 @@ class AliasSpeechParser(
         Log.i(TAG, "parseSpokenWithHypotheses: bestHyp='${bestResult.hypothesis}' type=${bestResult::class.simpleName} timeMs=${t1 - t0}")
 
         val firstHypText = hypotheses.firstOrNull()?.first ?: ""
-        if (enqueuedAny && bestCombined == Double.NEGATIVE_INFINITY) {
-            val result = MatchResult.NoMatch(firstHypText, "queued")
-            logger.logMatchResult(firstHypText, result, filteredPartials, asrHypotheses = hypotheses)
-            return@withContext result
+        if (bestCombined == Double.NEGATIVE_INFINITY) {
+            val pending = pendingCandidate
+            if (pending != null) {
+                val pendingId = pendingBuffer.enqueuePending(pending.first, pending.second, matchContext, filteredPartials)
+                if (pendingId != null) {
+                    val result = MatchResult.NoMatch(firstHypText, "queued")
+                    logger.logMatchResult(firstHypText, result, filteredPartials, asrHypotheses = hypotheses)
+                    return@withContext result
+                }
+
+                val fallback = heavyPathMatcher.tryInlineFallback(pending.first, matchContext)
+                if (fallback != null) {
+                    logger.logMatchResult(pending.first, fallback, filteredPartials, asrHypotheses = hypotheses)
+                    return@withContext fallback
+                }
+
+                Log.w(TAG, "Pending buffer full and fallback failed for: '${pending.first}'")
+            }
         }
 
         logger.logMatchResult(firstHypText, bestResult, filteredPartials, asrHypotheses = hypotheses)

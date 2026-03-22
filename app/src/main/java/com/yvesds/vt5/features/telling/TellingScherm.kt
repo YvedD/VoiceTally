@@ -313,7 +313,7 @@ class TellingScherm : AppCompatActivity() {
                 showAddSpeciesConfirmationDialog(speciesId, displayName, amount)
             }
         }
-        matchResultHandler.onMultiMatch = { matches ->
+        matchResultHandler.onMultiMatch = { matches, unmatchedFragments ->
             matches.forEach { match ->
                 val sid = match.candidate.speciesId
                 val cnt = match.amount
@@ -324,9 +324,13 @@ class TellingScherm : AppCompatActivity() {
                     showAddSpeciesConfirmationDialog(sid, match.candidate.displayName, cnt)
                 }
             }
+            unmatchedFragments
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .forEach(::upsertPartialLog)
         }
-        matchResultHandler.onSuggestionList = { candidates, count ->
-            showSuggestionBottomSheet(candidates, count)
+        matchResultHandler.onSuggestionList = { hypothesis, candidates, count ->
+            showSuggestionBottomSheet(candidates, count, rawHypothesis = hypothesis)
         }
         matchResultHandler.onNoMatch = { hypothesis ->
             val now = System.currentTimeMillis()
@@ -983,7 +987,11 @@ class TellingScherm : AppCompatActivity() {
     }
 
     /* ---------- Suggestion / Add / Tiles helpers (unchanged flows) ---------- */
-    private fun showSuggestionBottomSheet(candidates: List<Candidate>, count: Int) {
+    private fun showSuggestionBottomSheet(
+        candidates: List<Candidate>,
+        count: Int,
+        rawHypothesis: String? = null
+    ) {
         val items = candidates.map { "${it.displayName} (score: ${"%.2f".format(it.score)})" }.toTypedArray()
 
         val dlgList = AlertDialog.Builder(this)
@@ -1017,6 +1025,10 @@ class TellingScherm : AppCompatActivity() {
                     chosen.speciesId,
                     maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it }
                 )
+
+                rawHypothesis
+                    ?.takeIf { it.isNotBlank() && it != chosen.displayName }
+                    ?.let(::upsertPartialLog)
 
             }
             .setNegativeButton("Annuleer", null)

@@ -101,7 +101,7 @@ class HeavyPathMatcher(
             val speciesSet = records.map { it.speciesid }.toSet()
             val chosenSpeciesId = when {
                 speciesSet.size == 1 -> speciesSet.first()
-                else -> speciesSet.firstOrNull { it in matchContext.tilesSpeciesIds }
+                else -> speciesSet.filter { it in matchContext.tilesSpeciesIds }.singleOrNull()
             } ?: return null
 
             val displayName = matchContext.speciesById[chosenSpeciesId]?.first ?: hypothesis
