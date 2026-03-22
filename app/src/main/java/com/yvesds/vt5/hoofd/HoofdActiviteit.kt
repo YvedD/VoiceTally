@@ -2,17 +2,13 @@
 
 package com.yvesds.vt5.hoofd
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -28,6 +24,7 @@ import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.McNetworkUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,24 +52,6 @@ class HoofdActiviteit : AppCompatActivity() {
 
     private lateinit var safHelper: SaFStorageHelper
     private var pendingTellingDialogShown = false
-    private var pendingStartMasterButton: MaterialButton? = null
-
-    private val requestNearbyWifiPermission = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        val button = pendingStartMasterButton
-        pendingStartMasterButton = null
-        if (granted && button != null) {
-            startMasterFlow(button)
-        } else {
-            button?.isEnabled = true
-            Toast.makeText(
-                this,
-                getString(R.string.mc_nearby_wifi_permission_required),
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,7 +85,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
         btnStartMaster.setOnClickListener {
             it.isEnabled = false
-            ensureNearbyWifiPermissionThenStartMaster(it as MaterialButton)
+            startMasterFlow(it as MaterialButton)
         }
 
         btnJoin.setOnClickListener {
@@ -209,50 +188,25 @@ class HoofdActiviteit : AppCompatActivity() {
     }
 
     private fun startMasterFlow(button: MaterialButton) {
-        // Als reeds verbonden met extern Wi-Fi netwerk: geen LocalOnlyHotspot nodig
-        val netCtx = com.yvesds.vt5.features.masterClient.McNetworkUtils.resolveMasterNetworkContext(this)
-        if (netCtx.mode == com.yvesds.vt5.features.masterClient.McNetworkUtils.MasterNetworkMode.WIFI_CLIENT) {
-            Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
+        val netCtx = McNetworkUtils.resolveMasterNetworkContext(this)
+        if (netCtx.mode == McNetworkUtils.MasterNetworkMode.WIFI_CLIENT) {
+            val connectedSsid = netCtx.connectedWifiSsid?.takeIf { it.isNotBlank() }
+                ?: getString(R.string.mc_wifi_status_unknown)
+            Toast.makeText(
+                this,
+                getString(R.string.mc_wifi_client_mode_active, connectedSsid),
+                Toast.LENGTH_SHORT
+            ).show()
             openMetadataScherm(startAsMaster = true, showLoadingToast = false)
-            button.isEnabled = true
-            return
+        } else {
+            Toast.makeText(
+                this,
+                getString(R.string.mc_master_requires_external_wifi),
+                Toast.LENGTH_LONG
+            ).show()
         }
 
-        com.yvesds.vt5.features.masterClient.McLocalHotspotManager.start(
-            context = this,
-            onStarted = {
-                Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
-                openMetadataScherm(startAsMaster = true, showLoadingToast = false)
-                button.isEnabled = true
-            },
-            onFailed = { reason ->
-                // Fallback: als Wi-Fi tussentijds beschikbaar is geworden, start toch als master
-                val fallback = com.yvesds.vt5.features.masterClient.McNetworkUtils.resolveMasterNetworkContext(this)
-                if (fallback.mode == com.yvesds.vt5.features.masterClient.McNetworkUtils.MasterNetworkMode.WIFI_CLIENT) {
-                    Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
-                    openMetadataScherm(startAsMaster = true, showLoadingToast = false)
-                    button.isEnabled = true
-                } else {
-                    Toast.makeText(this, getString(R.string.mc_local_network_failed, reason), Toast.LENGTH_LONG).show()
-                    button.isEnabled = true
-                }
-            }
-        )
-    }
-
-    private fun ensureNearbyWifiPermissionThenStartMaster(button: MaterialButton) {
-        if (hasNearbyWifiPermission()) {
-            startMasterFlow(button)
-            return
-        }
-
-        pendingStartMasterButton = button
-        requestNearbyWifiPermission.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
-    }
-
-    private fun hasNearbyWifiPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES) ==
-                PackageManager.PERMISSION_GRANTED
+        button.isEnabled = true
     }
 
     private suspend fun preloadMetadataData() {

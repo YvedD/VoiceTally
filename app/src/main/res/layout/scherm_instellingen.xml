@@ -205,6 +205,123 @@
                 android:background="@color/vt5_on_surface"
                 android:alpha="0.3" />
 
+            <!-- Hoogte partials-log -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+
+                <TextView
+                    android:id="@+id/tvLogHoogtePartialsLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_loghoogte_partials_label"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
+
+                <NumberPicker
+                    android:id="@+id/npLogHoogtePartials"
+                    android:layout_width="88dp"
+                    android:layout_height="70dp"
+                    android:theme="@style/Theme.VT5.NumberPicker" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/instellingen_dp_eenheid"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- Hoogte finals-log -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+
+                <TextView
+                    android:id="@+id/tvLogHoogteFinalsLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_loghoogte_finals_label"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
+
+                <NumberPicker
+                    android:id="@+id/npLogHoogteFinals"
+                    android:layout_width="88dp"
+                    android:layout_height="70dp"
+                    android:theme="@style/Theme.VT5.NumberPicker" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/instellingen_dp_eenheid"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDoubleTapTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_double_tap_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap10"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_double_tap_10" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap50"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_double_tap_50" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap100"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_double_tap_100" />
+            </LinearLayout>
+
             <!-- Favorieten limiet -->
             <TextView
                 android:id="@+id/tvFavTitel"

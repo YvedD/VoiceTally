@@ -99,9 +99,8 @@ class FastPathMatcher(
             speciesSet.isEmpty() -> null
             speciesSet.size == 1 -> speciesSet.first()
             else -> {
-                // Prefer species in tiles
-                val inTiles = speciesSet.firstOrNull { it in matchContext.tilesSpeciesIds }
-                inTiles ?: speciesSet.first() // Fallback to first match
+                val tileMatches = speciesSet.filter { it in matchContext.tilesSpeciesIds }
+                if (tileMatches.size == 1) tileMatches.first() else null
             }
         }
     }

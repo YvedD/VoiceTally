@@ -1,6 +1,7 @@
 package com.yvesds.vt5.features.telling
 
 import android.util.Log
+import com.yvesds.vt5.features.speech.Candidate
 import java.util.Locale
 
 /**
@@ -21,6 +22,7 @@ class TellingLogManager(
         private val RE_TRAILING_NUMBER = Regex("^(.*?)(?:\\s+(\\d+)(?:[.,]\\d+)?)?\$")
         // Pattern for "name -> +N" format used in formatted partials (e.g., "grauwehands -> +15")
         private val RE_ARROW_COUNT = Regex("^(.+?)\\s*->\\s*\\+?(\\d+)$")
+        private val TRANSIENT_SOURCES = setOf("partial", "raw", "systeem")
     }
 
     // Storage for log entries
@@ -120,6 +122,69 @@ class TellingLogManager(
         deliveryStatus: TellingScherm.DeliveryStatus = TellingScherm.DeliveryStatus.NONE
     ): List<TellingScherm.SpeechLogRow> {
         return addToFinals(text, "final", recordId, clientEventId, deliveryStatus)
+    }
+
+    fun addAttentionLog(
+        text: String,
+        rawInput: String,
+        pendingCount: Int = 0,
+        candidates: List<Candidate> = emptyList(),
+        action: TellingScherm.PendingLogAction = if (candidates.isNotEmpty()) {
+            TellingScherm.PendingLogAction.RESOLVE_CANDIDATES
+        } else {
+            TellingScherm.PendingLogAction.ADD_ALIAS
+        }
+    ): List<TellingScherm.SpeechLogRow> {
+        clearTransientSpeechRows()
+
+        val now = System.currentTimeMillis() / 1000L
+        val normalizedRawInput = rawInput.trim().ifBlank { text.trim() }
+        val row = TellingScherm.SpeechLogRow(
+            ts = now,
+            tekst = text.trim(),
+            bron = "twijfel",
+            pendingAction = action,
+            pendingRawInput = normalizedRawInput,
+            pendingCount = pendingCount,
+            pendingCandidates = candidates
+        )
+
+        val existingIdx = partialsLog.indexOfLast {
+            it.bron == "twijfel" &&
+                it.pendingAction == action &&
+                it.pendingRawInput == normalizedRawInput
+        }
+        if (existingIdx >= 0) {
+            partialsLog[existingIdx] = row
+        } else {
+            partialsLog.add(row)
+        }
+
+        if (partialsLog.size > maxLogRows) {
+            partialsLog.removeAt(0)
+        }
+
+        return partialsLog.toList()
+    }
+
+    fun removePartialRow(row: TellingScherm.SpeechLogRow): List<TellingScherm.SpeechLogRow> {
+        partialsLog.removeAll {
+            it.ts == row.ts &&
+                it.tekst == row.tekst &&
+                it.bron == row.bron &&
+                it.pendingAction == row.pendingAction &&
+                it.pendingRawInput == row.pendingRawInput
+        }
+        return partialsLog.toList()
+    }
+
+    fun clearTransientSpeechRows(): List<TellingScherm.SpeechLogRow> {
+        partialsLog.removeAll { it.bron in TRANSIENT_SOURCES }
+        return partialsLog.toList()
+    }
+
+    fun getPersistedPartialsForUi(): List<TellingScherm.SpeechLogRow> {
+        return partialsLog.filterNot { it.bron in TRANSIENT_SOURCES }
     }
 
     fun attachDeliveryToLatestFinal(

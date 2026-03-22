@@ -113,6 +113,13 @@
     <string name="instellingen_lettergrootte_finals_label">Lettergrootte finals:</string>
     <string name="instellingen_lettergrootte_tegels_label">Lettergrootte tegels (soortnaam + aantallen):</string>
     <string name="instellingen_sp_eenheid">sp</string>
+    <string name="instellingen_dp_eenheid">dp</string>
+    <string name="instellingen_loghoogte_partials_label">Hoogte bovenste logvenster:</string>
+    <string name="instellingen_loghoogte_finals_label">Hoogte onderste logvenster:</string>
+    <string name="instellingen_double_tap_title">Aantal bij dubbel-tap op soorttegel</string>
+    <string name="instellingen_double_tap_10">+10</string>
+    <string name="instellingen_double_tap_50">+50</string>
+    <string name="instellingen_double_tap_100">+100</string>
     <string name="instellingen_placeholder3">Placeholder 3 (later in te vullen)</string>
     <string name="instellingen_colors_title">Kleuren</string>
     <string name="instellingen_bg_color_label">Achtergrondkleur</string>

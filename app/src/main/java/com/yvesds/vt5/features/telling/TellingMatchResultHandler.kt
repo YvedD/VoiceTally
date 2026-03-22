@@ -1,7 +1,6 @@
 package com.yvesds.vt5.features.telling
 
 import android.app.Activity
-import android.util.Log
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.features.speech.MatchResult
 
@@ -24,8 +23,8 @@ class TellingMatchResultHandler(
     // Callbacks for different match types
     var onAutoAccept: ((String, String, Int) -> Unit)? = null
     var onAutoAcceptWithPopup: ((String, String, Int, Boolean) -> Unit)? = null
-    var onMultiMatch: ((List<MatchResult.MatchWithAmount>) -> Unit)? = null
-    var onSuggestionList: ((List<Candidate>, Int) -> Unit)? = null
+    var onMultiMatch: ((List<MatchResult.MatchWithAmount>, List<String>) -> Unit)? = null
+    var onSuggestionList: ((String, List<Candidate>, Int) -> Unit)? = null
     var onNoMatch: ((String) -> Unit)? = null
 
     /**
@@ -43,7 +42,7 @@ class TellingMatchResultHandler(
                 handleMultiMatch(result)
             }
             is MatchResult.SuggestionList -> {
-                onSuggestionList?.invoke(result.candidates, extractCountFromHypothesis(result.hypothesis))
+                onSuggestionList?.invoke(result.hypothesis, result.candidates, extractCountFromHypothesis(result.hypothesis))
             }
             is MatchResult.NoMatch -> {
                 onNoMatch?.invoke(result.hypothesis)
@@ -78,7 +77,7 @@ class TellingMatchResultHandler(
      * Handle multi-match scenario (multiple species recognized).
      */
     private fun handleMultiMatch(result: MatchResult.MultiMatch) {
-        onMultiMatch?.invoke(result.matches)
+        onMultiMatch?.invoke(result.matches, result.unmatchedFragments)
     }
 
     /**

@@ -53,6 +53,7 @@ class TellingSpeechHandler(
     var onHypothesesReceived: ((List<Pair<String, Float>>, List<String>) -> Unit)? = null
     var onRawResult: ((String) -> Unit)? = null
     var onListeningStarted: (() -> Unit)? = null
+    var onDeferredMatchResolved: ((MatchResult) -> Unit)? = null
 
     /**
      * Initialize speech recognition system.
@@ -68,6 +69,12 @@ class TellingSpeechHandler(
             // Ensure alias parser is ready
             if (!::aliasParser.isInitialized) {
                 aliasParser = AliasSpeechParser(activity, safHelper)
+            }
+
+            aliasParser.setPendingResultListener { _, result ->
+                lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                    onDeferredMatchResolved?.invoke(result)
+                }
             }
 
             // Load alias internals for ASR engine
@@ -205,6 +212,7 @@ class TellingSpeechHandler(
         }
 
         if (speechInitialized) {
+            speechRecognitionManager.setAvailableSpecies(selectedSpeciesMap)
         }
         
         return selectedSpeciesMap

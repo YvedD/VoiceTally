@@ -41,18 +41,17 @@ class SplashActiviteit : AppCompatActivity() {
 
         // Relaunches moeten altijd in SOLO starten, ook als het proces nog leeft.
         MasterClientPrefs.resetModeToSolo()
-        com.yvesds.vt5.features.masterClient.McLocalHotspotManager.stop(this)
         MasterClientPrefs.clearHotspotCredentials(this)
 
         setContentView(R.layout.scherm_splash)
-        
+
         // Voorkom dat de gebruiker terug kan naar de splash screen
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 // Negeer back button tijdens splash screen
             }
         })
-        
+
         // Navigeer naar HoofdActiviteit na de splash duur
         splashJob = lifecycleScope.launch {
             delay(SPLASH_DURATION_MS)

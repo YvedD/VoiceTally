@@ -32,6 +32,7 @@ import com.yvesds.vt5.core.ui.UiColorPrefs
  * Instellingen worden opgeslagen via SharedPreferences voor gebruik doorheen de app.
  */
 class InstellingenScherm : AppCompatActivity() {
+    private var settingsChanged = false
     
     companion object {
         private const val PREFS_NAME = "vt5_prefs"
@@ -41,6 +42,9 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_LOG_TEXT_COLOR = "pref_log_text_color"
         const val PREF_PARTIALS_TEXT_SIZE_SP = "pref_partials_text_size_sp"
         const val PREF_FINALS_TEXT_SIZE_SP = "pref_finals_text_size_sp"
+        const val PREF_PARTIALS_LOG_HEIGHT_DP = "pref_partials_log_height_dp"
+        const val PREF_FINALS_LOG_HEIGHT_DP = "pref_finals_log_height_dp"
+        const val PREF_TILE_DOUBLE_TAP_INCREMENT = "pref_tile_double_tap_increment"
 
         const val PREF_PERM_AUDIO_ACK = "pref_perm_audio_ack"
         const val PREF_PERM_SAF_ACK = "pref_perm_saf_ack"
@@ -50,6 +54,13 @@ class InstellingenScherm : AppCompatActivity() {
         const val MIN_LETTERGROOTTE_SP = 10
         const val MAX_LETTERGROOTTE_SP = 30
         const val DEFAULT_LETTERGROOTTE_SP = 17
+        const val MIN_LOG_HEIGHT_DP = 90
+        const val MAX_LOG_HEIGHT_DP = 320
+        const val DEFAULT_LOG_HEIGHT_PHONE_DP = 150
+        const val DEFAULT_LOG_HEIGHT_TABLET_DP = 180
+        const val DOUBLE_TAP_INCREMENT_10 = 10
+        const val DOUBLE_TAP_INCREMENT_50 = 50
+        const val DOUBLE_TAP_INCREMENT_100 = 100
 
         const val PREF_MAX_FAVORIETEN = "pref_max_favoriete_soorten"
         const val MAX_FAVORIETEN_ALL = -1
@@ -69,6 +80,35 @@ class InstellingenScherm : AppCompatActivity() {
         fun getFinalsTextSizeSp(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             return prefs.getInt(PREF_FINALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
+        }
+
+        fun getDefaultLogHeightDp(context: Context): Int {
+            return if (context.resources.configuration.smallestScreenWidthDp >= 600) {
+                DEFAULT_LOG_HEIGHT_TABLET_DP
+            } else {
+                DEFAULT_LOG_HEIGHT_PHONE_DP
+            }
+        }
+
+        fun getPartialsLogHeightDp(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getInt(PREF_PARTIALS_LOG_HEIGHT_DP, getDefaultLogHeightDp(context))
+                .coerceIn(MIN_LOG_HEIGHT_DP, MAX_LOG_HEIGHT_DP)
+        }
+
+        fun getFinalsLogHeightDp(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getInt(PREF_FINALS_LOG_HEIGHT_DP, getDefaultLogHeightDp(context))
+                .coerceIn(MIN_LOG_HEIGHT_DP, MAX_LOG_HEIGHT_DP)
+        }
+
+        fun getTileDoubleTapIncrement(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return when (prefs.getInt(PREF_TILE_DOUBLE_TAP_INCREMENT, DOUBLE_TAP_INCREMENT_10)) {
+                DOUBLE_TAP_INCREMENT_50 -> DOUBLE_TAP_INCREMENT_50
+                DOUBLE_TAP_INCREMENT_100 -> DOUBLE_TAP_INCREMENT_100
+                else -> DOUBLE_TAP_INCREMENT_10
+            }
         }
 
         /**
@@ -115,9 +155,11 @@ class InstellingenScherm : AppCompatActivity() {
             ensureLogTextColorDefaults()
             setupTerugKnop()
             setupLettergrootteNumberPickers()
+            setupLogHeightNumberPickers()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupFinalsTextColorSpinner()
+            setupDoubleTapButtons()
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
         } catch (t: Throwable) {
@@ -140,8 +182,16 @@ class InstellingenScherm : AppCompatActivity() {
     private fun setupTerugKnop() {
         val btnTerug = findViewById<MaterialButton>(R.id.btnTerug)
         btnTerug.setOnClickListener {
+            if (settingsChanged) {
+                setResult(RESULT_OK)
+            }
             finish()
         }
+    }
+
+    private fun markSettingsChanged() {
+        settingsChanged = true
+        setResult(RESULT_OK)
     }
     
     private fun setupLettergrootteNumberPickers() {
@@ -156,6 +206,7 @@ class InstellingenScherm : AppCompatActivity() {
             .coerceIn(MIN_LETTERGROOTTE_SP, MAX_LETTERGROOTTE_SP)
         npPartials.setOnValueChangedListener { _, _, newVal ->
             prefs.edit { putInt(PREF_PARTIALS_TEXT_SIZE_SP, newVal) }
+            markSettingsChanged()
         }
 
         // NumberPicker voor finals
@@ -167,6 +218,7 @@ class InstellingenScherm : AppCompatActivity() {
             .coerceIn(MIN_LETTERGROOTTE_SP, MAX_LETTERGROOTTE_SP)
         npFinals.setOnValueChangedListener { _, _, newVal ->
             prefs.edit { putInt(PREF_FINALS_TEXT_SIZE_SP, newVal) }
+            markSettingsChanged()
         }
 
         // NumberPicker voor tegels
@@ -181,7 +233,58 @@ class InstellingenScherm : AppCompatActivity() {
             prefs.edit {
                 putInt(PREF_LETTERGROOTTE_TEGELS_SP, newVal)
             }
+            markSettingsChanged()
         }
+    }
+
+    private fun setupLogHeightNumberPickers() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
+        val npPartialsHeight = findViewById<NumberPicker>(R.id.npLogHoogtePartials)
+        npPartialsHeight.minValue = MIN_LOG_HEIGHT_DP
+        npPartialsHeight.maxValue = MAX_LOG_HEIGHT_DP
+        npPartialsHeight.wrapSelectorWheel = false
+        npPartialsHeight.value = getPartialsLogHeightDp(this)
+        npPartialsHeight.setOnValueChangedListener { _, _, newVal ->
+            prefs.edit { putInt(PREF_PARTIALS_LOG_HEIGHT_DP, newVal) }
+            markSettingsChanged()
+        }
+
+        val npFinalsHeight = findViewById<NumberPicker>(R.id.npLogHoogteFinals)
+        npFinalsHeight.minValue = MIN_LOG_HEIGHT_DP
+        npFinalsHeight.maxValue = MAX_LOG_HEIGHT_DP
+        npFinalsHeight.wrapSelectorWheel = false
+        npFinalsHeight.value = getFinalsLogHeightDp(this)
+        npFinalsHeight.setOnValueChangedListener { _, _, newVal ->
+            prefs.edit { putInt(PREF_FINALS_LOG_HEIGHT_DP, newVal) }
+            markSettingsChanged()
+        }
+    }
+
+    private fun setupDoubleTapButtons() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val btn10 = findViewById<MaterialButton>(R.id.btnDoubleTap10)
+        val btn50 = findViewById<MaterialButton>(R.id.btnDoubleTap50)
+        val btn100 = findViewById<MaterialButton>(R.id.btnDoubleTap100)
+        val buttons = listOf(btn10, btn50, btn100)
+
+        fun applySelection(value: Int, markChanged: Boolean) {
+            prefs.edit { putInt(PREF_TILE_DOUBLE_TAP_INCREMENT, value) }
+            buttons.forEach { it.isChecked = false }
+            when (value) {
+                DOUBLE_TAP_INCREMENT_50 -> btn50.isChecked = true
+                DOUBLE_TAP_INCREMENT_100 -> btn100.isChecked = true
+                else -> btn10.isChecked = true
+            }
+            if (markChanged) {
+                markSettingsChanged()
+            }
+        }
+
+        applySelection(getTileDoubleTapIncrement(this), markChanged = false)
+        btn10.setOnClickListener { applySelection(DOUBLE_TAP_INCREMENT_10, markChanged = true) }
+        btn50.setOnClickListener { applySelection(DOUBLE_TAP_INCREMENT_50, markChanged = true) }
+        btn100.setOnClickListener { applySelection(DOUBLE_TAP_INCREMENT_100, markChanged = true) }
     }
 
     private fun setupColorSpinners() {
@@ -239,10 +342,16 @@ class InstellingenScherm : AppCompatActivity() {
         spBg.setSelection(bgOptions.indexOfFirst { it.argb == selectedBg }.takeIf { it >= 0 } ?: 0)
         spText.setSelection(textOptions.indexOfFirst { it.argb == selectedText }.takeIf { it >= 0 } ?: 0)
 
+        var bgInitialized = false
         spBg.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedBg = bgOptions[position].argb
                 UiColorPrefs.setBackgroundColor(this@InstellingenScherm, selectedBg)
+                if (bgInitialized) {
+                    markSettingsChanged()
+                } else {
+                    bgInitialized = true
+                }
 
                 // Refresh both spinners so each item reflects the combined colors
                 bgAdapter.notifyDataSetChanged()
@@ -251,10 +360,16 @@ class InstellingenScherm : AppCompatActivity() {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
 
+        var textInitialized = false
         spText.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedText = textOptions[position].argb
                 UiColorPrefs.setTextColor(this@InstellingenScherm, selectedText)
+                if (textInitialized) {
+                    markSettingsChanged()
+                } else {
+                    textInitialized = true
+                }
 
                 // Refresh both spinners so each item reflects the combined colors
                 bgAdapter.notifyDataSetChanged()
@@ -319,11 +434,17 @@ class InstellingenScherm : AppCompatActivity() {
         val initial = textOptions.indexOfFirst { it.argb == current }.takeIf { it >= 0 } ?: 0
         spLogText.setSelection(initial)
 
+        var initialized = false
         spLogText.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selected = textOptions[position].argb
                 getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit {
                     putInt(prefKey, selected)
+                }
+                if (initialized) {
+                    markSettingsChanged()
+                } else {
+                    initialized = true
                 }
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
@@ -351,8 +472,11 @@ class InstellingenScherm : AppCompatActivity() {
         val allButtons = listOfNotNull(btn15, btn20, btn25, btn30, btn35, btn40, btn75, btnAll)
         if (allButtons.isEmpty()) return
 
-        fun applySelection(value: Int) {
+        fun applySelection(value: Int, markChanged: Boolean) {
             prefs.edit { putInt(PREF_MAX_FAVORIETEN, value) }
+            if (markChanged) {
+                markSettingsChanged()
+            }
             allButtons.forEach { it.isChecked = false }
             when (value) {
                 15 -> btn15?.isChecked = true
@@ -367,16 +491,16 @@ class InstellingenScherm : AppCompatActivity() {
         }
 
         val current = prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
-        applySelection(current)
+        applySelection(current, markChanged = false)
 
-        btn15?.setOnClickListener { applySelection(15) }
-        btn20?.setOnClickListener { applySelection(20) }
-        btn25?.setOnClickListener { applySelection(25) }
-        btn30?.setOnClickListener { applySelection(30) }
-        btn35?.setOnClickListener { applySelection(35) }
-        btn40?.setOnClickListener { applySelection(40) }
-        btn75?.setOnClickListener { applySelection(75) }
-        btnAll?.setOnClickListener { applySelection(MAX_FAVORIETEN_ALL) }
+        btn15?.setOnClickListener { applySelection(15, markChanged = true) }
+        btn20?.setOnClickListener { applySelection(20, markChanged = true) }
+        btn25?.setOnClickListener { applySelection(25, markChanged = true) }
+        btn30?.setOnClickListener { applySelection(30, markChanged = true) }
+        btn35?.setOnClickListener { applySelection(35, markChanged = true) }
+        btn40?.setOnClickListener { applySelection(40, markChanged = true) }
+        btn75?.setOnClickListener { applySelection(75, markChanged = true) }
+        btnAll?.setOnClickListener { applySelection(MAX_FAVORIETEN_ALL, markChanged = true) }
     }
 
     private fun setupPermissionAcknowledgements() {
@@ -417,6 +541,7 @@ class InstellingenScherm : AppCompatActivity() {
                 showDisablePermissionDialog(disableMessageRes) { confirmed ->
                     if (confirmed) {
                         prefs.edit { putBoolean(key, false) }
+                        markSettingsChanged()
                     } else {
                         suppress = true
                         cb.isChecked = true
@@ -425,6 +550,7 @@ class InstellingenScherm : AppCompatActivity() {
                 }
             } else {
                 prefs.edit { putBoolean(key, true) }
+                markSettingsChanged()
             }
         }
     }

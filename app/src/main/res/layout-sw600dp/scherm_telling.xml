@@ -112,7 +112,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSpeechPartials"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="180dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
         app:cardCornerRadius="8dp"
@@ -132,7 +132,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSpeechFinals"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="180dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
         app:cardCornerRadius="8dp"
@@ -155,37 +155,30 @@
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:orientation="horizontal"
-        android:padding="4dp">
+        android:padding="1dp">
 
         <Button
             android:id="@+id/btnSaveClose"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:paddingLeft="3dp"
-            android:paddingTop="3dp"
-            android:paddingRight="3dp"
+            android:layout_marginStart="3dp"
+            android:padding="2dp"
             android:text="@string/telling_totals" />
 
         <Button
             android:id="@+id/btnAddSoorten"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:paddingLeft="3dp"
-            android:paddingTop="3dp"
-            android:paddingRight="3dp"
+            android:layout_marginStart="3dp"
+            android:padding="2dp"
             android:text="@string/telling_add" />
 
         <Button
             android:id="@+id/btnAfronden"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="5dp"
-            android:layout_marginStart="8dp"
-            android:paddingLeft="3dp"
-            android:paddingTop="3dp"
-            android:paddingRight="3dp"
+            android:layout_marginStart="3dp"
+            android:padding="2dp"
             android:text="@string/telling_finish" />
     </LinearLayout>
 

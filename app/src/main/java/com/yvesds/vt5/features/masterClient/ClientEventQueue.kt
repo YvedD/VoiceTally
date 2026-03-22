@@ -245,6 +245,13 @@ class ClientEventQueue(
     /** Alle pending events als snapshot (voor export-dialog). */
     fun pendingSnapshot(): List<ObservationEvent> = pendingQueue.toList()
 
+    /** Snapshot van alle nog niet bevestigde clientEventIds (pending + inFlight). */
+    fun unacknowledgedEventIds(): List<String> {
+        val pendingIds = pendingQueue.map { it.clientEventId }
+        val inFlightIds = inFlight.keys.toList()
+        return (pendingIds + inFlightIds).distinct()
+    }
+
     /** Wis alle events (bij einde sessie). */
     fun clear() {
         pendingQueue.clear()
