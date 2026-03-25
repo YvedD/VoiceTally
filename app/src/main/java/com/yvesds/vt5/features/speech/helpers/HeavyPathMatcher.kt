@@ -9,8 +9,8 @@ import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.features.speech.MatchContext
 import com.yvesds.vt5.features.speech.MatchResult
 import com.yvesds.vt5.utils.TextUtils
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -47,7 +47,7 @@ class HeavyPathMatcher(
         matchContext: MatchContext,
         asrWeight: Double = DEFAULT_ASR_WEIGHT
     ): HeavyMatchResult? {
-        coroutineContext.ensureActive()
+        currentCoroutineContext().ensureActive()
 
         val normalized = TextUtils.normalizeLowerNoDiacritics(hypothesis)
         if (normalized.isBlank()) return null
@@ -106,16 +106,25 @@ class HeavyPathMatcher(
 
             val displayName = matchContext.speciesById[chosenSpeciesId]?.first ?: hypothesis
             val isInTiles = chosenSpeciesId in matchContext.tilesSpeciesIds
+            val isExactCanonical = records.any { record ->
+                record.speciesid == chosenSpeciesId &&
+                    TextUtils.normalizeLowerNoDiacritics(record.canonical) == normalized
+            }
 
             val candidate = Candidate(
                 speciesId = chosenSpeciesId,
                 displayName = displayName,
                 score = 0.9,
                 isInTiles = isInTiles,
-                source = "quick_exact"
+                source = "quick_exact",
+                autoAddToTiles = !isInTiles && speciesSet.size == 1 && isExactCanonical
             )
 
-            return MatchResult.AutoAccept(candidate, hypothesis, "quick_exact", 1)
+            return if (candidate.isInTiles) {
+                MatchResult.AutoAccept(candidate, hypothesis, "quick_exact", 1)
+            } else {
+                MatchResult.AutoAcceptAddPopup(candidate, hypothesis, "quick_exact", 1)
+            }
         } catch (ex: Exception) {
             Log.w(TAG, "Quick exact match error for '$hypothesis': ${ex.message}", ex)
             return null
@@ -143,7 +152,6 @@ class HeavyPathMatcher(
             is MatchResult.SuggestionList -> result.candidates.firstOrNull()?.score ?: 0.0
             is MatchResult.MultiMatch -> result.matches.firstOrNull()?.candidate?.score ?: 0.0
             is MatchResult.NoMatch -> 0.0
-            else -> 0.0
         }
     }
 

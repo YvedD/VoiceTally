@@ -117,7 +117,8 @@ class SpeechLogAdapter :
 
         val defaultPartials = cachedPartialsTextColor
         val defaultFinals = cachedFinalsTextColor
-        val pendingColor = holder.itemView.context.getColor(R.color.vt5_orange)
+        val pendingColor = android.graphics.Color.rgb(255, 183, 77)
+        val errorColor = android.graphics.Color.RED
 
         when (row.bron) {
             "final" -> {
@@ -128,8 +129,9 @@ class SpeechLogAdapter :
             }
             "partial" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
-                holder.vb.tvMsg.setTextColor(defaultPartials)
-                holder.vb.tvTime.setTextColor(defaultPartials)
+                val partialColor = if (row.isError) errorColor else defaultPartials
+                holder.vb.tvMsg.setTextColor(partialColor)
+                holder.vb.tvTime.setTextColor(partialColor)
             }
             "alias", "raw", "systeem", "manueel" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)

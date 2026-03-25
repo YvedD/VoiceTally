@@ -1,7 +1,6 @@
 package com.yvesds.vt5.features.telling
 
 import android.app.Activity
-import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import android.view.KeyEvent
@@ -17,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * TellingSpeechHandler: Manages speech recognition for TellingScherm.
@@ -50,9 +50,12 @@ class TellingSpeechHandler(
     private var cachedMatchContext: MatchContext? = null
 
     // Callbacks
-    var onHypothesesReceived: ((List<Pair<String, Float>>, List<String>) -> Unit)? = null
+    var onHypothesesReceived: ((String, List<Pair<String, Float>>, List<String>) -> Unit)? = null
+    var onPendingMatchResult: ((String, MatchResult) -> Unit)? = null
     var onRawResult: ((String) -> Unit)? = null
     var onListeningStarted: (() -> Unit)? = null
+
+    private val utteranceSequence = AtomicLong(0)
 
     /**
      * Initialize speech recognition system.
@@ -69,6 +72,9 @@ class TellingSpeechHandler(
             if (!::aliasParser.isInitialized) {
                 aliasParser = AliasSpeechParser(activity, safHelper)
             }
+            aliasParser.setPendingResultListener { utteranceId, result ->
+                onPendingMatchResult?.invoke(utteranceId, result)
+            }
 
             // Load alias internals for ASR engine
             lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -81,7 +87,8 @@ class TellingSpeechHandler(
 
             // Set up listeners
             speechRecognitionManager.setOnHypothesesListener { hypotheses, partials ->
-                onHypothesesReceived?.invoke(hypotheses, partials)
+                val utteranceId = buildUtteranceId()
+                onHypothesesReceived?.invoke(utteranceId, hypotheses, partials)
             }
 
             speechRecognitionManager.setOnRawResultListener { rawText ->
@@ -150,14 +157,19 @@ class TellingSpeechHandler(
      * Parse speech hypotheses using the alias parser.
      */
     suspend fun parseSpokenWithHypotheses(
+        utteranceId: String,
         hypotheses: List<Pair<String, Float>>,
         matchContext: MatchContext,
         partials: List<String>,
         asrWeight: Double = 0.4
     ): MatchResult {
         return withContext(Dispatchers.Default) {
-            aliasParser.parseSpokenWithHypotheses(hypotheses, matchContext, partials, asrWeight)
+            aliasParser.parseSpokenWithHypotheses(utteranceId, hypotheses, matchContext, partials, asrWeight)
         }
+    }
+
+    private fun buildUtteranceId(): String {
+        return "utt-${utteranceSequence.incrementAndGet()}"
     }
 
     /**
@@ -204,9 +216,6 @@ class TellingSpeechHandler(
             selectedSpeciesMap[naam.lowercase(Locale.getDefault())] = soortId
         }
 
-        if (speechInitialized) {
-        }
-        
         return selectedSpeciesMap
     }
 }

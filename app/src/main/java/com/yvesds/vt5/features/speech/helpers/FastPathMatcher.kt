@@ -7,6 +7,7 @@ import com.yvesds.vt5.features.speech.AliasMatcher
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.features.speech.MatchContext
 import com.yvesds.vt5.features.speech.MatchResult
+import com.yvesds.vt5.features.speech.NumberPatterns
 import com.yvesds.vt5.utils.TextUtils
 
 /**
@@ -29,7 +30,6 @@ class FastPathMatcher(
     companion object {
         private const val TAG = "FastPathMatcher"
         private const val FAST_ASR_CONF_THRESHOLD = 0.99
-        private const val SLOW_LOOKUP_THRESHOLD_MS = 100L
     }
 
     /**
@@ -42,15 +42,13 @@ class FastPathMatcher(
         matchContext: MatchContext
     ): MatchResult? {
         try {
-            val (nameOnly, extractedCount) = TextUtils.parseTrailingInteger(hypothesis)
+            val (nameOnly, extractedCount) = NumberPatterns.parseTrailingNumberPhrase(hypothesis)
             val normalized = TextUtils.normalizeLowerNoDiacritics(nameOnly)
 
             if (normalized.isBlank()) return null
 
             // Fast exact lookup
-            val t0 = System.currentTimeMillis()
             val records = AliasMatcher.findExact(normalized, context, saf)
-            val t1 = System.currentTimeMillis()
 
             if (records.isEmpty()) return null
 
@@ -70,17 +68,25 @@ class FastPathMatcher(
             val isInTiles = chosenSpeciesId in matchContext.tilesSpeciesIds
             val displayName = matchContext.speciesById[chosenSpeciesId]?.first ?: nameOnly
             val source = if (isInTiles) "fast_tiles" else "fast_site"
+            val isExactCanonical = records.any { record ->
+                record.speciesid == chosenSpeciesId &&
+                    TextUtils.normalizeLowerNoDiacritics(record.canonical) == normalized
+            }
 
             val candidate = Candidate(
                 speciesId = chosenSpeciesId,
                 displayName = displayName,
                 score = 1.0,
                 isInTiles = isInTiles,
-                source = source
+                source = source,
+                autoAddToTiles = !isInTiles && speciesSet.size == 1 && isExactCanonical
             )
 
-
-            return MatchResult.AutoAccept(candidate, hypothesis, "fastpath", amount)
+            return if (candidate.isInTiles) {
+                MatchResult.AutoAccept(candidate, hypothesis, "fastpath", amount)
+            } else {
+                MatchResult.AutoAcceptAddPopup(candidate, hypothesis, "fastpath", amount)
+            }
         } catch (ex: Exception) {
             Log.w(TAG, "Fast-path error for '$hypothesis': ${ex.message}", ex)
             return null
@@ -101,7 +107,7 @@ class FastPathMatcher(
             else -> {
                 // Prefer species in tiles
                 val inTiles = speciesSet.firstOrNull { it in matchContext.tilesSpeciesIds }
-                inTiles ?: speciesSet.first() // Fallback to first match
+                inTiles
             }
         }
     }

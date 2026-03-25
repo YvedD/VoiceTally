@@ -1,9 +1,9 @@
 package com.yvesds.vt5.features.telling
 
 import android.app.Activity
-import android.util.Log
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.features.speech.MatchResult
+import com.yvesds.vt5.features.speech.NumberPatterns
 
 /**
  * TellingMatchResultHandler: Processes speech recognition match results.
@@ -15,38 +15,35 @@ import com.yvesds.vt5.features.speech.MatchResult
  * - Handle suggestion lists
  */
 class TellingMatchResultHandler(
+    @Suppress("UNUSED_PARAMETER")
     private val activity: Activity
 ) {
-    companion object {
-        private const val TAG = "TellingMatchResultHandler"
-    }
-
     // Callbacks for different match types
-    var onAutoAccept: ((String, String, Int) -> Unit)? = null
-    var onAutoAcceptWithPopup: ((String, String, Int, Boolean) -> Unit)? = null
-    var onMultiMatch: ((List<MatchResult.MatchWithAmount>) -> Unit)? = null
-    var onSuggestionList: ((List<Candidate>, Int) -> Unit)? = null
-    var onNoMatch: ((String) -> Unit)? = null
+    var onAutoAccept: ((String?, Candidate, Int) -> Unit)? = null
+    var onAutoAcceptWithPopup: ((String?, Candidate, Int) -> Unit)? = null
+    var onMultiMatch: ((String?, List<MatchResult.MatchWithAmount>, List<String>) -> Unit)? = null
+    var onSuggestionList: ((String?, String, List<Candidate>, Int) -> Unit)? = null
+    var onNoMatch: ((String?, String) -> Unit)? = null
 
     /**
      * Handle different types of match results from speech parsing.
      */
-    fun handleMatchResult(result: MatchResult) {
+    fun handleMatchResult(result: MatchResult, utteranceId: String? = null) {
         when (result) {
             is MatchResult.AutoAccept -> {
-                handleAutoAcceptMatch(result)
+                handleAutoAcceptMatch(utteranceId, result)
             }
             is MatchResult.AutoAcceptAddPopup -> {
-                handleAutoAcceptAddPopup(result)
+                handleAutoAcceptAddPopup(utteranceId, result)
             }
             is MatchResult.MultiMatch -> {
-                handleMultiMatch(result)
+                handleMultiMatch(utteranceId, result)
             }
             is MatchResult.SuggestionList -> {
-                onSuggestionList?.invoke(result.candidates, extractCountFromHypothesis(result.hypothesis))
+                onSuggestionList?.invoke(utteranceId, result.hypothesis, result.candidates, extractCountFromHypothesis(result.hypothesis))
             }
             is MatchResult.NoMatch -> {
-                onNoMatch?.invoke(result.hypothesis)
+                onNoMatch?.invoke(utteranceId, result.hypothesis)
             }
         }
     }
@@ -54,31 +51,22 @@ class TellingMatchResultHandler(
     /**
      * Handle auto-accept match (species recognized and in tiles).
      */
-    private fun handleAutoAcceptMatch(result: MatchResult.AutoAccept) {
-        val speciesId = result.candidate.speciesId
-        val displayName = result.candidate.displayName
-        val amount = result.amount
-        
-        onAutoAccept?.invoke(speciesId, displayName, amount)
+    private fun handleAutoAcceptMatch(utteranceId: String?, result: MatchResult.AutoAccept) {
+        onAutoAccept?.invoke(utteranceId, result.candidate, result.amount)
     }
 
     /**
      * Handle auto-accept with popup (species recognized but not in tiles).
      */
-    private fun handleAutoAcceptAddPopup(result: MatchResult.AutoAcceptAddPopup) {
-        val speciesId = result.candidate.speciesId
-        val displayName = result.candidate.displayName
-        val amount = result.amount
-        val isInTiles = result.candidate.isInTiles
-        
-        onAutoAcceptWithPopup?.invoke(speciesId, displayName, amount, isInTiles)
+    private fun handleAutoAcceptAddPopup(utteranceId: String?, result: MatchResult.AutoAcceptAddPopup) {
+        onAutoAcceptWithPopup?.invoke(utteranceId, result.candidate, result.amount)
     }
 
     /**
      * Handle multi-match scenario (multiple species recognized).
      */
-    private fun handleMultiMatch(result: MatchResult.MultiMatch) {
-        onMultiMatch?.invoke(result.matches)
+    private fun handleMultiMatch(utteranceId: String?, result: MatchResult.MultiMatch) {
+        onMultiMatch?.invoke(utteranceId, result.matches, result.unmatchedFragments)
     }
 
     /**
@@ -86,9 +74,6 @@ class TellingMatchResultHandler(
      * Simple implementation - can be enhanced with TellingLogManager if needed.
      */
     private fun extractCountFromHypothesis(hypothesis: String): Int {
-        // Try to find trailing number
-        val regex = Regex("\\s+(\\d+)(?:[.,]\\d+)?\$")
-        val match = regex.find(hypothesis)
-        return match?.groups?.get(1)?.value?.toIntOrNull() ?: 1
+        return NumberPatterns.parseTrailingNumberPhrase(hypothesis).second ?: 1
     }
 }

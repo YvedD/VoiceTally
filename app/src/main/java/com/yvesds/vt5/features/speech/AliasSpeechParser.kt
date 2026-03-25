@@ -58,7 +58,7 @@ class AliasSpeechParser(
     /**
      * Register a listener to receive results for pending items
      */
-    fun setPendingResultListener(listener: (id: String, result: MatchResult) -> Unit) {
+    fun setPendingResultListener(listener: (utteranceId: String, result: MatchResult) -> Unit) {
         pendingBuffer.setResultListener(listener)
     }
 
@@ -106,6 +106,7 @@ class AliasSpeechParser(
      * Combines ASR confidence with matcher scores for optimal results
      */
     suspend fun parseSpokenWithHypotheses(
+        utteranceId: String,
         hypotheses: List<Pair<String, Float>>,
         matchContext: MatchContext,
         partials: List<String> = emptyList(),
@@ -166,7 +167,7 @@ class AliasSpeechParser(
                 }
                 is HeavyPathMatcher.HeavyMatchResult.TimedOut -> {
                     // Enqueue to pending buffer
-                    val pendingId = pendingBuffer.enqueuePending(hyp, asrConf, matchContext, filteredPartials)
+                    val pendingId = pendingBuffer.enqueuePending(utteranceId, hyp, asrConf, matchContext, filteredPartials)
                     if (pendingId != null) {
                         enqueuedAny = true
                         logger.logMatchResult(hyp, MatchResult.NoMatch(hyp, "queued"), filteredPartials, asrHypotheses = hypotheses)

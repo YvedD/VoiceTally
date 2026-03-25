@@ -14,5 +14,6 @@ data class Candidate(
     val displayName: String,
     val score: Double,
     val isInTiles: Boolean,
-    val source: String
+    val source: String,
+    val autoAddToTiles: Boolean = false
 )

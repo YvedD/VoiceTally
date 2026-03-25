@@ -1,6 +1,5 @@
 package com.yvesds.vt5.features.telling
 
-import android.util.Log
 import java.util.Locale
 
 /**
@@ -15,7 +14,7 @@ class TellingLogManager(
     private val maxLogRows: Int = 600
 ) {
     companion object {
-        private const val TAG = "TellingLogManager"
+        private const val SPEECH_PARTIAL_ROW_KEY_PREFIX = "speech-partial:"
         private val RE_ASR_PREFIX = Regex("(?i)^\\s*asr:\\s*")
         private val RE_TRIM_RAW_NUMBER = Regex("\\s+\\d+(?:[.,]\\d+)?\$")
         private val RE_TRAILING_NUMBER = Regex("^(.*?)(?:\\s+(\\d+)(?:[.,]\\d+)?)?\$")
@@ -75,6 +74,33 @@ class TellingLogManager(
      * Upsert partial log: replaces last partial or adds new.
      */
     fun upsertPartialLog(text: String): List<TellingScherm.SpeechLogRow> {
+        return upsertPartialLogInternal(text, rowKey = null, isError = false, replaceAllLegacyPartials = true)
+    }
+
+    fun upsertSpeechPartialLog(
+        utteranceId: String,
+        text: String,
+        isError: Boolean = false
+    ): List<TellingScherm.SpeechLogRow> {
+        return upsertPartialLogInternal(
+            text = text,
+            rowKey = speechPartialRowKey(utteranceId),
+            isError = isError,
+            replaceAllLegacyPartials = false
+        )
+    }
+
+    fun clearSpeechPartialLog(utteranceId: String): List<TellingScherm.SpeechLogRow> {
+        partialsLog.removeAll { it.rowKey == speechPartialRowKey(utteranceId) }
+        return partialsLog.toList()
+    }
+
+    private fun upsertPartialLogInternal(
+        text: String,
+        rowKey: String?,
+        isError: Boolean,
+        replaceAllLegacyPartials: Boolean
+    ): List<TellingScherm.SpeechLogRow> {
         val cleanedRaw = text.trim()
         // Ignore empty partials (common at start of capture)
         if (cleanedRaw.isBlank()) return partialsLog.toList()
@@ -95,13 +121,24 @@ class TellingLogManager(
         val display = if (cnt > 0) "$nameOnly -> +$cnt" else nameOnly
         
         val now = System.currentTimeMillis() / 1000L  // Use seconds for consistency
-        
-        // Remove old partials
-        partialsLog.removeIf { it.bron == "partial" }
-        
+
+        if (replaceAllLegacyPartials) {
+            partialsLog.removeIf { it.bron == "partial" }
+        } else if (!rowKey.isNullOrBlank()) {
+            partialsLog.removeAll { it.rowKey == rowKey }
+        }
+
         // Add new partial
-        partialsLog.add(TellingScherm.SpeechLogRow(now, display, "partial"))
-        
+        partialsLog.add(
+            TellingScherm.SpeechLogRow(
+                ts = now,
+                tekst = display,
+                bron = "partial",
+                rowKey = rowKey,
+                isError = isError
+            )
+        )
+
         // Trim if needed
         if (partialsLog.size > maxLogRows) {
             partialsLog.removeAt(0)
@@ -209,5 +246,9 @@ class TellingLogManager(
         }
         
         return finalsLog.toList()
+    }
+
+    private fun speechPartialRowKey(utteranceId: String): String {
+        return "$SPEECH_PARTIAL_ROW_KEY_PREFIX$utteranceId"
     }
 }

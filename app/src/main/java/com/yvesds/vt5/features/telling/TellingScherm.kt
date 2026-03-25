@@ -27,6 +27,7 @@ import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
@@ -107,6 +108,7 @@ class TellingScherm : AppCompatActivity() {
     // Partial UI debounce + only keep last partial
     private var lastPartialUiUpdateMs: Long = 0L
     private val PARTIAL_UI_DEBOUNCE_MS = 200L
+    private val parseJobsByUtteranceId = linkedMapOf<String, Job>()
 
     // Local pendingRecords (legacy) — we mirror to ViewModel for persistence but keep this for compatibility
     private val pendingRecords = mutableListOf<ServerTellingDataItem>()
@@ -163,7 +165,8 @@ class TellingScherm : AppCompatActivity() {
         val bron: String,
         val isPending: Boolean = false,
         val recordLocalId: String? = null,
-        val rowKey: String? = null
+        val rowKey: String? = null,
+        val isError: Boolean = false
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -305,8 +308,17 @@ class TellingScherm : AppCompatActivity() {
      */
     private fun setupHelperCallbacks() {
         // Speech handler callbacks
-        speechHandler.onHypothesesReceived = { hypotheses, partials ->
-            handleSpeechHypotheses(hypotheses, partials)
+        speechHandler.onHypothesesReceived = { utteranceId, hypotheses, partials ->
+            handleSpeechHypotheses(utteranceId, hypotheses, partials)
+        }
+        speechHandler.onPendingMatchResult = { utteranceId, result ->
+            lifecycleScope.launch(Dispatchers.Main) {
+                try {
+                    matchResultHandler.handleMatchResult(result, utteranceId)
+                } catch (ex: Exception) {
+                    Log.w(TAG, "Pending hypotheses handling failed: ${ex.message}", ex)
+                }
+            }
         }
         speechHandler.onRawResult = { rawText ->
             lifecycleScope.launch(Dispatchers.Main) {
@@ -318,38 +330,34 @@ class TellingScherm : AppCompatActivity() {
         }
 
         // Match result handler callbacks
-        matchResultHandler.onAutoAccept = { speciesId, displayName, amount ->
-            recordSpeciesCount(speciesId, displayName, amount)
+        matchResultHandler.onAutoAccept = { utteranceId, candidate, amount ->
+            handleRecognizedCandidate(utteranceId, candidate, amount)
         }
-        matchResultHandler.onAutoAcceptWithPopup = { speciesId, displayName, amount, isInTiles ->
-            if (isInTiles) {
-                recordSpeciesCount(speciesId, displayName, amount)
-            } else {
-                showAddSpeciesConfirmationDialog(speciesId, displayName, amount)
-            }
+        matchResultHandler.onAutoAcceptWithPopup = { utteranceId, candidate, amount ->
+            handleRecognizedCandidate(utteranceId, candidate, amount)
         }
-        matchResultHandler.onMultiMatch = { matches ->
+        matchResultHandler.onMultiMatch = { utteranceId, matches, unmatchedFragments ->
             matches.forEach { match ->
-                val sid = match.candidate.speciesId
-                val cnt = match.amount
-                val present = tegelBeheer.findIndexBySoortId(sid) >= 0
-                if (present) {
-                    recordSpeciesCount(sid, match.candidate.displayName, cnt)
-                } else {
-                    showAddSpeciesConfirmationDialog(sid, match.candidate.displayName, cnt)
-                }
+                handleRecognizedCandidate(utteranceId, match.candidate, match.amount)
             }
+            unmatchedFragments
+                .map(String::trim)
+                .filter(String::isNotBlank)
+                .takeIf { it.isNotEmpty() }
+                ?.let { fragments ->
+                    upsertSpeechPartialLog(utteranceId, fragments.joinToString(" | "), isError = true)
+                }
         }
-        matchResultHandler.onSuggestionList = { candidates, count ->
-            showSuggestionBottomSheet(candidates, count)
+        matchResultHandler.onSuggestionList = { utteranceId, hypothesis, candidates, count ->
+            showSuggestionBottomSheet(candidates, count, rawHypothesis = hypothesis, utteranceId = utteranceId)
         }
-        matchResultHandler.onNoMatch = { hypothesis ->
+        matchResultHandler.onNoMatch = { utteranceId, hypothesis ->
             val now = System.currentTimeMillis()
             if (now - lastPartialUiUpdateMs >= PARTIAL_UI_DEBOUNCE_MS) {
-                upsertPartialLog(hypothesis)
+                upsertSpeechPartialLog(utteranceId, hypothesis, isError = true)
                 lastPartialUiUpdateMs = now
             } else {
-                upsertPartialLog(hypothesis)
+                upsertSpeechPartialLog(utteranceId, hypothesis, isError = true)
             }
         }
 
@@ -806,6 +814,8 @@ class TellingScherm : AppCompatActivity() {
                 speechHandler.cleanup()
             }
         } catch (_: Exception) {}
+        parseJobsByUtteranceId.values.forEach { it.cancel() }
+        parseJobsByUtteranceId.clear()
         try {
             if (::alarmHandler.isInitialized) {
                 alarmHandler.cleanup()
@@ -880,29 +890,39 @@ class TellingScherm : AppCompatActivity() {
     /**
      * Handle speech recognition hypotheses and process match results.
      */
-    private fun handleSpeechHypotheses(hypotheses: List<Pair<String, Float>>, partials: List<String>) {
-        lifecycleScope.launch(Dispatchers.Default) {
-             try {
-                 val matchContext = speechHandler.getCachedMatchContext() ?: run {
-                     val tiles = tegelBeheer.getTiles().map { it.soortId }.toSet()
-                     val mc = initializer.buildMatchContext(tiles)
-                     speechHandler.updateCachedMatchContext(mc)
-                     mc
-                 }
+    private fun handleSpeechHypotheses(
+        utteranceId: String,
+        hypotheses: List<Pair<String, Float>>,
+        partials: List<String>
+    ) {
+        val job = lifecycleScope.launch(Dispatchers.Default) {
+            try {
+                val matchContext = speechHandler.getCachedMatchContext() ?: run {
+                    val tiles = tegelBeheer.getTiles().map { it.soortId }.toSet()
+                    val mc = initializer.buildMatchContext(tiles)
+                    speechHandler.updateCachedMatchContext(mc)
+                    mc
+                }
 
-                 val result = speechHandler.parseSpokenWithHypotheses(hypotheses, matchContext, partials, asrWeight = 0.4)
+                val result = speechHandler.parseSpokenWithHypotheses(utteranceId, hypotheses, matchContext, partials, asrWeight = 0.4)
 
-                 withContext(Dispatchers.Main) {
-                     try {
-                         matchResultHandler.handleMatchResult(result)
-                     } catch (ex: Exception) {
-                         Log.w(TAG, "Hypotheses handling (UI) failed: ${ex.message}", ex)
-                     }
-                 }
-             } catch (ex: Exception) {
-                 Log.w(TAG, "Hypotheses handling (background) failed: ${ex.message}", ex)
-             }
-         }
+                withContext(Dispatchers.Main) {
+                    try {
+                        matchResultHandler.handleMatchResult(result, utteranceId)
+                    } catch (ex: Exception) {
+                        Log.w(TAG, "Hypotheses handling (UI) failed: ${ex.message}", ex)
+                    }
+                }
+            } catch (ex: Exception) {
+                Log.w(TAG, "Hypotheses handling (background) failed: ${ex.message}", ex)
+            } finally {
+                withContext(Dispatchers.Main) {
+                    parseJobsByUtteranceId.remove(utteranceId)
+                }
+            }
+        }
+
+        parseJobsByUtteranceId[utteranceId] = job
     }
 
 
@@ -910,11 +930,30 @@ class TellingScherm : AppCompatActivity() {
     /**
      * Record a species count (add final log, update count, collect record).
      */
-    private fun recordSpeciesCount(speciesId: String, displayName: String, count: Int) {
+    private fun recordSpeciesCount(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
         lifecycleScope.launch {
             tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
-            addFinalLog("$displayName -> +$count")
+            addFinalLog("$displayName -> +$count", utteranceId)
             speciesManager.updateSoortCountInternal(speciesId, count)
+            speciesManager.collectFinalAsRecord(speciesId, count)
+        }
+        RecentSpeciesStore.recordUse(this, speciesId, maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
+    }
+
+    private fun handleRecognizedCandidate(utteranceId: String?, candidate: Candidate, count: Int) {
+        clearSpeechPartialLog(utteranceId)
+        when {
+            candidate.isInTiles -> recordSpeciesCount(utteranceId, candidate.speciesId, candidate.displayName, count)
+            candidate.autoAddToTiles -> autoAddRecognizedSpecies(utteranceId, candidate.speciesId, candidate.displayName, count)
+            else -> showAddSpeciesConfirmationDialog(utteranceId, candidate.speciesId, candidate.displayName, count)
+        }
+    }
+
+    private fun autoAddRecognizedSpecies(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
+        lifecycleScope.launch {
+            tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
+            speciesManager.addSpeciesToTiles(speciesId, displayName, count)
+            addFinalLog("$displayName -> +$count", utteranceId)
             speciesManager.collectFinalAsRecord(speciesId, count)
         }
         RecentSpeciesStore.recordUse(this, speciesId, maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
@@ -923,7 +962,7 @@ class TellingScherm : AppCompatActivity() {
     /**
      * Show confirmation dialog for adding a new species to tiles.
      */
-    private fun showAddSpeciesConfirmationDialog(speciesId: String, displayName: String, count: Int) {
+    private fun showAddSpeciesConfirmationDialog(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
         val msg = "Soort \"$displayName\" herkend met aantal $count.\n\nToevoegen?"
         val dlg = AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_add_species))
@@ -931,7 +970,7 @@ class TellingScherm : AppCompatActivity() {
             .setPositiveButton("Ja") { _, _ ->
                 lifecycleScope.launch {
                     speciesManager.addSpeciesToTiles(speciesId, displayName, count)
-                    addFinalLog("$displayName -> +$count")
+                    addFinalLog("$displayName -> +$count", utteranceId)
                     speciesManager.collectFinalAsRecord(speciesId, count)
                 }
             }
@@ -963,9 +1002,7 @@ class TellingScherm : AppCompatActivity() {
                 // UPDATE VIEWMODEL ONLY — observers will update adapters once.
                 if (bron == "final") {
                     viewModel.setFinals(newList)
-                    // remove 'partial' rows from partials (keep non-partial logs)
-                    val preserved = logManager.getPartials().filter { it.bron != "partial" }
-                    viewModel.setPartials(preserved)
+                    viewModel.setPartials(logManager.getPartials())
                 } else {
                     // raw, partial, systeem all go to partials
                     viewModel.setPartials(newList)
@@ -974,9 +1011,7 @@ class TellingScherm : AppCompatActivity() {
                 // Fallback: no ViewModel — update adapter via uiManager
                 if (bron == "final") {
                     uiManager.updateFinals(newList)
-                    // clear partials from UI
-                    val preserved = logManager.getPartials().filter { it.bron != "partial" }
-                    uiManager.updatePartials(preserved)
+                    uiManager.updatePartials(logManager.getPartials())
                 } else {
                     // raw, partial, systeem all go to partials
                     uiManager.updatePartials(newList)
@@ -999,10 +1034,42 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
+    private fun upsertSpeechPartialLog(utteranceId: String?, text: String, isError: Boolean = false) {
+        val newList = if (!utteranceId.isNullOrBlank()) {
+            logManager.upsertSpeechPartialLog(utteranceId, text, isError)
+        } else {
+            logManager.upsertPartialLog(text)
+        }
+
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (::viewModel.isInitialized) {
+                viewModel.setPartials(newList)
+            } else {
+                uiManager.updatePartials(newList)
+            }
+        }
+    }
+
+    private fun clearSpeechPartialLog(utteranceId: String?) {
+        if (utteranceId.isNullOrBlank()) return
+        val updatedPartials = logManager.clearSpeechPartialLog(utteranceId)
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (::viewModel.isInitialized) {
+                viewModel.setPartials(updatedPartials)
+            } else {
+                uiManager.updatePartials(updatedPartials)
+            }
+        }
+    }
+
     // Delegate to logManager for addFinalLog
-    private fun addFinalLog(text: String) {
+    private fun addFinalLog(text: String, speechUtteranceId: String? = null) {
         val updatedFinals = logManager.addFinalLog(text)
-        val updatedPartials = logManager.getPartials().filter { it.bron != "partial" }
+        val updatedPartials = if (!speechUtteranceId.isNullOrBlank()) {
+            logManager.clearSpeechPartialLog(speechUtteranceId)
+        } else {
+            logManager.getPartials()
+        }
         
         lifecycleScope.launch(Dispatchers.Main) {
             if (::viewModel.isInitialized) {
@@ -1031,7 +1098,7 @@ class TellingScherm : AppCompatActivity() {
         }
         logManager.setFinals(updatedFinals)
 
-        val updatedPartials = logManager.getPartials().filter { it.bron != "partial" }
+        val updatedPartials = logManager.getPartials()
         lifecycleScope.launch(Dispatchers.Main) {
             if (::viewModel.isInitialized) {
                 viewModel.setFinals(updatedFinals)
@@ -1044,36 +1111,19 @@ class TellingScherm : AppCompatActivity() {
     }
 
     /* ---------- Suggestion / Add / Tiles helpers (unchanged flows) ---------- */
-    private fun showSuggestionBottomSheet(candidates: List<Candidate>, count: Int) {
+    private fun showSuggestionBottomSheet(
+        candidates: List<Candidate>,
+        count: Int,
+        rawHypothesis: String? = null,
+        utteranceId: String? = null
+    ) {
         val items = candidates.map { "${it.displayName} (score: ${"%.2f".format(it.score)})" }.toTypedArray()
 
         val dlgList = AlertDialog.Builder(this)
             .setTitle("Kies soort")
             .setItems(items) { _, which ->
                 val chosen = candidates[which]
-                if (chosen.isInTiles) {
-                    lifecycleScope.launch {
-                        tileTapAggregationManager.flushSpeciesAndAwait(chosen.speciesId)
-                        addFinalLog("${chosen.displayName} -> +$count")
-                        speciesManager.updateSoortCountInternal(chosen.speciesId, count)
-                        speciesManager.collectFinalAsRecord(chosen.speciesId, count)
-                    }
-                } else {
-                    val msg = "Soort \"${chosen.displayName}\" toevoegen en $count noteren?"
-                    val dlg = AlertDialog.Builder(this@TellingScherm)
-                        .setTitle("Soort toevoegen?")
-                        .setMessage(msg)
-                        .setPositiveButton("Ja") { _, _ ->
-                            lifecycleScope.launch {
-                                speciesManager.addSpeciesToTiles(chosen.speciesId, chosen.displayName, count)
-                                addFinalLog("${chosen.displayName} -> +$count")
-                                speciesManager.collectFinalAsRecord(chosen.speciesId, count)
-                            }
-                        }
-                        .setNegativeButton("Nee", null)
-                        .show()
-                    DialogStyler.apply(dlg)
-                }
+                handleRecognizedCandidate(utteranceId, chosen, count)
                 RecentSpeciesStore.recordUse(
                     this,
                     chosen.speciesId,
@@ -1083,6 +1133,10 @@ class TellingScherm : AppCompatActivity() {
             }
             .setNegativeButton("Annuleer", null)
             .show()
+
+        if (!rawHypothesis.isNullOrBlank()) {
+            upsertSpeechPartialLog(utteranceId, rawHypothesis, isError = false)
+        }
 
         // Ensure the list dialog itself is also styled.
         DialogStyler.apply(dlgList)
