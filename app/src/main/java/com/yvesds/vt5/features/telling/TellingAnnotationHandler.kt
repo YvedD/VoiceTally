@@ -27,6 +27,7 @@ class TellingAnnotationHandler(
     companion object {
         private const val TAG = "TellingAnnotationHandler"
         private const val PREF_TELLING_ID = "pref_telling_id"
+        private const val EXTRA_RECORD_LOCAL_ID = "extra_record_local_id"
         
         // Direction constants based on seasonal patterns
         private const val RICHTING_ZW = "w"  // West/Southwest (seasonal direction)
@@ -80,10 +81,14 @@ class TellingAnnotationHandler(
             // Find matching pending record to prefill count fields
             val pendingRecords = onGetPendingRecords?.invoke() ?: emptyList()
             val finalsList = onGetFinalsList?.invoke() ?: emptyList()
+            val rowRecordLocalId = finalsList.getOrNull(rowPosition)?.recordLocalId
             
             // Find matching record by position
             val finalRowTs = finalsList.getOrNull(rowPosition)?.ts
-            val matchingRecord = if (finalRowTs != null) {
+            val matchingRecord = if (!rowRecordLocalId.isNullOrBlank()) {
+                putExtra(EXTRA_RECORD_LOCAL_ID, rowRecordLocalId)
+                pendingRecords.firstOrNull { it.idLocal == rowRecordLocalId }
+            } else if (finalRowTs != null) {
                 pendingRecords.firstOrNull { it.tijdstip == finalRowTs.toString() }
             } else {
                 // Fallback: try by explicit timestamp
@@ -125,10 +130,11 @@ class TellingAnnotationHandler(
         val legacyText = data.getStringExtra(AnnotatieScherm.EXTRA_TEXT)
         val legacyTs = data.getLongExtra(AnnotatieScherm.EXTRA_TS, 0L)
         val rowPos = data.getIntExtra("extra_row_pos", -1)
+        val recordLocalId = data.getStringExtra(EXTRA_RECORD_LOCAL_ID)
 
         if (!annotationsJson.isNullOrBlank()) {
             try {
-                applyAnnotationsToPendingRecord(annotationsJson, rowTs = legacyTs, rowPos = rowPos)
+                applyAnnotationsToPendingRecord(annotationsJson, rowTs = legacyTs, rowPos = rowPos, recordLocalId = recordLocalId)
             } catch (ex: Exception) {
                 Log.w(TAG, "applyAnnotationsToPendingRecord failed: ${ex.message}", ex)
             }
@@ -139,7 +145,7 @@ class TellingAnnotationHandler(
                     val singleMapJson = kotlinx.serialization.json.Json.encodeToString(
                         mapOf("opmerkingen" to legacyText)
                     )
-                    applyAnnotationsToPendingRecord(singleMapJson, rowTs = legacyTs, rowPos = rowPos)
+                    applyAnnotationsToPendingRecord(singleMapJson, rowTs = legacyTs, rowPos = rowPos, recordLocalId = recordLocalId)
                 } catch (ex: Exception) {
                     Log.w(TAG, "legacy apply failed: ${ex.message}", ex)
                 }
@@ -168,7 +174,8 @@ class TellingAnnotationHandler(
     private fun applyAnnotationsToPendingRecord(
         annotationsJson: String,
         rowTs: Long = 0L,
-        rowPos: Int = -1
+        rowPos: Int = -1,
+        recordLocalId: String? = null
     ) {
         try {
             val parser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
@@ -190,11 +197,19 @@ class TellingAnnotationHandler(
             }
 
             // Find matching record by position or timestamp
-            var idx = -1
-            if (rowPos >= 0) {
+            var idx = if (!recordLocalId.isNullOrBlank()) {
+                pendingRecords.indexOfFirst { it.idLocal == recordLocalId }
+            } else {
+                -1
+            }
+            if (idx == -1 && rowPos >= 0) {
                 val finalsList = onGetFinalsList?.invoke() ?: emptyList()
-                val finalRowTs = finalsList.getOrNull(rowPos)?.ts
-                if (finalRowTs != null) {
+                val finalRow = finalsList.getOrNull(rowPos)
+                val finalRowRecordLocalId = finalRow?.recordLocalId
+                val finalRowTs = finalRow?.ts
+                if (!finalRowRecordLocalId.isNullOrBlank()) {
+                    idx = pendingRecords.indexOfFirst { it.idLocal == finalRowRecordLocalId }
+                } else if (finalRowTs != null) {
                     idx = pendingRecords.indexOfFirst { it.tijdstip == finalRowTs.toString() }
                 }
             } else {

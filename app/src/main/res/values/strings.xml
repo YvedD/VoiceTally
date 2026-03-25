@@ -122,6 +122,11 @@
     <string name="instellingen_log_text_color_label">Tekstkleur logregels</string>
     <string name="instellingen_back_arrow">←</string>
     <string name="instellingen_permissions_title">Toestemmingen (info)</string>
+    <string name="instellingen_double_tap_title">Double-tap verhoging op soorttegel</string>
+    <string name="instellingen_double_tap_5">+5</string>
+    <string name="instellingen_double_tap_10">+10</string>
+    <string name="instellingen_double_tap_50">+50</string>
+    <string name="instellingen_double_tap_100">+100</string>
 
     <!-- InstellingenScherm: favorieten/recents -->
     <string name="instellingen_fav_limit_title">Instellen aantal recente soorten</string>

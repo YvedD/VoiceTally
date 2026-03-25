@@ -59,6 +59,7 @@ class TellingScherm : AppCompatActivity() {
         private const val PREFS_NAME = "vt5_prefs"
 
         private const val MAX_LOG_ROWS = 600
+        private const val TILE_TAP_GROUP_WINDOW_MS = 5_000L
         
         // Auto-dismiss delay for success dialog (ms)
         private const val SUCCESS_DIALOG_DELAY_MS = 1000L
@@ -82,6 +83,7 @@ class TellingScherm : AppCompatActivity() {
     private lateinit var dialogHelper: TellingDialogHelper
     private lateinit var backupManager: TellingBackupManager
     private lateinit var dataProcessor: TellingDataProcessor
+    private lateinit var tileTapAggregationManager: TileTapAggregationManager
     private lateinit var uiManager: TellingUiManager
     private lateinit var afrondHandler: TellingAfrondHandler
     private lateinit var tegelBeheer: TegelBeheer
@@ -149,12 +151,20 @@ class TellingScherm : AppCompatActivity() {
         val soortId: String, 
         val naam: String, 
         val countMain: Int = 0,
-        val countReturn: Int = 0
+        val countReturn: Int = 0,
+        val pendingMainCount: Int = 0
     ) {
         // Backwards compatible total count property
         val count: Int get() = countMain + countReturn
     }
-    data class SpeechLogRow(val ts: Long, val tekst: String, val bron: String)
+    data class SpeechLogRow(
+        val ts: Long,
+        val tekst: String,
+        val bron: String,
+        val isPending: Boolean = false,
+        val recordLocalId: String? = null,
+        val rowKey: String? = null
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -176,11 +186,7 @@ class TellingScherm : AppCompatActivity() {
         // Initialize TegelBeheer early
         tegelBeheer = TegelBeheer(object : TegelUi {
             override fun submitTiles(list: List<SoortTile>) {
-                val rows = list.map { SoortRow(it.soortId, it.naam, it.countMain, it.countReturn) }
-                tilesAdapter.submitList(rows)
-                if (::viewModel.isInitialized) {
-                    viewModel.setTiles(rows)
-                }
+                refreshTileRows(list)
             }
             override fun onTileCountUpdated(soortId: String, newCount: Int) {}
         })
@@ -259,6 +265,15 @@ class TellingScherm : AppCompatActivity() {
         dialogHelper = TellingDialogHelper(this, this, safHelper)
         // backupManager already initialized before super.onCreate()
         dataProcessor = TellingDataProcessor()
+        tileTapAggregationManager = TileTapAggregationManager(
+            scope = lifecycleScope,
+            groupWindowMs = TILE_TAP_GROUP_WINDOW_MS,
+            onPendingCountChanged = { _, _ -> refreshTileRows() },
+            onPendingRowUpsert = { row -> upsertFinalObservationRow(row) },
+            onAggregateFinalized = { aggregate, finalizedAtEpochSeconds ->
+                commitTileTapAggregate(aggregate, finalizedAtEpochSeconds)
+            }
+        )
         uiManager = TellingUiManager(this, binding)
         
         // Initialize envelope persistence for continuous backup
@@ -342,19 +357,7 @@ class TellingScherm : AppCompatActivity() {
         speciesManager.onLogMessage = { msg, source -> addLog(msg, source) }
         speciesManager.onTilesUpdated = { updateSelectedSpeciesMap() }
         speciesManager.onRecordCollected = { item ->
-            synchronized(pendingRecords) { pendingRecords.add(item) }
-            if (::viewModel.isInitialized) viewModel.addPendingRecord(item)
-            
-            // Save full envelope after each observation to prevent data loss on crash.
-            // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                    envelopePersistence.saveEnvelopeWithRecords(records)
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Envelope persistence failed after record collected: ${ex.message}", ex)
-                }
-            }
+            addOrReplacePendingRecord(item)
         }
 
         // Annotation handler callbacks
@@ -373,7 +376,7 @@ class TellingScherm : AppCompatActivity() {
                     tegelBeheer.recalculateCountsFromRecords(pendingRecords.toList())
                 }
             }
-            
+
             // Save full envelope after annotation update to preserve changes.
             // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
             lifecycleScope.launch(Dispatchers.IO) {
@@ -442,7 +445,18 @@ class TellingScherm : AppCompatActivity() {
         // Setup callbacks for UI manager
         uiManager.onPartialTapCallback = { pos, row -> handlePartialTap(pos, row) }
         uiManager.onFinalTapCallback = { pos, row -> handleFinalTap(pos, row) }
-        uiManager.onTileTapCallback = { pos -> showNumberInputDialog(pos) }
+        uiManager.onTileSingleTapCallback = { pos: Int -> handleTileTapIncrement(pos, 1) }
+        uiManager.onTileDoubleTapCallback = { pos: Int ->
+            handleTileTapIncrement(pos, InstellingenScherm.getTileDoubleTapIncrement(this))
+        }
+        uiManager.onTileLongPressCallback = { pos: Int ->
+            lifecycleScope.launch {
+                tilesAdapter.currentList.getOrNull(pos)?.let { row ->
+                    tileTapAggregationManager.flushSpeciesAndAwait(row.soortId)
+                }
+                showNumberInputDialog(pos)
+            }
+        }
         uiManager.onAddSoortenCallback = { openSoortSelectieForAdd() }
         uiManager.onAfrondenCallback = { handleAfrondenWithConfirmation() }
         uiManager.onSaveCloseCallback = { tiles -> handleSaveClose(tiles) }
@@ -530,7 +544,7 @@ class TellingScherm : AppCompatActivity() {
      * Handle tap on final log entry - open annotation screen.
      */
     private fun handleFinalTap(pos: Int, row: SpeechLogRow) {
-        if (row.bron == "final") {
+        if (row.bron == "final" && !row.isPending) {
             annotationHandler.launchAnnotatieScherm(row.tekst, row.ts, pos)
         }
     }
@@ -763,20 +777,22 @@ class TellingScherm : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Stop alarm monitoring when the screen is not visible
         if (::alarmHandler.isInitialized) {
             alarmHandler.stopMonitoring()
         }
+        lifecycleScope.launch {
+            tileTapAggregationManager.flushAllAndAwait()
 
-        // Always persist the latest envelope snapshot as a safety net
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                if (records.isNotEmpty()) {
-                    envelopePersistence.saveEnvelopeWithRecords(records)
+            // Always persist the latest envelope snapshot as a safety net
+            withContext(Dispatchers.IO) {
+                try {
+                    val records = synchronized(pendingRecords) { pendingRecords.toList() }
+                    if (records.isNotEmpty()) {
+                        envelopePersistence.saveEnvelopeWithRecords(records)
+                    }
+                } catch (ex: Exception) {
+                    Log.w(TAG, "Envelope persistence failed onPause: ${ex.message}", ex)
                 }
-            } catch (ex: Exception) {
-                Log.w(TAG, "Envelope persistence failed onPause: ${ex.message}", ex)
             }
         }
     }
@@ -830,6 +846,22 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
+    private fun handleTileTapIncrement(position: Int, delta: Int) {
+        val row = tilesAdapter.currentList.getOrNull(position) ?: return
+        if (delta <= 0) return
+
+        speciesManager.updateSoortCountInternal(row.soortId, delta)
+        tileTapAggregationManager.registerTap(row.soortId, row.naam, delta)
+
+        RecentSpeciesStore.recordUse(
+            this,
+            row.soortId,
+            maxEntries = InstellingenScherm.getMaxFavorieten(this).let {
+                if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it
+            }
+        )
+    }
+
 
 
 
@@ -879,8 +911,9 @@ class TellingScherm : AppCompatActivity() {
      * Record a species count (add final log, update count, collect record).
      */
     private fun recordSpeciesCount(speciesId: String, displayName: String, count: Int) {
-        addFinalLog("$displayName -> +$count")
         lifecycleScope.launch {
+            tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
+            addFinalLog("$displayName -> +$count")
             speciesManager.updateSoortCountInternal(speciesId, count)
             speciesManager.collectFinalAsRecord(speciesId, count)
         }
@@ -982,6 +1015,34 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
+    private fun upsertFinalObservationRow(row: SpeechLogRow) {
+        val updatedFinals = logManager.getFinals().toMutableList()
+        val existingIdx = updatedFinals.indexOfFirst { existing ->
+            when {
+                !row.rowKey.isNullOrBlank() -> existing.rowKey == row.rowKey
+                !row.recordLocalId.isNullOrBlank() -> existing.recordLocalId == row.recordLocalId
+                else -> existing.ts == row.ts && existing.tekst.substringBefore(" ->") == row.tekst.substringBefore(" ->")
+            }
+        }
+        if (existingIdx >= 0) {
+            updatedFinals[existingIdx] = row
+        } else {
+            updatedFinals.add(row)
+        }
+        logManager.setFinals(updatedFinals)
+
+        val updatedPartials = logManager.getPartials().filter { it.bron != "partial" }
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (::viewModel.isInitialized) {
+                viewModel.setFinals(updatedFinals)
+                viewModel.setPartials(updatedPartials)
+            } else {
+                uiManager.updateFinals(updatedFinals)
+                uiManager.updatePartials(updatedPartials)
+            }
+        }
+    }
+
     /* ---------- Suggestion / Add / Tiles helpers (unchanged flows) ---------- */
     private fun showSuggestionBottomSheet(candidates: List<Candidate>, count: Int) {
         val items = candidates.map { "${it.displayName} (score: ${"%.2f".format(it.score)})" }.toTypedArray()
@@ -991,8 +1052,9 @@ class TellingScherm : AppCompatActivity() {
             .setItems(items) { _, which ->
                 val chosen = candidates[which]
                 if (chosen.isInTiles) {
-                    addFinalLog("${chosen.displayName} -> +$count")
                     lifecycleScope.launch {
+                        tileTapAggregationManager.flushSpeciesAndAwait(chosen.speciesId)
+                        addFinalLog("${chosen.displayName} -> +$count")
                         speciesManager.updateSoortCountInternal(chosen.speciesId, count)
                         speciesManager.collectFinalAsRecord(chosen.speciesId, count)
                     }
@@ -1037,6 +1099,7 @@ class TellingScherm : AppCompatActivity() {
      * @param metadataUpdates Optional updates to begintijd, eindtijd, and opmerkingen
      */
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
+        tileTapAggregationManager.flushAllAndAwait()
         val result = afrondHandler.handleAfronden(
             pendingRecords = synchronized(pendingRecords) { ArrayList(pendingRecords) },
             pendingBackupDocs = pendingBackupDocs,
@@ -1210,7 +1273,14 @@ class TellingScherm : AppCompatActivity() {
                         append(ret)
                     }
                 }
-                SpeechLogRow(System.currentTimeMillis() / 1000L, display, "final")
+                SpeechLogRow(
+                    ts = rec.tijdstip.toLongOrNull() ?: (System.currentTimeMillis() / 1000L),
+                    tekst = display,
+                    bron = "final",
+                    isPending = false,
+                    recordLocalId = rec.idLocal,
+                    rowKey = rec.idLocal
+                )
             }
             logManager.setFinals(restoredFinals)
             logManager.setPartials(emptyList())
@@ -1226,5 +1296,96 @@ class TellingScherm : AppCompatActivity() {
         } catch (e: Exception) {
             Log.w(TAG, "restorePendingTellingIfAvailable failed: ${e.message}", e)
         }
+    }
+
+    private fun refreshTileRows(sourceTiles: List<SoortTile>? = null) {
+        if (!::tilesAdapter.isInitialized) return
+        val tiles = sourceTiles ?: tegelBeheer.getTiles()
+        val rows = tiles.map { tile ->
+            val pendingMain = if (::tileTapAggregationManager.isInitialized) {
+                tileTapAggregationManager.getPendingMainCount(tile.soortId)
+            } else {
+                0
+            }
+            SoortRow(
+                soortId = tile.soortId,
+                naam = tile.naam,
+                countMain = tile.countMain,
+                countReturn = tile.countReturn,
+                pendingMainCount = pendingMain
+            )
+        }
+        tilesAdapter.submitList(rows)
+        if (::viewModel.isInitialized) {
+            viewModel.setTiles(rows)
+        }
+    }
+
+    private fun addOrReplacePendingRecord(item: ServerTellingDataItem) {
+        synchronized(pendingRecords) {
+            val index = pendingRecords.indexOfFirst { it.idLocal == item.idLocal }
+            if (index >= 0) {
+                pendingRecords[index] = item
+            } else {
+                pendingRecords.add(item)
+            }
+            if (::viewModel.isInitialized) {
+                viewModel.setPendingRecords(pendingRecords.toList())
+            }
+        }
+        persistEnvelopeAsync()
+    }
+
+    private fun persistEnvelopeAsync() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val records = synchronized(pendingRecords) { pendingRecords.toList() }
+                envelopePersistence.saveEnvelopeWithRecords(records)
+            } catch (ex: Exception) {
+                Log.w(TAG, "Envelope persistence failed: ${ex.message}", ex)
+            }
+        }
+    }
+
+    private suspend fun backupObservationRecord(item: ServerTellingDataItem) {
+        withContext(Dispatchers.IO) {
+            try {
+                backupManager.writeRecordBackupSaf(item.tellingid, item)
+                    ?: backupManager.writeRecordBackupInternal(item.tellingid, item)
+            } catch (ex: Exception) {
+                Log.w(TAG, "Record backup failed during tile tap aggregation: ${ex.message}", ex)
+            }
+        }
+    }
+
+    private suspend fun commitTileTapAggregate(
+        aggregate: TileTapAggregationManager.PendingAggregate,
+        finalizedAtEpochSeconds: Long
+    ) {
+        val record = speciesManager.buildObservationRecord(
+            soortId = aggregate.speciesId,
+            amountMain = aggregate.totalMainCount,
+            amountReturn = 0,
+            explicitTimestampSeconds = finalizedAtEpochSeconds
+        )
+
+        if (record != null) {
+            addOrReplacePendingRecord(record)
+            backupObservationRecord(record)
+        } else {
+            addLog("Gegroepeerde tegelwaarneming kon niet als record opgeslagen worden", "systeem")
+        }
+
+        upsertFinalObservationRow(
+            SpeechLogRow(
+                ts = finalizedAtEpochSeconds,
+                tekst = "${aggregate.displayName} -> +${aggregate.totalMainCount}",
+                bron = "final",
+                isPending = false,
+                recordLocalId = record?.idLocal,
+                rowKey = aggregate.pendingKey
+            )
+        )
+        refreshTileRows()
     }
 }

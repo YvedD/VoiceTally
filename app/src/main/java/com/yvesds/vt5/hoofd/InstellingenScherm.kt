@@ -41,6 +41,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_LOG_TEXT_COLOR = "pref_log_text_color"
         const val PREF_PARTIALS_TEXT_SIZE_SP = "pref_partials_text_size_sp"
         const val PREF_FINALS_TEXT_SIZE_SP = "pref_finals_text_size_sp"
+        const val PREF_TILE_DOUBLE_TAP_INCREMENT = "pref_tile_double_tap_increment"
 
         const val PREF_PERM_AUDIO_ACK = "pref_perm_audio_ack"
         const val PREF_PERM_SAF_ACK = "pref_perm_saf_ack"
@@ -54,6 +55,9 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_MAX_FAVORIETEN = "pref_max_favoriete_soorten"
         const val MAX_FAVORIETEN_ALL = -1
         const val DEFAULT_MAX_FAVORIETEN = 30
+        const val DEFAULT_TILE_DOUBLE_TAP_INCREMENT = 10
+
+        private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
 
         /**
          * Haal de huidige lettergrootte voor partials op uit SharedPreferences.
@@ -105,6 +109,12 @@ class InstellingenScherm : AppCompatActivity() {
             val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             return prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
         }
+
+        fun getTileDoubleTapIncrement(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            val stored = prefs.getInt(PREF_TILE_DOUBLE_TAP_INCREMENT, DEFAULT_TILE_DOUBLE_TAP_INCREMENT)
+            return stored.takeIf { it in TILE_DOUBLE_TAP_OPTIONS } ?: DEFAULT_TILE_DOUBLE_TAP_INCREMENT
+        }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,6 +125,7 @@ class InstellingenScherm : AppCompatActivity() {
             ensureLogTextColorDefaults()
             setupTerugKnop()
             setupLettergrootteNumberPickers()
+            setupDoubleTapIncrementButtons()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupFinalsTextColorSpinner()
@@ -262,6 +273,35 @@ class InstellingenScherm : AppCompatActivity() {
             }
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
         }
+    }
+
+    private fun setupDoubleTapIncrementButtons() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
+        val btn5 = findViewById<MaterialButton>(R.id.btnDoubleTap5)
+        val btn10 = findViewById<MaterialButton>(R.id.btnDoubleTap10)
+        val btn50 = findViewById<MaterialButton>(R.id.btnDoubleTap50)
+        val btn100 = findViewById<MaterialButton>(R.id.btnDoubleTap100)
+
+        val allButtons = listOf(btn5, btn10, btn50, btn100)
+
+        fun applySelection(value: Int) {
+            prefs.edit { putInt(PREF_TILE_DOUBLE_TAP_INCREMENT, value) }
+            allButtons.forEach { it.isChecked = false }
+            when (value) {
+                5 -> btn5.isChecked = true
+                50 -> btn50.isChecked = true
+                100 -> btn100.isChecked = true
+                else -> btn10.isChecked = true
+            }
+        }
+
+        applySelection(getTileDoubleTapIncrement(this))
+
+        btn5.setOnClickListener { applySelection(5) }
+        btn10.setOnClickListener { applySelection(10) }
+        btn50.setOnClickListener { applySelection(50) }
+        btn100.setOnClickListener { applySelection(100) }
     }
 
     private fun setupPartialsTextColorSpinner() {

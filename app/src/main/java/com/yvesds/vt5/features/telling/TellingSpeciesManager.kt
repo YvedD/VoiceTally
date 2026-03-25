@@ -224,27 +224,45 @@ class TellingSpeciesManager(
      * Collect observation as record and create backup.
      * Updated to accept both main and return counts.
      */
-    suspend fun collectFinalAsRecord(soortId: String, amountMain: Int, amountReturn: Int = 0) {
-        withContext(Dispatchers.IO) {
+    suspend fun buildObservationRecord(
+        soortId: String,
+        amountMain: Int,
+        amountReturn: Int = 0,
+        existingRecord: ServerTellingDataItem? = null,
+        explicitTimestampSeconds: Long? = null
+    ): ServerTellingDataItem? {
+        return withContext(Dispatchers.IO) {
             try {
                 val prefs = activity.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
-                val tellingId = prefs.getString(PREF_TELLING_ID, null)
+                val tellingId = existingRecord?.tellingid?.takeIf { it.isNotBlank() }
+                    ?: prefs.getString(PREF_TELLING_ID, null)
+
                 if (tellingId.isNullOrBlank()) {
-                    Log.w(TAG, "No PREF_TELLING_ID available - cannot collect final as record")
-                    return@withContext
+                    Log.w(TAG, "No PREF_TELLING_ID available - cannot build observation record")
+                    return@withContext null
                 }
 
-                val idLocal = DataUploader.getAndIncrementRecordId(activity, tellingId)
-                val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
-
-                // Generate uploadtijdstip in "YYYY-MM-DD HH:MM:SS" format
+                val nowEpoch = (explicitTimestampSeconds ?: (System.currentTimeMillis() / 1000L)).toString()
                 val currentTimestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", activity.resources.configuration.locales[0])
                     .format(java.util.Date())
 
-                val total = amountMain + amountReturn
+                val lokaal = existingRecord?.lokaal?.toIntOrNull() ?: 0
+                val total = amountMain + amountReturn + lokaal
 
-                // Create complete record with sensible defaults
-                val item = ServerTellingDataItem(
+                if (existingRecord != null) {
+                    return@withContext existingRecord.copy(
+                        tellingid = tellingId,
+                        soortid = soortId,
+                        aantal = amountMain.toString(),
+                        aantalterug = amountReturn.toString(),
+                        tijdstip = existingRecord.tijdstip.ifBlank { nowEpoch },
+                        uploadtijdstip = currentTimestamp,
+                        totaalaantal = total.toString()
+                    )
+                }
+
+                val idLocal = DataUploader.getAndIncrementRecordId(activity, tellingId)
+                return@withContext ServerTellingDataItem(
                     idLocal = idLocal,
                     tellingid = tellingId,
                     soortid = soortId,
@@ -272,6 +290,20 @@ class TellingSpeciesManager(
                     uploadtijdstip = currentTimestamp,
                     totaalaantal = total.toString()
                 )
+            } catch (e: Exception) {
+                Log.w(TAG, "buildObservationRecord failed: ${e.message}", e)
+                null
+            }
+        }
+    }
+
+    suspend fun collectFinalAsRecord(soortId: String, amountMain: Int, amountReturn: Int = 0) {
+        withContext(Dispatchers.IO) {
+            try {
+                val item = buildObservationRecord(soortId, amountMain, amountReturn)
+                if (item == null) {
+                    return@withContext
+                }
 
                 // Notify callback
                 withContext(Dispatchers.Main) {
@@ -280,7 +312,7 @@ class TellingSpeciesManager(
 
                 // Write backup
                 try {
-                    backupManager.writeRecordBackupSaf(tellingId, item)
+                    backupManager.writeRecordBackupSaf(item.tellingid, item)
                 } catch (ex: Exception) {
                     Log.w(TAG, "Record backup failed: ${ex.message}", ex)
                 }

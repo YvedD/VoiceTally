@@ -202,6 +202,62 @@
                 android:alpha="0.3"
                 android:background="@color/vt5_on_surface" />
 
+            <TextView
+                android:id="@+id/tvDoubleTapTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_double_tap_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap5"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_double_tap_5" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap10"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_double_tap_10" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap50"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_double_tap_50" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDoubleTap100"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_double_tap_100" />
+            </LinearLayout>
+
             <!-- Favorieten limiet -->
             <TextView
                 android:id="@+id/tvFavTitel"

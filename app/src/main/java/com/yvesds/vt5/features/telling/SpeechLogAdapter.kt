@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.yvesds.vt5.R
 import com.yvesds.vt5.databinding.ItemSpeechLogBinding
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import java.text.SimpleDateFormat
@@ -44,8 +45,10 @@ class SpeechLogAdapter :
             oldItem: TellingScherm.SpeechLogRow,
             newItem: TellingScherm.SpeechLogRow
         ): Boolean {
-            // Timestamp + text is a reasonable identity for log rows
-            return oldItem.ts == newItem.ts && oldItem.tekst == newItem.tekst && oldItem.bron == newItem.bron
+            return when {
+                !oldItem.rowKey.isNullOrBlank() && !newItem.rowKey.isNullOrBlank() -> oldItem.rowKey == newItem.rowKey
+                else -> oldItem.ts == newItem.ts && oldItem.tekst == newItem.tekst && oldItem.bron == newItem.bron
+            }
         }
 
         override fun areContentsTheSame(
@@ -110,17 +113,18 @@ class SpeechLogAdapter :
         holder.vb.tvTime.text = fmt.format(Date(row.ts * 1000L))
 
         // Use the already-prepared text from TellingScherm; keep adapter logic minimal.
-        val displayText = row.tekst ?: ""
-        holder.vb.tvMsg.text = displayText
+        holder.vb.tvMsg.text = row.tekst
 
         val defaultPartials = cachedPartialsTextColor
         val defaultFinals = cachedFinalsTextColor
+        val pendingColor = holder.itemView.context.getColor(R.color.vt5_orange)
 
         when (row.bron) {
             "final" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedFinalsTextSizeSp)
-                holder.vb.tvMsg.setTextColor(defaultFinals)
-                holder.vb.tvTime.setTextColor(defaultFinals)
+                val finalColor = if (row.isPending) pendingColor else defaultFinals
+                holder.vb.tvMsg.setTextColor(finalColor)
+                holder.vb.tvTime.setTextColor(finalColor)
             }
             "partial" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
@@ -141,7 +145,11 @@ class SpeechLogAdapter :
     }
     override fun getItemId(position: Int): Long {
         val item = getItem(position)
-        // stable id based on ts and tekst hash and bron - avoid collisions as best effort
-        return (31L * item.ts + item.tekst.hashCode() + item.bron.hashCode()).toLong()
+        val key = item.rowKey
+        return if (!key.isNullOrBlank()) {
+            key.hashCode().toLong()
+        } else {
+            31L * item.ts + item.tekst.hashCode() + item.bron.hashCode()
+        }
     }
 }

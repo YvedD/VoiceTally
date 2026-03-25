@@ -26,7 +26,8 @@
     <!-- Tekst op surface -->
     <color name="vt5_on_surface">#E6E6E6</color>
     <color name="vt5_green">#80D97A</color>
-    
+    <color name="vt5_orange">#FFB74D</color>
+
     <!-- Waarschuwing / verwijderen -->
     <color name="vt5_red">#CF6679</color>
 </resources>
