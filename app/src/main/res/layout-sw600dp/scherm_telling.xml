@@ -2,33 +2,38 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="40dp"
+    android:orientation="vertical"
     android:padding="8dp">
 
     <!-- Titel -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginRight="35dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingBottom="1dp">
 
         <TextView
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center_horizontal"
+            android:gravity="start|center_vertical"
+            android:paddingLeft="10dp"
             android:text="@string/telling_speech_results"
-            android:textSize="11sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnToggleAlarm"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="6dp"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/hoofd_alarm_enabled"
             android:src="@android:drawable/ic_lock_idle_alarm"
@@ -36,8 +41,10 @@
 
         <ImageButton
             android:id="@+id/btnOpenSettings"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/instellingen_titel"
             android:src="@android:drawable/ic_menu_preferences"
@@ -130,5 +137,5 @@
         android:id="@+id/recyclerViewSpecies"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
 </LinearLayout>
