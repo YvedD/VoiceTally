@@ -80,6 +80,7 @@ class HoofdActiviteit : AppCompatActivity() {
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
+        McRuntimePermissions.cachePermissionResult(this, Manifest.permission.CAMERA, granted)
         if (granted) {
             launchClientQrScanner()
         } else {
@@ -90,6 +91,7 @@ class HoofdActiviteit : AppCompatActivity() {
     private val requestStartupPermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
+        McRuntimePermissions.cachePermissionResults(this, grants)
         val allGranted = grants.isNotEmpty() && grants.values.all { it }
         if (!allGranted && !McRuntimePermissions.hasAllStartupPermissions(this)) {
             Toast.makeText(this, getString(R.string.mc_permissions_startup_required), Toast.LENGTH_LONG).show()
@@ -273,6 +275,7 @@ class HoofdActiviteit : AppCompatActivity() {
     }
 
     private fun requestStartupPermissionsIfNeeded() {
+        McRuntimePermissions.refreshCachedPermissionStates(this)
         val missingPermissions = McRuntimePermissions.missingStartupPermissions(this)
         if (missingPermissions.isNotEmpty()) {
             requestStartupPermissionsLauncher.launch(missingPermissions)

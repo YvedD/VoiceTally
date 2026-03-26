@@ -26,7 +26,7 @@ import java.net.Socket
  *
  * Verbindingsflow:
  *  1. Maak verbinding met master op `ip:port`.
- *  2. Stuur `PairingRequest` met PIN.
+ *  2. Stuur `PairingRequest` met QR-sessie.
  *  3. Ontvang `PairingResponse` (sessietoken of fout).
  *  4. Stuur verzamelde `ObservationEvent`-berichten; wacht op ACK per event.
  *  5. Bewaar tijdelijk niet-ge-ack'te events in `ClientEventQueue`.
@@ -184,10 +184,17 @@ class ClientConnector(
             try {
                 val ip   = prefs.getMasterIp(context)
                 val port = prefs.getMasterPort(context)
-                val pin  = requestPin()
+                val bootstrapSession = requestBootstrapSession()
 
                 if (ip.isBlank()) {
                     Log.w(TAG, "Geen master-IP beschikbaar; wachten…")
+                    delay(RECONNECT_BASE_MS)
+                    continue
+                }
+                if (bootstrapSession.isBlank()) {
+                    Log.w(TAG, "Geen bootstrap-sessie beschikbaar; wachten…")
+                    _state.value = State.ERROR
+                    _lastError.value = "Geen geldige verbindingssessie beschikbaar"
                     delay(RECONNECT_BASE_MS)
                     continue
                 }
@@ -204,7 +211,7 @@ class ClientConnector(
                 // Pairing
                 val clientId   = prefs.getClientId(context)
                 val clientName = android.os.Build.MODEL
-                sendPairingRequest(w, PairingRequest(pin, clientId, clientName))
+                sendPairingRequest(w, PairingRequest(bootstrapSession, clientId, clientName))
 
                 val respLine = reader.readLine() ?: throw Exception("Verbinding verbroken tijdens pairing")
                 val respEnv  = decodeEnvelope(respLine)
@@ -404,19 +411,19 @@ class ClientConnector(
         catch (e: Exception) { Log.w(TAG, "Decode payload fout: ${e.message}"); null }
 
     /**
-     * Haal de optionele PIN op die door de UI is ingesteld via [setPendingPin].
-     * In de vereenvoudigde QR-flow mag deze leeg blijven.
+     * Haal de QR-sessie op die door de UI is ingesteld via [setBootstrapSession].
      */
-    private fun requestPin(): String = pendingPin ?: ""
+    private fun requestBootstrapSession(): String =
+        pendingBootstrapSession ?: prefs.getBootstrapSession(context)
 
-    // ─── PIN-invoer (vanuit UI) ───────────────────────────────────────────────
+    // ─── QR-sessie (vanuit UI) ────────────────────────────────────────────────
 
     @Volatile
-    private var pendingPin: String? = null
+    private var pendingBootstrapSession: String? = null
 
-    /** Stel de PIN in die werd ingevoerd door de gebruiker. */
-    fun setPendingPin(pin: String) {
-        pendingPin = pin
+    /** Stel de QR-sessie in die door de QR-scan werd aangeleverd. */
+    fun setBootstrapSession(session: String) {
+        pendingBootstrapSession = session
     }
 
 
@@ -431,8 +438,7 @@ class ClientConnector(
         opmerkingen: String = "",
         recordPayload: String = ""
     ): String? {
-        val token = currentSessionToken
-        if (token.isBlank()) return null
+        val token = currentSessionToken.ifBlank { prefs.getSessionToken(context) }
         return eventQueue.enqueue(
             clientId = prefs.getClientId(context),
             sessionToken = token,
@@ -460,8 +466,7 @@ class ClientConnector(
         opmerkingen: String = "",
         recordPayload: String = ""
     ): Boolean {
-        val token = currentSessionToken
-        if (token.isBlank()) return false
+        val token = currentSessionToken.ifBlank { prefs.getSessionToken(context) }
         eventQueue.enqueueWithId(
             clientEventId = clientEventId,
             clientId = prefs.getClientId(context),

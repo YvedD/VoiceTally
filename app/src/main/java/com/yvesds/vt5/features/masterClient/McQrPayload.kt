@@ -7,10 +7,7 @@ import kotlinx.serialization.Serializable
 data class McQrPayload(
     val ip: String,
     val port: Int,
-    val pin: String,
-    val ssid: String = "",
-    val pass: String = "",
-    val sec: String = "WPA",
+    val session: String = "",
     val v: Int = 1
 )
 

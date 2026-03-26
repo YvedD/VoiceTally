@@ -33,4 +33,16 @@
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:textColor="@color/vt5_light_blue"
         android:textSize="17sp" />
+
+    <TextView
+        android:id="@+id/tvDeliveryState"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="@color/vt5_green"
+        android:textSize="15sp"
+        android:visibility="gone" />
 </LinearLayout>

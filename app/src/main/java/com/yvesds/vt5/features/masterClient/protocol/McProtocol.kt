@@ -40,7 +40,7 @@ data class McEnvelope(
 /** Verstuurd door de client om in te koppelen op de master. */
 @Serializable
 data class PairingRequest(
-    @SerialName("pin")        val pin: String,
+    @SerialName("session")    val session: String,
     @SerialName("clientId")   val clientId: String,
     @SerialName("clientName") val clientName: String
 )

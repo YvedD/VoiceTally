@@ -6,7 +6,7 @@
     <string name="mc_mode_master">Master-modus</string>
     <string name="mc_mode_client">Client-modus</string>
     <string name="mc_mode_label">Samenwerkingsmodus</string>
-    <string name="mc_mode_description">Solo: enkel standalone gebruik.\nMaster: dit toestel ontvangt waarnemingen van clients.\nClient: dit toestel stuurt waarnemingen naar de master.</string>
+    <string name="mc_mode_description">Solo: enkel standalone gebruik.\nMaster: dit toestel ontvangt waarnemingen van clients via hetzelfde bestaande Wi‑Fi-netwerk.\nClient: dit toestel stuurt waarnemingen naar de master via hetzelfde bestaande Wi‑Fi-netwerk.</string>
 
     <!-- ─── TellingScherm statusbalk ────────────────────────────────── -->
     <string name="mc_status_bar_master">Master ▪ %1$d client(s) verbonden</string>
@@ -44,7 +44,7 @@
     <!-- ─── Pairing – client ─────────────────────────────────────────── -->
     <string name="mc_pairing_client_title">Koppelen met master</string>
     <string name="mc_pairing_master_ip_label">Master-IP (wordt automatisch ingevuld via pairing-QR):</string>
-    <string name="mc_pairing_master_ip_hint">bijv. 192.168.43.1</string>
+    <string name="mc_pairing_master_ip_hint">bijv. 192.168.1.42</string>
     <string name="mc_pairing_discovered_label">Automatisch gevonden masters op het netwerk:</string>
     <string name="mc_pairing_pin_input_label">PIN-code (van het master-toestel):</string>
     <string name="mc_pairing_pin_hint">000000</string>
@@ -58,7 +58,7 @@
 
     <!-- ─── Instellingen ─────────────────────────────────────────────── -->
     <string name="mc_settings_title">Samenwerken (master-client)</string>
-    <string name="mc_settings_description">Schakel samenwerking in tussen meerdere toestellen op hetzelfde Wi-Fi-netwerk of hotspot.</string>
+    <string name="mc_settings_description">Schakel samenwerking in tussen meerdere toestellen die al verbonden zijn met hetzelfde bestaande Wi‑Fi-netwerk.</string>
     <string name="mc_settings_btn_solo">Solo</string>
     <string name="mc_settings_btn_master">Master</string>
     <string name="mc_settings_btn_client">Client</string>
@@ -131,9 +131,16 @@
     <string name="mc_pairing_qr_invalid">Ongeldige QR-code</string>
     <string name="mc_pairing_qr_filled">QR-gegevens ingevuld</string>
     <string name="mc_pairing_qr_label">Verbindings-QR (scan met client)</string>
-    <string name="mc_pairing_master_qr_required">Laat nieuwe clients deze ene verbindings-QR scannen. De QR bevat het gekozen netwerk, wachtwoord, IP-adres en poort van deze mastertelling.</string>
-    <string name="mc_pairing_client_qr_required">Scan enkel de verbindings-QR van de master. VT5 gebruikt de gegevens uit die QR om met het juiste netwerk en de juiste telling te verbinden.</string>
+    <string name="mc_pairing_master_qr_required">Laat nieuwe clients deze ene verbindings-QR scannen. De QR bevat enkel het lokale IP-adres, de TCP-poort en de sessie-ID van deze mastertelling. Zowel master als clients moeten vooraf al via Android verbonden zijn met hetzelfde Wi‑Fi-netwerk.</string>
+    <string name="mc_pairing_client_qr_required">Scan enkel de verbindings-QR van de master. VT5 leest daaruit enkel IP-adres, poort en sessie-ID. De app probeert geen Wi‑Fi-netwerk te kiezen of te wijzigen.</string>
     <string name="mc_pairing_master_no_ip">Geen netwerk-IP gevonden</string>
+    <string name="mc_qr_generation_failed">Kon geen geldige verbindings-QR maken</string>
+    <string name="mc_pairing_qr_info_existing_wifi">Master bereikbaar via bestaand Wi‑Fi ▪ %1$s:%2$d</string>
+    <string name="mc_existing_wifi_required_master">Verbind dit mastertoestel eerst via Android-instellingen met het bestaande Wi‑Fi-netwerk. VT5 wijzigt geen netwerken meer automatisch.</string>
+    <string name="mc_existing_wifi_required_client">Verbind dit clienttoestel eerst via Android-instellingen met hetzelfde Wi‑Fi-netwerk als de master. VT5 wijzigt geen netwerken meer automatisch.</string>
+    <string name="mc_existing_wifi_required_master_short">Master ▪ eerst verbinden met bestaand Wi‑Fi</string>
+    <string name="mc_existing_wifi_required_client_short">Client ▪ eerst verbinden met bestaand Wi‑Fi</string>
+    <string name="mc_master_network_ready_existing_wifi">Master-server klaar op bestaand Wi‑Fi</string>
     <string name="mc_pairing_permission_title">Nieuwe client aanvragen</string>
     <string name="mc_pairing_permission_message">Client "%1$s" wil aansluiten op deze telling. Toestaan?</string>
     <string name="mc_pairing_permission_allow">Toestaan</string>
@@ -152,7 +159,7 @@
     <string name="mc_pairing_hotspot_ssid_required">Vul eerst de hotspotnaam (SSID) in.</string>
     <string name="mc_pairing_hotspot_pass_required">Vul eerst het WPA2-wachtwoord van de hotspot in.</string>
 
-    <string name="mc_pairing_wifi_qr_label">Wi‑Fi QR (eerst verbinden)</string>
+    <string name="mc_pairing_wifi_qr_label">Wi‑Fi QR (niet meer gebruikt)</string>
     <string name="mc_pairing_wifi_qr_missing">Geen SSID/wachtwoord ingevuld</string>
     <string name="mc_pairing_generate_qrs">QR codes maken</string>
     <string name="mc_pairing_generate_qrs_ready">QR codes aangemaakt</string>
@@ -183,9 +190,9 @@
     <string name="mc_wifi_connect_cancel">Annuleren</string>
     <string name="mc_wifi_password_title">Wachtwoord voor %1$s</string>
     <string name="mc_wifi_password_hint">Wi‑Fi wachtwoord</string>
-    <string name="mc_wifi_connect_failed">Verbinden met Wi‑Fi mislukt</string>
-    <string name="mc_wifi_connect_approve">Bevestig de Wi‑Fi-verbinding in Android</string>
-    <string name="mc_wifi_connected_or_suggested">Wi‑Fi verbinding aangevraagd</string>
+    <string name="mc_wifi_connect_failed">Wi‑Fi-verbinding ontbreekt of is ongeldig</string>
+    <string name="mc_wifi_connect_approve">Verbind eerst handmatig via Android met Wi‑Fi</string>
+    <string name="mc_wifi_connected_or_suggested">Bestaande Wi‑Fi-verbinding gecontroleerd</string>
 
     <string name="mc_wifi_status_unknown">Wi‑Fi status: onbekend</string>
     <string name="mc_wifi_status_connected">Wi‑Fi verbonden: %1$s</string>
@@ -197,13 +204,17 @@
     <string name="mc_master_choose_network_title">Kies netwerk voor master</string>
     <string name="mc_master_network_use_hotspot">Start lokale hotspot</string>
     <string name="mc_master_network_saved">Master ingesteld op netwerk: %1$s</string>
-    <string name="mc_master_waiting_for_wifi">Bevestig de Wi‑Fi-verbinding voor %1$s in Android. Daarna wordt de master automatisch gestart.</string>
-    <string name="mc_master_configure_network_first">Kies eerst het master-netwerk via het Wi‑Fi-icoon voordat je de QR-code opent.</string>
+    <string name="mc_master_waiting_for_wifi">Verbind eerst via Android met hetzelfde bestaande Wi‑Fi-netwerk. Daarna kan de master automatisch starten.</string>
+    <string name="mc_master_configure_network_first">Verbind eerst handmatig via Android met het bestaande Wi‑Fi-netwerk voordat je de QR-code opent.</string>
     <string name="mc_qr_only_for_master">Deze QR-knop is enkel beschikbaar in master-modus.</string>
     <string name="mc_master_handshake_success">Client gekoppeld met master: %1$s</string>
     <string name="mc_client_handshake_success">Handshake met master voltooid</string>
-    <string name="mc_permissions_startup_required">VT5 heeft audio-, camera- en netwerktoestemmingen nodig voor master/client en spraakinvoer.</string>
+    <string name="mc_permissions_startup_required">VT5 heeft microfoontoestemming nodig voor spraakinvoer. Cameratoestemming wordt pas gevraagd wanneer je een verbindings-QR scant.</string>
     <string name="mc_pairing_connected_clients_names">Verbonden clients: %1$s</string>
+    <string name="mc_client_cannot_afronden">Afronden is uitgeschakeld op clients. Enkel de master kan de telling afronden.</string>
+    <string name="mc_delivery_state_pending">Waarneming wacht op verwerking door master</string>
+    <string name="mc_delivery_state_received">Waarneming ontvangen door master</string>
+    <string name="mc_delivery_state_rejected">Waarneming tijdelijk geweigerd door master</string>
     <string name="mc_scan_client_qr_prompt">Scan de verbindings-QR van de master</string>
     <string name="mc_client_starting_telling">QR gescand - cliëntmodus openen…</string>
 

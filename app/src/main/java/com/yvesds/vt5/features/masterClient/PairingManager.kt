@@ -4,13 +4,11 @@ import android.util.Log
 import java.security.SecureRandom
 
 /**
- * PairingManager – genereert en valideert tijdelijke PIN-codes voor master-client pairing.
+ * PairingManager – beheert tijdelijke QR-sessies voor master-client pairing.
  *
- * De master genereert een 6-cijferige PIN die zichtbaar wordt getoond op het scherm.
- * Een client voert deze PIN in om een sessietoken te ontvangen.
- * PIN's hebben een zachte vervaldatum: als de PIN verlopen is maar nog klopt,
- * wordt de geldigheid verlengd zodat late tellers nog kunnen aansluiten.
- * De PIN blijft bruikbaar tot de master expliciet een nieuwe PIN genereert.
+ * De master genereert een tijdelijke sessie-ID die in de QR-code terechtkomt.
+ * Een client stuurt die sessie-ID terug naar de master om toegang te vragen.
+ * De master kent daarna een afzonderlijk sessietoken toe voor de verdere TCP-berichten.
  */
 class PairingManager {
 
@@ -18,8 +16,7 @@ class PairingManager {
     private val rng = SecureRandom()
 
     data class PairingSession(
-        val pin: String,
-        val sessionToken: String,
+        val sessionId: String,
         val expiresAt: Long          // epoch ms
     )
 
@@ -31,75 +28,54 @@ class PairingManager {
     private val authorizedTokens = mutableMapOf<String, String>()   // token → clientId
 
     companion object {
-        private const val PIN_LENGTH_DIGITS = 6
-        private const val PIN_VALIDITY_MS   = 10 * 60 * 1000L    // 10 minuten
+        private const val SESSION_VALIDITY_MS = 10 * 60 * 1000L    // 10 minuten
     }
 
-    // ─── PIN generatie ────────────────────────────────────────────────────────
+    // ─── QR bootstrap-sessie ─────────────────────────────────────────────────
 
     /**
-     * Genereer een nieuwe 6-cijferige PIN en sla op als actieve pairing-sessie.
-     * Eerder aangemaakte PIN's worden ongeldig.
-     * @return de gegenereerde PIN als String
+     * Genereer een nieuwe QR-sessie en sla die op als actieve pairing-sessie.
+     * Eerder aangemaakte sessies worden ongeldig.
      */
-    fun generatePin(): String {
-        val pin = (0 until PIN_LENGTH_DIGITS)
-            .map { rng.nextInt(10) }
-            .joinToString("")
-        val token = generateToken()
+    fun openPairingSession(): String {
+        val sessionId = generateBootstrapSessionId()
         activePairingSession = PairingSession(
-            pin       = pin,
-            sessionToken = token,
-            expiresAt = System.currentTimeMillis() + PIN_VALIDITY_MS
+            sessionId = sessionId,
+            expiresAt = System.currentTimeMillis() + SESSION_VALIDITY_MS
         )
-        Log.d(TAG, "Nieuwe PIN gegenereerd (geldig 10 min)")
-        return pin
+        Log.d(TAG, "Nieuwe QR-sessie geopend (geldig 10 min)")
+        return sessionId
     }
 
-    /** Geeft de huidige PIN terug (of null als er geen actieve sessie is). */
-    fun getCurrentPin(): String? = activePairingSession?.pin
+    /** Geeft de huidige QR-sessie terug (of null als er geen actieve sessie is). */
+    fun getCurrentSessionId(): String? = activePairingSession?.sessionId
 
-    // ─── PIN validatie (master-zijde) ─────────────────────────────────────────
+    // ─── QR validatie (master-zijde) ──────────────────────────────────────────
 
     /**
-     * Valideer een ingevoerde PIN.
-     * Bij succes wordt een sessietoken aangemaakt en teruggestuurd.
+     * Valideer een door de client teruggestuurde QR-sessie.
+     * Bij succes wordt een afzonderlijk sessietoken aangemaakt en teruggestuurd.
      * @return Pair(accepted, sessionToken) – sessionToken is leeg bij afwijzing
      */
-    fun validatePin(pin: String, clientId: String): Pair<Boolean, String> {
+    fun validateSession(sessionId: String, clientId: String): Pair<Boolean, String> {
         val session = activePairingSession
         if (session == null) {
-            val token = generateToken()
-            synchronized(authorizedTokens) {
-                authorizedTokens[token] = clientId
-            }
-            Log.d(TAG, "Client $clientId gekoppeld zonder PIN")
-            return Pair(true, token)
+            Log.w(TAG, "Geen actieve QR-sessie voor client $clientId")
+            return Pair(false, "")
         }
-        if (session.pin.isBlank()) {
-            val token = generateToken()
-            synchronized(authorizedTokens) {
-                authorizedTokens[token] = clientId
-            }
-            Log.d(TAG, "Client $clientId gekoppeld met open pairing-sessie")
-            return Pair(true, token)
-        }
-        if (!pin.equals(session.pin, ignoreCase = false)) {
-            Log.w(TAG, "Ongeldige PIN ingevoerd door client $clientId")
+        if (!sessionId.equals(session.sessionId, ignoreCase = false)) {
+            Log.w(TAG, "Ongeldige QR-sessie ontvangen van client $clientId")
             return Pair(false, "")
         }
         if (System.currentTimeMillis() > session.expiresAt) {
-            Log.i(TAG, "PIN verlopen, geldigheid wordt verlengd voor late aansluiting")
-            activePairingSession = session.copy(
-                expiresAt = System.currentTimeMillis() + PIN_VALIDITY_MS
-            )
+            Log.w(TAG, "QR-sessie verlopen voor client $clientId")
+            return Pair(false, "")
         }
-        // Genereer een uniek session-token voor deze client
         val token = generateToken()
         synchronized(authorizedTokens) {
             authorizedTokens[token] = clientId
         }
-        Log.d(TAG, "Client $clientId gekoppeld met geldig token")
+        Log.d(TAG, "Client $clientId gekoppeld met geldige QR-sessie")
         return Pair(true, token)
     }
 
@@ -129,6 +105,12 @@ class PairingManager {
         synchronized(authorizedTokens) { authorizedTokens.values.toList() }
 
     // ─── Hulp ─────────────────────────────────────────────────────────────────
+
+    private fun generateBootstrapSessionId(): String {
+        val bytes = ByteArray(9)
+        rng.nextBytes(bytes)
+        return android.util.Base64.encodeToString(bytes, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING)
+    }
 
     private fun generateToken(): String =
         java.util.UUID.randomUUID().toString().replace("-", "")

@@ -10,79 +10,13 @@ import java.net.NetworkInterface
 
 object McNetworkUtils {
 
-    enum class MasterNetworkMode {
-        WIFI_CLIENT,
-        HOTSPOT_PROVIDER,
-        LOCAL_NETWORK
-    }
-
-    data class MasterNetworkContext(
-        val mode: MasterNetworkMode,
-        val hostAddress: String?,
-        val connectedWifiSsid: String?,
-        val hotspotSsid: String,
-        val hotspotPass: String,
-        val hotspotSecurity: String,
-        val interfaceName: String? = null
-    )
-
     private data class Ipv4Candidate(
         val interfaceName: String,
         val hostAddress: String,
         val score: Int
     )
 
-    private val hotspotInterfaceHints = listOf("ap", "softap", "swlan", "wlan", "wl", "rndis")
     private val excludedInterfaceHints = listOf("rmnet", "ccmni", "radio", "tun", "ppp", "bt-pan", "aware", "lo")
-    private val hotspotSubnetPrefixes = listOf(
-        "192.168.43.",
-        "192.168.232.",
-        "192.168.137.",
-        "172.20.10."
-    )
-
-    fun resolveMasterNetworkContext(
-        context: Context,
-        fallbackHotspotSsid: String = "",
-        fallbackHotspotPass: String = "",
-        fallbackHotspotSecurity: String = "WPA"
-    ): MasterNetworkContext {
-        val connectedWifiSsid = getConnectedWifiSsid(context)
-        val normalizedSecurity = fallbackHotspotSecurity.ifBlank { if (fallbackHotspotPass.isBlank()) "NOPASS" else "WPA" }
-
-        if (!connectedWifiSsid.isNullOrBlank()) {
-            return MasterNetworkContext(
-                mode = MasterNetworkMode.WIFI_CLIENT,
-                hostAddress = getLocalIpv4(preferHotspot = false),
-                connectedWifiSsid = connectedWifiSsid,
-                hotspotSsid = fallbackHotspotSsid,
-                hotspotPass = fallbackHotspotPass,
-                hotspotSecurity = normalizedSecurity
-            )
-        }
-
-        val hotspotCandidate = getBestHotspotCandidate()
-        if (hotspotCandidate != null) {
-            return MasterNetworkContext(
-                mode = MasterNetworkMode.HOTSPOT_PROVIDER,
-                hostAddress = hotspotCandidate.hostAddress,
-                connectedWifiSsid = null,
-                hotspotSsid = fallbackHotspotSsid,
-                hotspotPass = fallbackHotspotPass,
-                hotspotSecurity = normalizedSecurity,
-                interfaceName = hotspotCandidate.interfaceName
-            )
-        }
-
-        return MasterNetworkContext(
-            mode = MasterNetworkMode.LOCAL_NETWORK,
-            hostAddress = getLocalIpv4(preferHotspot = false),
-            connectedWifiSsid = null,
-            hotspotSsid = fallbackHotspotSsid,
-            hotspotPass = fallbackHotspotPass,
-            hotspotSecurity = normalizedSecurity
-        )
-    }
 
     fun getConnectedWifiSsid(context: Context): String? {
         val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return null
@@ -105,25 +39,26 @@ object McNetworkUtils {
             ?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
     }
 
-    fun getLocalIpv4(preferHotspot: Boolean = false): String? {
+    fun isWifiTransportActive(context: Context): Boolean {
+        val connectivityManager = context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return false
         return try {
-            val candidates = collectIpv4Candidates()
-            if (candidates.isEmpty()) return null
-            val hotspot = candidates.filter { isLikelyHotspotCandidate(it) }.maxByOrNull { it.score }
-            when {
-                preferHotspot && hotspot != null -> hotspot.hostAddress
-                !preferHotspot -> candidates.maxByOrNull { it.score }?.hostAddress
-                else -> candidates.maxByOrNull { it.score }?.hostAddress
-            }
+            val activeNetwork = connectivityManager.activeNetwork ?: return false
+            val caps = connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
         } catch (_: Exception) {
-            null
+            false
         }
     }
 
-    private fun getBestHotspotCandidate(): Ipv4Candidate? {
-        return collectIpv4Candidates()
-            .filter { isLikelyHotspotCandidate(it) }
-            .maxByOrNull { it.score }
+    fun getLocalIpv4(): String? {
+        return try {
+            val candidates = collectIpv4Candidates()
+            if (candidates.isEmpty()) return null
+            candidates.maxByOrNull { it.score }?.hostAddress
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun collectIpv4Candidates(): List<Ipv4Candidate> {
@@ -154,20 +89,11 @@ object McNetworkUtils {
         }
     }
 
-    private fun isLikelyHotspotCandidate(candidate: Ipv4Candidate): Boolean {
-        val name = candidate.interfaceName
-        val host = candidate.hostAddress
-        return hotspotSubnetPrefixes.any { host.startsWith(it) } ||
-            hotspotInterfaceHints.any { name.contains(it, ignoreCase = true) }
-    }
-
     private fun scoreCandidate(interfaceName: String, hostAddress: String): Int {
         var score = 0
-        if (hotspotSubnetPrefixes.any { hostAddress.startsWith(it) }) score += 120
-        if (hostAddress.endsWith(".1")) score += 30
         if (interfaceName.startsWith("wlan", ignoreCase = true)) score += 20
-        if (interfaceName.startsWith("swlan", ignoreCase = true)) score += 40
-        if (hotspotInterfaceHints.any { interfaceName.contains(it, ignoreCase = true) }) score += 35
+        if (interfaceName.startsWith("wifi", ignoreCase = true)) score += 20
+        if (interfaceName.startsWith("eth", ignoreCase = true)) score += 10
         if (hostAddress.startsWith("192.168.")) score += 10
         if (hostAddress.startsWith("172.")) score += 5
         return score

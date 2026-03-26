@@ -156,14 +156,14 @@ class MasterServer(
                 }
 
                 val pairingReq = decodePayload<PairingRequest>(firstEnvelope.payload) ?: return@withContext
-                val (acceptedPin, sessionToken) = pairingManager.validatePin(pairingReq.pin, pairingReq.clientId)
+                val (acceptedPin, sessionToken) = pairingManager.validateSession(pairingReq.session, pairingReq.clientId)
 
                 if (!acceptedPin) {
                     val pairingResp = PairingResponse(
                         accepted     = false,
                         sessionToken = "",
                         masterName   = android.os.Build.MODEL,
-                        error        = "Ongeldige of verlopen PIN"
+                        error        = "Ongeldige of verlopen sessie"
                     )
                     sendPairingResponse(writer, pairingResp)
                     Log.w(TAG, "Pairing geweigerd voor client ${pairingReq.clientId}")

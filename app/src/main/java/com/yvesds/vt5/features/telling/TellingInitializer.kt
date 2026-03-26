@@ -119,6 +119,7 @@ class TellingInitializer(
      * Check for required permissions and request if needed.
      */
     fun checkAndRequestPermissions() {
+        McRuntimePermissions.refreshCachedPermissionStates(activity)
         val missingPermissions = McRuntimePermissions.missingStartupPermissions(activity)
         if (missingPermissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(
@@ -163,8 +164,17 @@ class TellingInitializer(
      */
     fun onPermissionResult(requestCode: Int, grantResults: IntArray) {
         if (requestCode == PERMISSION_REQUEST_STARTUP) {
+            val requested = McRuntimePermissions.requiredStartupPermissions()
+            McRuntimePermissions.cachePermissionResults(
+                activity,
+                requested.mapIndexedNotNull { index, permission ->
+                    val grant = grantResults.getOrNull(index) ?: return@mapIndexedNotNull null
+                    permission to (grant == PackageManager.PERMISSION_GRANTED)
+                }.toMap()
+            )
             val allGranted = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             if (allGranted || McRuntimePermissions.hasAllStartupPermissions(activity)) {
+                McRuntimePermissions.refreshCachedPermissionStates(activity)
                 onPermissionsGranted?.invoke()
             } else {
                 Toast.makeText(

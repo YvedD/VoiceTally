@@ -13,6 +13,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private fun deliveryMarker(state: TellingScherm.ObservationDeliveryState): String = when (state) {
+    TellingScherm.ObservationDeliveryState.PENDING -> "⏳"
+    TellingScherm.ObservationDeliveryState.RECEIVED -> "✓"
+    TellingScherm.ObservationDeliveryState.REJECTED -> "!"
+    TellingScherm.ObservationDeliveryState.NONE -> ""
+}
+
 /**
  * SpeechLogAdapter: light-weight RecyclerView adapter for speech logs.
  *
@@ -119,11 +126,39 @@ class SpeechLogAdapter :
         val defaultFinals = cachedFinalsTextColor
         val pendingColor = android.graphics.Color.rgb(255, 183, 77)
         val errorColor = android.graphics.Color.RED
+        val successColor = android.graphics.Color.rgb(0, 200, 83)
+
+        val marker = deliveryMarker(row.deliveryState)
+        if (marker.isBlank()) {
+            holder.vb.tvDeliveryState.text = ""
+            holder.vb.tvDeliveryState.visibility = android.view.View.GONE
+        } else {
+            holder.vb.tvDeliveryState.text = marker
+            holder.vb.tvDeliveryState.visibility = android.view.View.VISIBLE
+            holder.vb.tvDeliveryState.contentDescription = when (row.deliveryState) {
+                TellingScherm.ObservationDeliveryState.PENDING -> holder.itemView.context.getString(R.string.mc_delivery_state_pending)
+                TellingScherm.ObservationDeliveryState.RECEIVED -> holder.itemView.context.getString(R.string.mc_delivery_state_received)
+                TellingScherm.ObservationDeliveryState.REJECTED -> holder.itemView.context.getString(R.string.mc_delivery_state_rejected)
+                TellingScherm.ObservationDeliveryState.NONE -> ""
+            }
+            holder.vb.tvDeliveryState.setTextColor(
+                when (row.deliveryState) {
+                    TellingScherm.ObservationDeliveryState.PENDING -> pendingColor
+                    TellingScherm.ObservationDeliveryState.REJECTED -> errorColor
+                    TellingScherm.ObservationDeliveryState.RECEIVED -> successColor
+                    TellingScherm.ObservationDeliveryState.NONE -> defaultFinals
+                }
+            )
+        }
 
         when (row.bron) {
             "final" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedFinalsTextSizeSp)
-                val finalColor = if (row.isPending) pendingColor else defaultFinals
+                val finalColor = when (row.deliveryState) {
+                    TellingScherm.ObservationDeliveryState.PENDING -> pendingColor
+                    TellingScherm.ObservationDeliveryState.REJECTED -> errorColor
+                    else -> if (row.isPending) pendingColor else defaultFinals
+                }
                 holder.vb.tvMsg.setTextColor(finalColor)
                 holder.vb.tvTime.setTextColor(finalColor)
             }
