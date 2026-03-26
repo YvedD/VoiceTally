@@ -33,7 +33,28 @@
             android:background="@android:color/transparent"
             android:contentDescription="@string/hoofd_alarm_enabled"
             android:src="@android:drawable/ic_lock_idle_alarm"
-            android:tint="@android:color/white" />
+            app:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/btnMasterClientConnection"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/mc_enable_master_mode"
+            android:src="@drawable/ic_mc_wifi"
+            app:tint="#808080" />
+
+        <ImageButton
+            android:id="@+id/btnShowMasterQr"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/mc_show_qr_codes"
+            android:src="@drawable/ic_qr_code"
+            android:visibility="gone"
+            app:tint="#808080" />
 
         <ImageButton
             android:id="@+id/btnOpenSettings"
@@ -42,8 +63,21 @@
             android:background="@android:color/transparent"
             android:contentDescription="@string/instellingen_titel"
             android:src="@android:drawable/ic_menu_preferences"
-            android:tint="@android:color/white" />
+            app:tint="@android:color/white" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvMasterClientStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="4dp"
+        android:alpha="0.9"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="12sp"
+        android:visibility="gone" />
 
     <!-- Bovenste kaart: PARTIALS / niet‑finals -->
     <com.google.android.material.card.MaterialCardView

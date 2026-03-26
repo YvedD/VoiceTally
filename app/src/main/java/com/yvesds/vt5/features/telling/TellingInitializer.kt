@@ -10,6 +10,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.recent.RecentSpeciesStore
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.features.speech.MatchContext
@@ -32,7 +34,7 @@ class TellingInitializer(
 ) {
     companion object {
         private const val TAG = "TellingInitializer"
-        private const val PERMISSION_REQUEST_RECORD_AUDIO = 101
+        private const val PERMISSION_REQUEST_STARTUP = 101
     }
 
     // Callbacks
@@ -63,6 +65,14 @@ class TellingInitializer(
                     }
 
                     if (initial.isEmpty()) {
+                        if (MasterClientPrefs.getMode(activity) == MasterClientPrefs.MODE_CLIENT) {
+                            onTilesLoaded?.invoke(emptyList())
+                            onLogMessage?.invoke("Clientmodus gestart - wachten op tegelsync van master.", "systeem")
+                            dialog.dismiss()
+                            checkAndRequestPermissions()
+                            return@launch
+                        }
+
                         dialog.dismiss()
                         Toast.makeText(
                             activity,
@@ -109,13 +119,12 @@ class TellingInitializer(
      * Check for required permissions and request if needed.
      */
     fun checkAndRequestPermissions() {
-        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
+        val missingPermissions = McRuntimePermissions.missingStartupPermissions(activity)
+        if (missingPermissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(
                 activity,
-                arrayOf(Manifest.permission.RECORD_AUDIO),
-                PERMISSION_REQUEST_RECORD_AUDIO
+                missingPermissions,
+                PERMISSION_REQUEST_STARTUP
             )
         } else {
             onPermissionsGranted?.invoke()
@@ -153,13 +162,14 @@ class TellingInitializer(
      * Handle permission request result.
      */
     fun onPermissionResult(requestCode: Int, grantResults: IntArray) {
-        if (requestCode == PERMISSION_REQUEST_RECORD_AUDIO) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == PERMISSION_REQUEST_STARTUP) {
+            val allGranted = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            if (allGranted || McRuntimePermissions.hasAllStartupPermissions(activity)) {
                 onPermissionsGranted?.invoke()
             } else {
                 Toast.makeText(
                     activity,
-                    "Audio permission is required for speech recognition",
+                    activity.getString(R.string.mc_permissions_startup_required),
                     Toast.LENGTH_SHORT
                 ).show()
             }

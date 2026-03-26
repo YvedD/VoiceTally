@@ -2,18 +2,33 @@
 
 package com.yvesds.vt5.features.telling
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.LocationManager
+import android.net.wifi.ScanResult
+import android.net.wifi.WifiManager
+import android.net.wifi.WifiNetworkSuggestion
 import android.os.Bundle
+import android.os.Build
+import android.provider.Settings
 import android.view.KeyEvent
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.journeyapps.barcodescanner.BarcodeEncoder
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
@@ -21,6 +36,17 @@ import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermTellingBinding
 import com.yvesds.vt5.features.alias.AliasRepository
 import com.yvesds.vt5.features.alias.AliasManager
+import com.yvesds.vt5.features.masterClient.ClientConnector
+import com.yvesds.vt5.features.masterClient.ClientEventQueue
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.MasterEventProcessor
+import com.yvesds.vt5.features.masterClient.MasterServer
+import com.yvesds.vt5.features.masterClient.McLocalHotspotManager
+import com.yvesds.vt5.features.masterClient.McNetworkUtils
+import com.yvesds.vt5.features.masterClient.McQrPayload
+import com.yvesds.vt5.features.masterClient.McQrPayloadCodec
+import com.yvesds.vt5.features.masterClient.PairingManager
+import com.yvesds.vt5.features.masterClient.protocol.TileSyncItem
 import com.yvesds.vt5.features.recent.RecentSpeciesStore
 import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.net.ServerTellingDataItem
@@ -29,10 +55,13 @@ import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
+import kotlin.coroutines.resume
 import kotlin.jvm.Volatile
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.ui.DialogStyler
@@ -58,6 +87,7 @@ class TellingScherm : AppCompatActivity() {
 
         // Preferences keys
         private const val PREFS_NAME = "vt5_prefs"
+        private const val KEY_CLIENT_EVENT_MAP_JSON = "pref_client_event_map_json"
 
         private const val MAX_LOG_ROWS = 600
         private const val TILE_TAP_GROUP_WINDOW_MS = 5_000L
@@ -68,6 +98,7 @@ class TellingScherm : AppCompatActivity() {
         // Intent extra key for hourly alarm trigger
         const val EXTRA_SHOW_HUIDIGE_STAND = "SHOW_HUIDIGE_STAND"
         const val EXTRA_RESTORE_PENDING_TELLING = "RESTORE_PENDING_TELLING"
+        const val EXTRA_CLIENT_QR_PAYLOAD = "EXTRA_CLIENT_QR_PAYLOAD"
     }
 
     // UI & adapters
@@ -124,6 +155,67 @@ class TellingScherm : AppCompatActivity() {
     // Restore guard to avoid applying restore multiple times
     private var restoredFromSavedEnvelope = false
 
+    // Master-client state
+    private var mcPairingManager: PairingManager? = null
+    private var mcEventProcessor: MasterEventProcessor? = null
+    private var mcMasterServer: MasterServer? = null
+    private var mcEventQueue: ClientEventQueue? = null
+    private var mcClientConnector: ClientConnector? = null
+    private val mcClientEventIdByRecordId = mutableMapOf<String, String>()
+    private val mcClientRecordIdByEvent = mutableMapOf<String, String>()
+    private var pendingClientConnectionPayload: McQrPayload? = null
+    private var pendingMasterWifiSsid: String? = null
+    private var lastObservedClientState: ClientConnector.State? = null
+
+    private data class MasterPairingNetworkUiState(
+        val context: McNetworkUtils.MasterNetworkContext,
+        val security: String
+    )
+
+    private val qrScanLauncher = registerForActivityResult(ScanContract()) { result ->
+        val raw = result.contents?.trim().orEmpty()
+        if (raw.isBlank()) return@registerForActivityResult
+
+        val payload = McQrPayloadCodec.decode(raw)
+        if (payload == null) {
+            Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+
+        handleClientQrPayload(payload)
+    }
+
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchPairingQrScan()
+        } else {
+            Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val requestWifiScanPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            showMasterWifiNetworkPicker()
+        } else {
+            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_permission), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val requestNearbyWifiPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startLocalHotspotAndPromoteToMaster()
+        } else {
+            Toast.makeText(this, getString(R.string.mc_nearby_wifi_permission_required), Toast.LENGTH_LONG).show()
+            updateMasterClientConnectionUi()
+        }
+    }
+
     // BroadcastReceiver: listen for alias-reload events from AliasManager
     private val aliasReloadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -175,6 +267,7 @@ class TellingScherm : AppCompatActivity() {
         setContentView(binding.root)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        restoreClientEventMappings()
 
         // Check if this is triggered by the hourly alarm (from HourlyAlarmManager)
         // Store the flag to show HuidigeStandScherm after tiles are loaded
@@ -210,6 +303,8 @@ class TellingScherm : AppCompatActivity() {
 
         // Setup UI using UiManager
         setupUiWithManager()
+        setupMasterClientSupport()
+        handleClientStartIntent()
 
         // Initialize ViewModel (if you have TellingViewModel in project)
         try {
@@ -366,6 +461,7 @@ class TellingScherm : AppCompatActivity() {
         speciesManager.onTilesUpdated = { updateSelectedSpeciesMap() }
         speciesManager.onRecordCollected = { item ->
             addOrReplacePendingRecord(item)
+            queueClientObservationIfNeeded(item)
         }
 
         // Annotation handler callbacks
@@ -384,6 +480,8 @@ class TellingScherm : AppCompatActivity() {
                     tegelBeheer.recalculateCountsFromRecords(pendingRecords.toList())
                 }
             }
+
+            queueClientObservationUpdateIfNeeded(updated)
 
             // Save full envelope after annotation update to preserve changes.
             // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
@@ -470,6 +568,8 @@ class TellingScherm : AppCompatActivity() {
         uiManager.onSaveCloseCallback = { tiles -> handleSaveClose(tiles) }
         uiManager.onOpenSettingsCallback = { openInstellingenScherm() }
         uiManager.onToggleAlarmCallback = { toggleHourlyAlarm() }
+        uiManager.onMasterClientConnectionCallback = { handleMasterClientPressed() }
+        uiManager.onShowMasterQrCallback = { handleShowMasterQrPressed() }
 
         // Setup buttons
         uiManager.setupButtons()
@@ -758,6 +858,8 @@ class TellingScherm : AppCompatActivity() {
 
         uiManager.updatePartials(uiManager.getCurrentPartials())
         uiManager.updateFinals(uiManager.getCurrentFinals())
+        updateMasterClientConnectionUi()
+        maybeContinuePairingQrAfterWifiConnect()
     }
 
     private fun ensurePendingTellingPromptOnRestore() {
@@ -820,6 +922,15 @@ class TellingScherm : AppCompatActivity() {
             if (::alarmHandler.isInitialized) {
                 alarmHandler.cleanup()
             }
+        } catch (_: Exception) {}
+        try {
+            mcMasterServer?.stop()
+        } catch (_: Exception) {}
+        try {
+            mcClientConnector?.stop()
+        } catch (_: Exception) {}
+        try {
+            McLocalHotspotManager.stop(this)
         } catch (_: Exception) {}
         super.onDestroy()
     }
@@ -1352,6 +1463,1112 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
+    private fun setupMasterClientSupport() {
+        updateMasterClientConnectionUi()
+    }
+
+    private fun handleMasterClientPressed() {
+        val mode = MasterClientPrefs.getMode(this)
+        when {
+            mcClientConnector != null || mode == MasterClientPrefs.MODE_CLIENT -> beginClientPairingFlow()
+            mcMasterServer != null || mode == MasterClientPrefs.MODE_MASTER -> showMasterWifiNetworkPicker()
+            else -> showMasterClientRoleChooser()
+        }
+    }
+
+    private fun handleShowMasterQrPressed() {
+        val mode = MasterClientPrefs.getMode(this)
+        if (mode != MasterClientPrefs.MODE_MASTER && mcMasterServer == null) {
+            Toast.makeText(this, getString(R.string.mc_qr_only_for_master), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        startMasterServerOnDemand {
+            showMasterPairingDialog()
+        }
+    }
+
+    private fun showMasterClientRoleChooser() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_dialog_choose_role_title)
+            .setMessage(R.string.mc_dialog_choose_role_message)
+            .setPositiveButton(R.string.mc_dialog_choose_master) { _, _ ->
+                MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_MASTER)
+                updateMasterClientConnectionUi()
+                showMasterWifiNetworkPicker()
+            }
+            .setNegativeButton(R.string.mc_dialog_choose_client) { _, _ ->
+                beginClientPairingFlow()
+            }
+            .setNeutralButton(R.string.mc_dialog_choose_cancel, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun beginClientPairingFlow() {
+        ensureClientMode()
+        launchPairingQrScan()
+    }
+
+    private fun handleClientStartIntent() {
+        val rawPayload = intent?.getStringExtra(EXTRA_CLIENT_QR_PAYLOAD)?.trim().orEmpty()
+        if (rawPayload.isBlank()) return
+
+        intent?.removeExtra(EXTRA_CLIENT_QR_PAYLOAD)
+        val payload = McQrPayloadCodec.decode(rawPayload)
+        if (payload == null) {
+            Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        handleClientQrPayload(payload)
+    }
+
+    private fun handleClientQrPayload(payload: McQrPayload) {
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+        MasterClientPrefs.setMasterIp(this, payload.ip)
+        MasterClientPrefs.setMasterPort(this, payload.port)
+        if (payload.ssid.isNotBlank()) {
+            MasterClientPrefs.setHotspotSsid(this, payload.ssid)
+            MasterClientPrefs.setHotspotPassword(this, payload.pass)
+            MasterClientPrefs.setHotspotSecurity(this, payload.sec)
+        }
+
+        ensureClientMode()
+        val expectedSsid = payload.ssid.trim()
+        val alreadyConnected = expectedSsid.isBlank() || McNetworkUtils.getConnectedWifiSsid(this) == expectedSsid
+        if (!alreadyConnected && expectedSsid.isNotBlank()) {
+            val waitingForWifiApproval = connectToWifi(expectedSsid, payload.pass, payload.sec)
+            if (waitingForWifiApproval) {
+                pendingClientConnectionPayload = payload
+                Toast.makeText(this, getString(R.string.mc_wifi_connect_approve), Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
+        connectClientToMaster(payload.ip, payload.pin)
+    }
+
+    private fun ensureClientMode() {
+        if (mcClientConnector != null) {
+            MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+            updateMasterClientConnectionUi()
+            return
+        }
+
+        val queue = ClientEventQueue(applicationContext)
+        val connector = ClientConnector(applicationContext, queue)
+        mcEventQueue = queue
+        mcClientConnector = connector
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+
+        connector.onTileSyncReceived = { tiles ->
+            runOnUiThread { applyTileSync(tiles) }
+        }
+        connector.onObservationAcknowledged = {
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_observation_received_master), Toast.LENGTH_SHORT).show()
+                updateMasterClientConnectionUi()
+            }
+        }
+        connector.onObservationRejected = { _, _ ->
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_observation_retry_master), Toast.LENGTH_SHORT).show()
+                updateMasterClientConnectionUi()
+            }
+        }
+        connector.onSessionEnded = { _ ->
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_status_session_ended), Toast.LENGTH_LONG).show()
+                mcClientConnector?.stop()
+                mcClientConnector = null
+                mcEventQueue = null
+                MasterClientPrefs.clearSession(this)
+                updateMasterClientConnectionUi()
+            }
+        }
+
+        lifecycleScope.launch {
+            connector.state.collect { state ->
+                runOnUiThread {
+                    if (state == ClientConnector.State.PAIRED && lastObservedClientState != ClientConnector.State.PAIRED) {
+                        Toast.makeText(this@TellingScherm, getString(R.string.mc_client_handshake_success), Toast.LENGTH_SHORT).show()
+                    }
+                    lastObservedClientState = state
+                    updateMasterClientConnectionUi()
+                }
+            }
+        }
+
+        updateMasterClientConnectionUi()
+    }
+
+    private fun launchPairingQrScan() {
+        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (!hasCamera) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            return
+        }
+
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            setBeepEnabled(false)
+            setOrientationLocked(true)
+            setPrompt(getString(R.string.mc_pairing_scan_qr))
+        }
+        qrScanLauncher.launch(options)
+    }
+
+    private fun promoteCurrentTellingToMaster() {
+        val activeHotspot = McLocalHotspotManager.getActiveHotspotInfo(this)
+        val networkContext = McNetworkUtils.resolveMasterNetworkContext(this)
+        when {
+            activeHotspot != null || networkContext.mode == McNetworkUtils.MasterNetworkMode.WIFI_CLIENT -> {
+                startMasterServerOnDemand {
+                    cacheCurrentMasterConnectionDetails()
+                    Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
+                }
+            }
+            else -> ensureNearbyWifiPermissionThenEnableMasterMode()
+        }
+    }
+
+    private fun ensureNearbyWifiPermissionThenEnableMasterMode() {
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            startLocalHotspotAndPromoteToMaster()
+        } else {
+            requestNearbyWifiPermissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+        }
+    }
+
+    private fun startLocalHotspotAndPromoteToMaster() {
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_MASTER)
+        McLocalHotspotManager.start(
+            context = this,
+            onStarted = {
+                startMasterServerOnDemand {
+                    cacheCurrentMasterConnectionDetails()
+                    Toast.makeText(this, getString(R.string.mc_local_network_active), Toast.LENGTH_SHORT).show()
+                }
+            },
+            onFailed = { reason ->
+                Toast.makeText(this, getString(R.string.mc_local_network_failed, reason), Toast.LENGTH_LONG).show()
+                updateMasterClientConnectionUi()
+            }
+        )
+    }
+
+    private fun startMasterServerOnDemand(onStarted: (() -> Unit)? = null) {
+        if (mcMasterServer != null) {
+            updateMasterClientConnectionUi()
+            onStarted?.invoke()
+            return
+        }
+
+        try {
+            val pairingManager = PairingManager()
+            val eventProcessor = MasterEventProcessor()
+            eventProcessor.onObservationReceived = { clientId, clientEventId, isUpdate, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen, recordPayload ->
+                handleLiveClientEvent(
+                    clientId = clientId,
+                    clientEventId = clientEventId,
+                    isUpdate = isUpdate,
+                    soortId = soortId,
+                    amount = amount,
+                    aantalterug = aantalterug,
+                    tijdstip = tijdstip,
+                    geslacht = geslacht,
+                    leeftijd = leeftijd,
+                    kleed = kleed,
+                    opmerkingen = opmerkingen,
+                    recordPayload = recordPayload
+                )
+            }
+
+            val server = MasterServer(
+                context = applicationContext,
+                pairingManager = pairingManager,
+                eventProcessor = eventProcessor
+            )
+            server.onPairingRequest = { _, clientName -> requestClientApproval(clientName) }
+            server.onClientConnected = { clientName ->
+                runOnUiThread {
+                    Toast.makeText(this, getString(R.string.mc_master_handshake_success, clientName), Toast.LENGTH_SHORT).show()
+                }
+            }
+            server.onTilesSnapshot = { buildTileSyncItems() }
+            server.start()
+
+            mcPairingManager = pairingManager
+            mcEventProcessor = eventProcessor
+            mcMasterServer = server
+            MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_MASTER)
+            cacheCurrentMasterConnectionDetails()
+
+            lifecycleScope.launch {
+                server.connectedClients.collect {
+                    runOnUiThread { updateMasterClientConnectionUi() }
+                }
+            }
+
+            updateMasterClientConnectionUi()
+            onStarted?.invoke()
+        } catch (e: Exception) {
+            Log.e(TAG, "startMasterServerOnDemand fout: ${e.message}", e)
+            Toast.makeText(this, getString(R.string.mc_error_server_start, e.message ?: "Onbekende fout"), Toast.LENGTH_LONG).show()
+            updateMasterClientConnectionUi()
+        }
+    }
+
+    private suspend fun requestClientApproval(clientName: String): Boolean =
+        suspendCancellableCoroutine { cont ->
+            runOnUiThread {
+                val dialog = AlertDialog.Builder(this)
+                    .setTitle(R.string.mc_pairing_permission_title)
+                    .setMessage(getString(R.string.mc_pairing_permission_message, clientName))
+                    .setPositiveButton(R.string.mc_pairing_permission_allow) { _, _ ->
+                        if (cont.isActive) cont.resume(true)
+                    }
+                    .setNegativeButton(R.string.mc_pairing_permission_deny) { _, _ ->
+                        if (cont.isActive) cont.resume(false)
+                    }
+                    .setOnCancelListener {
+                        if (cont.isActive) cont.resume(false)
+                    }
+                    .create()
+                DialogStyler.apply(dialog)
+                dialog.show()
+            }
+        }
+
+    private fun updateMasterClientConnectionUi() {
+        if (!::binding.isInitialized) return
+        val mode = MasterClientPrefs.getMode(this)
+        val clientState = mcClientConnector?.state?.value
+        val isClient = mode == MasterClientPrefs.MODE_CLIENT || clientState == ClientConnector.State.CONNECTING || clientState == ClientConnector.State.PAIRED
+        val isMaster = mode == MasterClientPrefs.MODE_MASTER || mcMasterServer != null
+        val active = isMaster || isClient
+        val tint = if (active) ContextCompat.getColor(this, R.color.vt5_green) else Color.parseColor("#808080")
+        binding.btnMasterClientConnection.setColorFilter(tint)
+        binding.btnMasterClientConnection.contentDescription = getString(
+            if (active) R.string.mc_master_mode_active else R.string.mc_enable_master_mode
+        )
+        binding.btnShowMasterQr.visibility = if (isMaster) android.view.View.VISIBLE else android.view.View.GONE
+        binding.btnShowMasterQr.setColorFilter(
+            if (mcMasterServer != null) ContextCompat.getColor(this, R.color.vt5_green) else Color.parseColor("#808080")
+        )
+    }
+
+    private fun showMasterPairingDialog() {
+        val server = mcMasterServer ?: run {
+            Toast.makeText(this, getString(R.string.mc_error_no_telling), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        ensureMasterNetworkReadyForPairing { networkState ->
+            MasterClientPrefs.setMasterIp(this, networkState.context.hostAddress.orEmpty())
+            MasterClientPrefs.setMasterPort(this, server.port)
+            val dialogView = layoutInflater.inflate(R.layout.dialog_master_qr_codes, null)
+            val ivPairingQr = dialogView.findViewById<ImageView>(R.id.ivPairingQr)
+            val tvPairingInfo = dialogView.findViewById<android.widget.TextView>(R.id.tvPairingQrInfo)
+            val btnClose = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClose)
+
+            val ssid = networkState.context.hotspotSsid.ifBlank { networkState.context.connectedWifiSsid.orEmpty() }
+            val pass = networkState.context.hotspotPass
+            val security = networkState.security.ifBlank { if (pass.isBlank()) "NOPASS" else "WPA" }
+
+            updatePairingQrView(ivPairingQr, tvPairingInfo, server.port, ssid, pass, networkState)
+
+            val dialog = AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create()
+            btnClose.setOnClickListener { dialog.dismiss() }
+            dialog.show()
+            DialogStyler.apply(dialog)
+        }
+    }
+
+    private fun ensureMasterNetworkReadyForPairing(onReady: (MasterPairingNetworkUiState) -> Unit) {
+        val activeHotspot = McLocalHotspotManager.getActiveHotspotInfo(this)
+        if (activeHotspot != null) {
+            onReady(buildMasterPairingNetworkUiState(activeHotspot.ssid, activeHotspot.passphrase, activeHotspot.security))
+            return
+        }
+
+        val networkContext = McNetworkUtils.resolveMasterNetworkContext(this)
+        when (networkContext.mode) {
+            McNetworkUtils.MasterNetworkMode.WIFI_CLIENT -> {
+                val ssid = networkContext.connectedWifiSsid
+                if (ssid.isNullOrBlank()) {
+                    Toast.makeText(this, getString(R.string.mc_pairing_master_no_ip), Toast.LENGTH_SHORT).show()
+                    return
+                }
+
+                val savedSsid = MasterClientPrefs.getHotspotSsid(this)
+                val savedPass = MasterClientPrefs.getHotspotPassword(this)
+                val savedSecurity = MasterClientPrefs.getHotspotSecurity(this)
+                val hasReusableCredentials = savedSsid == ssid && (savedPass.isNotBlank() || savedSecurity.equals("NOPASS", ignoreCase = true))
+                if (hasReusableCredentials) {
+                    onReady(buildMasterPairingNetworkUiState(ssid, savedPass, savedSecurity))
+                } else {
+                    Toast.makeText(this, getString(R.string.mc_master_configure_network_first), Toast.LENGTH_LONG).show()
+                }
+            }
+            McNetworkUtils.MasterNetworkMode.HOTSPOT_PROVIDER -> {
+                val ssid = MasterClientPrefs.getHotspotSsid(this)
+                val pass = MasterClientPrefs.getHotspotPassword(this)
+                val security = MasterClientPrefs.getHotspotSecurity(this)
+                if (ssid.isBlank() || (security != "NOPASS" && pass.isBlank())) {
+                    showHotspotCredentialsRequiredDialog(
+                        getString(R.string.mc_pairing_hotspot_label),
+                        getString(R.string.mc_pairing_hotspot_manual_needed)
+                    )
+                    return
+                }
+                onReady(buildMasterPairingNetworkUiState(ssid, pass, security))
+            }
+            McNetworkUtils.MasterNetworkMode.LOCAL_NETWORK -> {
+                Toast.makeText(this, getString(R.string.mc_pairing_wifi_qr_missing), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun buildMasterPairingNetworkUiState(ssid: String, pass: String, security: String): MasterPairingNetworkUiState {
+        val normalizedSecurity = security.ifBlank { if (pass.isBlank()) "NOPASS" else "WPA" }
+        return MasterPairingNetworkUiState(
+            context = McNetworkUtils.resolveMasterNetworkContext(
+                context = this,
+                fallbackHotspotSsid = ssid,
+                fallbackHotspotPass = pass,
+                fallbackHotspotSecurity = normalizedSecurity
+            ),
+            security = normalizedSecurity
+        )
+    }
+
+    private fun promptForExternalWifiQrCredentials(ssid: String, onConfirmed: (pass: String, security: String) -> Unit) {
+        val input = EditText(this).apply {
+            hint = getString(R.string.mc_wifi_password_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_pairing_wifi_password_for_qr_title)
+            .setMessage(getString(R.string.mc_pairing_wifi_client_info, ssid))
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val pass = input.text?.toString()?.trim().orEmpty()
+                onConfirmed(pass, if (pass.isBlank()) "NOPASS" else "WPA")
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun updateWifiQrView(ivWifiQr: ImageView, tvWifiInfo: android.widget.TextView, ssid: String, pass: String, security: String) {
+        val requiresPass = !security.equals("NOPASS", ignoreCase = true)
+        if (ssid.isBlank() || (requiresPass && pass.isBlank())) {
+            ivWifiQr.setImageDrawable(null)
+            tvWifiInfo.text = getString(R.string.mc_pairing_wifi_qr_missing)
+            return
+        }
+
+        val payload = buildWifiQrPayload(ssid, pass, security)
+        val bitmap = BarcodeEncoder().encodeBitmap(payload, com.google.zxing.BarcodeFormat.QR_CODE, 350, 350)
+        ivWifiQr.setImageBitmap(bitmap)
+        tvWifiInfo.text = if (requiresPass) ssid else "$ssid (open)"
+    }
+
+    private fun updatePairingQrView(
+        ivPairingQr: ImageView,
+        tvPairingInfo: android.widget.TextView,
+        masterPort: Int,
+        ssid: String,
+        pass: String,
+        networkState: MasterPairingNetworkUiState
+    ) {
+        val masterIp = networkState.context.hostAddress
+        val validationMessage = if (networkState.context.mode == McNetworkUtils.MasterNetworkMode.HOTSPOT_PROVIDER) {
+            getHotspotProviderValidationMessage(ssid, pass)
+        } else {
+            null
+        }
+
+        when {
+            validationMessage != null -> {
+                tvPairingInfo.text = validationMessage
+                ivPairingQr.setImageDrawable(null)
+            }
+            masterIp.isNullOrBlank() -> {
+                tvPairingInfo.text = getString(R.string.mc_pairing_master_no_ip)
+                ivPairingQr.setImageDrawable(null)
+            }
+            else -> {
+                val payload = McQrPayload(
+                    ip = masterIp,
+                    port = masterPort,
+                    pin = "",
+                    ssid = ssid,
+                    pass = pass,
+                    sec = networkState.security
+                )
+                val qrData = McQrPayloadCodec.encode(payload)
+                val bitmap = BarcodeEncoder().encodeBitmap(qrData, com.google.zxing.BarcodeFormat.QR_CODE, 350, 350)
+                ivPairingQr.setImageBitmap(bitmap)
+                val infoRes = if (networkState.context.mode == McNetworkUtils.MasterNetworkMode.HOTSPOT_PROVIDER) {
+                    R.string.mc_pairing_qr_info_hotspot_provider
+                } else {
+                    R.string.mc_pairing_qr_info_wifi_network
+                }
+                tvPairingInfo.text = getString(infoRes, masterIp, masterPort)
+            }
+        }
+    }
+
+    private fun getHotspotProviderValidationMessage(ssid: String, pass: String): String? {
+        return when {
+            ssid.isBlank() && pass.isBlank() -> getString(R.string.mc_pairing_hotspot_missing_both)
+            ssid.isBlank() -> getString(R.string.mc_pairing_hotspot_ssid_required)
+            pass.isBlank() -> getString(R.string.mc_pairing_hotspot_pass_required)
+            else -> null
+        }
+    }
+
+    private fun showHotspotCredentialsRequiredDialog(title: String, message: String) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton(R.string.mc_pairing_open_hotspot_settings) { _, _ -> openHotspotSettings() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun openHotspotSettings() {
+        val intents = listOf(
+            Intent("android.settings.TETHER_SETTINGS"),
+            Intent(Settings.ACTION_WIRELESS_SETTINGS),
+            Intent(Settings.ACTION_SETTINGS)
+        )
+        val launched = intents.firstOrNull { it.resolveActivity(packageManager) != null }?.let {
+            startActivity(it)
+            true
+        } ?: false
+        if (!launched) {
+            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_failed), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun buildWifiQrPayload(ssid: String, pass: String, security: String): String {
+        fun escape(value: String) = value
+            .replace("\\", "\\\\")
+            .replace(";", "\\;")
+            .replace(",", "\\,")
+            .replace(":", "\\:")
+        return "WIFI:T:${escape(security.ifBlank { "WPA" })};S:${escape(ssid)};P:${escape(pass)};;"
+    }
+
+    private fun showMasterWifiNetworkPicker() {
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_MASTER)
+        updateMasterClientConnectionUi()
+
+        val hasPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasPermission) {
+            requestWifiScanPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            return
+        }
+
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        if (wifiManager == null) {
+            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_failed), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!isLocationServicesEnabled()) {
+            Toast.makeText(this, getString(R.string.mc_pairing_wifi_scan_permission), Toast.LENGTH_LONG).show()
+            runCatching { startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
+            return
+        }
+
+        lifecycleScope.launch {
+            val results = fetchLatestWifiResults(wifiManager)
+            if (results == null) {
+                Toast.makeText(this@TellingScherm, getString(R.string.mc_pairing_wifi_scan_failed), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val ssids = results.mapNotNull { getScanResultSsid(it) }.distinct().sorted()
+            if (ssids.isEmpty()) {
+                Toast.makeText(this@TellingScherm, getString(R.string.mc_pairing_wifi_scan_empty), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val capabilitiesBySsid = results.mapNotNull { result ->
+                val ssid = getScanResultSsid(result) ?: return@mapNotNull null
+                ssid to (result.capabilities ?: "")
+            }.toMap()
+
+            val options = ssids + getString(R.string.mc_master_network_use_hotspot)
+            val dialog = AlertDialog.Builder(this@TellingScherm)
+                .setTitle(R.string.mc_master_choose_network_title)
+                .setItems(options.toTypedArray()) { _, index ->
+                    if (index == ssids.size) {
+                        startLocalHotspotAndPromoteToMaster()
+                        return@setItems
+                    }
+
+                    val selected = ssids[index]
+                    val caps = capabilitiesBySsid[selected].orEmpty()
+                    val security = when {
+                        caps.contains("WEP", ignoreCase = true) -> "WEP"
+                        caps.contains("WPA", ignoreCase = true) || caps.contains("SAE", ignoreCase = true) -> "WPA"
+                        else -> "NOPASS"
+                    }
+                    if (security == "NOPASS") {
+                        configureMasterExternalWifi(selected, "", security)
+                    } else {
+                        showWifiPasswordDialog(selected) { pass ->
+                            configureMasterExternalWifi(selected, pass, security)
+                        }
+                    }
+                }
+                .setNegativeButton(R.string.mc_wifi_connect_cancel, null)
+                .create()
+            DialogStyler.apply(dialog)
+            dialog.show()
+        }
+    }
+
+    private fun configureMasterExternalWifi(ssid: String, pass: String, security: String) {
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_MASTER)
+        MasterClientPrefs.setHotspotSsid(this, ssid)
+        MasterClientPrefs.setHotspotPassword(this, pass)
+        MasterClientPrefs.setHotspotSecurity(this, security)
+
+        val alreadyConnected = McNetworkUtils.getConnectedWifiSsid(this) == ssid
+        if (alreadyConnected) {
+            startMasterServerOnDemand {
+                cacheCurrentMasterConnectionDetails()
+                Toast.makeText(this, getString(R.string.mc_master_network_saved, ssid), Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        pendingMasterWifiSsid = ssid
+        val waitingForApproval = connectToWifi(ssid, pass, security)
+        if (waitingForApproval) {
+            Toast.makeText(this, getString(R.string.mc_master_waiting_for_wifi, ssid), Toast.LENGTH_LONG).show()
+            updateMasterClientConnectionUi()
+        } else {
+            pendingMasterWifiSsid = null
+        }
+    }
+
+    private suspend fun fetchLatestWifiResults(wifiManager: WifiManager): List<ScanResult>? {
+        val cachedResults = try {
+            wifiManager.scanResults
+        } catch (_: SecurityException) {
+            return null
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val refreshedResults = withTimeoutOrNull(2500L) {
+            suspendCancellableCoroutine<List<ScanResult>?> { cont ->
+                val callback = object : WifiManager.ScanResultsCallback() {
+                    override fun onScanResultsAvailable() {
+                        val latest = try {
+                            wifiManager.scanResults
+                        } catch (_: SecurityException) {
+                            null
+                        } catch (_: Exception) {
+                            cachedResults
+                        }
+                        runCatching { wifiManager.unregisterScanResultsCallback(this) }
+                        if (cont.isActive) cont.resume(latest)
+                    }
+                }
+
+                try {
+                    wifiManager.registerScanResultsCallback(mainExecutor, callback)
+                } catch (_: Exception) {
+                    if (cont.isActive) cont.resume(cachedResults)
+                    return@suspendCancellableCoroutine
+                }
+
+                cont.invokeOnCancellation {
+                    runCatching { wifiManager.unregisterScanResultsCallback(callback) }
+                }
+            }
+        }
+
+        return refreshedResults ?: cachedResults
+    }
+
+    private fun getScanResultSsid(result: ScanResult): String? {
+        val ssid = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.wifiSsid?.toString()
+            } else {
+                @Suppress("DEPRECATION")
+                result.SSID
+            }
+        }.getOrNull()
+
+        return ssid?.trim()?.trim('"')?.takeIf { it.isNotBlank() && it != "<unknown ssid>" }
+    }
+
+    private fun isLocationServicesEnabled(): Boolean {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            locationManager.isLocationEnabled
+        } else {
+            @Suppress("DEPRECATION")
+            locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        }
+    }
+
+    private fun showWifiPasswordDialog(ssid: String, onPassword: (String) -> Unit) {
+        val input = EditText(this).apply {
+            hint = getString(R.string.mc_wifi_password_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.mc_wifi_password_title, ssid))
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ -> onPassword(input.text?.toString().orEmpty()) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun connectToWifi(ssid: String, pass: String, security: String): Boolean {
+        MasterClientPrefs.setHotspotSsid(this, ssid)
+        MasterClientPrefs.setHotspotPassword(this, pass)
+        MasterClientPrefs.setHotspotSecurity(this, security)
+
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        if (wifiManager == null) {
+            Toast.makeText(this, getString(R.string.mc_wifi_connect_failed), Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (!wifiManager.isWifiEnabled) {
+            Toast.makeText(this, getString(R.string.mc_wifi_connect_approve), Toast.LENGTH_LONG).show()
+            runCatching { startActivity(Intent(Settings.Panel.ACTION_WIFI)) }
+            return true
+        }
+
+        val suggestionBuilder = WifiNetworkSuggestion.Builder().setSsid(ssid)
+        if (!security.equals("NOPASS", ignoreCase = true) && pass.isNotBlank()) {
+            suggestionBuilder.setWpa2Passphrase(pass)
+        }
+        return if (wifiManager.addNetworkSuggestions(listOf(suggestionBuilder.build())) == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+            Toast.makeText(this, getString(R.string.mc_wifi_connected_or_suggested), Toast.LENGTH_SHORT).show()
+            runCatching { startActivity(Intent(Settings.Panel.ACTION_WIFI)) }
+            true
+        } else {
+            Toast.makeText(this, getString(R.string.mc_wifi_connect_failed), Toast.LENGTH_SHORT).show()
+            false
+        }
+    }
+
+    private fun maybeContinuePairingQrAfterWifiConnect() {
+        val connectedSsid = McNetworkUtils.getConnectedWifiSsid(this)
+
+        val masterSsid = pendingMasterWifiSsid
+        if (!masterSsid.isNullOrBlank() && connectedSsid == masterSsid) {
+            pendingMasterWifiSsid = null
+            startMasterServerOnDemand {
+                cacheCurrentMasterConnectionDetails()
+                Toast.makeText(this, getString(R.string.mc_master_network_saved, masterSsid), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val clientPayload = pendingClientConnectionPayload
+        if (clientPayload != null) {
+            val expectedClientSsid = clientPayload.ssid.trim()
+            if (expectedClientSsid.isBlank() || connectedSsid == expectedClientSsid) {
+                pendingClientConnectionPayload = null
+                connectClientToMaster(clientPayload.ip, clientPayload.pin)
+            }
+        }
+    }
+
+    private fun cacheCurrentMasterConnectionDetails() {
+        val ssid = MasterClientPrefs.getHotspotSsid(this)
+        val pass = MasterClientPrefs.getHotspotPassword(this)
+        val security = MasterClientPrefs.getHotspotSecurity(this)
+        val networkState = McNetworkUtils.resolveMasterNetworkContext(
+            context = this,
+            fallbackHotspotSsid = ssid,
+            fallbackHotspotPass = pass,
+            fallbackHotspotSecurity = security
+        )
+        MasterClientPrefs.setMasterIp(this, networkState.hostAddress.orEmpty())
+        MasterClientPrefs.setMasterPort(this, mcMasterServer?.port ?: MasterClientPrefs.DEFAULT_PORT)
+    }
+
+    private fun connectClientToMaster(ip: String, pin: String = "") {
+        ensureClientMode()
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+        val connector = mcClientConnector ?: return
+        if (ip.isBlank()) {
+            Toast.makeText(this, getString(R.string.mc_error_no_ip), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        MasterClientPrefs.setMasterIp(this, ip)
+        connector.setPendingPin(pin)
+        connector.start()
+        updateMasterClientConnectionUi()
+    }
+
+    private fun buildTileSyncItems(): List<TileSyncItem> {
+        return tegelBeheer.getTiles().map { tile ->
+            TileSyncItem(
+                soortid = tile.soortId,
+                naam = tile.naam,
+                countMain = tile.countMain,
+                countReturn = tile.countReturn
+            )
+        }
+    }
+
+    private fun applyTileSync(items: List<TileSyncItem>) {
+        if (items.isEmpty()) return
+        val tiles = items.map {
+            SoortTile(
+                soortId = it.soortid,
+                naam = it.naam,
+                countMain = it.countMain,
+                countReturn = it.countReturn
+            )
+        }.sortedBy { it.naam.lowercase() }
+
+        tegelBeheer.setTiles(tiles)
+        updateSelectedSpeciesMap()
+        Toast.makeText(this, getString(R.string.mc_tile_sync_toast), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun broadcastTileSyncIfMaster(tiles: List<SoortTile>) {
+        mcMasterServer?.broadcastTileSync(
+            tiles.map {
+                TileSyncItem(
+                    soortid = it.soortId,
+                    naam = it.naam,
+                    countMain = it.countMain,
+                    countReturn = it.countReturn
+                )
+            }
+        )
+    }
+
+    private fun queueClientObservationIfNeeded(item: ServerTellingDataItem) {
+        val connector = mcClientConnector ?: return
+        if (mcMasterServer != null) return
+
+        val clientEventId = connector.queueObservation(
+            soortid = item.soortid,
+            aantal = item.aantal.toIntOrNull() ?: 0,
+            aantalterug = item.aantalterug.toIntOrNull() ?: 0,
+            tijdstip = item.tijdstip.toLongOrNull() ?: (System.currentTimeMillis() / 1000L),
+            geslacht = item.geslacht,
+            leeftijd = item.leeftijd,
+            kleed = item.kleed,
+            opmerkingen = item.opmerkingen,
+            recordPayload = encodeObservationRecordPayload(item)
+        )
+
+        if (!clientEventId.isNullOrBlank()) {
+            mcClientEventIdByRecordId[item.idLocal] = clientEventId
+            mcClientRecordIdByEvent[clientEventId] = item.idLocal
+            persistClientEventMappings()
+            updateMasterClientConnectionUi()
+        }
+    }
+
+    private fun queueClientObservationUpdateIfNeeded(item: ServerTellingDataItem) {
+        val connector = mcClientConnector ?: return
+        if (mcMasterServer != null) return
+
+        val clientEventId = mcClientEventIdByRecordId[item.idLocal] ?: return
+        connector.queueObservationUpdate(
+            clientEventId = clientEventId,
+            soortid = item.soortid,
+            aantal = item.aantal.toIntOrNull() ?: 0,
+            aantalterug = item.aantalterug.toIntOrNull() ?: 0,
+            tijdstip = item.tijdstip.toLongOrNull() ?: (System.currentTimeMillis() / 1000L),
+            geslacht = item.geslacht,
+            leeftijd = item.leeftijd,
+            kleed = item.kleed,
+            opmerkingen = item.opmerkingen,
+            recordPayload = encodeObservationRecordPayload(item)
+        )
+    }
+
+    private fun restoreClientEventMappings() {
+        val raw = prefs.getString(KEY_CLIENT_EVENT_MAP_JSON, null) ?: return
+        try {
+            val json = org.json.JSONObject(raw)
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val recordId = keys.next()
+                val eventId = json.optString(recordId)
+                if (recordId.isNotBlank() && eventId.isNotBlank()) {
+                    mcClientEventIdByRecordId[recordId] = eventId
+                    mcClientRecordIdByEvent[eventId] = recordId
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Kon client event mapping niet herstellen: ${e.message}", e)
+        }
+    }
+
+    private fun persistClientEventMappings() {
+        try {
+            val json = org.json.JSONObject()
+            mcClientEventIdByRecordId.forEach { (recordId, eventId) ->
+                json.put(recordId, eventId)
+            }
+            prefs.edit().putString(KEY_CLIENT_EVENT_MAP_JSON, json.toString()).apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Kon client event mapping niet bewaren: ${e.message}", e)
+        }
+    }
+
+    private fun encodeObservationRecordPayload(record: ServerTellingDataItem): String {
+        return try {
+            VT5App.json.encodeToString(ServerTellingDataItem.serializer(), record)
+        } catch (ex: Exception) {
+            Log.w(TAG, "Kon client record payload niet serialiseren: ${ex.message}", ex)
+            ""
+        }
+    }
+
+    private suspend fun handleLiveClientEvent(
+        clientId: String,
+        clientEventId: String,
+        isUpdate: Boolean,
+        soortId: String,
+        amount: Int,
+        aantalterug: Int,
+        tijdstip: Long,
+        geslacht: String,
+        leeftijd: String,
+        kleed: String,
+        opmerkingen: String,
+        recordPayload: String
+    ) {
+        val eventKey = "$clientId::$clientEventId"
+        val existingIdLocal = mcClientRecordIdByEvent[eventKey]
+        if (isUpdate && !existingIdLocal.isNullOrBlank()) {
+            applyClientRecordUpdate(existingIdLocal, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen, recordPayload)
+            return
+        }
+
+        val tellingId = prefs.getString("pref_telling_id", null) ?: return
+        val idLocal = com.yvesds.vt5.features.network.DataUploader.getAndIncrementRecordId(this, tellingId)
+        val uploadTimestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", resources.configuration.locales[0]).format(java.util.Date())
+        val payloadRecord = runCatching {
+            VT5App.json.decodeFromString(ServerTellingDataItem.serializer(), recordPayload)
+        }.getOrNull()
+
+        val item = buildMasterClientRecord(
+            idLocal = idLocal,
+            tellingId = tellingId,
+            fallbackSoortId = soortId,
+            fallbackAmount = amount,
+            fallbackAantalterug = aantalterug,
+            fallbackTijdstip = tijdstip,
+            fallbackGeslacht = geslacht,
+            fallbackLeeftijd = leeftijd,
+            fallbackKleed = kleed,
+            fallbackOpmerkingen = opmerkingen,
+            uploadtijdstip = uploadTimestamp,
+            payloadRecord = payloadRecord
+        )
+
+        addOrReplacePendingRecord(item)
+        mcClientRecordIdByEvent[eventKey] = idLocal
+
+        val displayName = resolveSpeciesName(item.soortid)
+        tegelBeheer.voegSoortToeIndienNodig(item.soortid, displayName, 0)
+        if ((item.aantal.toIntOrNull() ?: 0) > 0) {
+            speciesManager.updateSoortCountInternal(item.soortid, item.aantal.toIntOrNull() ?: 0)
+        }
+        if ((item.aantalterug.toIntOrNull() ?: 0) > 0) {
+            tegelBeheer.verhoogSoortAantalReturn(item.soortid, item.aantalterug.toIntOrNull() ?: 0)
+        }
+        addFinalLog(
+            "$displayName -> +${item.aantal.toIntOrNull() ?: 0}" +
+                (if ((item.aantalterug.toIntOrNull() ?: 0) > 0) " / +${item.aantalterug.toIntOrNull() ?: 0}" else "")
+        )
+    }
+
+    private suspend fun applyClientRecordUpdate(
+        idLocal: String,
+        soortId: String,
+        amount: Int,
+        aantalterug: Int,
+        tijdstip: Long,
+        geslacht: String,
+        leeftijd: String,
+        kleed: String,
+        opmerkingen: String,
+        recordPayload: String
+    ) {
+        val idx = synchronized(pendingRecords) { pendingRecords.indexOfFirst { it.idLocal == idLocal } }
+        if (idx < 0) return
+
+        val existing = synchronized(pendingRecords) { pendingRecords[idx] }
+        val payloadRecord = runCatching {
+            VT5App.json.decodeFromString(ServerTellingDataItem.serializer(), recordPayload)
+        }.getOrNull()
+        val updated = mergeClientRecordUpdate(
+            existing = existing,
+            fallbackSoortId = soortId,
+            fallbackAmount = amount,
+            fallbackAantalterug = aantalterug,
+            fallbackTijdstip = tijdstip,
+            fallbackGeslacht = geslacht,
+            fallbackLeeftijd = leeftijd,
+            fallbackKleed = kleed,
+            fallbackOpmerkingen = opmerkingen,
+            payloadRecord = payloadRecord
+        )
+
+        synchronized(pendingRecords) { pendingRecords[idx] = updated }
+        if (::viewModel.isInitialized) {
+            viewModel.setPendingRecords(synchronized(pendingRecords) { pendingRecords.toList() })
+        }
+        tegelBeheer.recalculateCountsFromRecords(synchronized(pendingRecords) { pendingRecords.toList() })
+        persistEnvelopeAsync()
+
+        if (hasClientAnnotationChanges(existing, updated) || existing.aantal != updated.aantal || existing.aantalterug != updated.aantalterug) {
+            addFinalLog("${resolveSpeciesName(updated.soortid)} bijgewerkt")
+        }
+    }
+
+    private fun resolveSpeciesName(soortId: String): String {
+        tegelBeheer.findNaamBySoortId(soortId)?.let { return it }
+        return runCatching {
+            com.yvesds.vt5.features.serverdata.model.ServerDataCache.getCachedOrNull()?.speciesById?.get(soortId)?.soortnaam
+        }.getOrNull().orEmpty().ifBlank { soortId }
+    }
+
+    private fun buildMasterClientRecord(
+        idLocal: String,
+        tellingId: String,
+        fallbackSoortId: String,
+        fallbackAmount: Int,
+        fallbackAantalterug: Int,
+        fallbackTijdstip: Long,
+        fallbackGeslacht: String,
+        fallbackLeeftijd: String,
+        fallbackKleed: String,
+        fallbackOpmerkingen: String,
+        uploadtijdstip: String,
+        payloadRecord: ServerTellingDataItem?
+    ): ServerTellingDataItem {
+        val source = payloadRecord
+        val soortid = source?.soortid?.ifBlank { fallbackSoortId } ?: fallbackSoortId
+        val aantal = source?.aantal?.ifBlank { fallbackAmount.toString() } ?: fallbackAmount.toString()
+        val aantalterug = source?.aantalterug?.ifBlank { fallbackAantalterug.toString() } ?: fallbackAantalterug.toString()
+        val lokaal = source?.lokaal ?: "0"
+        return ServerTellingDataItem(
+            idLocal = idLocal,
+            tellingid = tellingId,
+            soortid = soortid,
+            aantal = aantal,
+            richting = source?.richting ?: "",
+            aantalterug = aantalterug,
+            richtingterug = source?.richtingterug ?: "",
+            sightingdirection = source?.sightingdirection ?: "",
+            lokaal = lokaal,
+            aantal_plus = source?.aantal_plus ?: "0",
+            aantalterug_plus = source?.aantalterug_plus ?: "0",
+            lokaal_plus = source?.lokaal_plus ?: "0",
+            markeren = source?.markeren ?: "0",
+            markerenlokaal = source?.markerenlokaal ?: "0",
+            geslacht = source?.geslacht ?: fallbackGeslacht,
+            leeftijd = source?.leeftijd ?: fallbackLeeftijd,
+            kleed = source?.kleed ?: fallbackKleed,
+            opmerkingen = source?.opmerkingen ?: fallbackOpmerkingen,
+            trektype = source?.trektype ?: "",
+            teltype = source?.teltype ?: "",
+            location = source?.location ?: "",
+            height = source?.height ?: "",
+            tijdstip = source?.tijdstip?.ifBlank { fallbackTijdstip.toString() } ?: fallbackTijdstip.toString(),
+            groupid = idLocal,
+            uploadtijdstip = source?.uploadtijdstip?.ifBlank { uploadtijdstip } ?: uploadtijdstip,
+            totaalaantal = source?.totaalaantal?.ifBlank { calculateObservationTotal(aantal, aantalterug, lokaal) }
+                ?: calculateObservationTotal(aantal, aantalterug, lokaal)
+        )
+    }
+
+    private fun mergeClientRecordUpdate(
+        existing: ServerTellingDataItem,
+        fallbackSoortId: String,
+        fallbackAmount: Int,
+        fallbackAantalterug: Int,
+        fallbackTijdstip: Long,
+        fallbackGeslacht: String,
+        fallbackLeeftijd: String,
+        fallbackKleed: String,
+        fallbackOpmerkingen: String,
+        payloadRecord: ServerTellingDataItem?
+    ): ServerTellingDataItem {
+        val source = payloadRecord
+        val soortid = source?.soortid?.ifBlank { fallbackSoortId } ?: fallbackSoortId
+        val aantal = source?.aantal?.ifBlank { fallbackAmount.toString() } ?: fallbackAmount.toString()
+        val aantalterug = source?.aantalterug?.ifBlank { fallbackAantalterug.toString() } ?: fallbackAantalterug.toString()
+        val lokaal = source?.lokaal ?: existing.lokaal
+        return existing.copy(
+            soortid = soortid,
+            aantal = aantal,
+            richting = source?.richting ?: existing.richting,
+            aantalterug = aantalterug,
+            richtingterug = source?.richtingterug ?: existing.richtingterug,
+            sightingdirection = source?.sightingdirection ?: existing.sightingdirection,
+            lokaal = lokaal,
+            aantal_plus = source?.aantal_plus ?: existing.aantal_plus,
+            aantalterug_plus = source?.aantalterug_plus ?: existing.aantalterug_plus,
+            lokaal_plus = source?.lokaal_plus ?: existing.lokaal_plus,
+            markeren = source?.markeren ?: existing.markeren,
+            markerenlokaal = source?.markerenlokaal ?: existing.markerenlokaal,
+            geslacht = source?.geslacht ?: fallbackGeslacht,
+            leeftijd = source?.leeftijd ?: fallbackLeeftijd,
+            kleed = source?.kleed ?: fallbackKleed,
+            opmerkingen = source?.opmerkingen ?: fallbackOpmerkingen,
+            trektype = source?.trektype ?: existing.trektype,
+            teltype = source?.teltype ?: existing.teltype,
+            location = source?.location ?: existing.location,
+            height = source?.height ?: existing.height,
+            tijdstip = source?.tijdstip?.ifBlank { fallbackTijdstip.toString() } ?: fallbackTijdstip.toString(),
+            uploadtijdstip = source?.uploadtijdstip ?: existing.uploadtijdstip,
+            totaalaantal = source?.totaalaantal?.ifBlank { calculateObservationTotal(aantal, aantalterug, lokaal) }
+                ?: calculateObservationTotal(aantal, aantalterug, lokaal)
+        )
+    }
+
+    private fun hasClientAnnotationChanges(existing: ServerTellingDataItem, updated: ServerTellingDataItem): Boolean {
+        return existing.geslacht != updated.geslacht ||
+            existing.leeftijd != updated.leeftijd ||
+            existing.kleed != updated.kleed ||
+            existing.opmerkingen != updated.opmerkingen ||
+            existing.location != updated.location ||
+            existing.height != updated.height ||
+            existing.lokaal != updated.lokaal
+    }
+
+    private fun calculateObservationTotal(aantal: String, aantalterug: String, lokaal: String): String {
+        return ((aantal.toIntOrNull() ?: 0) + (aantalterug.toIntOrNull() ?: 0) + (lokaal.toIntOrNull() ?: 0)).toString()
+    }
+
     private fun refreshTileRows(sourceTiles: List<SoortTile>? = null) {
         if (!::tilesAdapter.isInitialized) return
         val tiles = sourceTiles ?: tegelBeheer.getTiles()
@@ -1373,6 +2590,7 @@ class TellingScherm : AppCompatActivity() {
         if (::viewModel.isInitialized) {
             viewModel.setTiles(rows)
         }
+        broadcastTileSyncIfMaster(tiles)
     }
 
     private fun addOrReplacePendingRecord(item: ServerTellingDataItem) {

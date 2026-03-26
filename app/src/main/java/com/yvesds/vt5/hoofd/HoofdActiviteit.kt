@@ -1,20 +1,29 @@
 package com.yvesds.vt5.hoofd
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.app.AppShutdown
 import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.McQrPayloadCodec
+import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
 import com.yvesds.vt5.features.telling.TellingBeheerScherm
 import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
@@ -49,15 +58,55 @@ class HoofdActiviteit : AppCompatActivity() {
     private lateinit var safHelper: SaFStorageHelper
     private var pendingTellingDialogShown = false
 
+    private val clientQrScanLauncher = registerForActivityResult(ScanContract()) { result ->
+        val raw = result.contents?.trim().orEmpty()
+        if (raw.isBlank()) return@registerForActivityResult
+
+        val payload = McQrPayloadCodec.decode(raw)
+        if (payload == null) {
+            Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+
+        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+        Toast.makeText(this, getString(R.string.mc_client_starting_telling), Toast.LENGTH_SHORT).show()
+        startActivity(
+            Intent(this, TellingScherm::class.java).apply {
+                putExtra(TellingScherm.EXTRA_CLIENT_QR_PAYLOAD, raw)
+            }
+        )
+    }
+
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchClientQrScanner()
+        } else {
+            Toast.makeText(this, getString(R.string.mc_pairing_qr_invalid), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val requestStartupPermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val allGranted = grants.isNotEmpty() && grants.values.all { it }
+        if (!allGranted && !McRuntimePermissions.hasAllStartupPermissions(this)) {
+            Toast.makeText(this, getString(R.string.mc_permissions_startup_required), Toast.LENGTH_LONG).show()
+        }
+    }
+
     @OptIn(ExperimentalSerializationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_hoofd)
         
         safHelper = SaFStorageHelper(this)
+        requestStartupPermissionsIfNeeded()
 
         val btnInstall   = findViewById<MaterialButton>(R.id.btnInstall)
         val btnVerder    = findViewById<MaterialButton>(R.id.btnVerder)
+        val btnJoinAsClient = findViewById<MaterialButton>(R.id.btnJoinAsClient)
         val btnAfsluiten = findViewById<MaterialButton>(R.id.btnAfsluiten)
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
         val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
@@ -92,6 +141,12 @@ class HoofdActiviteit : AppCompatActivity() {
             
             startActivity(Intent(this, MetadataScherm::class.java))
             it.isEnabled = true
+        }
+
+        btnJoinAsClient.setOnClickListener {
+            it.isEnabled = false
+            startClientQrJoinFlow()
+            it.postDelayed({ it.isEnabled = true }, 600)
         }
 
         btnAfsluiten.setOnClickListener {
@@ -206,6 +261,32 @@ class HoofdActiviteit : AppCompatActivity() {
             .show()
 
         DialogStyler.apply(dlg)
+    }
+
+    private fun startClientQrJoinFlow() {
+        val hasCameraPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (hasCameraPermission) {
+            launchClientQrScanner()
+        } else {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun requestStartupPermissionsIfNeeded() {
+        val missingPermissions = McRuntimePermissions.missingStartupPermissions(this)
+        if (missingPermissions.isNotEmpty()) {
+            requestStartupPermissionsLauncher.launch(missingPermissions)
+        }
+    }
+
+    private fun launchClientQrScanner() {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            setBeepEnabled(false)
+            setOrientationLocked(true)
+            setPrompt(getString(R.string.mc_scan_client_qr_prompt))
+        }
+        clientQrScanLauncher.launch(options)
     }
 
     /**

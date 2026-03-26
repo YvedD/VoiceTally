@@ -2,47 +2,90 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="40dp"
+    android:orientation="vertical"
     android:padding="8dp">
 
     <!-- Titel -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginRight="35dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingBottom="1dp">
 
         <TextView
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center_horizontal"
+            android:gravity="start|center_vertical"
+            android:paddingLeft="10dp"
             android:text="@string/telling_speech_results"
-            android:textSize="11sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnToggleAlarm"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="6dp"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/hoofd_alarm_enabled"
             android:src="@android:drawable/ic_lock_idle_alarm"
-            android:tint="@android:color/white" />
+            app:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/btnMasterClientConnection"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/mc_enable_master_mode"
+            android:src="@drawable/ic_mc_wifi"
+            app:tint="#808080" />
+
+        <ImageButton
+            android:id="@+id/btnShowMasterQr"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/mc_show_qr_codes"
+            android:src="@drawable/ic_qr_code"
+            android:visibility="gone"
+            app:tint="#808080" />
 
         <ImageButton
             android:id="@+id/btnOpenSettings"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="58dp"
+            android:layout_height="58dp"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/instellingen_titel"
             android:src="@android:drawable/ic_menu_preferences"
-            android:tint="@android:color/white" />
+            app:tint="@android:color/white" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvMasterClientStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="6dp"
+        android:alpha="0.9"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="15sp"
+        android:visibility="gone" />
 
     <!-- Bovenste kaart: PARTIALS / niet‑finals -->
     <com.google.android.material.card.MaterialCardView
@@ -130,5 +173,5 @@
         android:id="@+id/recyclerViewSpecies"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
 </LinearLayout>

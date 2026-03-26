@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ─── Algemeen master-client ──────────────────────────────────── -->
+    <string name="mc_mode_solo">Solo-modus</string>
+    <string name="mc_mode_master">Master-modus</string>
+    <string name="mc_mode_client">Client-modus</string>
+    <string name="mc_mode_label">Samenwerkingsmodus</string>
+    <string name="mc_mode_description">Solo: enkel standalone gebruik.\nMaster: dit toestel ontvangt waarnemingen van clients.\nClient: dit toestel stuurt waarnemingen naar de master.</string>
+
+    <!-- ─── TellingScherm statusbalk ────────────────────────────────── -->
+    <string name="mc_status_bar_master">Master ▪ %1$d client(s) verbonden</string>
+    <string name="mc_status_bar_master_no_clients">Master ▪ geen clients</string>
+    <string name="mc_status_bar_client_connected">Client ▪ verbonden met master</string>
+    <string name="mc_status_bar_client_pending">Client ▪ %1$d waarneming(en) wachten op bevestiging</string>
+    <string name="mc_status_bar_client_connecting">Client ▪ verbinding maken…</string>
+    <string name="mc_status_bar_client_error">Client ▪ verbindingsfout</string>
+    <string name="mc_status_bar_client_error_detail">Client ▪ verbindingsfout: %1$s</string>
+    <string name="mc_status_bar_client_retrying_pending">Client ▪ opnieuw proberen (%1$d wachten op bevestiging)</string>
+    <string name="mc_status_bar_client_last_delivery">Client ▪ laatste waarneming ontvangen door master</string>
+    <string name="mc_status_bar_client_waiting_wifi">Client ▪ wachten op Wi‑Fi-verbinding met %1$s</string>
+    <string name="mc_status_bar_master_waiting_wifi">Master ▪ wachten op Wi‑Fi-verbinding met %1$s</string>
+    <string name="mc_btn_clients">Clients</string>
+    <string name="mc_btn_connect_to_master">Koppelen met master</string>
+    <string name="mc_btn_export_offline">Offline export</string>
+    <string name="mc_btn_import_offline">Offline import</string>
+    <string name="mc_status_bar_pin">PIN: %1$s</string>
+
+    <string name="mc_dialog_choose_role_title">Samenwerken starten</string>
+    <string name="mc_dialog_choose_role_message">Wil je deze telling delen als master, of verbinden als client?</string>
+    <string name="mc_dialog_choose_master">Start als master</string>
+    <string name="mc_dialog_choose_client">Verbinden als client</string>
+    <string name="mc_dialog_choose_cancel">Annuleren</string>
+
+    <!-- ─── Pairing – master ─────────────────────────────────────────── -->
+    <string name="mc_pairing_master_title">Master – clients koppelen</string>
+    <string name="mc_pairing_pin_label">PIN-code:</string>
+    <string name="mc_pairing_pin_valid">Toon deze code aan de tellers op de client-toestellen</string>
+    <string name="mc_pairing_connected_clients">Verbonden clients:</string>
+    <string name="mc_pairing_no_clients">Geen clients verbonden</string>
+    <string name="mc_pairing_new_pin">Nieuwe PIN genereren</string>
+    <string name="mc_pairing_close">Sluiten</string>
+
+    <!-- ─── Pairing – client ─────────────────────────────────────────── -->
+    <string name="mc_pairing_client_title">Koppelen met master</string>
+    <string name="mc_pairing_master_ip_label">Master-IP (wordt automatisch ingevuld via pairing-QR):</string>
+    <string name="mc_pairing_master_ip_hint">bijv. 192.168.43.1</string>
+    <string name="mc_pairing_discovered_label">Automatisch gevonden masters op het netwerk:</string>
+    <string name="mc_pairing_pin_input_label">PIN-code (van het master-toestel):</string>
+    <string name="mc_pairing_pin_hint">000000</string>
+    <string name="mc_pairing_cancel">Annuleren</string>
+    <string name="mc_pairing_connect">Verbinden</string>
+    <string name="mc_pairing_connecting">Verbinding maken…</string>
+    <string name="mc_pairing_success">Verbonden!</string>
+    <string name="mc_pairing_failed">Koppeling mislukt: %1$s</string>
+    <string name="mc_observation_received_master">Ontvangen op master</string>
+    <string name="mc_observation_retry_master">Master kon deze waarneming nog niet verwerken; opnieuw proberen…</string>
+
+    <!-- ─── Instellingen ─────────────────────────────────────────────── -->
+    <string name="mc_settings_title">Samenwerken (master-client)</string>
+    <string name="mc_settings_description">Schakel samenwerking in tussen meerdere toestellen op hetzelfde Wi-Fi-netwerk of hotspot.</string>
+    <string name="mc_settings_btn_solo">Solo</string>
+    <string name="mc_settings_btn_master">Master</string>
+    <string name="mc_settings_btn_client">Client</string>
+
+    <!-- ─── Offline export / import ─────────────────────────────────── -->
+    <string name="mc_export_title">Offline export</string>
+    <string name="mc_export_description">Exporteer jouw waarnemingen als JSON-bestand en deel het met de master via Bluetooth, NFC of een andere methode.</string>
+    <string name="mc_export_btn">Exporteer en deel…</string>
+    <string name="mc_export_none">Geen waarnemingen om te exporteren</string>
+    <string name="mc_import_title">Offline import (master)</string>
+    <string name="mc_import_description">Importeer een JSON-export van een client-toestel.</string>
+    <string name="mc_import_btn">Importeer bestand…</string>
+    <string name="mc_import_success">%1$d records geïmporteerd</string>
+    <string name="mc_import_failed">Import mislukt</string>
+
+    <!-- ─── Foutmeldingen ────────────────────────────────────────────── -->
+    <string name="mc_error_no_telling">Geen actieve telling. Start eerst een telling.</string>
+    <string name="mc_error_server_start">Kon de master-server niet starten: %1$s</string>
+    <string name="mc_error_no_ip">Vul het IP-adres van de master in</string>
+    <string name="mc_error_no_pin">Vul de PIN-code in</string>
+
+    <!-- ─── Log-prefix voor client-waarnemingen ──────────────────────── -->
+    <!-- Prefix die voor waarnemingen afkomstig van een client-toestel getoond wordt in de log -->
+    <string name="mc_log_client_prefix">[C]</string>
+
+    <!-- ─── Client: telling verlaten ────────────────────────────────── -->
+    <string name="mc_btn_leave_session">Verlaat telling</string>
+    <string name="mc_dialog_leave_title">Telling verlaten</string>
+    <string name="mc_dialog_leave_message">Wil je stoppen met tellen op deze telpost en de telling verlaten?\n\nAlle waarnemingen zijn overgedragen aan de master en bevestigd voor ontvangst.</string>
+    <string name="mc_dialog_leave_confirm">Verlaten</string>
+    <string name="mc_dialog_leave_cancel">Annuleren</string>
+    <string name="mc_dialog_leave_pending_title">Nog niet alles bevestigd</string>
+    <string name="mc_dialog_leave_pending_message">Er wachten nog %1$d waarneming(en) op ontvangstbevestiging door de master.\n\nDit toestel blijft automatisch opnieuw proberen. Je kunt de telling pas verlaten zodra alles bevestigd is.</string>
+    <string name="mc_status_session_ended">Telling beëindigd door master</string>
+    <string name="mc_toast_left_session">Je hebt de telling verlaten</string>
+    <string name="mc_dialog_post_leave_title">Wat wil je nu doen?</string>
+    <string name="mc_dialog_post_leave_message">Je hebt de telling verlaten.\n\nKies of je de app volledig wilt afsluiten, of de app wilt herstarten en terugkeren naar het hoofdscherm met een propere solo-start.</string>
+    <string name="mc_dialog_post_leave_close_app">App sluiten</string>
+    <string name="mc_dialog_post_leave_restart_app">App herstarten</string>
+
+    <!-- ─── Master: samenwerking beëindigen ──────────────────────────── -->
+    <string name="mc_btn_end_collab">Beëindig samenwerking</string>
+    <string name="mc_dialog_end_collab_title">Samenwerking beëindigen</string>
+    <string name="mc_dialog_end_collab_message">Alle verbonden clients ontvangen een signaal dat de telling beëindigd is en worden losgekoppeld.</string>
+    <string name="mc_dialog_end_collab_confirm">Beëindigen</string>
+    <string name="mc_dialog_end_collab_cancel">Annuleren</string>
+    <string name="mc_toast_session_ended_broadcast">Alle clients zijn verwittigd dat de telling beëindigd is</string>
+
+    <!-- ─── Master-overdracht (handover) ────────────────────────────── -->
+    <!-- Titel van de dialog die op een client-toestel verschijnt wanneer de master vertrekt -->
+    <string name="mc_handover_title">Master verlaat de telpost</string>
+    <!-- Bericht in de handover-dialog; %1$s = naam van het master-toestel -->
+    <string name="mc_handover_message">%1$s heeft de telling afgerond en verlaat de telpost zonder een nieuwe telling te starten.\n\nWil jij de masterfunctie overnemen en een vervolgtelling starten?</string>
+    <string name="mc_handover_confirm">Ja, overnemen</string>
+    <string name="mc_handover_decline">Nee, niet overnemen</string>
+
+    <!-- ─── Nieuwe strings voor join-session knop en QR scan labels ──────── -->
+    <string name="mc_start_as_master">Telling starten als master</string>
+    <string name="mc_join_active_session">Invoegen in lopende telling</string>
+    <string name="mc_btn_join_as_client">Invoegen als cliënt</string>
+    <string name="mc_local_network_active">Lokaal netwerk actief</string>
+    <string name="mc_local_network_failed">Lokaal netwerk kon niet gestart worden: %1$s</string>
+    <string name="mc_nearby_wifi_permission_required">Toestemming ‘Nabije wifi-apparaten’ is nodig om het lokale netwerk te starten.</string>
+    <string name="mc_enable_master_mode">Samenwerken inschakelen</string>
+    <string name="mc_master_mode_active">Samenwerken is actief</string>
+    <string name="mc_master_mode_already_active">Samenwerken is al actief op deze telling</string>
+    <string name="mc_show_qr_codes">Toon QR-codes</string>
+    <string name="mc_qr_dialog_title">Client koppelen</string>
+    <string name="mc_pairing_scan_qr">Scan verbindings-QR</string>
+    <string name="mc_pairing_qr_invalid">Ongeldige QR-code</string>
+    <string name="mc_pairing_qr_filled">QR-gegevens ingevuld</string>
+    <string name="mc_pairing_qr_label">Verbindings-QR (scan met client)</string>
+    <string name="mc_pairing_master_qr_required">Laat nieuwe clients deze ene verbindings-QR scannen. De QR bevat het gekozen netwerk, wachtwoord, IP-adres en poort van deze mastertelling.</string>
+    <string name="mc_pairing_client_qr_required">Scan enkel de verbindings-QR van de master. VT5 gebruikt de gegevens uit die QR om met het juiste netwerk en de juiste telling te verbinden.</string>
+    <string name="mc_pairing_master_no_ip">Geen netwerk-IP gevonden</string>
+    <string name="mc_pairing_permission_title">Nieuwe client aanvragen</string>
+    <string name="mc_pairing_permission_message">Client "%1$s" wil aansluiten op deze telling. Toestaan?</string>
+    <string name="mc_pairing_permission_allow">Toestaan</string>
+    <string name="mc_pairing_permission_deny">Weigeren</string>
+
+    <!-- ─── Nieuwe strings voor hotspot-gegevens en QR-handling ──────────── -->
+    <string name="mc_pairing_hotspot_label">Hotspot gegevens</string>
+    <string name="mc_pairing_hotspot_ssid_hint">Hotspot SSID</string>
+    <string name="mc_pairing_hotspot_pass_hint">Hotspot wachtwoord</string>
+    <string name="mc_pairing_hotspot_wpa2_hint">Beveiliging: WPA2</string>
+    <string name="mc_pairing_hotspot_save">Hotspot opslaan</string>
+    <string name="mc_pairing_hotspot_saved">Hotspot opgeslagen</string>
+    <string name="mc_pairing_hotspot_from_qr">Hotspot-gegevens uit QR opgeslagen</string>
+    <string name="mc_pairing_hotspot_manual_needed">Dit toestel levert zelf de hotspot. Vul hieronder de actuele hotspotnaam en het WPA2-wachtwoord in, of open eerst de hotspotinstellingen van Android.</string>
+    <string name="mc_pairing_hotspot_missing_both">Vul eerst de hotspotnaam én het WPA2-wachtwoord in voordat je clients laat koppelen.</string>
+    <string name="mc_pairing_hotspot_ssid_required">Vul eerst de hotspotnaam (SSID) in.</string>
+    <string name="mc_pairing_hotspot_pass_required">Vul eerst het WPA2-wachtwoord van de hotspot in.</string>
+
+    <string name="mc_pairing_wifi_qr_label">Wi‑Fi QR (eerst verbinden)</string>
+    <string name="mc_pairing_wifi_qr_missing">Geen SSID/wachtwoord ingevuld</string>
+    <string name="mc_pairing_generate_qrs">QR codes maken</string>
+    <string name="mc_pairing_generate_qrs_ready">QR codes aangemaakt</string>
+
+    <string name="mc_add_clients_confirm_title">Samenwerken starten</string>
+    <string name="mc_add_clients_confirm_message">Je staat momenteel in solo‑modus. Wil je nu samenwerken met andere tellers?</string>
+
+    <string name="mc_pairing_scan_wifi_qr">Scan Wi‑Fi QR</string>
+    <string name="mc_pairing_scan_pairing_qr">Scan pairing‑QR</string>
+    <string name="mc_pairing_wifi_qr_invalid">Geen geldige Wi‑Fi QR</string>
+    <string name="mc_pairing_wifi_qr_ok">Wi‑Fi QR ok. Scan nu de pairing‑QR.</string>
+
+    <string name="mc_tile_sync_toast">Tegels overgenomen van master</string>
+
+    <!-- ─── Master op extern Wi-Fi netwerk ──────────────────────────── -->
+    <string name="mc_pairing_wifi_password_for_qr_title">Wi‑Fi wachtwoord voor QR</string>
+    <string name="mc_pairing_wifi_client_info">Dit toestel is verbonden met \'%1$s\'.\nVoer het wachtwoord van dit netwerk in zodat de QR-codes gegenereerd kunnen worden voor de clients.</string>
+    <string name="mc_wifi_client_mode_active">Master actief via Wi‑Fi netwerk: %1$s</string>
+
+    <string name="mc_pairing_wifi_scan">Wi‑Fi scannen</string>
+    <string name="mc_pairing_open_hotspot_settings">Open hotspotinstellingen</string>
+    <string name="mc_pairing_wifi_scan_disabled_hotspot">Hotspot actief op dit toestel</string>
+    <string name="mc_pairing_wifi_scan_failed">Wi‑Fi scan niet gelukt</string>
+    <string name="mc_pairing_wifi_scan_empty">Geen netwerken gevonden</string>
+    <string name="mc_pairing_wifi_scan_permission">Locatie-toestemming nodig voor Wi‑Fi scan</string>
+
+    <string name="mc_wifi_select_title">Kies Wi‑Fi netwerk</string>
+    <string name="mc_wifi_connect_cancel">Annuleren</string>
+    <string name="mc_wifi_password_title">Wachtwoord voor %1$s</string>
+    <string name="mc_wifi_password_hint">Wi‑Fi wachtwoord</string>
+    <string name="mc_wifi_connect_failed">Verbinden met Wi‑Fi mislukt</string>
+    <string name="mc_wifi_connect_approve">Bevestig de Wi‑Fi-verbinding in Android</string>
+    <string name="mc_wifi_connected_or_suggested">Wi‑Fi verbinding aangevraagd</string>
+
+    <string name="mc_wifi_status_unknown">Wi‑Fi status: onbekend</string>
+    <string name="mc_wifi_status_connected">Wi‑Fi verbonden: %1$s</string>
+    <string name="mc_wifi_status_disconnected">Wi‑Fi niet verbonden</string>
+    <string name="mc_wifi_status_hotspot_provider">Hotspot actief op dit toestel: %1$s ▪ master bereikbaar via %2$s</string>
+    <string name="mc_wifi_status_local_only">Lokaal netwerkadres: %1$s</string>
+    <string name="mc_pairing_qr_info_hotspot_provider">Master hotspot ▪ %1$s:%2$d</string>
+    <string name="mc_pairing_qr_info_wifi_network">Master netwerk ▪ %1$s:%2$d</string>
+    <string name="mc_master_choose_network_title">Kies netwerk voor master</string>
+    <string name="mc_master_network_use_hotspot">Start lokale hotspot</string>
+    <string name="mc_master_network_saved">Master ingesteld op netwerk: %1$s</string>
+    <string name="mc_master_waiting_for_wifi">Bevestig de Wi‑Fi-verbinding voor %1$s in Android. Daarna wordt de master automatisch gestart.</string>
+    <string name="mc_master_configure_network_first">Kies eerst het master-netwerk via het Wi‑Fi-icoon voordat je de QR-code opent.</string>
+    <string name="mc_qr_only_for_master">Deze QR-knop is enkel beschikbaar in master-modus.</string>
+    <string name="mc_master_handshake_success">Client gekoppeld met master: %1$s</string>
+    <string name="mc_client_handshake_success">Handshake met master voltooid</string>
+    <string name="mc_permissions_startup_required">VT5 heeft audio-, camera- en netwerktoestemmingen nodig voor master/client en spraakinvoer.</string>
+    <string name="mc_pairing_connected_clients_names">Verbonden clients: %1$s</string>
+    <string name="mc_scan_client_qr_prompt">Scan de verbindings-QR van de master</string>
+    <string name="mc_client_starting_telling">QR gescand - cliëntmodus openen…</string>
+
+</resources>
