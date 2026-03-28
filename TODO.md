@@ -14,3 +14,14 @@
 
 "Controleer in `InstallatieScherm` of er in `Documents/VT5/assets` een recentere alias-JSON-versie aanwezig is dan de lokaal geïnstalleerde versie. Vergelijk bij voorkeur op manifest/version + bestandsgrootte + checksum. Toon alleen bij een echte upgrade de popup 'Nieuwe getrainde aliassen beschikbaar! Binair bestand aanmaken'. Laat het doeltoestel daarna zelf de JSON inlezen en de binaire aliascache opnieuw genereren, zonder de huidige werkende aliasmatching te breken."
 
+## Idee: spiekbriefje per soort met getrainde aliassen
+
+- Voorzie een read-only overzicht per soort waarin de reeds getrainde aliassen snel geraadpleegd kunnen worden.
+- Toon standaard enkel de user-getrainde aliassen, met eventueel een toggle om ook seed-aliassen te tonen.
+- Plaats dit bij voorkeur in `InstellingenScherm` of in een apart alias-overzichtsscherm dat vanuit instellingen bereikbaar is.
+- Gebruik de bestaande aliasbron als read-only bron; deze lijst mag de matcher, de trainingflow of de bestaande opslag niet wijzigen.
+
+## Korte implementatieprompt voor later
+
+"Maak een read-only spiekbriefje voor aliassen per soort. Gebruik `AliasRepository.getAliasesForSpecies()` of een equivalente read-only bron om per speciesId de aliassen te tonen. Standaard filteren op `source == user_field_training`, met optionele toggle voor seed-aliases. Toon dit via `InstellingenScherm` of een apart overzichtsscherm. Belangrijk: niets aanpassen aan de matcher, geen bestaande aliasdata wijzigen, enkel lezen en weergeven."
+
