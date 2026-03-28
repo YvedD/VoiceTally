@@ -4,7 +4,7 @@
 > De bestaande `README.md` blijft de algemene gebruikershandleiding voor solo-gebruik en installatie.
 > Dit document focust alleen op **solo / master / client(s)**, zodat de flow duidelijk en praktisch blijft.
 
-> **Icoonlegende:** `✅` = OK, `⏳` = pending, `❌` = rejected, ![WIFI](app/src/main/images/wifi.png) = Wi‑Fi, ![QR](app/src/main/images/QR.png) = QR-code
+> **Icoonlegende:** `✅` = OK, `⏳` = pending, `❌` = rejected, <img src="app/src/main/images/wifi.png" width="15" alt="WIFI" style="vertical-align:middle;"> Wi-Fi = Wi‑Fi, <img src="app/src/main/images/QR.png" width="15" alt="WIFI" style="vertical-align:middle;"> = QR-code
 
 ---
 
@@ -36,10 +36,10 @@ Kort gezegd:
 
 ## 2. Belangrijk uitgangspunt
 
-VT5 probeert **geen Wi‑Fi-netwerken automatisch te wijzigen** <span style="font-size: 0.85em; white-space: nowrap;">📶</span>
+VT5 probeert **geen Wi‑Fi-netwerken automatisch te wijzigen**
 
 Dat betekent:
-- de toestellen moeten al handmatig verbonden zijn met hetzelfde bestaande Wi‑Fi-netwerk <span style="font-size: 0.85em; white-space: nowrap;">📶</span>
+- de toestellen moeten al handmatig verbonden zijn met hetzelfde bestaande Wi‑Fi-netwerk 
 - VT5 gebruikt dat netwerk enkel voor communicatie
 - als Wi‑Fi of permissies niet in orde zijn, zal de app je daarop wijzen
 
