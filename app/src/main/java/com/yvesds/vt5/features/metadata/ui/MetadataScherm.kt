@@ -21,6 +21,7 @@ import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.metadata.helpers.MetadataFormManager
 import com.yvesds.vt5.features.metadata.helpers.TellingStarter
 import com.yvesds.vt5.features.metadata.helpers.WeatherDataFetcher
+import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
@@ -88,6 +89,11 @@ class MetadataScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = SchermMetadataBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Een nieuwe telling start altijd als normale solo/master-flow.
+        // Eventuele oude client-state mag deze flow niet besmetten.
+        MasterClientPrefs.resetToSolo(this)
+        TellingSessionManager.clear()
 
         // Initialize SAF helper
         saf = SaFStorageHelper(this)

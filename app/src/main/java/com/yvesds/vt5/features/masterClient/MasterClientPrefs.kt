@@ -21,6 +21,8 @@ object MasterClientPrefs {
 
     private const val KEY_MODE         = "mc_mode"
     private const val KEY_CLIENT_ID    = "mc_client_id"
+    private const val KEY_CLIENT_ALIAS = "mc_client_alias"
+    private const val KEY_ASSIGNED_CLIENT_LABEL = "mc_assigned_client_label"
     private const val KEY_MASTER_IP    = "mc_master_ip"
     private const val KEY_MASTER_PORT  = "mc_master_port"
     private const val KEY_BOOTSTRAP_SESSION = "mc_bootstrap_session"
@@ -48,6 +50,14 @@ object MasterClientPrefs {
         runtimeMode = MODE_SOLO
     }
 
+    fun resetToSolo(context: Context, clearConnectionDetails: Boolean = true) {
+        runtimeMode = MODE_SOLO
+        prefs(context).edit { putString(KEY_MODE, MODE_SOLO) }
+        if (clearConnectionDetails) {
+            clearSession(context)
+        }
+    }
+
     // ─── Client identity ──────────────────────────────────────────────────────
 
     /**
@@ -62,6 +72,19 @@ object MasterClientPrefs {
         prefs.edit { putString(KEY_CLIENT_ID, newId) }
         return newId
     }
+
+    fun getClientAlias(context: Context): String =
+        prefs(context).getString(KEY_CLIENT_ALIAS, "") ?: ""
+
+    fun setClientAlias(context: Context, alias: String) {
+        prefs(context).edit { putString(KEY_CLIENT_ALIAS, sanitizeClientAlias(alias)) }
+    }
+
+    fun getAssignedClientLabel(context: Context): String =
+        prefs(context).getString(KEY_ASSIGNED_CLIENT_LABEL, "") ?: ""
+
+    fun setAssignedClientLabel(context: Context, label: String) =
+        prefs(context).edit { putString(KEY_ASSIGNED_CLIENT_LABEL, label.trim()) }
 
     // ─── Master-verbinding (client-zijde) ─────────────────────────────────────
 
@@ -91,10 +114,19 @@ object MasterClientPrefs {
 
     fun clearSession(context: Context) {
         prefs(context).edit {
+            remove(KEY_ASSIGNED_CLIENT_LABEL)
             remove(KEY_SESSION_TOKEN)
             remove(KEY_MASTER_IP)
+            remove(KEY_MASTER_PORT)
             remove(KEY_BOOTSTRAP_SESSION)
         }
+    }
+
+    private fun sanitizeClientAlias(alias: String): String {
+        return alias
+            .replace(Regex("""[\r\n\[\]]+"""), " ")
+            .trim()
+            .take(40)
     }
 
 

@@ -55,6 +55,12 @@
     <string name="mc_pairing_failed">Koppeling mislukt: %1$s</string>
     <string name="mc_observation_received_master">Ontvangen op master</string>
     <string name="mc_observation_retry_master">Master kon deze waarneming nog niet verwerken; opnieuw proberen…</string>
+    <string name="mc_client_identity_title">Cliënt-identiteit</string>
+    <string name="mc_client_identity_message">Vul optioneel een alias in voor dit toestel, bijvoorbeeld Brecht of Luc.
+
+Laat je dit leeg, dan kent de master automatisch een cliëntnummer toe.</string>
+    <string name="mc_client_identity_hint">Alias (optioneel)</string>
+    <string name="mc_client_identity_continue">Verder</string>
 
     <!-- ─── Instellingen ─────────────────────────────────────────────── -->
     <string name="mc_settings_title">Samenwerken (master-client)</string>
@@ -82,7 +88,7 @@
 
     <!-- ─── Log-prefix voor client-waarnemingen ──────────────────────── -->
     <!-- Prefix die voor waarnemingen afkomstig van een client-toestel getoond wordt in de log -->
-    <string name="mc_log_client_prefix">[C]</string>
+    <string name="mc_log_client_prefix">CL</string>
 
     <!-- ─── Client: telling verlaten ────────────────────────────────── -->
     <string name="mc_btn_leave_session">Verlaat telling</string>

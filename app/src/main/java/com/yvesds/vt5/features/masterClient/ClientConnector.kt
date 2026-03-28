@@ -211,7 +211,8 @@ class ClientConnector(
                 // Pairing
                 val clientId   = prefs.getClientId(context)
                 val clientName = android.os.Build.MODEL
-                sendPairingRequest(w, PairingRequest(bootstrapSession, clientId, clientName))
+                val clientAlias = prefs.getClientAlias(context)
+                sendPairingRequest(w, PairingRequest(bootstrapSession, clientId, clientName, clientAlias))
 
                 val respLine = reader.readLine() ?: throw Exception("Verbinding verbroken tijdens pairing")
                 val respEnv  = decodeEnvelope(respLine)
@@ -230,6 +231,7 @@ class ClientConnector(
                 }
 
                 prefs.setSessionToken(context, resp.sessionToken)
+                prefs.setAssignedClientLabel(context, resp.clientLabel)
                 if (resp.tellingId.isNotBlank()) {
                     context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE).edit {
                         putString("pref_telling_id", resp.tellingId)
@@ -240,7 +242,7 @@ class ClientConnector(
                 _state.value = State.PAIRED
                 _lastError.value = ""
                 backoffMs = RECONNECT_BASE_MS
-                Log.i(TAG, "Verbonden met master: ${resp.masterName}")
+                Log.i(TAG, "Verbonden met master: ${resp.masterName} als ${resp.clientLabel.ifBlank { clientName }}")
 
                 // Event-lus + heartbeat
                 sessionLoop(reader, w)

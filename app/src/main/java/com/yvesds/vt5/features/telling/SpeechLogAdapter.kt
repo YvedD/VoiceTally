@@ -128,28 +128,8 @@ class SpeechLogAdapter :
         val errorColor = android.graphics.Color.RED
         val successColor = android.graphics.Color.rgb(0, 200, 83)
 
-        val marker = deliveryMarker(row.deliveryState)
-        if (marker.isBlank()) {
-            holder.vb.tvDeliveryState.text = ""
-            holder.vb.tvDeliveryState.visibility = android.view.View.GONE
-        } else {
-            holder.vb.tvDeliveryState.text = marker
-            holder.vb.tvDeliveryState.visibility = android.view.View.VISIBLE
-            holder.vb.tvDeliveryState.contentDescription = when (row.deliveryState) {
-                TellingScherm.ObservationDeliveryState.PENDING -> holder.itemView.context.getString(R.string.mc_delivery_state_pending)
-                TellingScherm.ObservationDeliveryState.RECEIVED -> holder.itemView.context.getString(R.string.mc_delivery_state_received)
-                TellingScherm.ObservationDeliveryState.REJECTED -> holder.itemView.context.getString(R.string.mc_delivery_state_rejected)
-                TellingScherm.ObservationDeliveryState.NONE -> ""
-            }
-            holder.vb.tvDeliveryState.setTextColor(
-                when (row.deliveryState) {
-                    TellingScherm.ObservationDeliveryState.PENDING -> pendingColor
-                    TellingScherm.ObservationDeliveryState.REJECTED -> errorColor
-                    TellingScherm.ObservationDeliveryState.RECEIVED -> successColor
-                    TellingScherm.ObservationDeliveryState.NONE -> defaultFinals
-                }
-            )
-        }
+        holder.vb.tvDeliveryState.text = ""
+        holder.vb.tvDeliveryState.visibility = android.view.View.GONE
 
         when (row.bron) {
             "final" -> {

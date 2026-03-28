@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +29,7 @@ import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
 import com.yvesds.vt5.features.telling.TellingBeheerScherm
 import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
 import com.yvesds.vt5.features.telling.TellingScherm
+import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.ui.DialogStyler
 import kotlinx.coroutines.Dispatchers
@@ -68,13 +70,17 @@ class HoofdActiviteit : AppCompatActivity() {
             return@registerForActivityResult
         }
 
-        MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
-        Toast.makeText(this, getString(R.string.mc_client_starting_telling), Toast.LENGTH_SHORT).show()
-        startActivity(
-            Intent(this, TellingScherm::class.java).apply {
-                putExtra(TellingScherm.EXTRA_CLIENT_QR_PAYLOAD, raw)
-            }
-        )
+        promptForClientIdentity {
+            TellingSessionManager.clear()
+            MasterClientPrefs.clearSession(this)
+            MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+            Toast.makeText(this, getString(R.string.mc_client_starting_telling), Toast.LENGTH_SHORT).show()
+            startActivity(
+                Intent(this, TellingScherm::class.java).apply {
+                    putExtra(TellingScherm.EXTRA_CLIENT_QR_PAYLOAD, raw)
+                }
+            )
+        }
     }
 
     private val requestCameraPermissionLauncher = registerForActivityResult(
@@ -290,6 +296,28 @@ class HoofdActiviteit : AppCompatActivity() {
             setPrompt(getString(R.string.mc_scan_client_qr_prompt))
         }
         clientQrScanLauncher.launch(options)
+    }
+
+    private fun promptForClientIdentity(onConfirmed: () -> Unit) {
+        val input = EditText(this).apply {
+            hint = getString(R.string.mc_client_identity_hint)
+            setSingleLine(true)
+            setText(MasterClientPrefs.getClientAlias(this@HoofdActiviteit))
+            setSelection(text?.length ?: 0)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_client_identity_title)
+            .setMessage(R.string.mc_client_identity_message)
+            .setView(input)
+            .setPositiveButton(R.string.mc_client_identity_continue) { _, _ ->
+                MasterClientPrefs.setClientAlias(this, input.text?.toString().orEmpty())
+                onConfirmed()
+            }
+            .setNegativeButton(R.string.annuleer, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
     }
 
     /**

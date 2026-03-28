@@ -39,6 +39,7 @@ import java.io.InputStreamReader
 import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.Locale
 
 /**
  * MasterServer – lokale TCP-server die draait op het master-toestel.
@@ -60,11 +61,39 @@ class MasterServer(
         private const val TAG = "MasterServer"
     }
 
+    data class ClientIdentity(
+        val clientId: String,
+        val deviceName: String,
+        val alias: String,
+        val ordinal: Int,
+        val sessionToken: String
+    ) {
+        val displayLabel: String
+            get() = alias.ifBlank { String.format(Locale.US, "Cl%03d", ordinal) }
+
+        val logPrefix: String
+            get() = alias.takeIf { it.isNotBlank() }?.let { "CL:$it" }
+                ?: String.format(Locale.US, "Cl%03d", ordinal)
+
+        val approvalLabel: String
+            get() = buildString {
+                append(displayLabel)
+                if (deviceName.isNotBlank() && !deviceName.equals(displayLabel, ignoreCase = true)) {
+                    append(" • ")
+                    append(deviceName)
+                }
+            }
+    }
+
     private val json = VT5App.json
 
     // Verbonden clients: token → clientnaam
     private val _connectedClients = MutableStateFlow<Map<String, String>>(emptyMap())
     val connectedClients: StateFlow<Map<String, String>> = _connectedClients
+    private val clientProfilesByToken = mutableMapOf<String, ClientIdentity>()
+    private val knownClientProfilesById = mutableMapOf<String, ClientIdentity>()
+    private val clientOrdinalsById = mutableMapOf<String, Int>()
+    private var nextClientOrdinal = 1
 
     // Writers per sessietoken zodat de master broadcast-berichten kan sturen
     private val clientWriters = mutableMapOf<String, PrintWriter>()
@@ -131,7 +160,13 @@ class MasterServer(
         serverScope = null
         serverSocket = null
         _connectedClients.value = emptyMap()
-        synchronized(clientWritersLock) { clientWriters.clear() }
+        synchronized(clientWritersLock) {
+            clientWriters.clear()
+            clientProfilesByToken.clear()
+            knownClientProfilesById.clear()
+            clientOrdinalsById.clear()
+            nextClientOrdinal = 1
+        }
         pairingManager.revokeAll()
         Log.i(TAG, "MasterServer gestopt door aanroep stop()")
     }
@@ -163,6 +198,7 @@ class MasterServer(
                         accepted     = false,
                         sessionToken = "",
                         masterName   = android.os.Build.MODEL,
+                        clientLabel  = "",
                         error        = "Ongeldige of verlopen sessie"
                     )
                     sendPairingResponse(writer, pairingResp)
@@ -170,13 +206,17 @@ class MasterServer(
                     return@withContext
                 }
 
-                val approvedByMaster = onPairingRequest?.invoke(pairingReq.clientId, pairingReq.clientName) ?: true
+                val clientIdentity = registerClientIdentity(sessionToken, pairingReq)
+                val approvedByMaster = onPairingRequest?.invoke(pairingReq.clientId, clientIdentity.approvalLabel) ?: true
                 if (!approvedByMaster) {
                     pairingManager.revokeToken(sessionToken)
+                    unregisterPendingClient(sessionToken)
                     val pairingResp = PairingResponse(
                         accepted     = false,
                         sessionToken = "",
                         masterName   = android.os.Build.MODEL,
+                        clientOrdinal = clientIdentity.ordinal,
+                        clientLabel  = clientIdentity.displayLabel,
                         error        = "Afgewezen door master"
                     )
                     sendPairingResponse(writer, pairingResp)
@@ -188,15 +228,17 @@ class MasterServer(
                     accepted     = true,
                     sessionToken = sessionToken,
                     masterName   = android.os.Build.MODEL,
+                    clientOrdinal = clientIdentity.ordinal,
+                    clientLabel   = clientIdentity.displayLabel,
                     tellingId    = getActiveTellingId(),
                     error        = ""
                 )
                 sendPairingResponse(writer, pairingResp)
 
                 // Voeg toe aan verbonden clients
-                addConnectedClient(sessionToken, pairingReq.clientName, writer)
-                Log.i(TAG, "Client verbonden: ${pairingReq.clientName} (${pairingReq.clientId})")
-                onClientConnected?.invoke(pairingReq.clientName)
+                addConnectedClient(clientIdentity, writer)
+                Log.i(TAG, "Client verbonden: ${clientIdentity.displayLabel} (${pairingReq.clientId})")
+                onClientConnected?.invoke(clientIdentity.displayLabel)
 
                 // Stuur huidige tegelset naar de client (indien beschikbaar)
                 sendTileSyncIfAvailable(writer)
@@ -377,12 +419,22 @@ class MasterServer(
         Log.i(TAG, "TileSync broadcast naar $sent/${writers.size} client(s).")
     }
 
-    private fun addConnectedClient(token: String, name: String, writer: PrintWriter) {
+    fun getClientLogPrefix(clientId: String): String? = synchronized(clientWritersLock) {
+        knownClientProfilesById[clientId]?.logPrefix
+    }
+
+    fun getClientDisplayLabel(clientId: String): String? = synchronized(clientWritersLock) {
+        knownClientProfilesById[clientId]?.displayLabel
+    }
+
+    private fun addConnectedClient(identity: ClientIdentity, writer: PrintWriter) {
         synchronized(clientWritersLock) {
             val current = _connectedClients.value.toMutableMap()
-            current[token] = name
+            current[identity.sessionToken] = identity.displayLabel
             _connectedClients.value = current
-            clientWriters[token] = writer
+            clientWriters[identity.sessionToken] = writer
+            clientProfilesByToken[identity.sessionToken] = identity
+            knownClientProfilesById[identity.clientId] = identity
         }
     }
 
@@ -392,8 +444,33 @@ class MasterServer(
             current.remove(token)
             _connectedClients.value = current
             clientWriters.remove(token)
+            clientProfilesByToken.remove(token)
         }
         pairingManager.revokeToken(token)
+    }
+
+    private fun unregisterPendingClient(token: String) {
+        synchronized(clientWritersLock) {
+            clientProfilesByToken.remove(token)
+        }
+    }
+
+    private fun registerClientIdentity(sessionToken: String, request: PairingRequest): ClientIdentity {
+        synchronized(clientWritersLock) {
+            val existing = knownClientProfilesById[request.clientId]
+            val ordinal = existing?.ordinal ?: clientOrdinalsById.getOrPut(request.clientId) { nextClientOrdinal++ }
+            val alias = request.clientAlias.trim().ifBlank { existing?.alias.orEmpty() }
+            val identity = ClientIdentity(
+                clientId = request.clientId,
+                deviceName = request.clientName.trim(),
+                alias = alias,
+                ordinal = ordinal,
+                sessionToken = sessionToken
+            )
+            clientProfilesByToken[sessionToken] = identity
+            knownClientProfilesById[request.clientId] = identity
+            return identity
+        }
     }
 
     private suspend fun sendTileSyncIfAvailable(writer: PrintWriter) {

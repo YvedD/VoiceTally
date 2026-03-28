@@ -42,7 +42,8 @@ data class McEnvelope(
 data class PairingRequest(
     @SerialName("session")    val session: String,
     @SerialName("clientId")   val clientId: String,
-    @SerialName("clientName") val clientName: String
+    @SerialName("clientName") val clientName: String,
+    @SerialName("clientAlias") val clientAlias: String = ""
 )
 
 /** Antwoord van de master op een PairingRequest. */
@@ -51,6 +52,8 @@ data class PairingResponse(
     @SerialName("accepted")      val accepted: Boolean,
     @SerialName("sessionToken")  val sessionToken: String = "",
     @SerialName("masterName")    val masterName: String  = "",
+    @SerialName("clientOrdinal") val clientOrdinal: Int  = 0,
+    @SerialName("clientLabel")   val clientLabel: String = "",
     @SerialName("tellingId")     val tellingId: String   = "",
     @SerialName("error")         val error: String       = ""
 )

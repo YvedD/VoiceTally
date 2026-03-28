@@ -54,7 +54,14 @@ class TellingSpeciesManager(
     private lateinit var addSoortenLauncher: ActivityResultLauncher<Intent>
 
     // Callbacks
+    data class AddedTileInfo(
+        val soortId: String,
+        val naam: String,
+        val initialCount: Int
+    )
+
     var onSpeciesAdded: ((Int) -> Unit)? = null
+    var onSpeciesTilesAdded: ((List<AddedTileInfo>) -> Unit)? = null
     var onLogMessage: ((String, String) -> Unit)? = null
     var onTilesUpdated: (() -> Unit)? = null
     var onRecordCollected: ((ServerTellingDataItem) -> Unit)? = null
@@ -132,6 +139,9 @@ class TellingSpeciesManager(
                             additions.forEach { tile ->
                                 tegelBeheer.voegSoortToe(tile.soortId, tile.naam, 0, mergeIfExists = false)
                             }
+                            onSpeciesTilesAdded?.invoke(
+                                additions.map { AddedTileInfo(it.soortId, it.naam, 0) }
+                            )
 
                             // Log message with world species info
                             val msg = if (worldSpeciesAdded > 0) {
@@ -198,6 +208,7 @@ class TellingSpeciesManager(
             val canonical = snapshot.speciesById[soortId]?.soortnaam ?: naam
 
             tegelBeheer.voegSoortToe(soortId, canonical, initialCount, mergeIfExists = true)
+            onSpeciesTilesAdded?.invoke(listOf(AddedTileInfo(soortId, canonical, initialCount)))
             onTilesUpdated?.invoke()
             val maxRecents2 = InstellingenScherm.getMaxFavorieten(activity)
                 .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
