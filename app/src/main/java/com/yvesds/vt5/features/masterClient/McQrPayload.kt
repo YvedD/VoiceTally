@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.serialization.InternalSerializationApi::class)
+
 package com.yvesds.vt5.features.masterClient
 
 import com.yvesds.vt5.VT5App

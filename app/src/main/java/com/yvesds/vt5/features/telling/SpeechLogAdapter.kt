@@ -6,19 +6,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.yvesds.vt5.R
 import com.yvesds.vt5.databinding.ItemSpeechLogBinding
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private fun deliveryMarker(state: TellingScherm.ObservationDeliveryState): String = when (state) {
-    TellingScherm.ObservationDeliveryState.PENDING -> "⏳"
-    TellingScherm.ObservationDeliveryState.RECEIVED -> "✓"
-    TellingScherm.ObservationDeliveryState.REJECTED -> "!"
-    TellingScherm.ObservationDeliveryState.NONE -> ""
-}
 
 /**
  * SpeechLogAdapter: light-weight RecyclerView adapter for speech logs.
@@ -126,7 +118,6 @@ class SpeechLogAdapter :
         val defaultFinals = cachedFinalsTextColor
         val pendingColor = android.graphics.Color.rgb(255, 183, 77)
         val errorColor = android.graphics.Color.RED
-        val successColor = android.graphics.Color.rgb(0, 200, 83)
 
         holder.vb.tvDeliveryState.text = ""
         holder.vb.tvDeliveryState.visibility = android.view.View.GONE
