@@ -4,7 +4,7 @@
 > De bestaande `README.md` blijft de algemene gebruikershandleiding voor solo-gebruik en installatie.
 > Dit document focust alleen op **solo / master / client(s)**, zodat de flow duidelijk en praktisch blijft.
 
-> **Icoonlegende:** `✅` = OK, `⏳` = pending, `❌` = rejected, ![WIFI](app/src/main/images/wifi.png) = Wi‑Fi, ![QR](app/src/main/images/QR.png) = QR-code
+> **Icoonlegende:** `✅` = OK, `⏳` = pending, `❌` = rejected, <img src="app/src/main/images/wifi.png" width="20" alt="WIFI" style="vertical-align:middle;"> Wi-Fi = Wi‑Fi, ![QR](app/src/main/images/QR.png) = QR-code
 
 ---
 
