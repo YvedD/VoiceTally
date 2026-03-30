@@ -25,9 +25,9 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
-
-- **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk
+- **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
+
 ---
 
 ## Inhoudsopgave
