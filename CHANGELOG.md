@@ -4,7 +4,7 @@
 
 ## Unreleased / Nog niet uitgebracht
 
-- NL : een testbare versie met master/cliênt werking is beschikbaar bij de releases, waarbij één toestel als master fungeert en er meerdere cliënts kunnen invoegen op de telling.
+- NL : een testbare versie met master/cliënt werking is beschikbaar bij de releases, waarbij één toestel als master fungeert en er meerdere cliënts kunnen invoegen op de telling.
 
 ## 1.0.3 — 2026-02-05
 
