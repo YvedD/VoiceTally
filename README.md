@@ -19,14 +19,14 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 
 > **VT5** is een snelle, intuïtieve Android-app voor het vastleggen van vogeltrekwaarnemingen via spraakinvoer. De app is ontworpen voor gebruik in het veld door vogelwaarnemers en synchroniseert automatisch met [www.trektellen.nl](https://www.trektellen.nl).
 
-## Releases
+##Latest Releases
 [![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk)
 ![Speech](https://img.shields.io/badge/input-voice-blue?logo=googleassistant)
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
-https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk
+
 
 ## Master / Client Pre-release
 [![Release](https://img.shields.io/badge/mc--release-red?logo=android)](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk)
@@ -36,7 +36,7 @@ https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 ![Type](https://img.shields.io/badge/build-pre--release-yellow)  
-https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk
+
 
 ---
 
