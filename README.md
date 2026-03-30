@@ -21,6 +21,7 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 
 ## Releases
 [![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk)
+![Speech](https://img.shields.io/badge/input-voice-blue?logo=googleassistant)
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
@@ -28,7 +29,9 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk
 
 ## Master / Client Pre-release
-[![M/C Release](https://img.shields.io/badge/mc--release-red?logo=android)](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk)
+[![Release](https://img.shields.io/badge/mc--release-red?logo=android)](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk)
+![WiFi](https://img.shields.io/badge/connection-WiFi-blue?logo=wifi)
+![Speech](https://img.shields.io/badge/input-voice-blue?logo=googleassistant)
 ![Version](https://img.shields.io/badge/version-v1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
