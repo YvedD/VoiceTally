@@ -26,12 +26,13 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk
-[![Master/Client](https://img.shields.io/github/v/release/YvedD/VoiceTally)]([https://github.com/YvedD/VoiceTally/releases/latest/download/mc-app-release.apk](https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk))
-![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
+
+## Master / Client Pre-release
+[![MC Release](https://img.shields.io/badge/download-mc--release-red?logo=android)]([https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk))
+![Version](https://img.shields.io/badge/version-v1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
-[![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
-https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk
+![Type](https://img.shields.io/badge/build-pre--release-yellow)
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
