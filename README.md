@@ -20,7 +20,7 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 > **VT5** is een snelle, intuïtieve Android-app voor het vastleggen van vogeltrekwaarnemingen via spraakinvoer. De app is ontworpen voor gebruik in het veld door vogelwaarnemers en synchroniseert automatisch met [www.trektellen.nl](https://www.trektellen.nl).
 
 ## Releases
-[![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)]([https://github.com/YvedD/VoiceTally/releases/latest/download/app-release-v1.0.1.apk](https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk))
+[![Release](https://img.shields.io/github/v/release/YvedD/VoiceTally)](https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk)
 ![Downloads](https://img.shields.io/github/downloads/YvedD/VoiceTally/total)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
@@ -28,7 +28,7 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3e.apk/Voicetally.5.-v1.0.3e.apk
 
 ## Master / Client Pre-release
-[![MC Release](https://img.shields.io/badge/download-mc--release-red?logo=android)]([https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk))
+[![M/C Release](https://img.shields.io/badge/mc--release-red?logo=android)](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk)
 ![Version](https://img.shields.io/badge/version-v1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
