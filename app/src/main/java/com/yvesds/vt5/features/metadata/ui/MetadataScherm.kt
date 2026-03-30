@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
@@ -21,6 +20,7 @@ import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.metadata.helpers.MetadataFormManager
 import com.yvesds.vt5.features.metadata.helpers.TellingStarter
 import com.yvesds.vt5.features.metadata.helpers.WeatherDataFetcher
+import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
@@ -79,6 +79,7 @@ class MetadataScherm : AppCompatActivity() {
     private val requestLocationPerms = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
+        McRuntimePermissions.cachePermissionResults(this, result)
         val granted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) onWeerAutoClicked()
@@ -335,7 +336,7 @@ class MetadataScherm : AppCompatActivity() {
     private val soortSelectieLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { res ->
-        if (res.resultCode == Activity.RESULT_OK) {
+        if (res.resultCode == RESULT_OK) {
             val ids = res.data?.getStringArrayListExtra(SoortSelectieScherm.EXTRA_SELECTED_SOORT_IDS).orEmpty()
             formManager.gekozenTelpostId?.let { TellingSessionManager.setTelpost(it) }
             TellingSessionManager.setPreselectedSoorten(ids)
@@ -371,7 +372,7 @@ class MetadataScherm : AppCompatActivity() {
                     }
                     
                     // Success! Setup session and open SoortSelectieScherm
-                    val speciesForTelpost = fullSnapshot.siteSpeciesBySite[telpostId]?.mapNotNull { it.soortid } ?: emptyList()
+                    val speciesForTelpost = fullSnapshot.siteSpeciesBySite[telpostId]?.map { it.soortid } ?: emptyList()
                     TellingSessionManager.setTelpost(telpostId)
                     TellingSessionManager.setPreselectedSoorten(speciesForTelpost)
                     

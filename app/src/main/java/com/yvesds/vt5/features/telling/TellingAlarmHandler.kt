@@ -15,7 +15,7 @@ import java.util.Calendar
  * TellingAlarmHandler
  * 
  * Beheert het uurlijkse alarm direct binnen TellingScherm.
- * Controleert op de 59ste minuut en triggert:
+ * Controleert op de 00e minuut en triggert:
  * - Geluid afspelen (bell.mp3 of systeem notificatie)
  * - Vibratie
  * - Callback naar TellingScherm om HuidigeStandScherm te tonen

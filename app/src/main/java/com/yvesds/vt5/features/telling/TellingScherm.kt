@@ -379,7 +379,7 @@ class TellingScherm : AppCompatActivity() {
         // speciesManager and annotationHandler already initialized before super.onCreate()
         initializer = TellingInitializer(this)
         
-        // Initialize alarm handler for hourly alarm at minute 59
+        // Initialize alarm handler for hourly alarm at minute 00
         alarmHandler = TellingAlarmHandler(this, lifecycleScope)
         alarmHandler.onAlarmTriggered = {
             showHuidigeStandScherm()

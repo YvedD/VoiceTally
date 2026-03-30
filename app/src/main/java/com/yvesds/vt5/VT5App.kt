@@ -9,6 +9,7 @@ import com.yvesds.vt5.features.speech.MatchLogWriter
 import com.yvesds.vt5.features.speech.AliasMatcher
 import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -43,12 +44,18 @@ class VT5App : Application() {
             Log.w(TAG, "Failed to start MatchLogWriter in Application.onCreate: ${ex.message}", ex)
         }
         instance = this
-        
-        // Initialiseer uurlijks alarm
+
         try {
-            com.yvesds.vt5.core.app.HourlyAlarmManager.scheduleNextAlarm(this)
+            McRuntimePermissions.refreshCachedPermissionStates(this)
         } catch (ex: Exception) {
-            Log.w(TAG, "Failed to initialize hourly alarm: ${ex.message}", ex)
+            Log.w(TAG, "Failed to refresh permission cache at startup: ${ex.message}", ex)
+        }
+        
+        // Ruim eventueel nog aanwezige legacy AlarmManager-registraties op.
+        try {
+            com.yvesds.vt5.core.app.HourlyAlarmManager.cancelScheduledAlarm(this)
+        } catch (ex: Exception) {
+            Log.w(TAG, "Failed to clean up legacy hourly alarm: ${ex.message}", ex)
         }
 
         // Preload data in de achtergrond - verhoogt app responsiviteit
@@ -61,8 +68,8 @@ class VT5App : Application() {
         appScope.launch {
             try {
                 val saf = SaFStorageHelper(applicationContext)
-                // Quick IO check: is Documents/VT5 present? (run on IO)
-                val vt5Exists = withContext(Dispatchers.IO) { saf.getVt5DirIfExists() != null }
+                // Quick IO check: touch the VT5 directory state once on IO before CPU-heavy preloads.
+                withContext(Dispatchers.IO) { saf.getVt5DirIfExists() }
 
                 // Run index preloads on Default so CPU-bound work uses Default threads.
                 // Note: ensureLoaded / ensureIndexLoadedSuspend internally use appropriate dispatchers
@@ -82,9 +89,7 @@ class VT5App : Application() {
                     }
                 }
 
-                // If vt5 wasn't present we still tried the safe preloads; nothing to block startup on.
-                if (!vt5Exists) {
-                }
+                // Nothing else to block startup on here; the preload is best-effort only.
             } catch (ex: Exception) {
                 Log.w(TAG, "Background alias index preload skipped: ${ex.message}", ex)
             }
@@ -144,7 +149,7 @@ class VT5App : Application() {
 
         /** Toegang tot app-prefs. */
         fun prefs(): SharedPreferences =
-            instance.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            instance.run { getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
 
         /**
          * Geef volgende telling-id terug als String en verhoog de teller.

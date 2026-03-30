@@ -237,11 +237,11 @@ class HoofdActiviteit : AppCompatActivity() {
             TellingUploadFlags.clearFlag(this@HoofdActiviteit, tellingId, onlineId)
 
             val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
-            prefs.edit()
-                .remove("pref_saved_envelope_json")
-                .remove("pref_online_id")
-                .remove("pref_telling_id")
-                .apply()
+            prefs.edit {
+                remove("pref_saved_envelope_json")
+                remove("pref_online_id")
+                remove("pref_telling_id")
+            }
 
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@HoofdActiviteit, getString(R.string.pending_telling_deleted), Toast.LENGTH_LONG).show()
@@ -282,7 +282,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
     private fun requestStartupPermissionsIfNeeded() {
         McRuntimePermissions.refreshCachedPermissionStates(this)
-        val missingPermissions = McRuntimePermissions.missingStartupPermissions(this)
+        val missingPermissions = McRuntimePermissions.autoPromptStartupPermissions(this)
         if (missingPermissions.isNotEmpty()) {
             requestStartupPermissionsLauncher.launch(missingPermissions)
         }

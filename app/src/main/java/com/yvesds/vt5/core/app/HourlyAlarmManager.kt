@@ -5,23 +5,19 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
-import com.yvesds.vt5.features.telling.TellingScherm
 import java.util.Calendar
 
 /**
  * HourlyAlarmManager
- * 
- * Beheert een alarm dat elk uur op de 59ste minuut afgaat.
- * Speelt een geluid af en toont optioneel het HuidigeStandScherm als een telling actief is.
- * 
- * Features:
- * - Exacte alarm scheduling op 59ste minuut van elk uur
- * - Configureerbaar via SharedPreferences (aan/uit)
- * - Geluid + vibratie
- * - Automatische integratie met actieve tellingen
+ *
+ * Beheert de gedeelde voorkeur voor het uurlijkse alarm en ruimt eventuele
+ * oude AlarmManager-registraties op.
+ *
+ * De effectieve alarmtrigger loopt nu via de schermgebonden
+ * `TellingAlarmHandler`, zodat het alarm alleen actief is terwijl de app
+ * daadwerkelijk in gebruik is.
  */
 object HourlyAlarmManager {
     private const val TAG = "HourlyAlarmManager"
@@ -52,16 +48,27 @@ object HourlyAlarmManager {
         }
         
         if (enabled) {
-            scheduleNextAlarm(context)
-            Log.i(TAG, "Uurlijks alarm ingeschakeld")
+            Log.i(TAG, "Uurlijks alarm ingeschakeld (alleen tijdens actieve TellingScherm-sessie)")
         } else {
             cancelAlarm(context)
             Log.i(TAG, "Uurlijks alarm uitgeschakeld")
         }
     }
+
+    /**
+     * Verwijdert een eventueel nog ingepland legacy-alarm zonder de ingestelde
+     * voorkeur te wijzigen.
+     */
+    fun cancelScheduledAlarm(context: Context) {
+        cancelAlarm(context)
+    }
     
     /**
-     * Plant het volgende alarm op de 59ste minuut van het huidige of volgende uur
+     * Plant het volgende legacy alarm op de 00e minuut van het huidige of volgende uur.
+     *
+     * Let op: de huidige app-flow gebruikt dit pad niet meer automatisch.
+     * De schermgebonden `TellingAlarmHandler` is de leidende implementatie voor
+     * actieve tellingen.
      */
     fun scheduleNextAlarm(context: Context) {
         if (!isEnabled(context)) {
@@ -77,13 +84,13 @@ object HourlyAlarmManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        // Bereken de volgende 59ste minuut
+        // Bereken de volgende 00e minuut
         val calendar = Calendar.getInstance().apply {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-            set(Calendar.MINUTE, 59)
+            set(Calendar.MINUTE, 0)
             
-            // Als we al voorbij de 59ste minuut zijn, ga naar het volgende uur
+            // Als we al voorbij de 00e minuut zijn, ga naar het volgende uur
             if (before(Calendar.getInstance())) {
                 add(Calendar.HOUR_OF_DAY, 1)
             }

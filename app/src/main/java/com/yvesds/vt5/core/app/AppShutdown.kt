@@ -6,7 +6,6 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.opstart.usecases.ServerJsonDownloader
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.speech.MatchLogWriter
-import com.yvesds.vt5.core.app.AlarmSoundHelper
 
 /**
  * Centrale, nette afsluiter voor de VT5-app.
@@ -55,6 +54,12 @@ object AppShutdown {
                 AlarmSoundHelper.cleanup()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to cleanup AlarmSoundHelper: ${e.message}", e)
+            }
+
+            try {
+                HourlyAlarmManager.cancelScheduledAlarm(context)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to cancel legacy hourly alarm: ${e.message}", e)
             }
 
             // 2. Shutdown network clients (closes connection pools, stops executors)
