@@ -32,7 +32,9 @@ https://github.com/YvedD/VoiceTally/releases/download/Voicetally.5.version.1.0.3
 ![Version](https://img.shields.io/badge/version-v1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
-![Type](https://img.shields.io/badge/build-pre--release-yellow)
+![Type](https://img.shields.io/badge/build-pre--release-yellow)  
+https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk
+
 - **Changelog / Versiegeschiedenis:** zie [`CHANGELOG.md`](CHANGELOG.md)
 
 ---
