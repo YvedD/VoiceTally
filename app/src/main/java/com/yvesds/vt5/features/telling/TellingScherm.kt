@@ -640,8 +640,7 @@ class TellingScherm : AppCompatActivity() {
                                 lifecycleScope.launch {
                                     // Add species to tiles (creates tile if not present, or increases count)
                                     speciesManager.addSpeciesToTilesIfNeeded(speciesId, canonical, count)
-                                    // Add to finals log (green text) and collect record for server upload
-                                    addFinalLog("$canonical -> +$count")
+                                    // Collect record; onRecordCollected will render the single finals row.
                                     speciesManager.collectFinalAsRecord(speciesId, count)
                                 }
                             }
@@ -1009,14 +1008,10 @@ class TellingScherm : AppCompatActivity() {
                 val naam = tegelBeheer.findNaamBySoortId(soortId) ?: "Unknown"
                 if (mainDelta > 0) {
                     tegelBeheer.verhoogSoortAantal(soortId, mainDelta)
-                    // Behave like an ASR final for main direction
-                    addFinalLog("$naam -> +$mainDelta")
                     speciesManager.collectFinalAsRecord(soortId, mainDelta)
                 }
                 if (returnDelta > 0) {
                     tegelBeheer.verhoogSoortAantalReturn(soortId, returnDelta)
-                    // Log and collect return as record (amountReturn)
-                    addFinalLog("$naam (tegenrichting) -> +$returnDelta")
                     speciesManager.collectFinalAsRecord(soortId, 0, returnDelta)
                 }
 
@@ -1097,12 +1092,11 @@ class TellingScherm : AppCompatActivity() {
 
 
     /**
-     * Record a species count (add final log, update count, collect record).
+     * Record a species count (update count, collect record).
      */
     private fun recordSpeciesCount(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
         lifecycleScope.launch {
             tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
-            addFinalLog("$displayName -> +$count", utteranceId)
             speciesManager.updateSoortCountInternal(speciesId, count)
             speciesManager.collectFinalAsRecord(speciesId, count)
         }
@@ -1122,7 +1116,6 @@ class TellingScherm : AppCompatActivity() {
         lifecycleScope.launch {
             tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
             speciesManager.addSpeciesToTiles(speciesId, displayName, count)
-            addFinalLog("$displayName -> +$count", utteranceId)
             speciesManager.collectFinalAsRecord(speciesId, count)
         }
         RecentSpeciesStore.recordUse(this, speciesId, maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
@@ -1139,7 +1132,6 @@ class TellingScherm : AppCompatActivity() {
             .setPositiveButton("Ja") { _, _ ->
                 lifecycleScope.launch {
                     speciesManager.addSpeciesToTiles(speciesId, displayName, count)
-                    addFinalLog("$displayName -> +$count", utteranceId)
                     speciesManager.collectFinalAsRecord(speciesId, count)
                 }
             }
