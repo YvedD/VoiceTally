@@ -25,3 +25,11 @@
 
 "Maak een read-only spiekbriefje voor aliassen per soort. Gebruik `AliasRepository.getAliasesForSpecies()` of een equivalente read-only bron om per speciesId de aliassen te tonen. Standaard filteren op `source == user_field_training`, met optionele toggle voor seed-aliases. Toon dit via `InstellingenScherm` of een apart overzichtsscherm. Belangrijk: niets aanpassen aan de matcher, geen bestaande aliasdata wijzigen, enkel lezen en weergeven."
 
+## Idee: 'silent' auto-upload, instelbaar.
+
+- Maak een, instelbare, 'silent'-upload mogelijkheid die bijvoorbeeld elke vijf minuten, zonder tussenkomst van de gebruiker de huidige enveloppe reeds upload naar de server. Hierna word géén nieuwe telling gestart!
+- Deze tussentijdse uploads hergebruiken telkens de 'metadata-gegevens' van de huidige lopende telling. Een eindafronding gebeurd immers altijd via de "Afronden"
+  knop in het TellingScherm. Een 'afgeronde' server-upload overschrijft immers alle eerdere tijdelijke uploads.
+- Deze tussentijdse uploads gaan dus NOOIT terug naar het MetadataScherm of SoortSelectieScherm.
+- Het tijdschema (in minuten) van deze tussentijdse uploads moeten instelbaar zijn in het InstellingenScherm [Géén][5min][10min][15min][30min]
+

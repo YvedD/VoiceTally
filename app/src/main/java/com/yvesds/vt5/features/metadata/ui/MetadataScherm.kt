@@ -3,7 +3,6 @@
 package com.yvesds.vt5.features.metadata.ui
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
@@ -22,6 +21,7 @@ import com.yvesds.vt5.features.metadata.helpers.TellingStarter
 import com.yvesds.vt5.features.metadata.helpers.WeatherDataFetcher
 import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.MasterClientRuntimeStore
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
@@ -56,6 +56,7 @@ class MetadataScherm : AppCompatActivity() {
          * for the new telling, and the weather "Auto" button will be enabled.
          */
         const val EXTRA_VERVOLG_BEGINTIJD_EPOCH = "EXTRA_VERVOLG_BEGINTIJD_EPOCH"
+        const val EXTRA_PRESERVE_MASTER_CLIENT_SESSION = "EXTRA_PRESERVE_MASTER_CLIENT_SESSION"
     }
 
     private lateinit var binding: SchermMetadataBinding
@@ -75,6 +76,8 @@ class MetadataScherm : AppCompatActivity() {
     private lateinit var formManager: MetadataFormManager
     private lateinit var weatherFetcher: WeatherDataFetcher
     private lateinit var tellingStarter: TellingStarter
+    private var preserveMasterClientSession = false
+    private var preserveMasterClientSessionCommitted = false
 
     private val requestLocationPerms = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -91,9 +94,14 @@ class MetadataScherm : AppCompatActivity() {
         binding = SchermMetadataBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Een nieuwe telling start altijd als normale solo/master-flow.
-        // Eventuele oude client-state mag deze flow niet besmetten.
-        MasterClientPrefs.resetToSolo(this)
+        preserveMasterClientSession = intent.getBooleanExtra(EXTRA_PRESERVE_MASTER_CLIENT_SESSION, false) ||
+            MasterClientRuntimeStore.hasActiveRuntime()
+
+        // Bij een vervolgtelling moeten bestaande master/client-verbindingen intact blijven.
+        // Alleen bij een volledig nieuwe telling-reset zetten we terug naar solo.
+        if (!preserveMasterClientSession) {
+            MasterClientPrefs.resetToSolo(this)
+        }
         TellingSessionManager.clear()
 
         // Initialize SAF helper
@@ -377,6 +385,9 @@ class MetadataScherm : AppCompatActivity() {
                     TellingSessionManager.setPreselectedSoorten(speciesForTelpost)
                     
                     withContext(Dispatchers.Main) {
+                        if (preserveMasterClientSession) {
+                            preserveMasterClientSessionCommitted = true
+                        }
                         Toast.makeText(
                             this@MetadataScherm,
                             getString(R.string.metadata_success_started, result.onlineId),
@@ -409,6 +420,9 @@ class MetadataScherm : AppCompatActivity() {
 
 
     override fun onDestroy() {
+        if (preserveMasterClientSession && !preserveMasterClientSessionCommitted) {
+            MasterClientRuntimeStore.clearAll()
+        }
         super.onDestroy()
         // Annuleer alle achtergrondtaken
         backgroundLoadJob?.cancel()
@@ -422,7 +436,9 @@ class MetadataScherm : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        
+        preserveMasterClientSession = intent.getBooleanExtra(EXTRA_PRESERVE_MASTER_CLIENT_SESSION, false) ||
+            MasterClientRuntimeStore.hasActiveRuntime()
+
         // Re-check for vervolgtelling intent data
         handleVervolgtellingIntent()
     }

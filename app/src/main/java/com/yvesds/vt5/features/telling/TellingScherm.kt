@@ -10,7 +10,6 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Build
 import android.view.KeyEvent
 import android.view.View
 import android.widget.EditText
@@ -37,6 +36,7 @@ import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.masterClient.ClientConnector
 import com.yvesds.vt5.features.masterClient.ClientEventQueue
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.MasterClientRuntimeStore
 import com.yvesds.vt5.features.masterClient.MasterEventProcessor
 import com.yvesds.vt5.features.masterClient.MasterServer
 import com.yvesds.vt5.features.masterClient.McNetworkUtils
@@ -54,7 +54,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import android.util.Log
@@ -294,6 +293,7 @@ class TellingScherm : AppCompatActivity() {
 
         // Setup UI using UiManager
         setupUiWithManager()
+        restoreMasterClientRuntimeFromStore()
         setupMasterClientSupport()
         handleClientStartIntent()
 
@@ -984,10 +984,11 @@ class TellingScherm : AppCompatActivity() {
             }
         } catch (_: Exception) {}
         try {
-            mcMasterServer?.stop()
-        } catch (_: Exception) {}
-        try {
-            mcClientConnector?.stop()
+            if (!MasterClientRuntimeStore.isPreservingAcrossTellings()) {
+                mcMasterServer?.stop()
+                mcClientConnector?.stop()
+                MasterClientRuntimeStore.clearAll()
+            }
         } catch (_: Exception) {}
         super.onDestroy()
     }
@@ -1412,11 +1413,13 @@ class TellingScherm : AppCompatActivity() {
                 val intent = Intent(this@TellingScherm, MetadataScherm::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 intent.putExtra(MetadataScherm.EXTRA_VERVOLG_BEGINTIJD_EPOCH, eindtijdEpoch)
+                intent.putExtra(MetadataScherm.EXTRA_PRESERVE_MASTER_CLIENT_SESSION, true)
                 startActivity(intent)
                 finish()
             }
             .setNegativeButton(getString(R.string.dlg_cancel)) { _, _ ->
                 // Navigate to HoofdActiviteit (main screen) so user can close app or edit tellingen
+                MasterClientRuntimeStore.clearAll()
                 val intent = Intent(this@TellingScherm, com.yvesds.vt5.hoofd.HoofdActiviteit::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 startActivity(intent)
@@ -1537,6 +1540,94 @@ class TellingScherm : AppCompatActivity() {
         updateMasterClientConnectionUi()
     }
 
+    private fun restoreMasterClientRuntimeFromStore() {
+        mcPairingManager = MasterClientRuntimeStore.getPairingManager()
+        mcEventProcessor = MasterClientRuntimeStore.getMasterEventProcessor()
+        mcMasterServer = MasterClientRuntimeStore.getMasterServer()
+        mcClientConnector = MasterClientRuntimeStore.getClientConnector()
+        mcEventQueue = MasterClientRuntimeStore.getClientEventQueue()
+
+        mcMasterServer?.let { server ->
+            mcEventProcessor?.let { processor ->
+                bindMasterRuntimeCallbacks(server, processor)
+            }
+        }
+        mcClientConnector?.let { connector ->
+            bindClientRuntimeCallbacks(connector)
+        }
+
+        if (mcMasterServer != null || mcClientConnector != null) {
+            updateMasterClientConnectionUi()
+        }
+    }
+
+    private fun bindMasterRuntimeCallbacks(server: MasterServer, eventProcessor: MasterEventProcessor) {
+        eventProcessor.onObservationReceived = { clientId, clientEventId, isUpdate, soortId, amount, aantalterug, tijdstip, geslacht, leeftijd, kleed, opmerkingen, recordPayload ->
+            handleLiveClientEvent(
+                clientId = clientId,
+                clientEventId = clientEventId,
+                isUpdate = isUpdate,
+                soortId = soortId,
+                amount = amount,
+                aantalterug = aantalterug,
+                tijdstip = tijdstip,
+                geslacht = geslacht,
+                leeftijd = leeftijd,
+                kleed = kleed,
+                opmerkingen = opmerkingen,
+                recordPayload = recordPayload
+            )
+        }
+        server.onPairingRequest = { _, clientName -> requestClientApproval(clientName) }
+        server.onClientConnected = { clientName ->
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_master_handshake_success, clientName), Toast.LENGTH_SHORT).show()
+                updateMasterClientConnectionUi()
+                dismissMasterPairingDialog()
+            }
+        }
+        server.onClientLeft = { clientName, reason ->
+            runOnUiThread {
+                Log.i(TAG, "Client $clientName verliet de master-sessie: $reason")
+                updateMasterClientConnectionUi()
+                updateMasterPairingDialogStatus()
+            }
+        }
+        server.onTilesSnapshot = { buildTileSyncItems() }
+    }
+
+    private fun bindClientRuntimeCallbacks(connector: ClientConnector) {
+        connector.onTileSyncReceived = { tiles ->
+            runOnUiThread { applyTileSync(tiles) }
+        }
+        connector.onObservationAcknowledged = { clientEventId ->
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_observation_received_master), Toast.LENGTH_SHORT).show()
+                markClientObservationStateByEventId(clientEventId, ObservationDeliveryState.RECEIVED)
+                updateMasterClientConnectionUi()
+            }
+        }
+        connector.onObservationRejected = { clientEventId, _ ->
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_observation_retry_master), Toast.LENGTH_SHORT).show()
+                markClientObservationStateByEventId(clientEventId, ObservationDeliveryState.REJECTED)
+                updateMasterClientConnectionUi()
+            }
+        }
+        connector.onSessionEnded = { _ ->
+            runOnUiThread {
+                Toast.makeText(this, getString(R.string.mc_status_session_ended), Toast.LENGTH_LONG).show()
+                mcClientConnector?.stop()
+                mcClientConnector = null
+                mcEventQueue = null
+                MasterClientRuntimeStore.clearClientRuntime(stopClient = false)
+                MasterClientRuntimeStore.clearPreserveAcrossTellings()
+                MasterClientPrefs.clearSession(this)
+                updateMasterClientConnectionUi()
+            }
+        }
+    }
+
     private fun handleMasterClientPressed() {
         val mode = MasterClientPrefs.getMode(this)
         when {
@@ -1638,7 +1729,19 @@ class TellingScherm : AppCompatActivity() {
 
     private fun ensureClientMode() {
         clientModeLocked = true
+        val storedConnector = MasterClientRuntimeStore.getClientConnector()
+        val storedQueue = MasterClientRuntimeStore.getClientEventQueue()
+        if (storedConnector != null && storedQueue != null) {
+            mcClientConnector = storedConnector
+            mcEventQueue = storedQueue
+            bindClientRuntimeCallbacks(storedConnector)
+            MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
+            updateMasterClientConnectionUi()
+            return
+        }
+
         if (mcClientConnector != null) {
+            bindClientRuntimeCallbacks(mcClientConnector!!)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             updateMasterClientConnectionUi()
             return
@@ -1648,35 +1751,10 @@ class TellingScherm : AppCompatActivity() {
         val connector = ClientConnector(applicationContext, queue)
         mcEventQueue = queue
         mcClientConnector = connector
+        MasterClientRuntimeStore.storeClientRuntime(connector, queue)
         MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
 
-        connector.onTileSyncReceived = { tiles ->
-            runOnUiThread { applyTileSync(tiles) }
-        }
-        connector.onObservationAcknowledged = { clientEventId ->
-            runOnUiThread {
-                Toast.makeText(this, getString(R.string.mc_observation_received_master), Toast.LENGTH_SHORT).show()
-                markClientObservationStateByEventId(clientEventId, ObservationDeliveryState.RECEIVED)
-                updateMasterClientConnectionUi()
-            }
-        }
-        connector.onObservationRejected = { clientEventId, _ ->
-            runOnUiThread {
-                Toast.makeText(this, getString(R.string.mc_observation_retry_master), Toast.LENGTH_SHORT).show()
-                markClientObservationStateByEventId(clientEventId, ObservationDeliveryState.REJECTED)
-                updateMasterClientConnectionUi()
-            }
-        }
-        connector.onSessionEnded = { _ ->
-            runOnUiThread {
-                Toast.makeText(this, getString(R.string.mc_status_session_ended), Toast.LENGTH_LONG).show()
-                mcClientConnector?.stop()
-                mcClientConnector = null
-                mcEventQueue = null
-                MasterClientPrefs.clearSession(this)
-                updateMasterClientConnectionUi()
-            }
-        }
+        bindClientRuntimeCallbacks(connector)
 
         lifecycleScope.launch {
             connector.state.collect { state ->
@@ -1737,7 +1815,23 @@ class TellingScherm : AppCompatActivity() {
 
 
     private fun startMasterServerOnDemand(onStarted: (() -> Unit)? = null) {
+        val storedServer = MasterClientRuntimeStore.getMasterServer()
+        val storedProcessor = MasterClientRuntimeStore.getMasterEventProcessor()
+        val storedPairing = MasterClientRuntimeStore.getPairingManager()
+        if (storedServer != null && storedProcessor != null && storedPairing != null) {
+            mcPairingManager = storedPairing
+            mcEventProcessor = storedProcessor
+            mcMasterServer = storedServer
+            bindMasterRuntimeCallbacks(storedServer, storedProcessor)
+            MasterClientRuntimeStore.markPreserveAcrossTellings()
+            cacheCurrentMasterConnectionDetails()
+            updateMasterClientConnectionUi()
+            onStarted?.invoke()
+            return
+        }
+
         if (mcMasterServer != null) {
+            mcEventProcessor?.let { bindMasterRuntimeCallbacks(mcMasterServer!!, it) }
             updateMasterClientConnectionUi()
             onStarted?.invoke()
             return
@@ -1782,6 +1876,7 @@ class TellingScherm : AppCompatActivity() {
             mcPairingManager = pairingManager
             mcEventProcessor = eventProcessor
             mcMasterServer = server
+            MasterClientRuntimeStore.storeMasterRuntime(server, pairingManager, eventProcessor)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_MASTER)
             cacheCurrentMasterConnectionDetails()
 

@@ -3,6 +3,7 @@ package com.yvesds.vt5.core.app
 import android.content.Context
 import android.util.Log
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.features.masterClient.MasterClientRuntimeStore
 import com.yvesds.vt5.features.opstart.usecases.ServerJsonDownloader
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.speech.MatchLogWriter
@@ -82,6 +83,12 @@ object AppShutdown {
                 VT5App.http.cache?.close()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to shutdown VT5App.http: ${e.message}", e)
+            }
+
+            try {
+                MasterClientRuntimeStore.clearAll()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to clear MasterClient runtime: ${e.message}", e)
             }
 
             // 4. Future expansion points (commented out for now):

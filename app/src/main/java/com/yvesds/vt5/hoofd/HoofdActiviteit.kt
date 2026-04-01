@@ -23,6 +23,7 @@ import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
+import com.yvesds.vt5.features.masterClient.MasterClientRuntimeStore
 import com.yvesds.vt5.features.masterClient.McQrPayloadCodec
 import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
@@ -72,6 +73,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
         promptForClientIdentity {
             TellingSessionManager.clear()
+            MasterClientRuntimeStore.clearAll()
             MasterClientPrefs.clearSession(this)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             Toast.makeText(this, getString(R.string.mc_client_starting_telling), Toast.LENGTH_SHORT).show()
