@@ -178,6 +178,8 @@ class MasterServer(
         Log.d(TAG, "Nieuwe verbinding van $remote")
         try {
             socket.use { s ->
+                s.keepAlive = true
+                s.tcpNoDelay = true
                 val reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.UTF_8))
                 val writer = PrintWriter(s.getOutputStream(), true, Charsets.UTF_8)
 
@@ -191,7 +193,11 @@ class MasterServer(
                 }
 
                 val pairingReq = decodePayload<PairingRequest>(firstEnvelope.payload) ?: return@withContext
-                val (acceptedPin, sessionToken) = pairingManager.validateSession(pairingReq.session, pairingReq.clientId)
+                val (acceptedPin, sessionToken) = pairingManager.validateSession(
+                    sessionId = pairingReq.session,
+                    clientId = pairingReq.clientId,
+                    reconnectToken = pairingReq.sessionToken
+                )
 
                 if (!acceptedPin) {
                     val pairingResp = PairingResponse(
@@ -252,7 +258,7 @@ class MasterServer(
                         dispatchMessage(envelope, sessionToken, writer)
                     }
                 } finally {
-                    removeConnectedClient(sessionToken)
+                    removeConnectedClient(sessionToken, writer, revokeToken = false)
                     Log.i(TAG, "Client verbroken: ${pairingReq.clientName}")
                 }            }
         } catch (e: Exception) {
@@ -293,7 +299,7 @@ class MasterServer(
                 Log.i(TAG, "Client $clientName heeft de telling verlaten. Reden: ${leave.reason}")
                 onClientLeft?.invoke(clientName, leave.reason)
                 // Verwijder de client; de TCP-verbinding wordt daarna netjes gesloten
-                removeConnectedClient(sessionToken)
+                removeConnectedClient(sessionToken, writer, revokeToken = true)
             }
             MC_MSG_HEARTBEAT -> {
                 // Pong terug sturen
@@ -404,8 +410,10 @@ class MasterServer(
      * Wordt gebruikt om de tegelset (soorten + aantallen) te synchroniseren.
      */
     fun broadcastTileSync(tiles: List<TileSyncItem>) {
-        if (tiles.isEmpty()) return
-        val payload = json.encodeToString(TileSyncMessage.serializer(), TileSyncMessage(tiles))
+        val payload = json.encodeToString(
+            TileSyncMessage.serializer(),
+            TileSyncMessage(tiles = tiles, tellingId = getActiveTellingId())
+        )
         val writers = synchronized(clientWritersLock) { clientWriters.values.toList() }
         var sent = 0
         for (w in writers) {
@@ -438,15 +446,21 @@ class MasterServer(
         }
     }
 
-    private fun removeConnectedClient(token: String) {
+    private fun removeConnectedClient(token: String, writer: PrintWriter? = null, revokeToken: Boolean = false) {
         synchronized(clientWritersLock) {
+            val currentWriter = clientWriters[token]
+            if (writer != null && currentWriter != null && currentWriter !== writer) {
+                return
+            }
             val current = _connectedClients.value.toMutableMap()
             current.remove(token)
             _connectedClients.value = current
             clientWriters.remove(token)
             clientProfilesByToken.remove(token)
         }
-        pairingManager.revokeToken(token)
+        if (revokeToken) {
+            pairingManager.revokeToken(token)
+        }
     }
 
     private fun unregisterPendingClient(token: String) {
@@ -475,8 +489,10 @@ class MasterServer(
 
     private suspend fun sendTileSyncIfAvailable(writer: PrintWriter) {
         val tiles = onTilesSnapshot?.invoke().orEmpty()
-        if (tiles.isEmpty()) return
-        val payload = json.encodeToString(TileSyncMessage.serializer(), TileSyncMessage(tiles))
+        val payload = json.encodeToString(
+            TileSyncMessage.serializer(),
+            TileSyncMessage(tiles = tiles, tellingId = getActiveTellingId())
+        )
         sendEnvelopeRaw(writer, MC_MSG_TILE_SYNC, payload)
         Log.i(TAG, "TileSync gestuurd naar client (${tiles.size} tegels)")
     }

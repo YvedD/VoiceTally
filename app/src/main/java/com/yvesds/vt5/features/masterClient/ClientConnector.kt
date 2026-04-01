@@ -185,16 +185,17 @@ class ClientConnector(
                 val ip   = prefs.getMasterIp(context)
                 val port = prefs.getMasterPort(context)
                 val bootstrapSession = requestBootstrapSession()
+                val reconnectToken = currentSessionToken.ifBlank { prefs.getSessionToken(context) }
 
                 if (ip.isBlank()) {
                     Log.w(TAG, "Geen master-IP beschikbaar; wachten…")
                     delay(RECONNECT_BASE_MS)
                     continue
                 }
-                if (bootstrapSession.isBlank()) {
-                    Log.w(TAG, "Geen bootstrap-sessie beschikbaar; wachten…")
+                if (bootstrapSession.isBlank() && reconnectToken.isBlank()) {
+                    Log.w(TAG, "Geen bootstrap-sessie of sessietoken beschikbaar; wachten…")
                     _state.value = State.ERROR
-                    _lastError.value = "Geen geldige verbindingssessie beschikbaar"
+                    _lastError.value = "Geen geldige verbindingssessie of reconnecttoken beschikbaar"
                     delay(RECONNECT_BASE_MS)
                     continue
                 }
@@ -202,7 +203,10 @@ class ClientConnector(
                 _state.value = State.CONNECTING
                 Log.i(TAG, "Verbinding poging naar $ip:$port")
 
-                val s = Socket(ip, port)
+                val s = Socket(ip, port).apply {
+                    keepAlive = true
+                    tcpNoDelay = true
+                }
                 socket = s
                 val reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.UTF_8))
                 val w      = PrintWriter(s.getOutputStream(), true, Charsets.UTF_8)
@@ -212,7 +216,7 @@ class ClientConnector(
                 val clientId   = prefs.getClientId(context)
                 val clientName = android.os.Build.MODEL
                 val clientAlias = prefs.getClientAlias(context)
-                sendPairingRequest(w, PairingRequest(bootstrapSession, clientId, clientName, clientAlias))
+                sendPairingRequest(w, PairingRequest(bootstrapSession, reconnectToken, clientId, clientName, clientAlias))
 
                 val respLine = reader.readLine() ?: throw Exception("Verbinding verbroken tijdens pairing")
                 val respEnv  = decodeEnvelope(respLine)
@@ -344,9 +348,13 @@ class ClientConnector(
                     MC_MSG_TILE_SYNC -> {
                         val msg = decodePayload<TileSyncMessage>(env.payload)
                         val tiles = msg?.tiles ?: emptyList()
-                        if (tiles.isNotEmpty()) {
-                            onTileSyncReceived?.invoke(tiles)
+                        val tellingId = msg?.tellingId.orEmpty()
+                        if (tellingId.isNotBlank()) {
+                            context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE).edit {
+                                putString("pref_telling_id", tellingId)
+                            }
                         }
+                        onTileSyncReceived?.invoke(tiles)
                     }
                     MC_MSG_HEARTBEAT -> { /* pong ontvangen, verbinding OK */ }
                     else -> Log.w(TAG, "Onbekend bericht-type ontvangen: ${env.type}")

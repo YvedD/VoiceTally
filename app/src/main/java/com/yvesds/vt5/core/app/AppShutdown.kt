@@ -5,6 +5,7 @@ import android.util.Log
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.masterClient.MasterClientRuntimeStore
 import com.yvesds.vt5.features.opstart.usecases.ServerJsonDownloader
+import com.yvesds.vt5.features.telling.SilentAutoUploadScheduler
 import com.yvesds.vt5.features.opstart.usecases.TrektellenAuth
 import com.yvesds.vt5.features.speech.MatchLogWriter
 
@@ -89,6 +90,12 @@ object AppShutdown {
                 MasterClientRuntimeStore.clearAll()
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to clear MasterClient runtime: ${e.message}", e)
+            }
+
+            try {
+                SilentAutoUploadScheduler.stop("app shutdown")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to stop silent auto-upload scheduler: ${e.message}", e)
             }
 
             // 4. Future expansion points (commented out for now):

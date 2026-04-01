@@ -8,11 +8,9 @@ import androidx.work.WorkerParameters
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.net.ServerTellingEnvelope
-import com.yvesds.vt5.net.TrektellenApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -64,17 +62,24 @@ class AfrondWorker(
 
             // Build final envelope with pending records
             val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
-            val nowFormatted = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-
             val baseEnv = envelopeList[0]
-            val envWithTimes = baseEnv.copy(eindtijd = nowEpoch, uploadtijdstip = nowFormatted)
+            val envWithTimes = baseEnv.copy(eindtijd = nowEpoch)
 
             // Ensure repository snapshot is fresh
             val recordsSnapshot = recordsBeheer.getPendingRecordsSnapshot()
             val nrec = recordsSnapshot.size
             val nsoort = recordsSnapshot.map { it.soortid }.toSet().size
 
-            val finalEnv = envWithTimes.copy(nrec = nrec.toString(), nsoort = nsoort.toString(), data = recordsSnapshot)
+            val uploadCore = TellingUploadCore(context)
+            val finalEnv = uploadCore.prepareEnvelopeForUpload(
+                sourceEnvelope = envWithTimes.copy(
+                    nrec = nrec.toString(),
+                    nsoort = nsoort.toString(),
+                    data = recordsSnapshot
+                ),
+                useStoredOnlineIdWhenBlank = true,
+                now = Date()
+            )
             val envelopeToSend = listOf(finalEnv)
 
             // Pretty JSON to save
@@ -85,55 +90,24 @@ class AfrondWorker(
                 null
             }
 
-            // Credentials
-            val creds = com.yvesds.vt5.core.secure.CredentialsStore(context)
-            val user = creds.getUsername().orEmpty()
-            val pass = creds.getPassword().orEmpty()
-            if (user.isBlank() || pass.isBlank()) {
-                Log.w(TAG, "No credentials present - cannot upload")
-                return Result.failure()
-            }
-
-            // Attempt POST
-            val baseUrl = "https://trektellen.nl"
-            val language = "dutch"
-            val versie = "1845"
-
-            val (ok, resp) = try {
-                TrektellenApi.postCountsSave(baseUrl, language, versie, user, pass, envelopeToSend)
-            } catch (ex: Exception) {
-                Log.w(TAG, "postCountsSave exception: ${ex.message}", ex)
-                false to (ex.message ?: "exception")
-            }
+            val uploadResult = uploadCore.uploadPrepared(
+                TellingUploadCore.UploadRequest(
+                    mode = TellingUploadCore.Mode.WORKER_FINALIZE,
+                    preparedEnvelope = finalEnv,
+                    persistReturnedOnlineId = true,
+                    persistPreparedEnvelopeToPrefs = true,
+                    markTellingSent = false
+                )
+            )
+            val resp = uploadResult.responseText
 
             // Write audit file (attempt best-effort)
-            val auditPath = writeEnvelopeResponseToSaf(context, finalEnv.tellingid, prettyJson ?: "{}", resp)
+            writeEnvelopeResponseToSaf(context, finalEnv.tellingid, prettyJson ?: "{}", resp)
 
-            if (!ok) {
-                Log.w(TAG, "Upload failed (will retry): $resp")
+            if (!uploadResult.success) {
+                Log.w(TAG, "Upload failed (will retry): ${uploadResult.errorMessage ?: resp}")
                 // On failure, keep pending records intact and retry later
                 return Result.retry()
-            }
-
-            // Parse returned onlineId and persist
-            try {
-                val returnedOnlineId = parseOnlineIdFromResponse(resp)
-                if (!returnedOnlineId.isNullOrBlank()) {
-                    prefs.edit().putString("pref_online_id", returnedOnlineId).apply()
-                    // Update envelope saved JSON with returned onlineId
-                    try {
-                        val updated = envelopeList.toMutableList()
-                        if (updated.isNotEmpty()) {
-                            updated[0] = updated[0].copy(onlineid = returnedOnlineId)
-                            val pretty = VT5App.json.encodeToString(ListSerializer(ServerTellingEnvelope.serializer()), updated)
-                            prefs.edit().putString("pref_saved_envelope_json", pretty).apply()
-                        }
-                    } catch (ex: Exception) {
-                        Log.w(TAG, "Failed to persist envelope with returned onlineId: ${ex.message}", ex)
-                    }
-                }
-            } catch (ex: Exception) {
-                Log.w(TAG, "Parsing returned onlineId failed: ${ex.message}", ex)
             }
 
             // Success: clear pending records + backups
@@ -144,7 +118,7 @@ class AfrondWorker(
                 val saf = SaFStorageHelper(context)
                 val envelopePersistence = TellingEnvelopePersistence(context, saf)
                 val tellingId = finalEnv.tellingid
-                val archiveOnlineId = prefs.getString("pref_online_id", null) ?: finalEnv.onlineid
+                val archiveOnlineId = uploadResult.effectiveOnlineId ?: prefs.getString("pref_online_id", null) ?: finalEnv.onlineid
                 envelopePersistence.archiveSavedEnvelope(tellingId, archiveOnlineId)
             } catch (ex: Exception) {
                 Log.w(TAG, "Failed to archive active_telling.json: ${ex.message}", ex)
@@ -250,46 +224,5 @@ class AfrondWorker(
                 return@withContext null
             }
         }
-    }
-
-    // Reuse parsing helper from Activity (duplicate here for self-contained Worker)
-    private fun parseOnlineIdFromResponse(resp: String): String? {
-        try {
-            if (resp.isBlank()) return null
-            try {
-                val trimmed = resp.trim()
-                if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-                    val jsonRoot = org.json.JSONTokener(trimmed).nextValue()
-                    when (jsonRoot) {
-                        is org.json.JSONObject -> {
-                            val jo = jsonRoot
-                            if (jo.has("onlineid")) return jo.get("onlineid").toString()
-                            if (jo.has("onlineId")) return jo.get("onlineId").toString()
-                            if (jo.has("online_id")) return jo.get("online_id").toString()
-                        }
-                        is org.json.JSONArray -> {
-                            val ja = jsonRoot
-                            if (ja.length() > 0) {
-                                val first = ja.optJSONObject(0)
-                                if (first != null) {
-                                    if (first.has("onlineid")) return first.get("onlineid").toString()
-                                    if (first.has("onlineId")) return first.get("onlineId").toString()
-                                    if (first.has("online_id")) return first.get("online_id").toString()
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-            val re = Regex("""["']?(?:onlineid|onlineId|online_id)["']?\s*[:=]\s*["']?(\d+)["']?""", RegexOption.IGNORE_CASE)
-            val m = re.find(resp)
-            if (m != null) return m.groupValues[1]
-            val numRe = Regex("""\b(\d{4,12})\b""")
-            val m2 = numRe.find(resp)
-            if (m2 != null) return m2.groupValues[1]
-        } catch (ex: Exception) {
-            Log.w(TAG, "parseOnlineIdFromResponse failed: ${ex.message}", ex)
-        }
-        return null
     }
 }

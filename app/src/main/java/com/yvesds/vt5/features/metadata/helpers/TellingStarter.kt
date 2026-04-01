@@ -8,17 +8,11 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.databinding.SchermMetadataBinding
 import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
+import com.yvesds.vt5.features.telling.TellingUploadCore
 import com.yvesds.vt5.net.StartTellingApi
-import com.yvesds.vt5.net.TrektellenApi
-import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * TellingStarter: Handles starting a new telling session.
@@ -40,9 +34,7 @@ class TellingStarter(
     
     companion object {
         private const val TAG = "TellingStarter"
-        private const val PREF_ONLINE_ID = "pref_online_id"
         private const val PREF_TELLING_ID = "pref_telling_id"
-        private const val PREF_SAVED_ENVELOPE_JSON = "pref_saved_envelope_json"
     }
     
     data class StartResult(
@@ -111,33 +103,36 @@ class TellingStarter(
             // NEW: start a new session for score-based favorites windowing (last N sessions)
             SpeciesUsageScoreStore.startNewSession(context)
 
-            // Post counts_save
-            val baseUrl = "https://trektellen.nl"
-            val language = "dutch"
-            val versie = "1845"
-            
-            val (ok, resp) = try {
-                TrektellenApi.postCountsSave(baseUrl, language, versie, username, password, envelope)
-            } catch (ex: Exception) {
-                Log.w(TAG, "postCountsSave exception: ${ex.message}", ex)
-                false to (ex.message ?: "exception")
+            val uploadCore = TellingUploadCore(context)
+            val preparedEnvelope = uploadCore.prepareEnvelopeForUpload(
+                sourceEnvelope = envelope.first(),
+                useStoredOnlineIdWhenBlank = false
+            )
+            val uploadResult = uploadCore.uploadPrepared(
+                TellingUploadCore.UploadRequest(
+                    mode = TellingUploadCore.Mode.START,
+                    preparedEnvelope = preparedEnvelope,
+                    credentials = TellingUploadCore.Credentials(username, password),
+                    persistReturnedOnlineId = true,
+                    persistPreparedEnvelopeToPrefs = true,
+                    markTellingSent = false
+                )
+            )
+
+            if (!uploadResult.success) {
+                val reason = uploadResult.errorMessage ?: uploadResult.responseText.ifBlank { "Onbekende uploadfout" }
+                Log.w(TAG, "counts_save failed: $reason")
+                return@withContext StartResult(false, null, reason)
             }
-            
-            if (!ok) {
-                Log.w(TAG, "counts_save failed: $resp")
-                return@withContext StartResult(false, null, resp)
-            }
-            
-            // Parse online ID from response
-            val onlineId = parseOnlineIdFromResponse(resp)
+
+            val onlineId = uploadResult.effectiveOnlineId
             if (onlineId.isNullOrBlank()) {
-                Log.w(TAG, "Could not parse onlineId from response: $resp")
-                return@withContext StartResult(false, null, "Could not parse online ID: $resp")
+                Log.w(TAG, "Could not parse onlineId from response: ${uploadResult.responseText}")
+                return@withContext StartResult(false, null, "Could not parse online ID: ${uploadResult.responseText}")
             }
 
             // Store in preferences
             prefs.edit {
-                putString(PREF_ONLINE_ID, onlineId)
                 putString(PREF_TELLING_ID, tellingIdLong.toString())
             }
 
@@ -153,62 +148,10 @@ class TellingStarter(
                 Log.w(TAG, "Failed initializing next record id: ${ex.message}")
             }
 
-            // Save envelope JSON for later reuse
-            try {
-                val envelopeJson = VT5App.json.encodeToString(
-                    ListSerializer(ServerTellingEnvelope.serializer()), 
-                    envelope
-                )
-                prefs.edit {
-                    putString(PREF_SAVED_ENVELOPE_JSON, envelopeJson)
-                }
-            } catch (ex: Exception) {
-                Log.w(TAG, "Failed saving envelope JSON to prefs: ${ex.message}")
-            }
-
             return@withContext StartResult(true, onlineId, null)
         } catch (e: Exception) {
             Log.e(TAG, "startTelling failed: ${e.message}", e)
             return@withContext StartResult(false, null, e.message ?: "Unknown error")
         }
     }
-    
-    /**
-     * Parse online ID from server response.
-     * Tries JSON parsing first, then falls back to regex.
-     */
-    private fun parseOnlineIdFromResponse(resp: String): String? {
-        try {
-            val el = VT5App.json.parseToJsonElement(resp)
-            
-            // If it's an array take first object
-            val obj = when {
-                el.jsonArrayOrNull() != null && el.jsonArray.size > 0 -> el.jsonArray[0]
-                el.jsonObjectOrNull() != null -> el
-                else -> null
-            }
-            
-            if (obj != null) {
-                val jo = if (obj.jsonObjectOrNull() != null) obj.jsonObject else el.jsonArray[0].jsonObject
-                
-                // Common keys
-                listOf("onlineid", "onlineId", "id", "result", "online_id").forEach { key ->
-                    if (jo.containsKey(key)) {
-                        val v = jo[key]?.toString()?.replace("\"", "") ?: ""
-                        if (v.isNotBlank()) return v
-                    }
-                }
-            }
-        } catch (_: Exception) {
-            // Fall back to regex
-        }
-        
-        // Fallback: find a sequence of 4-10 digits in the response
-        val regex = Regex("""\b(\d{4,10})\b""")
-        val m = regex.find(resp)
-        return m?.groups?.get(1)?.value
-    }
-    
-    private fun JsonElement.jsonArrayOrNull() = runCatching { this.jsonArray }.getOrNull()
-    private fun JsonElement.jsonObjectOrNull() = runCatching { this.jsonObject }.getOrNull()
 }

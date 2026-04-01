@@ -16,8 +16,7 @@ class PairingManager {
     private val rng = SecureRandom()
 
     data class PairingSession(
-        val sessionId: String,
-        val expiresAt: Long          // epoch ms
+        val sessionId: String
     )
 
     // Actieve PIN-sessie (null = geen actieve pairing)
@@ -27,23 +26,32 @@ class PairingManager {
     // Geautoriseerde sessie-tokens → clientId
     private val authorizedTokens = mutableMapOf<String, String>()   // token → clientId
 
-    companion object {
-        private const val SESSION_VALIDITY_MS = 10 * 60 * 1000L    // 10 minuten
-    }
-
     // ─── QR bootstrap-sessie ─────────────────────────────────────────────────
 
     /**
-     * Genereer een nieuwe QR-sessie en sla die op als actieve pairing-sessie.
-     * Eerder aangemaakte sessies worden ongeldig.
+     * Geef de actieve sticky QR-sessie terug, of maak er één aan als die nog niet bestaat.
+     * Deze bootstrap-sessie blijft geldig zolang de master-samenwerking actief blijft,
+     * tenzij expliciet geroteerd via [rotatePairingSession].
      */
     fun openPairingSession(): String {
+        activePairingSession?.let { active ->
+            Log.d(TAG, "Bestaande sticky QR-sessie hergebruikt")
+            return active.sessionId
+        }
+
         val sessionId = generateBootstrapSessionId()
-        activePairingSession = PairingSession(
-            sessionId = sessionId,
-            expiresAt = System.currentTimeMillis() + SESSION_VALIDITY_MS
-        )
-        Log.d(TAG, "Nieuwe QR-sessie geopend (geldig 10 min)")
+        activePairingSession = PairingSession(sessionId = sessionId)
+        Log.d(TAG, "Nieuwe sticky QR-sessie geopend")
+        return sessionId
+    }
+
+    /**
+     * Forceer een nieuwe bootstrap-QR zonder bestaande sessietokens van gekoppelde clients te raken.
+     */
+    fun rotatePairingSession(): String {
+        val sessionId = generateBootstrapSessionId()
+        activePairingSession = PairingSession(sessionId = sessionId)
+        Log.d(TAG, "Sticky QR-sessie handmatig vernieuwd")
         return sessionId
     }
 
@@ -57,7 +65,17 @@ class PairingManager {
      * Bij succes wordt een afzonderlijk sessietoken aangemaakt en teruggestuurd.
      * @return Pair(accepted, sessionToken) – sessionToken is leeg bij afwijzing
      */
-    fun validateSession(sessionId: String, clientId: String): Pair<Boolean, String> {
+    fun validateSession(sessionId: String, clientId: String, reconnectToken: String = ""): Pair<Boolean, String> {
+        if (reconnectToken.isNotBlank()) {
+            synchronized(authorizedTokens) {
+                val authorizedClientId = authorizedTokens[reconnectToken]
+                if (authorizedClientId == clientId) {
+                    Log.d(TAG, "Client $clientId opnieuw gekoppeld met bestaand sessietoken")
+                    return Pair(true, reconnectToken)
+                }
+            }
+        }
+
         val session = activePairingSession
         if (session == null) {
             Log.w(TAG, "Geen actieve QR-sessie voor client $clientId")
@@ -65,10 +83,6 @@ class PairingManager {
         }
         if (!sessionId.equals(session.sessionId, ignoreCase = false)) {
             Log.w(TAG, "Ongeldige QR-sessie ontvangen van client $clientId")
-            return Pair(false, "")
-        }
-        if (System.currentTimeMillis() > session.expiresAt) {
-            Log.w(TAG, "QR-sessie verlopen voor client $clientId")
             return Pair(false, "")
         }
         val token = generateToken()

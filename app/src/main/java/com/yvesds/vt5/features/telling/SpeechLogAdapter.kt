@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.yvesds.vt5.R
 import com.yvesds.vt5.databinding.ItemSpeechLogBinding
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import java.text.SimpleDateFormat
@@ -118,8 +119,10 @@ class SpeechLogAdapter :
         val defaultFinals = cachedFinalsTextColor
         val pendingColor = android.graphics.Color.rgb(255, 183, 77)
         val errorColor = android.graphics.Color.RED
+        val uploadedIconColor = holder.vb.tvDeliveryState.currentTextColor
 
         holder.vb.tvDeliveryState.text = ""
+        holder.vb.tvDeliveryState.contentDescription = null
         holder.vb.tvDeliveryState.visibility = android.view.View.GONE
 
         when (row.bron) {
@@ -132,6 +135,12 @@ class SpeechLogAdapter :
                 }
                 holder.vb.tvMsg.setTextColor(finalColor)
                 holder.vb.tvTime.setTextColor(finalColor)
+                if (row.isUploadedToServer) {
+                    holder.vb.tvDeliveryState.text = holder.itemView.context.getString(R.string.finals_log_uploaded_icon)
+                    holder.vb.tvDeliveryState.contentDescription = holder.itemView.context.getString(R.string.finals_log_uploaded_content_description)
+                    holder.vb.tvDeliveryState.setTextColor(uploadedIconColor)
+                    holder.vb.tvDeliveryState.visibility = android.view.View.VISIBLE
+                }
             }
             "partial" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)

@@ -87,7 +87,6 @@ class TellingScherm : AppCompatActivity() {
         private const val KEY_CLIENT_EVENT_MAP_JSON = "pref_client_event_map_json"
 
         private const val MAX_LOG_ROWS = 600
-        private const val TILE_TAP_GROUP_WINDOW_MS = 5_000L
         
         // Auto-dismiss delay for success dialog (ms)
         private const val SUCCESS_DIALOG_DELAY_MS = 1000L
@@ -113,6 +112,7 @@ class TellingScherm : AppCompatActivity() {
     private lateinit var backupManager: TellingBackupManager
     private lateinit var dataProcessor: TellingDataProcessor
     private lateinit var tileTapAggregationManager: TileTapAggregationManager
+    private var currentTileTapGroupWindowMs: Long = TileTapAggregationManager.DEFAULT_GROUP_WINDOW_MS
     private lateinit var uiManager: TellingUiManager
     private lateinit var afrondHandler: TellingAfrondHandler
     private lateinit var tegelBeheer: TegelBeheer
@@ -244,7 +244,8 @@ class TellingScherm : AppCompatActivity() {
         val rowKey: String? = null,
         val isError: Boolean = false,
         val deliveryState: ObservationDeliveryState = ObservationDeliveryState.NONE,
-        val isClientOrigin: Boolean = false
+        val isClientOrigin: Boolean = false,
+        val isUploadedToServer: Boolean = false
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -293,6 +294,7 @@ class TellingScherm : AppCompatActivity() {
 
         // Setup UI using UiManager
         setupUiWithManager()
+        observeUploadedObservationState()
         restoreMasterClientRuntimeFromStore()
         setupMasterClientSupport()
         handleClientStartIntent()
@@ -354,15 +356,7 @@ class TellingScherm : AppCompatActivity() {
         dialogHelper = TellingDialogHelper(this, this, safHelper)
         // backupManager already initialized before super.onCreate()
         dataProcessor = TellingDataProcessor()
-        tileTapAggregationManager = TileTapAggregationManager(
-            scope = lifecycleScope,
-            groupWindowMs = TILE_TAP_GROUP_WINDOW_MS,
-            onPendingCountChanged = { _, _ -> refreshTileRows() },
-            onPendingRowUpsert = { row -> upsertFinalObservationRow(row) },
-            onAggregateFinalized = { aggregate, finalizedAtEpochSeconds ->
-                commitTileTapAggregate(aggregate, finalizedAtEpochSeconds)
-            }
-        )
+        refreshTileTapAggregationWindowFromSettings(force = true)
         uiManager = TellingUiManager(this, binding)
         
         // Initialize envelope persistence for continuous backup
@@ -387,6 +381,28 @@ class TellingScherm : AppCompatActivity() {
 
         // Setup callbacks for new helpers
         setupHelperCallbacks()
+    }
+
+    private fun createTileTapAggregationManager(groupWindowMs: Long): TileTapAggregationManager {
+        return TileTapAggregationManager(
+            scope = lifecycleScope,
+            groupWindowMs = groupWindowMs,
+            onPendingCountChanged = { _, _ -> refreshTileRows() },
+            onPendingRowUpsert = { row -> upsertFinalObservationRow(row) },
+            onAggregateFinalized = { aggregate, finalizedAtEpochSeconds ->
+                commitTileTapAggregate(aggregate, finalizedAtEpochSeconds)
+            }
+        )
+    }
+
+    private fun refreshTileTapAggregationWindowFromSettings(force: Boolean = false) {
+        val configuredWindowMs = InstellingenScherm.getTileTapGroupWindowSeconds(this) * 1_000L
+        if (!force && ::tileTapAggregationManager.isInitialized && configuredWindowMs == currentTileTapGroupWindowMs) {
+            return
+        }
+
+        currentTileTapGroupWindowMs = configuredWindowMs
+        tileTapAggregationManager = createTileTapAggregationManager(configuredWindowMs)
     }
 
     /**
@@ -581,7 +597,10 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun openInstellingenScherm() {
-        startActivity(Intent(this, InstellingenScherm::class.java))
+        lifecycleScope.launch {
+            tileTapAggregationManager.flushAllAndAwait()
+            startActivity(Intent(this@TellingScherm, InstellingenScherm::class.java))
+        }
     }
 
     private fun toggleHourlyAlarm() {
@@ -667,8 +686,7 @@ class TellingScherm : AppCompatActivity() {
      */
     private fun handleAfrondenWithConfirmation() {
         if (isClientFlowLocked()) {
-            updateMasterClientConnectionUi()
-            Toast.makeText(this, getString(R.string.mc_client_cannot_afronden), Toast.LENGTH_SHORT).show()
+            handleClientStopRequest()
             return
         }
 
@@ -868,6 +886,7 @@ class TellingScherm : AppCompatActivity() {
         finalsAdapter.updateFinalsTextColor(finalsColor)
 
         val tilesSize = InstellingenScherm.getLettergroottTegelsSp(this)
+        refreshTileTapAggregationWindowFromSettings()
         tilesAdapter.updateTextSize(tilesSize)
         tilesAdapter.notifyDataSetChanged()
 
@@ -875,6 +894,8 @@ class TellingScherm : AppCompatActivity() {
         uiManager.updateFinals(uiManager.getCurrentFinals())
         updateMasterClientConnectionUi()
         maybeContinuePendingClientConnection()
+        refreshSilentAutoUploadScheduler()
+        refreshFinalObservationUploadMarkers()
     }
 
     private fun ensurePendingTellingPromptOnRestore() {
@@ -942,6 +963,96 @@ class TellingScherm : AppCompatActivity() {
             DialogStyler.apply(dialog)
             dialog.show()
         }
+    }
+
+    private fun handleClientStopRequest() {
+        lifecycleScope.launch {
+            val progressDialog = ProgressDialogHelper.show(
+                this@TellingScherm,
+                getString(R.string.mc_client_stop_progress)
+            )
+            try {
+                tileTapAggregationManager.flushAllAndAwait()
+                mcClientConnector?.flushQueue()
+
+                val pendingCount = awaitClientObservationDrain()
+                if (pendingCount > 0) {
+                    showPendingClientObservationsDialog(pendingCount)
+                    updateMasterClientConnectionUi()
+                    return@launch
+                }
+            } finally {
+                progressDialog.dismiss()
+            }
+
+            showClientStopConfirmationDialog()
+        }
+    }
+
+    private suspend fun awaitClientObservationDrain(timeoutMs: Long = 2_500L): Int {
+        if (!isClientFlowLocked()) return 0
+
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var pendingCount = pendingClientObservationCount()
+        while (pendingCount > 0 && System.currentTimeMillis() < deadline) {
+            kotlinx.coroutines.delay(200L)
+            mcClientConnector?.flushQueue()
+            pendingCount = pendingClientObservationCount()
+        }
+        return pendingCount
+    }
+
+    private fun showClientStopConfirmationDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mc_dialog_leave_title)
+            .setMessage(R.string.mc_dialog_leave_message)
+            .setPositiveButton(R.string.mc_dialog_leave_confirm) { _, _ ->
+                completeClientStopAndNavigateHome()
+            }
+            .setNegativeButton(R.string.mc_dialog_leave_cancel, null)
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun completeClientStopAndNavigateHome() {
+        val connector = mcClientConnector
+        if (isClientFlowLocked() && connector?.leaveSession("gebruiker gestopt met tellen") == false) {
+            val pendingCount = pendingClientObservationCount()
+            if (pendingCount > 0) {
+                showPendingClientObservationsDialog(pendingCount)
+            }
+            updateMasterClientConnectionUi()
+            return
+        }
+
+        connector?.stop()
+        mcClientConnector = null
+        mcEventQueue = null
+        clientModeLocked = false
+        pendingClientConnectionPayload = null
+        lastObservedClientState = ClientConnector.State.DISCONNECTED
+
+        MasterClientRuntimeStore.clearClientRuntime(stopClient = false)
+        MasterClientRuntimeStore.clearPreserveAcrossTellings()
+        MasterClientPrefs.resetToSolo(this)
+        TellingSessionManager.clear()
+
+        prefs.edit()
+            .remove("pref_saved_envelope_json")
+            .remove("pref_online_id")
+            .remove("pref_telling_id")
+            .apply()
+
+        updateMasterClientConnectionUi()
+        refreshSilentAutoUploadScheduler()
+        Toast.makeText(this, getString(R.string.mc_toast_left_session), Toast.LENGTH_SHORT).show()
+
+        val intent = Intent(this, HoofdActiviteit::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(intent)
+        finish()
     }
 
     override fun onPause() {
@@ -1335,6 +1446,7 @@ class TellingScherm : AppCompatActivity() {
      * @param metadataUpdates Optional updates to begintijd, eindtijd, and opmerkingen
      */
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
+        SilentAutoUploadScheduler.stopAndJoin("finale afronding gestart")
         tileTapAggregationManager.flushAllAndAwait()
         val result = afrondHandler.handleAfronden(
             pendingRecords = synchronized(pendingRecords) { ArrayList(pendingRecords) },
@@ -1361,6 +1473,7 @@ class TellingScherm : AppCompatActivity() {
                     showAutoDissmissSuccessAndThenVervolg(eindtijdForVervolg)
                 }
                 is TellingAfrondHandler.AfrondResult.Failure -> {
+                    refreshSilentAutoUploadScheduler()
                     // Show failure dialog
                     val dlg = AlertDialog.Builder(this@TellingScherm)
                         .setTitle(result.title)
@@ -1499,26 +1612,7 @@ class TellingScherm : AppCompatActivity() {
 
             // Restore finals log from records (partials remain empty)
             val restoredFinals = savedRecords.map { rec ->
-                val naam = speciesById[rec.soortid]?.soortnaam ?: rec.soortid
-                val main = rec.aantal.toIntOrNull() ?: 0
-                val ret = rec.aantalterug.toIntOrNull() ?: 0
-                val display = buildString {
-                    append(naam)
-                    append(" -> +")
-                    append(main)
-                    if (ret > 0) {
-                        append(" (tegenrichting) -> +")
-                        append(ret)
-                    }
-                }
-                SpeechLogRow(
-                    ts = rec.tijdstip.toLongOrNull() ?: (System.currentTimeMillis() / 1000L),
-                    tekst = display,
-                    bron = "final",
-                    isPending = false,
-                    recordLocalId = rec.idLocal,
-                    rowKey = rec.idLocal
-                )
+                buildFinalObservationRow(rec)
             }
             logManager.setFinals(restoredFinals)
             logManager.setPartials(emptyList())
@@ -1602,7 +1696,6 @@ class TellingScherm : AppCompatActivity() {
         }
         connector.onObservationAcknowledged = { clientEventId ->
             runOnUiThread {
-                Toast.makeText(this, getString(R.string.mc_observation_received_master), Toast.LENGTH_SHORT).show()
                 markClientObservationStateByEventId(clientEventId, ObservationDeliveryState.RECEIVED)
                 updateMasterClientConnectionUi()
             }
@@ -1624,6 +1717,7 @@ class TellingScherm : AppCompatActivity() {
                 MasterClientRuntimeStore.clearPreserveAcrossTellings()
                 MasterClientPrefs.clearSession(this)
                 updateMasterClientConnectionUi()
+                refreshSilentAutoUploadScheduler()
             }
         }
     }
@@ -1686,6 +1780,7 @@ class TellingScherm : AppCompatActivity() {
             cacheCurrentMasterConnectionDetails()
             Toast.makeText(this, getString(R.string.mc_master_network_ready_existing_wifi), Toast.LENGTH_SHORT).show()
             updateMasterClientConnectionUi()
+            refreshSilentAutoUploadScheduler()
         }
     }
 
@@ -1737,6 +1832,7 @@ class TellingScherm : AppCompatActivity() {
             bindClientRuntimeCallbacks(storedConnector)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             updateMasterClientConnectionUi()
+            refreshSilentAutoUploadScheduler()
             return
         }
 
@@ -1744,6 +1840,7 @@ class TellingScherm : AppCompatActivity() {
             bindClientRuntimeCallbacks(mcClientConnector!!)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             updateMasterClientConnectionUi()
+            refreshSilentAutoUploadScheduler()
             return
         }
 
@@ -1769,6 +1866,7 @@ class TellingScherm : AppCompatActivity() {
         }
 
         updateMasterClientConnectionUi()
+        refreshSilentAutoUploadScheduler()
     }
 
     private fun launchPairingQrScan() {
@@ -1935,9 +2033,12 @@ class TellingScherm : AppCompatActivity() {
         binding.btnShowMasterQr.setColorFilter(
             if (mcMasterServer != null) ContextCompat.getColor(this, R.color.vt5_green) else Color.parseColor("#808080")
         )
-        val afrondenEnabled = !isClientFlowLocked()
-        binding.btnAfronden.isEnabled = afrondenEnabled
-        binding.btnAfronden.alpha = if (afrondenEnabled) 1.0f else 0.45f
+        val clientStopMode = isClientFlowLocked()
+        binding.btnAfronden.text = getString(
+            if (clientStopMode) R.string.mc_btn_stop_client_telling else R.string.telling_finish
+        )
+        binding.btnAfronden.isEnabled = true
+        binding.btnAfronden.alpha = 1.0f
 
         val statusText = when {
             isMaster && !McNetworkUtils.isWifiTransportActive(this) -> getString(R.string.mc_existing_wifi_required_master_short)
@@ -2002,7 +2103,9 @@ class TellingScherm : AppCompatActivity() {
             return
         }
 
-        val pairingSession = mcPairingManager?.openPairingSession().orEmpty()
+        val pairingManager = mcPairingManager
+        val pairingSession = pairingManager?.getCurrentSessionId().orEmpty()
+            .ifBlank { pairingManager?.openPairingSession().orEmpty() }
         if (pairingSession.isBlank()) {
             Toast.makeText(this, getString(R.string.mc_qr_generation_failed), Toast.LENGTH_SHORT).show()
             return
@@ -2014,6 +2117,7 @@ class TellingScherm : AppCompatActivity() {
         val ivPairingQr = dialogView.findViewById<ImageView>(R.id.ivPairingQr)
         val tvPairingInfo = dialogView.findViewById<TextView>(R.id.tvPairingQrInfo)
         val tvConnectedClients = dialogView.findViewById<TextView>(R.id.tvConnectedClients)
+        val btnRefreshQr = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRefreshQr)
         val btnClose = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClose)
 
         updatePairingQrView(
@@ -2027,6 +2131,21 @@ class TellingScherm : AppCompatActivity() {
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
+        btnRefreshQr.setOnClickListener {
+            val refreshedSession = pairingManager?.rotatePairingSession().orEmpty()
+            if (refreshedSession.isBlank()) {
+                Toast.makeText(this, getString(R.string.mc_qr_generation_failed), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            MasterClientPrefs.setBootstrapSession(this, refreshedSession)
+            updatePairingQrView(
+                ivPairingQr = ivPairingQr,
+                tvPairingInfo = tvPairingInfo,
+                masterIp = masterIp,
+                masterPort = server.port,
+                bootstrapSession = refreshedSession
+            )
+        }
         btnClose.setOnClickListener { dialog.dismiss() }
         dialog.setOnDismissListener {
             if (masterPairingDialog === dialog) {
@@ -2098,6 +2217,15 @@ class TellingScherm : AppCompatActivity() {
         connector.setBootstrapSession(bootstrapSession)
         connector.start()
         updateMasterClientConnectionUi()
+        refreshSilentAutoUploadScheduler()
+    }
+
+    private fun refreshSilentAutoUploadScheduler() {
+        if (isClientFlowLocked() || MasterClientPrefs.getMode(this) == MasterClientPrefs.MODE_CLIENT) {
+            SilentAutoUploadScheduler.stop("clientmodus actief")
+        } else {
+            SilentAutoUploadScheduler.startOrUpdate(applicationContext)
+        }
     }
 
     private fun buildTileSyncItems(): List<TileSyncItem> {
@@ -2112,7 +2240,6 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun applyTileSync(items: List<TileSyncItem>) {
-        if (items.isEmpty()) return
         val tiles = items.map {
             SoortTile(
                 soortId = it.soortid,
@@ -2124,7 +2251,9 @@ class TellingScherm : AppCompatActivity() {
 
         tegelBeheer.setTiles(tiles)
         updateSelectedSpeciesMap()
-        Toast.makeText(this, getString(R.string.mc_tile_sync_toast), Toast.LENGTH_SHORT).show()
+        if (items.isNotEmpty()) {
+            Toast.makeText(this, getString(R.string.mc_tile_sync_toast), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun broadcastTileSyncIfMaster(tiles: List<SoortTile>) {
@@ -2401,6 +2530,11 @@ class TellingScherm : AppCompatActivity() {
             main <= 0 && ret > 0 -> "$prefix$name (tegenrichting) -> +$ret$statusSuffix"
             else -> "$prefix$name -> +$main / +$ret$statusSuffix"
         }
+        val isUploadedToServer = UploadedObservationStateStore.isCurrentRecordUploaded(
+            context = this,
+            tellingId = item.tellingid,
+            record = item
+        )
         return SpeechLogRow(
             ts = item.tijdstip.toLongOrNull() ?: (System.currentTimeMillis() / 1000L),
             tekst = display,
@@ -2409,8 +2543,64 @@ class TellingScherm : AppCompatActivity() {
             recordLocalId = item.idLocal,
             rowKey = item.idLocal,
             deliveryState = deliveryState,
-            isClientOrigin = normalizedPrefix.isNotBlank() || isClientOrigin
+            isClientOrigin = normalizedPrefix.isNotBlank() || isClientOrigin,
+            isUploadedToServer = isUploadedToServer
         )
+    }
+
+    private fun observeUploadedObservationState() {
+        lifecycleScope.launch {
+            UploadedObservationStateStore.updates().collect { changedTellingId ->
+                val activeTellingId = prefs.getString("pref_telling_id", null).orEmpty()
+                    .ifBlank { synchronized(pendingRecords) { pendingRecords.firstOrNull()?.tellingid }.orEmpty() }
+                if (activeTellingId.isBlank() || activeTellingId != changedTellingId) return@collect
+                refreshFinalObservationUploadMarkers()
+            }
+        }
+    }
+
+    private fun refreshFinalObservationUploadMarkers() {
+        val recordsById = synchronized(pendingRecords) {
+            pendingRecords
+                .filter { it.idLocal.isNotBlank() }
+                .associateBy { it.idLocal }
+        }
+        if (recordsById.isEmpty()) return
+
+        val currentFinals = logManager.getFinals()
+        if (currentFinals.isEmpty()) return
+
+        val updatedFinals = currentFinals.map { existing ->
+            val recordId = existing.recordLocalId.orEmpty()
+            val record = recordsById[recordId] ?: return@map existing
+            buildFinalObservationRow(
+                item = record,
+                deliveryState = existing.deliveryState,
+                isClientOrigin = existing.isClientOrigin,
+                clientLogPrefix = mcClientLogPrefixByRecordId[recordId] ?: extractClientLogPrefix(existing.tekst)
+            )
+        }
+
+        if (updatedFinals == currentFinals) return
+
+        logManager.setFinals(updatedFinals)
+        val updatedPartials = logManager.getPartials()
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (::viewModel.isInitialized) {
+                viewModel.setFinals(updatedFinals)
+                viewModel.setPartials(updatedPartials)
+            } else {
+                uiManager.updateFinals(updatedFinals)
+                uiManager.updatePartials(updatedPartials)
+            }
+        }
+    }
+
+    private fun extractClientLogPrefix(displayText: String): String? {
+        if (!displayText.startsWith("[")) return null
+        val endIdx = displayText.indexOf("] ")
+        if (endIdx <= 1) return null
+        return displayText.substring(1, endIdx)
     }
 
     private fun resolveClientLogPrefix(clientId: String): String {

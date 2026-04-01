@@ -39,6 +39,7 @@
     <string name="mc_pairing_connected_clients">Verbonden clients:</string>
     <string name="mc_pairing_no_clients">Geen clients verbonden</string>
     <string name="mc_pairing_new_pin">Nieuwe PIN genereren</string>
+    <string name="mc_pairing_new_qr">Nieuwe QR-code maken</string>
     <string name="mc_pairing_close">Sluiten</string>
 
     <!-- ─── Pairing – client ─────────────────────────────────────────── -->
@@ -91,11 +92,13 @@ Laat je dit leeg, dan kent de master automatisch een cliëntnummer toe.</string>
     <string name="mc_log_client_prefix">CL</string>
 
     <!-- ─── Client: telling verlaten ────────────────────────────────── -->
+    <string name="mc_btn_stop_client_telling">Stop</string>
     <string name="mc_btn_leave_session">Verlaat telling</string>
     <string name="mc_dialog_leave_title">Telling verlaten</string>
     <string name="mc_dialog_leave_message">Wil je stoppen met tellen op deze telpost en de telling verlaten?\n\nAlle waarnemingen zijn overgedragen aan de master en bevestigd voor ontvangst.</string>
     <string name="mc_dialog_leave_confirm">Verlaten</string>
     <string name="mc_dialog_leave_cancel">Annuleren</string>
+    <string name="mc_client_stop_progress">Controleren of alle waarnemingen bevestigd zijn…</string>
     <string name="mc_dialog_leave_pending_title">Nog niet alles bevestigd</string>
     <string name="mc_dialog_leave_pending_message">Er wachten nog %1$d waarneming(en) op ontvangstbevestiging door de master.\n\nDit toestel blijft automatisch opnieuw proberen. Je kunt de telling pas verlaten zodra alles bevestigd is.</string>
     <string name="mc_status_session_ended">Telling beëindigd door master</string>
@@ -137,7 +140,7 @@ Laat je dit leeg, dan kent de master automatisch een cliëntnummer toe.</string>
     <string name="mc_pairing_qr_invalid">Ongeldige QR-code</string>
     <string name="mc_pairing_qr_filled">QR-gegevens ingevuld</string>
     <string name="mc_pairing_qr_label">Verbindings-QR (scan met client)</string>
-    <string name="mc_pairing_master_qr_required">Laat nieuwe clients deze ene verbindings-QR scannen. De QR bevat enkel het lokale IP-adres, de TCP-poort en de sessie-ID van deze mastertelling. Zowel master als clients moeten vooraf al via Android verbonden zijn met hetzelfde Wi‑Fi-netwerk.</string>
+    <string name="mc_pairing_master_qr_required">Laat nieuwe clients deze ene verbindings-QR scannen. De QR bevat enkel het lokale IP-adres, de TCP-poort en de sessie-ID van deze mastertelling. Deze QR blijft geldig zolang de samenwerking op deze master actief blijft, tenzij je hieronder zelf een nieuwe QR-code maakt. Zowel master als clients moeten vooraf al via Android verbonden zijn met hetzelfde Wi‑Fi-netwerk.</string>
     <string name="mc_pairing_client_qr_required">Scan enkel de verbindings-QR van de master. VT5 leest daaruit enkel IP-adres, poort en sessie-ID. De app probeert geen Wi‑Fi-netwerk te kiezen of te wijzigen.</string>
     <string name="mc_pairing_master_no_ip">Geen netwerk-IP gevonden</string>
     <string name="mc_qr_generation_failed">Kon geen geldige verbindings-QR maken</string>

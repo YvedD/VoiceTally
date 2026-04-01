@@ -41,6 +41,7 @@ data class McEnvelope(
 @Serializable
 data class PairingRequest(
     @SerialName("session")    val session: String,
+    @SerialName("sessionToken") val sessionToken: String = "",
     @SerialName("clientId")   val clientId: String,
     @SerialName("clientName") val clientName: String,
     @SerialName("clientAlias") val clientAlias: String = ""
@@ -174,5 +175,6 @@ data class TileSyncItem(
 
 @Serializable
 data class TileSyncMessage(
-    @SerialName("tiles") val tiles: List<TileSyncItem>
+    @SerialName("tiles") val tiles: List<TileSyncItem>,
+    @SerialName("tellingId") val tellingId: String = ""
 )

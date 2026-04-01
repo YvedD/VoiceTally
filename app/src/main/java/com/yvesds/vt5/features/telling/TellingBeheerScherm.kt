@@ -30,7 +30,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
-import com.yvesds.vt5.core.secure.CredentialsStore
 import com.yvesds.vt5.core.ui.CompassNeedleView
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.PopupThemeHelper
@@ -40,7 +39,6 @@ import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
-import com.yvesds.vt5.net.TrektellenApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1027,57 +1025,33 @@ class TellingBeheerScherm : AppCompatActivity() {
                     return@launch
                 }
 
-                // Get credentials
-                val creds = CredentialsStore(this@TellingBeheerScherm)
-                val user = creds.getUsername().orEmpty()
-                val pass = creds.getPassword().orEmpty()
-
-                if (user.isBlank() || pass.isBlank()) {
-                    val dlg6 = AlertDialog.Builder(this@TellingBeheerScherm)
-                        .setTitle(getString(R.string.beheer_upload_fout_titel))
-                        .setMessage(getString(R.string.beheer_geen_credentials))
-                        .setPositiveButton("OK", null)
-                        .show()
-
-                    DialogStyler.apply(dlg6)
-                    markPendingUpload()
-                    return@launch
-                }
-
                 // Show uploading toast
                 Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_uploading), Toast.LENGTH_SHORT).show()
 
-                // Prepare final envelope with current timestamp and sanitized data
-                val nowFormatted = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-                val preparedEnvelope = envelope.copy(
-                    uploadtijdstip = nowFormatted,
-                    nrec = envelope.data.size.toString(),
-                    nsoort = envelope.data.map { it.soortid }.toSet().size.toString()
+                val uploadCore = TellingUploadCore(this@TellingBeheerScherm)
+                val finalEnvelope = uploadCore.prepareEnvelopeForUpload(
+                    sourceEnvelope = envelope,
+                    useStoredOnlineIdWhenBlank = false,
+                    now = Date()
                 )
-
-                // Sanitize all records to ensure proper values (no empty strings for numeric fields)
-                val finalEnvelope = sanitizeEnvelopeForUpload(preparedEnvelope)
-
-                // Upload to server
-                val baseUrl = "https://trektellen.nl"
-                val language = "dutch"
-                val versie = "1845"
-
-                val (ok, resp) = withContext(Dispatchers.IO) {
-                    try {
-                        TrektellenApi.postCountsSave(baseUrl, language, versie, user, pass, listOf(finalEnvelope))
-                    } catch (ex: Exception) {
-                        Log.w(TAG, "postCountsSave exception: ${ex.message}", ex)
-                        false to (ex.message ?: "exception")
-                    }
+                val uploadResult = withContext(Dispatchers.IO) {
+                    uploadCore.uploadPrepared(
+                        TellingUploadCore.UploadRequest(
+                            mode = TellingUploadCore.Mode.EDITOR_UPLOAD,
+                            preparedEnvelope = finalEnvelope,
+                            persistReturnedOnlineId = false,
+                            persistPreparedEnvelopeToPrefs = false,
+                            markTellingSent = false
+                        )
+                    )
                 }
 
-                if (ok) {
+                if (uploadResult.success) {
                     hasUnsavedChanges = false
                     clearPendingUpload()
 
                     // Parse returned onlineId only if we don't already have one
-                    val returnedOnlineId = parseOnlineIdFromResponse(resp)
+                    val returnedOnlineId = uploadResult.effectiveOnlineId
                     if (envelope.onlineid.isBlank() && !returnedOnlineId.isNullOrBlank()) {
                         val updatedEnvelope = finalEnvelope.copy(onlineid = returnedOnlineId)
                         currentEnvelope = updatedEnvelope
@@ -1098,7 +1072,7 @@ class TellingBeheerScherm : AppCompatActivity() {
                     markPendingUpload()
                     val dlg8 = AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_fout_titel))
-                        .setMessage(getString(R.string.beheer_upload_fout_msg, resp))
+                        .setMessage(getString(R.string.beheer_upload_fout_msg, uploadResult.errorMessage ?: uploadResult.responseText))
                         .setPositiveButton("OK", null)
                         .show()
 
@@ -1118,67 +1092,6 @@ class TellingBeheerScherm : AppCompatActivity() {
         }
     }
 
-    /**
-     * Sanitize all records in an envelope to ensure all fields have valid string values.
-     * Server does not accept null values - empty strings "" are OK.
-     * For numeric fields, we use "0" as the default when empty/blank.
-     */
-    private fun sanitizeEnvelopeForUpload(envelope: ServerTellingEnvelope): ServerTellingEnvelope {
-        val sanitizedData = envelope.data.map { record ->
-            record.copy(
-                // IDs - ensure not null, empty string is OK
-                idLocal = record.idLocal,
-                tellingid = record.tellingid,
-                soortid = record.soortid,
-                // Numeric fields: use "0" if blank (server may require numeric values)
-                aantal = record.aantal.ifBlank { "0" },
-                aantalterug = record.aantalterug.ifBlank { "0" },
-                lokaal = record.lokaal.ifBlank { "0" },
-                aantal_plus = record.aantal_plus.ifBlank { "0" },
-                aantalterug_plus = record.aantalterug_plus.ifBlank { "0" },
-                lokaal_plus = record.lokaal_plus.ifBlank { "0" },
-                markeren = record.markeren.ifBlank { "0" },
-                markerenlokaal = record.markerenlokaal.ifBlank { "0" },
-                totaalaantal = record.totaalaantal.ifBlank { "0" },
-                // String fields: keep as-is (empty string is OK for server)
-                richting = record.richting,
-                richtingterug = record.richtingterug,
-                sightingdirection = record.sightingdirection,
-                geslacht = record.geslacht,
-                leeftijd = record.leeftijd,
-                kleed = record.kleed,
-                opmerkingen = record.opmerkingen,
-                trektype = record.trektype,
-                teltype = record.teltype,
-                location = record.location,
-                height = record.height,
-                tijdstip = record.tijdstip,
-                groupid = record.groupid,
-                uploadtijdstip = record.uploadtijdstip
-            )
-        }
-        return envelope.copy(data = sanitizedData)
-    }
-
-    /**
-     * Parse onlineId from server response.
-     * Response format is typically: "onlineid|timestamp" or just contains onlineId.
-     */
-    private fun parseOnlineIdFromResponse(response: String): String? {
-        return try {
-            val trimmed = response.trim()
-            if (trimmed.contains("|")) {
-                trimmed.split("|").firstOrNull()?.trim()
-            } else {
-                // Try to extract a number from the response
-                val match = Regex("\\d+").find(trimmed)
-                match?.value
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to parse onlineId: ${e.message}")
-            null
-        }
-    }
 
     private fun showUnsavedChangesDialog() {
         val dlgUnsaved = AlertDialog.Builder(this)

@@ -258,6 +258,107 @@
                     android:text="@string/instellingen_double_tap_100" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tvPendingTilesTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_pending_tiles_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvPendingTilesSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_pending_tiles_subtitle"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles2"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_2" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles3"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_3" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles5"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_5" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles8"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_8" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles10"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_10" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles12"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_12" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPendingTiles15"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_pending_tiles_15" />
+            </LinearLayout>
+
             <!-- Favorieten limiet -->
             <TextView
                 android:id="@+id/tvFavTitel"
@@ -367,6 +468,95 @@
                     android:minHeight="40dp"
                     android:checkable="true"
                     android:text="@string/instellingen_fav_all" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <TextView
+                android:id="@+id/tvSilentUploadTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_silent_upload_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvSilentUploadSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_silent_upload_subtitle"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSilentUploadUit"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_silent_upload_off" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSilentUpload5"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_silent_upload_5" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSilentUpload10"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_silent_upload_10" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSilentUpload15"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_silent_upload_15" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSilentUpload30"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:text="@string/instellingen_silent_upload_30" />
             </LinearLayout>
 
             <View
