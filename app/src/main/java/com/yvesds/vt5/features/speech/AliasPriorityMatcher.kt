@@ -161,6 +161,8 @@ object AliasPriorityMatcher {
         saf: SaFStorageHelper
     ): MatchResult? {
         val trailingAmount = NumberPatterns.parseTrailingNumberTokens(tokens)
+            ?.takeIf { it.consumedTokenCount < tokens.size }
+
         val amount = trailingAmount?.value ?: 1
         val phraseTokens = if (trailingAmount != null) {
             tokens.dropLast(trailingAmount.consumedTokenCount)

@@ -88,14 +88,26 @@ class AliasRepository(private val context: Context) {
     /**
      * Load all alias data (async). Preference order:
      * 1) binaries/aliases_optimized.cbor.gz (fast binary AliasIndex)
-     * 2) binaries/alias_master.json (canonical human-readable master)
-     * 3) serverdata/aliases.json (legacy wrapper)
+     * 2) assets/alias_master.json (authoritative human-readable master)
+     * 3) binaries/alias_master.json (legacy master location)
+     * 4) serverdata/aliases.json (legacy wrapper)
      *
      * CSV import is NOT performed automatically anywhere in the app.
      */
     @OptIn(ExperimentalSerializationApi::class)
-    suspend fun loadAliasData(): Boolean = withContext(Dispatchers.IO) {
-        if (isDataLoaded) return@withContext true
+    suspend fun loadAliasData(): Boolean = loadAliasDataInternal(forceReload = false)
+
+    suspend fun reloadAliasData(): Boolean = loadAliasDataInternal(forceReload = true)
+
+    @OptIn(ExperimentalSerializationApi::class)
+    private suspend fun loadAliasDataInternal(forceReload: Boolean): Boolean = withContext(Dispatchers.IO) {
+        if (!forceReload && isDataLoaded) return@withContext true
+
+        if (forceReload) {
+            aliasCache.clear()
+            aliasToSpeciesIdMap.clear()
+            isDataLoaded = false
+        }
 
         try {
             val safHelper = SaFStorageHelper(appContext)
@@ -132,11 +144,19 @@ class AliasRepository(private val context: Context) {
                 }
             }
 
-            // 2) Try binaries/alias_master.json (human-readable canonical master)
+            // 2) Try assets/alias_master.json (authoritative source)
+            val assetsLoaded = loadFromAssetsMaster()
+            if (assetsLoaded) {
+                buildReverseMapping()
+                isDataLoaded = true
+                return@withContext true
+            }
+
+            // 3) Try binaries/alias_master.json (legacy location)
             if (binaries != null) {
                 val masterDoc = binaries.findFile(ALIAS_MASTER_FILE)
                 if (masterDoc != null && masterDoc.exists()) {
-                    val loaded = loadFromAliasesMaster()
+                    val loaded = loadFromBinariesMaster()
                     if (loaded) {
                         buildReverseMapping()
                         isDataLoaded = true
@@ -145,7 +165,7 @@ class AliasRepository(private val context: Context) {
                 }
             }
 
-            // 3) Try serverdata/aliases.json (legacy)
+            // 4) Try serverdata/aliases.json (legacy)
             val serverDataDir = vt5Dir.findFile("serverdata")?.takeIf { it.isDirectory }
             val aliasJsonFile = serverDataDir?.findFile(ALIAS_JSON_FILE)
             if (aliasJsonFile != null && aliasJsonFile.exists()) {
@@ -194,9 +214,35 @@ class AliasRepository(private val context: Context) {
     // ---------- Loaders ----------
 
     /**
-     * Load canonical AliasMaster JSON (binaries/alias_master.json)
+     * Load canonical AliasMaster JSON (VT5/assets/alias_master.json)
      */
-    private fun loadFromAliasesMaster(): Boolean {
+    private fun loadFromAssetsMaster(): Boolean {
+        try {
+            val safHelper = SaFStorageHelper(appContext)
+            val vt5Dir = safHelper.getVt5DirIfExists() ?: return false
+            val assets = vt5Dir.findFile("assets")?.takeIf { it.isDirectory } ?: return false
+            val masterDoc = assets.findFile(ALIAS_MASTER_FILE) ?: return false
+
+            val jsonString = appContext.contentResolver.openInputStream(masterDoc.uri)?.bufferedReader()?.use { it.readText() }
+                ?: return false
+
+            val master = json.decodeFromString<AliasMaster>(jsonString)
+
+            aliasCache.clear()
+            for (entry in master.species) {
+                aliasCache[entry.speciesId] = entry
+            }
+            return true
+        } catch (ex: Exception) {
+            Log.w(TAG, "loadFromAssetsMaster failed: ${ex.message}", ex)
+            return false
+        }
+    }
+
+    /**
+     * Load legacy canonical AliasMaster JSON (VT5/binaries/alias_master.json)
+     */
+    private fun loadFromBinariesMaster(): Boolean {
         try {
             val safHelper = SaFStorageHelper(appContext)
             val vt5Dir = safHelper.getVt5DirIfExists() ?: return false
@@ -214,7 +260,7 @@ class AliasRepository(private val context: Context) {
             }
             return true
         } catch (ex: Exception) {
-            Log.w(TAG, "loadFromAliasesMaster failed: ${ex.message}", ex)
+            Log.w(TAG, "loadFromBinariesMaster failed: ${ex.message}", ex)
             return false
         }
     }

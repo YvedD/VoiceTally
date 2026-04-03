@@ -130,9 +130,13 @@ class SpeechRecognitionManager(private val activity: Activity) {
         }
     }
 
-    suspend fun loadAliases() {
-        if (!aliasesLoaded) {
-            aliasesLoaded = aliasRepository.loadAliasData()
+    suspend fun loadAliases(forceReload: Boolean = false) {
+        aliasesLoaded = if (forceReload) {
+            aliasRepository.reloadAliasData()
+        } else if (!aliasesLoaded) {
+            aliasRepository.loadAliasData()
+        } else {
+            true
         }
     }
 

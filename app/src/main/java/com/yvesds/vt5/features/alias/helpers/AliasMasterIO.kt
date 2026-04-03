@@ -13,6 +13,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.Json
 import java.io.ByteArrayOutputStream
+import java.security.MessageDigest
 import java.util.zip.GZIPOutputStream
 
 /**
@@ -40,7 +41,17 @@ object AliasMasterIO {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
-    
+
+    data class WriteResult(
+        val gzipSizeBytes: Long,
+        val gzipSha256: String,
+        val recordCount: Int,
+        val speciesCount: Int,
+        val aliasCount: Int,
+        val wroteMasterSaf: Boolean,
+        val wroteCborSaf: Boolean
+    )
+
     /**
      * Read alias_master.json from SAF assets directory.
      * Returns null if not found or parse fails.
@@ -114,8 +125,10 @@ object AliasMasterIO {
         master: AliasMaster,
         vt5RootDir: DocumentFile,
         saf: SaFStorageHelper? = null
-    ) = withContext(Dispatchers.IO) {
+    ): WriteResult? = withContext(Dispatchers.IO) {
         try {
+            var wroteMasterSaf = false
+
             // --- ASSETS: pretty JSON ---
             val assetsDir = vt5RootDir.findFile(ASSETS)?.takeIf { it.isDirectory } 
                 ?: vt5RootDir.createDirectory(ASSETS)
@@ -135,8 +148,8 @@ object AliasMasterIO {
                 val prettyJson = jsonPretty.encodeToString(AliasMaster.serializer(), master)
                 
                 if (masterDoc != null) {
-                    val wroteMaster = AliasSafWriter.safeWriteTextToDocument(context, masterDoc, prettyJson)
-                    if (!wroteMaster) {
+                    wroteMasterSaf = AliasSafWriter.safeWriteTextToDocument(context, masterDoc, prettyJson)
+                    if (!wroteMasterSaf) {
                         Log.w(TAG, "writeMasterAndCbor: writing master.json to assets failed; will fallback to internal cache")
                     } else {
                         Log.i(TAG, "writeMasterAndCbor: wrote $MASTER_FILE to ${masterDoc.uri} (${prettyJson.length} bytes)")
@@ -152,7 +165,7 @@ object AliasMasterIO {
             
             if (binariesDir == null) {
                 Log.e(TAG, "writeMasterAndCbor: cannot access/create binaries dir")
-                return@withContext
+                return@withContext null
             }
             
             val index = master.toAliasIndex()
@@ -166,14 +179,14 @@ object AliasMasterIO {
                 baos.toByteArray()
             }
             
-            // Remove existing if present
-            binariesDir.findFile(CBOR_FILE)?.delete()
-            val cborDoc = runCatching { 
-                binariesDir.createFile("application/octet-stream", CBOR_FILE) 
+            val existingCbor = binariesDir.findFile(CBOR_FILE)?.takeIf { it.isFile }
+            val cborDoc = existingCbor ?: runCatching {
+                binariesDir.createFile("application/octet-stream", CBOR_FILE)
             }.getOrNull()
-            
+            var wroteCborSaf = false
+
             if (cborDoc != null) {
-                val wroteCborSaf = AliasSafWriter.safeWriteToDocument(context, cborDoc, gzipped)
+                wroteCborSaf = AliasSafWriter.safeWriteToDocument(context, cborDoc, gzipped)
                 if (wroteCborSaf) {
                     Log.i(TAG, "writeMasterAndCbor: wrote $CBOR_FILE to ${cborDoc.uri} (${gzipped.size} bytes)")
                 } else {
@@ -190,9 +203,25 @@ object AliasMasterIO {
             } catch (ex: Exception) {
                 Log.w(TAG, "Failed to update internal cache after writeMasterAndCbor: ${ex.message}")
             }
-            
+
+            return@withContext WriteResult(
+                gzipSizeBytes = gzipped.size.toLong(),
+                gzipSha256 = sha256Hex(gzipped),
+                recordCount = index.json.size,
+                speciesCount = master.species.size,
+                aliasCount = master.species.sumOf { it.aliases.size },
+                wroteMasterSaf = wroteMasterSaf,
+                wroteCborSaf = wroteCborSaf
+            )
+
         } catch (ex: Exception) {
             Log.e(TAG, "writeMasterAndCbor failed: ${ex.message}", ex)
+            null
         }
+    }
+
+    private fun sha256Hex(bytes: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+        return digest.joinToString("") { "%02x".format(it) }
     }
 }

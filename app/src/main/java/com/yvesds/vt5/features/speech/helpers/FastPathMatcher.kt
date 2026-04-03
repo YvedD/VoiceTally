@@ -42,7 +42,8 @@ class FastPathMatcher(
         matchContext: MatchContext
     ): MatchResult? {
         try {
-            val (nameOnly, extractedCount) = NumberPatterns.parseTrailingNumberPhrase(hypothesis)
+            val extracted = NumberPatterns.extractAmountAndPhrase(hypothesis)
+            val nameOnly = extracted.phrase
             val normalized = TextUtils.normalizeLowerNoDiacritics(nameOnly)
 
             if (normalized.isBlank()) return null
@@ -57,7 +58,7 @@ class FastPathMatcher(
             val chosenSpeciesId = disambiguateSpecies(speciesSet, matchContext) ?: return null
 
             // Validate match against context
-            val amount = extractedCount ?: 1
+            val amount = extracted.amount ?: 1
             val asrConf = asrConfidence.toDouble().coerceIn(0.0, 1.0)
 
             if (!validateMatch(chosenSpeciesId, asrConf, matchContext)) {

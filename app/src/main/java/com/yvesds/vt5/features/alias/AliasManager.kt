@@ -254,39 +254,47 @@ object AliasManager {
                 tilename = tilename
             )
 
-            // 2) Persist alias immediately to alias_master.json (lightweight per-alias write). This makes the alias durable quickly.
+            // 2) Persist + rebuild asynchronously so the UI/telling flow does not wait on disk I/O.
             val timestamp = Instant.now().toString()
-            val persisted = writeSingleAliasToMasterImmediate(context, saf, speciesId, normalizedText, canonical, tilename, timestamp)
-            if (!persisted) {
-                Log.w(TAG, "addAlias: immediate persist to master.json failed (alias still hotpatched in-memory)")
-            }
+            writeScope.launch {
+                try {
+                    val persisted = writeSingleAliasToMasterImmediate(context, saf, speciesId, normalizedText, canonical, tilename, timestamp)
+                    if (!persisted) {
+                        Log.w(TAG, "addAlias background persist failed")
+                        return@launch
+                    }
 
-            // 3) Refresh internal cache and AliasMatcher from updated master
-            try {
-                val vt5Local = saf.getVt5DirIfExists()
-                if (vt5Local != null) {
-                    val masterObj = AliasMasterIO.readMasterFromAssets(context, vt5Local)
-                    if (masterObj != null) {
-                        AliasIndexCache.write(context, masterObj.toAliasIndex())
-                        Log.i(TAG, "addAlias: internal CBOR cache updated")
-                        
-                        // Reload AliasMatcher
-                        try {
-                            com.yvesds.vt5.features.speech.AliasMatcher.reloadIndex(context, saf)
-                            Log.i(TAG, "addAlias: AliasMatcher reloaded")
-                        } catch (ex: Exception) {
-                            Log.w(TAG, "addAlias: AliasMatcher reload failed: ${ex.message}", ex)
+                    val vt5Local = saf.getVt5DirIfExists()
+                    if (vt5Local != null) {
+                        val masterObj = AliasMasterIO.readMasterFromAssets(context, vt5Local)
+                        if (masterObj != null) {
+                            val writeResult = AliasMasterIO.writeMasterAndCbor(context, masterObj, vt5Local, saf)
+                            val refreshedIndex = masterObj.toAliasIndex()
+                            loadedIndex = refreshedIndex
+                            indexLoaded = true
+
+                            if (writeResult == null || !writeResult.wroteCborSaf) {
+                                Log.w(TAG, "addAlias: background CBOR write failed; scheduling retry rebuild")
+                                AliasCborRebuilder.scheduleRebuild(context, saf)
+                            } else {
+                                Log.i(TAG, "addAlias: background SAF CBOR updated (${writeResult.gzipSizeBytes} bytes)")
+                            }
+
+                            try {
+                                com.yvesds.vt5.features.speech.AliasMatcher.reloadIndex(context, saf)
+                                Log.i(TAG, "addAlias: AliasMatcher reloaded")
+                            } catch (ex: Exception) {
+                                Log.w(TAG, "addAlias: AliasMatcher reload failed: ${ex.message}", ex)
+                            }
                         }
                     }
+                } catch (ex: Exception) {
+                    Log.w(TAG, "addAlias background persist/rebuild failed: ${ex.message}", ex)
+                    AliasCborRebuilder.scheduleRebuild(context, saf)
                 }
-            } catch (ex: Exception) {
-                Log.w(TAG, "addAlias: post-persist refresh failed: ${ex.message}", ex)
             }
 
-            // 4) Schedule debounced CBOR rebuild for SAF binaries
-            AliasCborRebuilder.scheduleRebuild(context, saf)
-
-            Log.i(TAG, "addAlias: hotpatched and persisted alias='$normalizedText' for species=$speciesId (master.json immediate)")
+            Log.i(TAG, "addAlias: hotpatched alias='$normalizedText' for species=$speciesId; background persist enqueued")
             return@withContext true
         } catch (ex: Exception) {
             Log.e(TAG, "addAlias failed: ${ex.message}", ex)

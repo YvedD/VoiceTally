@@ -12,6 +12,11 @@ import com.yvesds.vt5.utils.TextUtils
  */
 object NumberPatterns {
 
+    data class ExtractedAmountPhrase(
+        val phrase: String,
+        val amount: Int?
+    )
+
     data class NumberTokenParse(
         val value: Int,
         val consumedTokenCount: Int
@@ -142,6 +147,19 @@ object NumberPatterns {
         val nameTokens = tokens.dropLast(trailing.consumedTokenCount)
         if (nameTokens.isEmpty()) return normalized to null
         return nameTokens.joinToString(" ") to trailing.value
+    }
+
+    fun extractAmountAndPhrase(text: String): ExtractedAmountPhrase {
+        val normalized = TextUtils.normalizeLowerNoDiacritics(text)
+        if (normalized.isBlank()) return ExtractedAmountPhrase("", null)
+
+        val (trailingPhrase, trailingAmount) = parseTrailingNumberPhrase(normalized)
+        if (trailingAmount != null && trailingPhrase.isNotBlank()) {
+            return ExtractedAmountPhrase(trailingPhrase, trailingAmount)
+        }
+
+
+        return ExtractedAmountPhrase(normalized, null)
     }
 
     fun parseTrailingNumberTokens(tokens: List<String>): NumberTokenParse? {

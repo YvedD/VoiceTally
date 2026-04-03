@@ -8,11 +8,14 @@ import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.features.speech.MatchLogWriter
 import com.yvesds.vt5.features.speech.AliasMatcher
 import com.yvesds.vt5.features.alias.AliasManager
+import com.yvesds.vt5.features.alias.helpers.AliasStartupInitializer
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,6 +38,7 @@ class VT5App : Application() {
     // Speciale scope die blijft bestaan gedurende de hele app-lifecycle
     private val appScope = CoroutineScope(Job() + Dispatchers.IO)
     private val TAG = "VT5App"
+    private var startupAliasRefreshJob: Deferred<AliasStartupInitializer.StartupRefreshResult?>? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -60,6 +64,16 @@ class VT5App : Application() {
 
         // Preload data in de achtergrond - verhoogt app responsiviteit
         preloadDataAsync()
+
+        startupAliasRefreshJob = appScope.async {
+            try {
+                AliasStartupInitializer.rebuildAndWarmup(applicationContext)
+            } catch (ex: Exception) {
+                Log.w(TAG, "Startup alias rebuild failed: ${ex.message}", ex)
+                null
+            }
+        }
+        startupAliasRefreshDeferred = startupAliasRefreshJob
 
         // Best-effort: preload alias indexes so first recognitions don't block on CBOR/SAN load.
         // We deliberately split IO checks and CPU-bound work:
@@ -146,10 +160,15 @@ class VT5App : Application() {
         // ====== Prefs ======
         private const val PREFS = "vt5_prefs"
         private const val KEY_TELLING_ID = "telling_id"
+        @Volatile private var startupAliasRefreshDeferred: Deferred<AliasStartupInitializer.StartupRefreshResult?>? = null
 
         /** Toegang tot app-prefs. */
         fun prefs(): SharedPreferences =
             instance.run { getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+
+        suspend fun awaitStartupAliasRefresh(): AliasStartupInitializer.StartupRefreshResult? {
+            return startupAliasRefreshDeferred?.await()
+        }
 
         /**
          * Geef volgende telling-id terug als String en verhoog de teller.

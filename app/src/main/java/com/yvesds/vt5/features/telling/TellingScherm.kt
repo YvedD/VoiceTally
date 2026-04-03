@@ -212,7 +212,7 @@ class TellingScherm : AppCompatActivity() {
                 }
 
                 // Reload speech recognition aliases
-                speechHandler.loadAliases()
+                    speechHandler.loadAliases(forceReload = true)
             }
         }
     }

@@ -385,7 +385,7 @@ class TellingSpeciesManager(
                 }
 
                 // Reload speech recognition aliases
-                speechHandler.loadAliases()
+                speechHandler.loadAliases(forceReload = true)
 
                 // Rebuild match context
                 withContext(Dispatchers.Default) {

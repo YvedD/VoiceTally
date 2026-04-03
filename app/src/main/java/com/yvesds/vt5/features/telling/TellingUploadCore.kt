@@ -31,6 +31,8 @@ import java.util.Locale
  *
  * Belangrijk:
  * - silent syncs slaan een upload over als er al een andere upload bezig is
+     * - silent syncs houden na succes hun bestaande sessie-identiteit aan, ook als de server
+     *   een ander onlineId terugstuurt
  * - finale uploads wachten wél op de mutex, zodat de eindafronding betrouwbaar blijft
  */
 class TellingUploadCore(
@@ -99,7 +101,8 @@ class TellingUploadCore(
         val credentials: Credentials? = null,
         val persistReturnedOnlineId: Boolean = false,
         val persistPreparedEnvelopeToPrefs: Boolean = false,
-        val markTellingSent: Boolean = false
+        val markTellingSent: Boolean = false,
+        val keepPreparedOnlineIdOnSuccess: Boolean = false
     )
 
     data class UploadResult(
@@ -136,6 +139,19 @@ class TellingUploadCore(
     }
 
     suspend fun uploadPrepared(request: UploadRequest): UploadResult {
+        if (request.mode == Mode.SILENT_SYNC && request.preparedEnvelope.onlineid.isBlank()) {
+            Log.w(TAG, "Silent upload overgeslagen: bestaand onlineId ontbreekt")
+            return UploadResult(
+                success = false,
+                skipped = true,
+                preparedEnvelope = request.preparedEnvelope,
+                responseText = "",
+                effectiveOnlineId = null,
+                errorMessage = "Silent upload vereist een bestaand onlineId",
+                retryable = true
+            )
+        }
+
         if (request.mode == Mode.SILENT_SYNC) {
             if (!uploadMutex.tryLock()) {
                 Log.i(TAG, "Silent upload overgeslagen: uploadkern is al bezig")
@@ -216,15 +232,29 @@ class TellingUploadCore(
             )
         }
 
-        val returnedOnlineId = parseOnlineIdFromResponse(resp)
-        val effectiveOnlineId = returnedOnlineId
-            ?.takeIf { it.isNotBlank() }
-            ?: request.preparedEnvelope.onlineid.takeIf { it.isNotBlank() }
+        val returnedOnlineId = parseOnlineIdFromResponse(resp)?.takeIf { it.isNotBlank() }
+        val effectiveOnlineId = when {
+            request.keepPreparedOnlineIdOnSuccess && request.preparedEnvelope.onlineid.isNotBlank() -> request.preparedEnvelope.onlineid
+            !returnedOnlineId.isNullOrBlank() -> returnedOnlineId
+            else -> request.preparedEnvelope.onlineid.takeIf { it.isNotBlank() }
+        }
 
         val persistedEnvelope = if (!effectiveOnlineId.isNullOrBlank()) {
             request.preparedEnvelope.copy(onlineid = effectiveOnlineId)
         } else {
             request.preparedEnvelope
+        }
+
+        if (
+            request.keepPreparedOnlineIdOnSuccess &&
+            !returnedOnlineId.isNullOrBlank() &&
+            returnedOnlineId != request.preparedEnvelope.onlineid
+        ) {
+            Log.w(
+                TAG,
+                "Server returned afwijkend onlineId tijdens ${request.mode}; bestaande sessie-id behouden " +
+                    "(server=$returnedOnlineId, session=${request.preparedEnvelope.onlineid})"
+            )
         }
 
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -141,11 +141,11 @@ class TellingSpeechHandler(
     /**
      * Load aliases for speech recognition.
      */
-    suspend fun loadAliases() {
+    suspend fun loadAliases(forceReload: Boolean = false) {
         if (::speechRecognitionManager.isInitialized) {
             withContext(Dispatchers.IO) {
                 try {
-                    speechRecognitionManager.loadAliases()
+                    speechRecognitionManager.loadAliases(forceReload = forceReload)
                 } catch (ex: Exception) {
                     Log.w(TAG, "speechRecognitionManager.loadAliases failed: ${ex.message}", ex)
                 }
@@ -214,6 +214,10 @@ class TellingSpeechHandler(
         for ((soortId, naam) in speciesMap) {
             selectedSpeciesMap[naam] = soortId
             selectedSpeciesMap[naam.lowercase(Locale.getDefault())] = soortId
+        }
+
+        if (::speechRecognitionManager.isInitialized) {
+            speechRecognitionManager.setAvailableSpecies(selectedSpeciesMap)
         }
 
         return selectedSpeciesMap

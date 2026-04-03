@@ -74,6 +74,6 @@ class TellingMatchResultHandler(
      * Simple implementation - can be enhanced with TellingLogManager if needed.
      */
     private fun extractCountFromHypothesis(hypothesis: String): Int {
-        return NumberPatterns.parseTrailingNumberPhrase(hypothesis).second ?: 1
+        return NumberPatterns.extractAmountAndPhrase(hypothesis).amount ?: 1
     }
 }

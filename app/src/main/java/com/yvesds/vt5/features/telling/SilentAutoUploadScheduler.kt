@@ -15,6 +15,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.ZonedDateTime
+import java.util.Date
 
 /**
  * In-app scheduler voor klokgebaseerde silent uploads.
@@ -103,17 +104,22 @@ object SilentAutoUploadScheduler {
                 continue
             }
 
+            val uploadMoment = Date()
             val prepared = uploadCore.prepareEnvelopeForUpload(
-                sourceEnvelope = envelope,
-                useStoredOnlineIdWhenBlank = true
+                sourceEnvelope = envelope.copy(
+                    eindtijd = (uploadMoment.time / 1000L).toString()
+                ),
+                useStoredOnlineIdWhenBlank = true,
+                now = uploadMoment
             )
             val result = uploadCore.uploadPrepared(
                 TellingUploadCore.UploadRequest(
                     mode = TellingUploadCore.Mode.SILENT_SYNC,
                     preparedEnvelope = prepared,
-                    persistReturnedOnlineId = true,
-                    persistPreparedEnvelopeToPrefs = true,
-                    markTellingSent = false
+                    persistReturnedOnlineId = false,
+                    persistPreparedEnvelopeToPrefs = false,
+                    markTellingSent = false,
+                    keepPreparedOnlineIdOnSuccess = true
                 )
             )
 

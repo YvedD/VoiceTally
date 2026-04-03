@@ -8,10 +8,12 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
+import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * SplashActiviteit - Toont het VT5 logo tijdens het opstarten
@@ -48,7 +50,15 @@ class SplashActiviteit : AppCompatActivity() {
         
         // Navigeer naar HoofdActiviteit na de splash duur
         splashJob = lifecycleScope.launch {
-            delay(SPLASH_DURATION_MS)
+            val startedAt = System.currentTimeMillis()
+            withTimeoutOrNull(5_000L) {
+                VT5App.awaitStartupAliasRefresh()
+            }
+            val elapsed = System.currentTimeMillis() - startedAt
+            val remaining = (SPLASH_DURATION_MS - elapsed).coerceAtLeast(0L)
+            if (remaining > 0L) {
+                delay(remaining)
+            }
             navigateToMain()
         }
     }
