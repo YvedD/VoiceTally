@@ -54,16 +54,13 @@ class InstellingenScherm : AppCompatActivity() {
         const val DEFAULT_LETTERGROOTTE_SP = 17
 
         const val PREF_MAX_FAVORIETEN = "pref_max_favoriete_soorten"
-        const val PREF_SILENT_AUTO_UPLOAD_INTERVAL_MINUTES = "pref_silent_auto_upload_interval_minutes"
         const val MAX_FAVORIETEN_ALL = -1
         const val DEFAULT_MAX_FAVORIETEN = 30
         const val DEFAULT_TILE_DOUBLE_TAP_INCREMENT = 10
         const val DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS = 5
-        const val DEFAULT_SILENT_AUTO_UPLOAD_INTERVAL_MINUTES = 0
 
         private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
         private val TILE_TAP_GROUP_WINDOW_OPTIONS = listOf(2, 3, 5, 8, 10, 12, 15)
-        private val SILENT_AUTO_UPLOAD_OPTIONS = listOf(0, 5, 10, 15, 30)
 
         /**
          * Haal de huidige lettergrootte voor partials op uit SharedPreferences.
@@ -131,14 +128,6 @@ class InstellingenScherm : AppCompatActivity() {
             return stored.takeIf { it in TILE_TAP_GROUP_WINDOW_OPTIONS } ?: DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS
         }
 
-        fun getSilentAutoUploadIntervalMinutes(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            val stored = prefs.getInt(
-                PREF_SILENT_AUTO_UPLOAD_INTERVAL_MINUTES,
-                DEFAULT_SILENT_AUTO_UPLOAD_INTERVAL_MINUTES
-            )
-            return stored.takeIf { it in SILENT_AUTO_UPLOAD_OPTIONS } ?: DEFAULT_SILENT_AUTO_UPLOAD_INTERVAL_MINUTES
-        }
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,7 +140,6 @@ class InstellingenScherm : AppCompatActivity() {
             setupLettergrootteNumberPickers()
             setupDoubleTapIncrementButtons()
             setupTileTapGroupWindowButtons()
-            setupSilentAutoUploadButtons()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupFinalsTextColorSpinner()
@@ -369,38 +357,6 @@ class InstellingenScherm : AppCompatActivity() {
         btn15.setOnClickListener { applySelection(15) }
     }
 
-    private fun setupSilentAutoUploadButtons() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-
-        val btnUit = findViewById<MaterialButton?>(R.id.btnSilentUploadUit)
-        val btn5 = findViewById<MaterialButton?>(R.id.btnSilentUpload5)
-        val btn10 = findViewById<MaterialButton?>(R.id.btnSilentUpload10)
-        val btn15 = findViewById<MaterialButton?>(R.id.btnSilentUpload15)
-        val btn30 = findViewById<MaterialButton?>(R.id.btnSilentUpload30)
-
-        val allButtons = listOfNotNull(btnUit, btn5, btn10, btn15, btn30)
-        if (allButtons.isEmpty()) return
-
-        fun applySelection(value: Int) {
-            prefs.edit { putInt(PREF_SILENT_AUTO_UPLOAD_INTERVAL_MINUTES, value) }
-            allButtons.forEach { it.isChecked = false }
-            when (value) {
-                5 -> btn5?.isChecked = true
-                10 -> btn10?.isChecked = true
-                15 -> btn15?.isChecked = true
-                30 -> btn30?.isChecked = true
-                else -> btnUit?.isChecked = true
-            }
-        }
-
-        applySelection(getSilentAutoUploadIntervalMinutes(this))
-
-        btnUit?.setOnClickListener { applySelection(0) }
-        btn5?.setOnClickListener { applySelection(5) }
-        btn10?.setOnClickListener { applySelection(10) }
-        btn15?.setOnClickListener { applySelection(15) }
-        btn30?.setOnClickListener { applySelection(30) }
-    }
 
     private fun setupPartialsTextColorSpinner() {
         setupLogColorSpinner(

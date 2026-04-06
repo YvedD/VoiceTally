@@ -894,7 +894,6 @@ class TellingScherm : AppCompatActivity() {
         uiManager.updateFinals(uiManager.getCurrentFinals())
         updateMasterClientConnectionUi()
         maybeContinuePendingClientConnection()
-        refreshSilentAutoUploadScheduler()
         refreshFinalObservationUploadMarkers()
     }
 
@@ -1045,7 +1044,6 @@ class TellingScherm : AppCompatActivity() {
             .apply()
 
         updateMasterClientConnectionUi()
-        refreshSilentAutoUploadScheduler()
         Toast.makeText(this, getString(R.string.mc_toast_left_session), Toast.LENGTH_SHORT).show()
 
         val intent = Intent(this, HoofdActiviteit::class.java).apply {
@@ -1446,7 +1444,6 @@ class TellingScherm : AppCompatActivity() {
      * @param metadataUpdates Optional updates to begintijd, eindtijd, and opmerkingen
      */
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
-        SilentAutoUploadScheduler.stopAndJoin("finale afronding gestart")
         tileTapAggregationManager.flushAllAndAwait()
         val result = afrondHandler.handleAfronden(
             pendingRecords = synchronized(pendingRecords) { ArrayList(pendingRecords) },
@@ -1473,7 +1470,6 @@ class TellingScherm : AppCompatActivity() {
                     showAutoDissmissSuccessAndThenVervolg(eindtijdForVervolg)
                 }
                 is TellingAfrondHandler.AfrondResult.Failure -> {
-                    refreshSilentAutoUploadScheduler()
                     // Show failure dialog
                     val dlg = AlertDialog.Builder(this@TellingScherm)
                         .setTitle(result.title)
@@ -1717,7 +1713,6 @@ class TellingScherm : AppCompatActivity() {
                 MasterClientRuntimeStore.clearPreserveAcrossTellings()
                 MasterClientPrefs.clearSession(this)
                 updateMasterClientConnectionUi()
-                refreshSilentAutoUploadScheduler()
             }
         }
     }
@@ -1780,7 +1775,6 @@ class TellingScherm : AppCompatActivity() {
             cacheCurrentMasterConnectionDetails()
             Toast.makeText(this, getString(R.string.mc_master_network_ready_existing_wifi), Toast.LENGTH_SHORT).show()
             updateMasterClientConnectionUi()
-            refreshSilentAutoUploadScheduler()
         }
     }
 
@@ -1832,7 +1826,6 @@ class TellingScherm : AppCompatActivity() {
             bindClientRuntimeCallbacks(storedConnector)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             updateMasterClientConnectionUi()
-            refreshSilentAutoUploadScheduler()
             return
         }
 
@@ -1840,7 +1833,6 @@ class TellingScherm : AppCompatActivity() {
             bindClientRuntimeCallbacks(mcClientConnector!!)
             MasterClientPrefs.setMode(this, MasterClientPrefs.MODE_CLIENT)
             updateMasterClientConnectionUi()
-            refreshSilentAutoUploadScheduler()
             return
         }
 
@@ -1866,7 +1858,6 @@ class TellingScherm : AppCompatActivity() {
         }
 
         updateMasterClientConnectionUi()
-        refreshSilentAutoUploadScheduler()
     }
 
     private fun launchPairingQrScan() {
@@ -2217,15 +2208,6 @@ class TellingScherm : AppCompatActivity() {
         connector.setBootstrapSession(bootstrapSession)
         connector.start()
         updateMasterClientConnectionUi()
-        refreshSilentAutoUploadScheduler()
-    }
-
-    private fun refreshSilentAutoUploadScheduler() {
-        if (isClientFlowLocked() || MasterClientPrefs.getMode(this) == MasterClientPrefs.MODE_CLIENT) {
-            SilentAutoUploadScheduler.stop("clientmodus actief")
-        } else {
-            SilentAutoUploadScheduler.startOrUpdate(applicationContext)
-        }
     }
 
     private fun buildTileSyncItems(): List<TileSyncItem> {

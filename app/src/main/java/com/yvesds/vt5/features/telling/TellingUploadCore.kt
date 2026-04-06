@@ -28,12 +28,7 @@ import java.util.Locale
  * - één gedeelde `counts_save`-aanroep
  * - consistente verwerking van returned onlineId
  * - mode-afhankelijke neveneffecten (prefs/flags), maar géén UI/navigatie/cleanup
- *
- * Belangrijk:
- * - silent syncs slaan een upload over als er al een andere upload bezig is
-     * - silent syncs houden na succes hun bestaande sessie-identiteit aan, ook als de server
-     *   een ander onlineId terugstuurt
- * - finale uploads wachten wél op de mutex, zodat de eindafronding betrouwbaar blijft
+ * - alle uploads lopen via één gedeelde mutex, zodat de sessiestatus consistent blijft
  */
 class TellingUploadCore(
     private val context: Context
@@ -84,7 +79,6 @@ class TellingUploadCore(
 
     enum class Mode {
         START,
-        SILENT_SYNC,
         FINALIZE,
         WORKER_FINALIZE,
         EDITOR_UPLOAD
@@ -139,38 +133,6 @@ class TellingUploadCore(
     }
 
     suspend fun uploadPrepared(request: UploadRequest): UploadResult {
-        if (request.mode == Mode.SILENT_SYNC && request.preparedEnvelope.onlineid.isBlank()) {
-            Log.w(TAG, "Silent upload overgeslagen: bestaand onlineId ontbreekt")
-            return UploadResult(
-                success = false,
-                skipped = true,
-                preparedEnvelope = request.preparedEnvelope,
-                responseText = "",
-                effectiveOnlineId = null,
-                errorMessage = "Silent upload vereist een bestaand onlineId",
-                retryable = true
-            )
-        }
-
-        if (request.mode == Mode.SILENT_SYNC) {
-            if (!uploadMutex.tryLock()) {
-                Log.i(TAG, "Silent upload overgeslagen: uploadkern is al bezig")
-                return UploadResult(
-                    success = false,
-                    skipped = true,
-                    preparedEnvelope = request.preparedEnvelope,
-                    responseText = "",
-                    effectiveOnlineId = request.preparedEnvelope.onlineid.ifBlank { null },
-                    errorMessage = "Uploadkern bezet"
-                )
-            }
-            try {
-                return doUpload(request)
-            } finally {
-                uploadMutex.unlock()
-            }
-        }
-
         return uploadMutex.withLock {
             doUpload(request)
         }
@@ -203,7 +165,7 @@ class TellingUploadCore(
                 responseText = "",
                 effectiveOnlineId = request.preparedEnvelope.onlineid.ifBlank { null },
                 errorMessage = "Geen credentials beschikbaar voor upload.",
-                retryable = request.mode == Mode.SILENT_SYNC || request.mode == Mode.WORKER_FINALIZE
+                retryable = request.mode == Mode.WORKER_FINALIZE
             )
         }
 
@@ -228,7 +190,7 @@ class TellingUploadCore(
                 responseText = resp,
                 effectiveOnlineId = request.preparedEnvelope.onlineid.ifBlank { null },
                 errorMessage = resp,
-                retryable = request.mode == Mode.SILENT_SYNC || request.mode == Mode.WORKER_FINALIZE
+                retryable = request.mode == Mode.WORKER_FINALIZE
             )
         }
 
@@ -269,7 +231,6 @@ class TellingUploadCore(
         }
         when (request.mode) {
             Mode.START,
-            Mode.SILENT_SYNC,
             Mode.FINALIZE,
             Mode.WORKER_FINALIZE -> UploadedObservationStateStore.replaceUploadedRecords(
                 context = context,

@@ -136,13 +136,6 @@
     <string name="instellingen_pending_tiles_10">10 s</string>
     <string name="instellingen_pending_tiles_12">12 s</string>
     <string name="instellingen_pending_tiles_15">15 s</string>
-    <string name="instellingen_silent_upload_title">Silent auto-upload tijdens telling</string>
-    <string name="instellingen_silent_upload_subtitle">Upload de lopende telling op vaste klokmomenten, zonder afronden of schermwissel.</string>
-    <string name="instellingen_silent_upload_off">Géén</string>
-    <string name="instellingen_silent_upload_5">5 min</string>
-    <string name="instellingen_silent_upload_10">10 min</string>
-    <string name="instellingen_silent_upload_15">15 min</string>
-    <string name="instellingen_silent_upload_30">30 min</string>
     <string name="finals_log_uploaded_icon">↑</string>
     <string name="finals_log_uploaded_content_description">Waarneming reeds naar server verzonden</string>
 
