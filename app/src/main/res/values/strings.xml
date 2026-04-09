@@ -261,6 +261,9 @@
     <string name="telling_totals">Totalen</string>
     <string name="telling_add">Toevoegen</string>
     <string name="telling_finish">Afronden</string>
+    <string name="telling_daily_total_item">%1$s %2$d</string>
+    <string name="telling_daily_total_main_fallback">Heen</string>
+    <string name="telling_daily_total_return_fallback">Terug</string>
 
     <string name="soort_species_name_placeholder">Soortnaam (id: ...)</string>
     <string name="soort_selection_info">%1$d soorten • geselecteerd: %2$d</string>

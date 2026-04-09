@@ -65,6 +65,7 @@ import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.hoofd.HoofdActiviteit
+import com.yvesds.vt5.utils.TelpostDirectionLabelProvider
 
 /**
  * TellingScherm.kt
@@ -294,6 +295,7 @@ class TellingScherm : AppCompatActivity() {
 
         // Setup UI using UiManager
         setupUiWithManager()
+        refreshDailyTotalsUi()
         observeUploadedObservationState()
         restoreMasterClientRuntimeFromStore()
         setupMasterClientSupport()
@@ -503,6 +505,7 @@ class TellingScherm : AppCompatActivity() {
 
             queueClientObservationUpdateIfNeeded(updated)
             updateClientFinalObservationRow(updated)
+            syncDailyTotalsRecord(updated)
 
             // Save full envelope after annotation update to preserve changes.
             // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
@@ -617,6 +620,39 @@ class TellingScherm : AppCompatActivity() {
         binding.btnToggleAlarm.contentDescription = getString(
             if (enabled) R.string.hoofd_alarm_enabled else R.string.hoofd_alarm_disabled
         )
+    }
+
+    private fun refreshDailyTotalsUi() {
+        if (!::binding.isInitialized) return
+        lifecycleScope.launch {
+            val labels = withContext(Dispatchers.IO) {
+                runCatching { TelpostDirectionLabelProvider.getForCurrentSession(this@TellingScherm) }
+                    .getOrElse { TelpostDirectionLabelProvider.Labels(null, null, "Aantal :", "Aantal terug :") }
+            }
+            val totals = withContext(Dispatchers.IO) {
+                DailyDirectionTotalsStore.getTodayTotalsForCurrentSession(this@TellingScherm)
+            }
+
+            binding.tvDailyMainTotal.text = getString(
+                R.string.telling_daily_total_item,
+                labels.mainShort ?: getString(R.string.telling_daily_total_main_fallback),
+                totals.mainTotal
+            )
+            binding.tvDailyReturnTotal.text = getString(
+                R.string.telling_daily_total_item,
+                labels.returnShort ?: getString(R.string.telling_daily_total_return_fallback),
+                totals.returnTotal
+            )
+        }
+    }
+
+    private fun syncDailyTotalsRecord(item: ServerTellingDataItem) {
+        DailyDirectionTotalsStore.upsertRecord(
+            context = this,
+            telpostId = TellingSessionManager.preselectState.value.telpostId,
+            record = item
+        )
+        refreshDailyTotalsUi()
     }
 
     /* ---------- UI Callback Handlers ---------- */
@@ -895,6 +931,7 @@ class TellingScherm : AppCompatActivity() {
         updateMasterClientConnectionUi()
         maybeContinuePendingClientConnection()
         refreshFinalObservationUploadMarkers()
+        refreshDailyTotalsUi()
     }
 
     private fun ensurePendingTellingPromptOnRestore() {
@@ -1605,6 +1642,7 @@ class TellingScherm : AppCompatActivity() {
             if (::viewModel.isInitialized) {
                 viewModel.setPendingRecords(savedRecords)
             }
+            savedRecords.forEach { syncDailyTotalsRecord(it) }
 
             // Restore finals log from records (partials remain empty)
             val restoredFinals = savedRecords.map { rec ->
@@ -2482,6 +2520,7 @@ class TellingScherm : AppCompatActivity() {
         ensureTilesExistForRecords(recordsSnapshot)
         tegelBeheer.recalculateCountsFromRecords(recordsSnapshot)
         persistEnvelopeAsync()
+        syncDailyTotalsRecord(updated)
 
         if (hasClientAnnotationChanges(existing, updated) || existing.aantal != updated.aantal || existing.aantalterug != updated.aantalterug) {
             upsertFinalObservationRow(buildFinalObservationRow(updated, isClientOrigin = true, clientLogPrefix = clientLogPrefix))
@@ -2779,6 +2818,7 @@ class TellingScherm : AppCompatActivity() {
             }
         }
         persistEnvelopeAsync()
+        syncDailyTotalsRecord(item)
     }
 
     private fun persistEnvelopeAsync() {

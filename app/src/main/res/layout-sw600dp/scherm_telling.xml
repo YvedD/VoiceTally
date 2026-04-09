@@ -4,7 +4,8 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="40dp"
+    android:layout_marginTop="50dp"
+    android:layout_marginBottom="50dp"
     android:orientation="vertical"
     android:padding="8dp">
 
@@ -91,7 +92,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSpeechPartials"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="200dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
         app:cardCornerRadius="8dp"
@@ -111,7 +112,7 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSpeechFinals"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="200dp"
         android:layout_marginTop="1dp"
         android:layout_marginBottom="1dp"
         app:cardCornerRadius="8dp"
@@ -132,9 +133,45 @@
         android:id="@+id/knoppenBalk1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="4dp">
+
+        <LinearLayout
+            android:id="@+id/dailyTotalsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvDailyMainTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ZW 0"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <View
+                android:id="@+id/viewDailyTotalsDivider"
+                android:layout_width="1dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:alpha="0.35"
+                android:background="@color/vt5_on_surface" />
+
+            <TextView
+                android:id="@+id/tvDailyReturnTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NO 0"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnSaveClose"

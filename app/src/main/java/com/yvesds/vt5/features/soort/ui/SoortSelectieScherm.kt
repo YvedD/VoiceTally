@@ -16,7 +16,6 @@ import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermSoortSelectieBinding
 import com.yvesds.vt5.features.alias.AliasManager
-import com.yvesds.vt5.features.recent.RecentSpeciesStore
 import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
@@ -137,12 +136,13 @@ class SoortSelectieScherm : AppCompatActivity() {
         )
 
         // Optimalisatie: SpanSizeLookup voor header over volle breedte
-        val glm = GridLayoutManager(this, 2, RecyclerView.VERTICAL, false).apply {
+        val spanCount = if (resources.configuration.smallestScreenWidthDp >= 600) 3 else 2
+        val glm = GridLayoutManager(this, spanCount, RecyclerView.VERTICAL, false).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int {
                     return when {
-                        gridAdapter.isHeader(position) -> 2 // Header over volle breedte
-                        gridAdapter.isFooter(position) -> 2 // Footer over volle breedte
+                        gridAdapter.isHeader(position) -> spanCount // Header over volle breedte
+                        gridAdapter.isFooter(position) -> spanCount // Footer over volle breedte
                         else -> 1                           // Items in 2 kolommen
                     }
                 }
@@ -352,18 +352,10 @@ class SoortSelectieScherm : AppCompatActivity() {
 
     private fun computeRecents(baseAlpha: List<Row>): List<Row> {
         val prefLimit = InstellingenScherm.getMaxFavorieten(this)
-        val effectiveLimit = when {
-            prefLimit == InstellingenScherm.MAX_FAVORIETEN_ALL -> SpeciesUsageScoreStore.MAX_ALL_CAP
-            prefLimit <= 0 -> SpeciesUsageScoreStore.MAX_ALL_CAP
-            else -> prefLimit
-        }.coerceAtMost(SpeciesUsageScoreStore.MAX_ALL_CAP)
-
-        // Use cached lookup map instead of rebuilding
-        val recentsOrderedIds = RecentSpeciesStore.getRecents(this)
-            .asSequence()
-            .map { it.first }
-            .take(effectiveLimit)
-            .toList()
+        val recentsOrderedIds = SpeciesUsageScoreStore.getTopSpeciesIds(
+            this,
+            limit = if (prefLimit == InstellingenScherm.MAX_FAVORIETEN_ALL) 0 else prefLimit
+        )
 
         // Pre-allocate result list with expected size
         val result = ArrayList<Row>(recentsOrderedIds.size.coerceAtMost(baseAlpha.size))

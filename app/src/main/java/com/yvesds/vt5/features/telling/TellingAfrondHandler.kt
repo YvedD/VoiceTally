@@ -7,6 +7,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
+import com.yvesds.vt5.utils.SessionRemarksMarker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
@@ -112,7 +113,7 @@ class TellingAfrondHandler(
         // Note: Use ifBlank to also handle empty string cases, not just null
         val effectiveBegintijd = metadataUpdates?.begintijd?.ifBlank { null } ?: baseEnv.begintijd
         val effectiveEindtijd = metadataUpdates?.eindtijd?.ifBlank { null } ?: nowEpochStr
-        val effectiveOpmerkingen = metadataUpdates?.opmerkingen ?: baseEnv.opmerkingen
+        val effectiveOpmerkingen = SessionRemarksMarker.remove(metadataUpdates?.opmerkingen ?: baseEnv.opmerkingen)
         
         val envWithTimes = baseEnv.copy(
             begintijd = effectiveBegintijd,

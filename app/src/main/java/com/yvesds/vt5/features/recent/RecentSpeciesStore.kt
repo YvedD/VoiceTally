@@ -51,11 +51,10 @@ object RecentSpeciesStore {
 
     /**
      * Retourneert lijst van (soortId, lastUsedMillis), meest recent eerst.
-     * NEW: score-store bepaalt de window (laatste sessies) + cap voor ALLE.
+     * De score-store bepaalt de 7-dagenwindow; deze façade geeft de volledige set terug.
      */
     fun getRecents(context: Context): List<Pair<String, Long>> {
-        // Delegate to score-based recents window.
-        val loaded = SpeciesUsageScoreStore.getRecents(context, limit = SpeciesUsageScoreStore.MAX_ALL_CAP)
+        val loaded = SpeciesUsageScoreStore.getRecents(context, limit = 0)
         cachedRecents = loaded
         cachedRecentIdsSet.clear()
         loaded.forEach { (id, _) -> cachedRecentIdsSet[id] = true }

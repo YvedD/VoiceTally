@@ -28,6 +28,7 @@ import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.features.serverdata.model.ServerDataRepository
 import com.yvesds.vt5.features.soort.ui.SoortSelectieScherm
 import com.yvesds.vt5.features.telling.TellingSessionManager
+import com.yvesds.vt5.utils.SessionRemarksMarker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -120,6 +121,7 @@ class MetadataScherm : AppCompatActivity() {
         // pickers + defaults
         formManager.initDateTimePickers()
         formManager.prefillCurrentDateTime()
+        applySessionRemarksMarker()
         
         // Check for vervolgtelling: if begintijd is passed from previous telling,
         // use it to preset the time field and ensure weather button is enabled
@@ -158,6 +160,15 @@ class MetadataScherm : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to parse vervolgtelling begintijd: ${e.message}")
             }
+        }
+        applySessionRemarksMarker()
+    }
+
+    private fun applySessionRemarksMarker() {
+        val current = binding.etOpmerkingen.text?.toString()
+        val updated = SessionRemarksMarker.append(current)
+        if (updated != current.orEmpty()) {
+            binding.etOpmerkingen.setText(updated)
         }
     }
 

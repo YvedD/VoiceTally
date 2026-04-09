@@ -10,13 +10,15 @@ import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Score-based "favorites" for species, based on usage across the last N sessions.
+ * Score-based "favorites" for species, based on usage across the last 7 days.
  *
  * Requirements / design:
  * - No pinned list; purely score-based.
- * - Keep only species that occurred in the last [MAX_SESSIONS] sessions.
+ * - Keep only species used within the last [RECENT_WINDOW_DAYS] days.
+ * - Sessions are still retained as a safety/history window, but the 7-day rule takes precedence.
  * - Additional time-based decay is applied (week-scale) so older usage slowly fades.
- * - "ALLE" in settings means: use the *full scored set* (still capped at [MAX_ALL_CAP]).
+ * - Numeric limits use the top scored species within the 7-day window.
+ * - "ALLE" in settings means: use the full 7-day set without an additional cap.
  */
 @Suppress("unused")
 object SpeciesUsageScoreStore {
@@ -25,11 +27,15 @@ object SpeciesUsageScoreStore {
     private const val PREFS = "species_usage_score_prefs"
     private const val KEY_STATE = "state_json"
 
-    /** Keep a rolling window of last sessions (season-ish). */
-    private const val MAX_SESSIONS = 10
+    /** Keep a rolling safety window of recent sessions. */
+    private const val MAX_SESSIONS = 75
 
-    /** Hard cap for ALLE (to keep UI manageable). */
-    const val MAX_ALL_CAP = 120
+    /** Safety cap for explicit numeric limits. */
+    const val MAX_ALL_CAP = 200
+
+    /** Hard retention window for recent/favorite species. */
+    private const val RECENT_WINDOW_DAYS = 7L
+    private const val RECENT_WINDOW_MS = RECENT_WINDOW_DAYS * 24L * 60L * 60L * 1000L
 
     /**
      * Week-ish decay: half-life around 7 days.
@@ -66,12 +72,8 @@ object SpeciesUsageScoreStore {
         val sid = st.nextSessionId++
 
         st.sessions.add(0, Session(id = sid, startedMs = now, speciesIds = LinkedHashSet()))
-        if (st.sessions.size > MAX_SESSIONS) {
-            st.sessions.subList(MAX_SESSIONS, st.sessions.size).clear()
-        }
-
-        // Drop entries that are no longer present in any of the kept sessions.
-        pruneEntriesNotInKeptSessions(st)
+        trimSessions(st)
+        pruneState(st, now)
         save(context, st)
     }
 
@@ -79,12 +81,14 @@ object SpeciesUsageScoreStore {
     fun recordUse(context: Context, soortId: String) {
         val st = load(context)
         val now = System.currentTimeMillis()
+        pruneState(st, now)
 
         val session = st.sessions.firstOrNull() ?: run {
             // Ensure there is a session (defensive). If none, start one.
             val sid = st.nextSessionId++
             val s = Session(id = sid, startedMs = now, speciesIds = LinkedHashSet())
             st.sessions.add(0, s)
+            trimSessions(st)
             s
         }
 
@@ -112,56 +116,56 @@ object SpeciesUsageScoreStore {
             entry.lastSessionId = session.id
         }
 
-        // Prune to last sessions window
-        pruneEntriesNotInKeptSessions(st)
+        pruneState(st, now)
 
         save(context, st)
     }
 
     /**
-     * Return scored species IDs (best first), restricted to last sessions window.
+     * Return scored species IDs (best first), restricted to the last 7 days.
      *
-     * @param limit requested limit; if <=0 treated as "ALL" (still capped).
+     * @param limit requested limit; if <=0 treated as "ALL" (uncapped).
      */
     @Suppress("unused")
     fun getTopSpeciesIds(context: Context, limit: Int): List<String> {
         val st = load(context)
         val now = System.currentTimeMillis()
-        val allowed = buildAllowedIdsFromSessions(st)
+        pruneState(st, now)
 
-        val requested = if (limit <= 0) MAX_ALL_CAP else limit
-        val effectiveLimit = requested.coerceAtMost(MAX_ALL_CAP)
-
-        return st.entries.values
+        val sorted = st.entries.values
             .asSequence()
-            .filter { it.soortId in allowed }
+            .filter { isWithinRecentWindow(it.lastUsedMs, now) }
             .map { e ->
                 val scoreNow = decayScore(e.score, e.lastUsedMs, now)
                 e.soortId to scoreNow
             }
             .sortedWith(compareByDescending<Pair<String, Double>> { it.second }.thenBy { it.first })
-            .take(effectiveLimit)
-            .map { it.first }
             .toList()
+
+        return if (limit <= 0) {
+            sorted.map { it.first }
+        } else {
+            sorted.take(limit.coerceAtMost(MAX_ALL_CAP)).map { it.first }
+        }
     }
 
     /**
-     * Similar to recents: returns pairs (soortId, lastUsedMs) but still limited by window.
+     * Similar to recents: returns pairs (soortId, lastUsedMs) for the last 7 days.
      */
     @Suppress("unused")
     fun getRecents(context: Context, limit: Int): List<Pair<String, Long>> {
         val st = load(context)
-        val allowed = buildAllowedIdsFromSessions(st)
-        val requested = if (limit <= 0) MAX_ALL_CAP else limit
-        val effectiveLimit = requested.coerceAtMost(MAX_ALL_CAP)
+        val now = System.currentTimeMillis()
+        pruneState(st, now)
 
-        return st.entries.values
+        val sorted = st.entries.values
             .asSequence()
-            .filter { it.soortId in allowed }
+            .filter { isWithinRecentWindow(it.lastUsedMs, now) }
             .sortedByDescending { it.lastUsedMs }
-            .take(effectiveLimit)
             .map { it.soortId to it.lastUsedMs }
             .toList()
+
+        return if (limit <= 0) sorted else sorted.take(limit.coerceAtMost(MAX_ALL_CAP))
     }
 
     private fun decayScore(score: Double, lastUsedMs: Long, nowMs: Long): Double {
@@ -171,18 +175,30 @@ object SpeciesUsageScoreStore {
         return score * kotlin.math.exp(-lambda * dtDays)
     }
 
-    private fun buildAllowedIdsFromSessions(st: State): Set<String> {
-        val set = LinkedHashSet<String>()
-        st.sessions.forEach { set.addAll(it.speciesIds) }
-        return set
+    private fun trimSessions(st: State) {
+        if (st.sessions.size > MAX_SESSIONS) {
+            st.sessions.subList(MAX_SESSIONS, st.sessions.size).clear()
+        }
     }
 
-    private fun pruneEntriesNotInKeptSessions(st: State) {
-        val allowed = buildAllowedIdsFromSessions(st)
-        val it = st.entries.keys.iterator()
-        while (it.hasNext()) {
-            val id = it.next()
-            if (id !in allowed) it.remove()
+    private fun isWithinRecentWindow(lastUsedMs: Long, nowMs: Long): Boolean {
+        return (nowMs - lastUsedMs).coerceAtLeast(0L) <= RECENT_WINDOW_MS
+    }
+
+    private fun pruneState(st: State, nowMs: Long) {
+        trimSessions(st)
+
+        val entryIterator = st.entries.entries.iterator()
+        while (entryIterator.hasNext()) {
+            val (_, entry) = entryIterator.next()
+            if (!isWithinRecentWindow(entry.lastUsedMs, nowMs)) {
+                entryIterator.remove()
+            }
+        }
+
+        st.sessions.removeAll { session ->
+            session.speciesIds.removeAll { sid -> sid !in st.entries }
+            !isWithinRecentWindow(session.startedMs, nowMs) && session.speciesIds.isEmpty()
         }
     }
 
@@ -205,6 +221,7 @@ object SpeciesUsageScoreStore {
             State(nextSessionId = 1L, sessions = mutableListOf(), entries = mutableMapOf())
         }
 
+        pruneState(state, System.currentTimeMillis())
         memCacheByContext[ck] = state
         return state
     }
@@ -281,14 +298,12 @@ object SpeciesUsageScoreStore {
             entries[soortId] = Entry(soortId, score, lastUsedMs, lastSessionId)
         }
 
-        // Ensure in-memory invariants: keep only last MAX_SESSIONS
+        // Ensure in-memory invariants: keep only the most recent safety window of sessions.
         sessions.sortByDescending { it.startedMs }
-        if (sessions.size > MAX_SESSIONS) {
-            sessions.subList(MAX_SESSIONS, sessions.size).clear()
-        }
+        if (sessions.size > MAX_SESSIONS) sessions.subList(MAX_SESSIONS, sessions.size).clear()
 
         val st = State(nextSessionId = nextSessionId, sessions = sessions, entries = entries)
-        pruneEntriesNotInKeptSessions(st)
+        pruneState(st, System.currentTimeMillis())
         return st
     }
 
