@@ -278,6 +278,7 @@ class TellingScherm : AppCompatActivity() {
             }
             override fun onTileCountUpdated(soortId: String, newCount: Int) {}
         })
+        applyTileSortingPreference()
         
         // Initialize handlers that need launcher registration
         speciesManager = TellingSpeciesManager(this, this, safHelper, backupManager, tegelBeheer, PREFS_NAME)
@@ -482,6 +483,7 @@ class TellingScherm : AppCompatActivity() {
                     ObservationDeliveryState.NONE
                 }
             )
+            refreshDailyObservationOrdering()
         }
 
         // Annotation handler callbacks
@@ -506,6 +508,7 @@ class TellingScherm : AppCompatActivity() {
             queueClientObservationUpdateIfNeeded(updated)
             updateClientFinalObservationRow(updated)
             syncDailyTotalsRecord(updated)
+            syncDailyObservationRecord(updated)
 
             // Save full envelope after annotation update to preserve changes.
             // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
@@ -537,7 +540,8 @@ class TellingScherm : AppCompatActivity() {
         // Initializer callbacks
         initializer.onTilesLoaded = { tiles ->
             tegelBeheer.setTiles(tiles)
-            
+            refreshDailyObservationOrdering()
+
             // Check if we need to show HuidigeStandScherm (triggered by hourly alarm)
             if (pendingShowHuidigeStand) {
                 pendingShowHuidigeStand = false
@@ -653,6 +657,25 @@ class TellingScherm : AppCompatActivity() {
             record = item
         )
         refreshDailyTotalsUi()
+    }
+
+    private fun syncDailyObservationRecord(item: ServerTellingDataItem, refreshOrder: Boolean = true) {
+        DailySpeciesObservationRankStore.upsertRecord(this, item)
+        if (refreshOrder) {
+            refreshDailyObservationOrdering()
+        }
+    }
+
+    private fun refreshDailyObservationOrdering() {
+        if (!::tegelBeheer.isInitialized) return
+        tegelBeheer.setDailyObservationCounts(DailySpeciesObservationRankStore.getTodayCounts(this))
+    }
+
+    private fun applyTileSortingPreference() {
+        if (!::tegelBeheer.isInitialized) return
+        tegelBeheer.setDynamicObservationSortingEnabled(
+            InstellingenScherm.isDynamicTileSortingEnabled(this)
+        )
     }
 
     /* ---------- UI Callback Handlers ---------- */
@@ -932,6 +955,8 @@ class TellingScherm : AppCompatActivity() {
         maybeContinuePendingClientConnection()
         refreshFinalObservationUploadMarkers()
         refreshDailyTotalsUi()
+        applyTileSortingPreference()
+        refreshDailyObservationOrdering()
     }
 
     private fun ensurePendingTellingPromptOnRestore() {
@@ -1643,6 +1668,8 @@ class TellingScherm : AppCompatActivity() {
                 viewModel.setPendingRecords(savedRecords)
             }
             savedRecords.forEach { syncDailyTotalsRecord(it) }
+            savedRecords.forEach { syncDailyObservationRecord(it, refreshOrder = false) }
+            refreshDailyObservationOrdering()
 
             // Restore finals log from records (partials remain empty)
             val restoredFinals = savedRecords.map { rec ->
@@ -2466,6 +2493,7 @@ class TellingScherm : AppCompatActivity() {
                 tegelBeheer.verhoogSoortAantalReturn(item.soortid, item.aantalterug.toIntOrNull() ?: 0)
             }
             upsertFinalObservationRow(buildFinalObservationRow(item, isClientOrigin = true, clientLogPrefix = clientLogPrefix))
+            refreshDailyObservationOrdering()
         }
     }
 
@@ -2521,6 +2549,7 @@ class TellingScherm : AppCompatActivity() {
         tegelBeheer.recalculateCountsFromRecords(recordsSnapshot)
         persistEnvelopeAsync()
         syncDailyTotalsRecord(updated)
+        syncDailyObservationRecord(updated)
 
         if (hasClientAnnotationChanges(existing, updated) || existing.aantal != updated.aantal || existing.aantalterug != updated.aantalterug) {
             upsertFinalObservationRow(buildFinalObservationRow(updated, isClientOrigin = true, clientLogPrefix = clientLogPrefix))
@@ -2819,6 +2848,7 @@ class TellingScherm : AppCompatActivity() {
         }
         persistEnvelopeAsync()
         syncDailyTotalsRecord(item)
+        syncDailyObservationRecord(item, refreshOrder = false)
     }
 
     private fun persistEnvelopeAsync() {
@@ -2880,7 +2910,9 @@ class TellingScherm : AppCompatActivity() {
                     rowKey = aggregate.pendingKey
                 )
             )
+            refreshTileRows()
+            return
         }
-        refreshTileRows()
+        refreshDailyObservationOrdering()
     }
 }

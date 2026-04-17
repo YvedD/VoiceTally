@@ -129,6 +129,9 @@
     <string name="instellingen_double_tap_100">+100</string>
     <string name="instellingen_pending_tiles_title">Tijdspanne pending tegelinvoer</string>
     <string name="instellingen_pending_tiles_subtitle">Bundel snelle tegeltaps gedurende deze tijd voordat de waarneming definitief gemaakt en doorgestuurd wordt.</string>
+    <string name="instellingen_dynamic_tile_sorting_title">Dynamische soorttegel-sortering</string>
+    <string name="instellingen_dynamic_tile_sorting_checkbox">Tegels automatisch naar boven verplaatsen</string>
+    <string name="instellingen_dynamic_tile_sorting_description">Sorteert soorttegels volgens het aantal afzonderlijke waarnemingen van vandaag. Uitgevinkt blijft de volgorde alfabetisch.</string>
     <string name="instellingen_pending_tiles_2">2 s</string>
     <string name="instellingen_pending_tiles_3">3 s</string>
     <string name="instellingen_pending_tiles_5">5 s</string>

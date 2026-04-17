@@ -54,11 +54,30 @@ class TegelBeheer(private val ui: TegelUi) {
 
     private val tiles = mutableListOf<SoortTile>()
     private val lock = Any()
+    private var dailyObservationCounts: Map<String, Int> = emptyMap()
+    private var dynamicObservationSortingEnabled: Boolean = true
 
     fun setTiles(list: List<SoortTile>) {
         synchronized(lock) {
             tiles.clear()
             tiles.addAll(list)
+            sortTilesLocked()
+            ui.submitTiles(tiles.map { it.copy() })
+        }
+    }
+
+    fun setDailyObservationCounts(counts: Map<String, Int>) {
+        synchronized(lock) {
+            dailyObservationCounts = counts.toMap()
+            sortTilesLocked()
+            ui.submitTiles(tiles.map { it.copy() })
+        }
+    }
+
+    fun setDynamicObservationSortingEnabled(enabled: Boolean) {
+        synchronized(lock) {
+            dynamicObservationSortingEnabled = enabled
+            sortTilesLocked()
             ui.submitTiles(tiles.map { it.copy() })
         }
     }
@@ -78,7 +97,7 @@ class TegelBeheer(private val ui: TegelUi) {
             val new = SoortTile(soortId = soortId, naam = naam, countMain = initialCount, countReturn = 0)
             
             tiles.add(new)
-            tiles.sortBy { it.naam.lowercase() }
+            sortTilesLocked()
             ui.submitTiles(tiles.map { it.copy() })
             return true
         }
@@ -101,7 +120,7 @@ class TegelBeheer(private val ui: TegelUi) {
             val new = SoortTile(soortId = soortId, naam = naam, countMain = initialCount, countReturn = 0)
             
             tiles.add(new)
-            tiles.sortBy { it.naam.lowercase() }
+            sortTilesLocked()
             ui.submitTiles(tiles.map { it.copy() })
         }
     }
@@ -153,7 +172,7 @@ class TegelBeheer(private val ui: TegelUi) {
                 val new = SoortTile(soortId = soortId, naam = naamFallback, countMain = initial, countReturn = 0)
                 
                 tiles.add(new)
-                tiles.sortBy { it.naam.lowercase() }
+                sortTilesLocked()
                 ui.submitTiles(tiles.map { it.copy() })
                 return initial
             } else {
@@ -225,6 +244,18 @@ class TegelBeheer(private val ui: TegelUi) {
             if (changed) {
                 ui.submitTiles(tiles.map { it.copy() })
             }
+        }
+    }
+
+    private fun sortTilesLocked() {
+        if (dynamicObservationSortingEnabled) {
+            tiles.sortWith(
+                compareByDescending<SoortTile> { dailyObservationCounts[it.soortId] ?: 0 }
+                    .thenBy { it.naam.lowercase() }
+                    .thenBy { it.soortId }
+            )
+        } else {
+            tiles.sortWith(compareBy<SoortTile> { it.naam.lowercase() }.thenBy { it.soortId })
         }
     }
 }

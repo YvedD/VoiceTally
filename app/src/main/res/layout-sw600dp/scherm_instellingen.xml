@@ -203,6 +203,36 @@
                 android:background="@color/vt5_on_surface" />
 
             <TextView
+                android:id="@+id/tvDynamicTileSortingTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="@string/instellingen_dynamic_tile_sorting_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbDynamicTileSorting"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_dynamic_tile_sorting_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvDynamicTileSortingDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginBottom="6dp"
+                android:text="@string/instellingen_dynamic_tile_sorting_description"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp"
+                android:alpha="0.82" />
+
+            <TextView
                 android:id="@+id/tvDoubleTapTitel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

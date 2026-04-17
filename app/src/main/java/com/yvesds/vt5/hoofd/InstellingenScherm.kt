@@ -43,6 +43,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_FINALS_TEXT_SIZE_SP = "pref_finals_text_size_sp"
         const val PREF_TILE_DOUBLE_TAP_INCREMENT = "pref_tile_double_tap_increment"
         const val PREF_TILE_TAP_GROUP_WINDOW_SECONDS = "pref_tile_tap_group_window_seconds"
+        const val PREF_DYNAMIC_TILE_SORTING_ENABLED = "pref_dynamic_tile_sorting_enabled"
 
         const val PREF_PERM_AUDIO_ACK = "pref_perm_audio_ack"
         const val PREF_PERM_SAF_ACK = "pref_perm_saf_ack"
@@ -58,6 +59,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val DEFAULT_MAX_FAVORIETEN = 30
         const val DEFAULT_TILE_DOUBLE_TAP_INCREMENT = 10
         const val DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS = 5
+        const val DEFAULT_DYNAMIC_TILE_SORTING_ENABLED = true
 
         private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
         private val TILE_TAP_GROUP_WINDOW_OPTIONS = listOf(2, 3, 5, 8, 10, 12, 15)
@@ -128,6 +130,11 @@ class InstellingenScherm : AppCompatActivity() {
             return stored.takeIf { it in TILE_TAP_GROUP_WINDOW_OPTIONS } ?: DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS
         }
 
+        fun isDynamicTileSortingEnabled(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, DEFAULT_DYNAMIC_TILE_SORTING_ENABLED)
+        }
+
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,6 +147,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupLettergrootteNumberPickers()
             setupDoubleTapIncrementButtons()
             setupTileTapGroupWindowButtons()
+            setupDynamicTileSortingToggle()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupFinalsTextColorSpinner()
@@ -355,6 +363,18 @@ class InstellingenScherm : AppCompatActivity() {
         btn10.setOnClickListener { applySelection(10) }
         btn12.setOnClickListener { applySelection(12) }
         btn15.setOnClickListener { applySelection(15) }
+    }
+
+    private fun setupDynamicTileSortingToggle() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val cb = findViewById<MaterialCheckBox>(R.id.cbDynamicTileSorting)
+        cb.isChecked = prefs.getBoolean(
+            PREF_DYNAMIC_TILE_SORTING_ENABLED,
+            DEFAULT_DYNAMIC_TILE_SORTING_ENABLED
+        )
+        cb.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, isChecked) }
+        }
     }
 
 
