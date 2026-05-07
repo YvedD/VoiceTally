@@ -173,36 +173,48 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSaveClose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:layout_margin="5dp"
-            android:paddingLeft="3dp"
-            android:paddingTop="3dp"
-            android:paddingRight="3dp"
-            android:text="@string/telling_totals" />
+            android:contentDescription="@string/telling_totals_icon_description"
+            android:minHeight="64dp"
+            android:minWidth="64dp"
+            android:text=""
+            app:icon="@drawable/ic_action_sum"
+            app:iconPadding="0dp"
+            app:iconTint="@color/vt5_white" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAddSoorten"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:layout_margin="5dp"
-            android:paddingLeft="3dp"
-            android:paddingTop="3dp"
-            android:paddingRight="3dp"
-            android:text="@string/telling_add" />
+            android:contentDescription="@string/telling_add_icon_description"
+            android:minHeight="64dp"
+            android:minWidth="64dp"
+            android:text=""
+            app:icon="@drawable/ic_action_add"
+            app:iconPadding="0dp"
+            app:iconTint="@color/vt5_white" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAfronden"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:layout_margin="5dp"
             android:layout_marginStart="8dp"
-            android:paddingLeft="3dp"
-            android:paddingTop="3dp"
-            android:paddingRight="3dp"
-            android:text="@string/telling_finish" />
+            android:contentDescription="@string/telling_finish_icon_description"
+            android:minHeight="64dp"
+            android:minWidth="64dp"
+            android:text=""
+            app:icon="@drawable/ic_action_upload"
+            app:iconPadding="0dp"
+            app:iconTint="@color/vt5_white" />
     </LinearLayout>
 
     <!-- Grid met soort-tiles -->

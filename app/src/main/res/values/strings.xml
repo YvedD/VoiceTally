@@ -118,6 +118,7 @@
     <string name="instellingen_bg_color_label">Achtergrondkleur</string>
     <string name="instellingen_text_color_label">Tekstkleur</string>
     <string name="instellingen_partials_text_color_label">Tekstkleur partials</string>
+    <string name="instellingen_unmatched_partials_text_color_label">Tekstkleur niet-herkende partials</string>
     <string name="instellingen_finals_text_color_label">Tekstkleur finals</string>
     <string name="instellingen_log_text_color_label">Tekstkleur logregels</string>
     <string name="instellingen_back_arrow">←</string>
@@ -264,6 +265,10 @@
     <string name="telling_totals">Totalen</string>
     <string name="telling_add">Toevoegen</string>
     <string name="telling_finish">Afronden</string>
+    <string name="telling_totals_icon_description">Toon totalen</string>
+    <string name="telling_add_icon_description">Soorten toevoegen</string>
+    <string name="telling_finish_icon_description">Telling afronden en uploaden</string>
+    <string name="telling_stop_icon_description">Tellen stoppen</string>
     <string name="telling_daily_total_item">%1$s %2$d</string>
     <string name="telling_daily_total_main_fallback">Heen</string>
     <string name="telling_daily_total_return_fallback">Terug</string>

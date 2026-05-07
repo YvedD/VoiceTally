@@ -37,6 +37,7 @@ class InstellingenScherm : AppCompatActivity() {
         private const val PREFS_NAME = "vt5_prefs"
         const val PREF_LETTERGROOTTE_TEGELS_SP = "pref_lettergrootte_tegels_sp"
         const val PREF_PARTIALS_TEXT_COLOR = "pref_partials_text_color"
+        const val PREF_UNMATCHED_PARTIALS_TEXT_COLOR = "pref_unmatched_partials_text_color"
         const val PREF_FINALS_TEXT_COLOR = "pref_finals_text_color"
         const val PREF_LOG_TEXT_COLOR = "pref_log_text_color"
         const val PREF_PARTIALS_TEXT_SIZE_SP = "pref_partials_text_size_sp"
@@ -57,6 +58,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_MAX_FAVORIETEN = "pref_max_favoriete_soorten"
         const val MAX_FAVORIETEN_ALL = -1
         const val DEFAULT_MAX_FAVORIETEN = 30
+        const val DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR = -256
         const val DEFAULT_TILE_DOUBLE_TAP_INCREMENT = 10
         const val DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS = 5
         const val DEFAULT_DYNAMIC_TILE_SORTING_ENABLED = true
@@ -94,6 +96,14 @@ class InstellingenScherm : AppCompatActivity() {
         fun getPartialsTextColor(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             return prefs.getInt(PREF_PARTIALS_TEXT_COLOR, android.graphics.Color.WHITE)
+        }
+
+        /**
+         * Haal de huidige tekstkleur voor niet-herkende partials logregels op uit SharedPreferences.
+         */
+        fun getUnmatchedPartialsTextColor(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getInt(PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR)
         }
 
         /**
@@ -150,6 +160,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupDynamicTileSortingToggle()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
+            setupUnmatchedPartialsTextColorSpinner()
             setupFinalsTextColorSpinner()
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
@@ -164,6 +175,9 @@ class InstellingenScherm : AppCompatActivity() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         if (!prefs.contains(PREF_PARTIALS_TEXT_COLOR)) {
             prefs.edit { putInt(PREF_PARTIALS_TEXT_COLOR, android.graphics.Color.WHITE) }
+        }
+        if (!prefs.contains(PREF_UNMATCHED_PARTIALS_TEXT_COLOR)) {
+            prefs.edit { putInt(PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR) }
         }
         if (!prefs.contains(PREF_FINALS_TEXT_COLOR)) {
             prefs.edit { putInt(PREF_FINALS_TEXT_COLOR, android.graphics.Color.WHITE) }
@@ -383,6 +397,14 @@ class InstellingenScherm : AppCompatActivity() {
             spinnerId = R.id.spPartialsTextColor,
             prefKey = PREF_PARTIALS_TEXT_COLOR,
             defaultColor = android.graphics.Color.WHITE
+        )
+    }
+
+    private fun setupUnmatchedPartialsTextColorSpinner() {
+        setupLogColorSpinner(
+            spinnerId = R.id.spUnmatchedPartialsTextColor,
+            prefKey = PREF_UNMATCHED_PARTIALS_TEXT_COLOR,
+            defaultColor = DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR
         )
     }
 

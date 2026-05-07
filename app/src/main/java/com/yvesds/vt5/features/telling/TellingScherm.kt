@@ -938,10 +938,12 @@ class TellingScherm : AppCompatActivity() {
         val partialsSize = InstellingenScherm.getPartialsTextSizeSp(this)
         val finalsSize = InstellingenScherm.getFinalsTextSizeSp(this)
         val partialsColor = InstellingenScherm.getPartialsTextColor(this)
+        val unmatchedPartialsColor = InstellingenScherm.getUnmatchedPartialsTextColor(this)
         val finalsColor = InstellingenScherm.getFinalsTextColor(this)
         partialsAdapter.updatePartialsTextSize(partialsSize)
         finalsAdapter.updateFinalsTextSize(finalsSize)
         partialsAdapter.updatePartialsTextColor(partialsColor)
+        partialsAdapter.updateUnmatchedPartialsTextColor(unmatchedPartialsColor)
         finalsAdapter.updateFinalsTextColor(finalsColor)
 
         val tilesSize = InstellingenScherm.getLettergroottTegelsSp(this)
@@ -2090,8 +2092,12 @@ class TellingScherm : AppCompatActivity() {
             if (mcMasterServer != null) ContextCompat.getColor(this, R.color.vt5_green) else Color.parseColor("#808080")
         )
         val clientStopMode = isClientFlowLocked()
-        binding.btnAfronden.text = getString(
-            if (clientStopMode) R.string.mc_btn_stop_client_telling else R.string.telling_finish
+        binding.btnAfronden.text = ""
+        binding.btnAfronden.contentDescription = getString(
+            if (clientStopMode) R.string.telling_stop_icon_description else R.string.telling_finish_icon_description
+        )
+        binding.btnAfronden.setIconResource(
+            if (clientStopMode) R.drawable.ic_action_stop else R.drawable.ic_action_upload
         )
         binding.btnAfronden.isEnabled = true
         binding.btnAfronden.alpha = 1.0f

@@ -43,6 +43,7 @@ object UiColorPrefs {
         ColorOption("Lichtgrijs", Color.parseColor("#E0E0E0")),
         ColorOption("Zwart", Color.parseColor("#000000")),
         ColorOption("Donkergrijs", Color.parseColor("#222222")),
+        ColorOption("Felgeel", Color.parseColor("#FFFF00")),
         ColorOption("Geel", Color.parseColor("#FFEB3B")),
         ColorOption("Cyaan", Color.parseColor("#00BCD4")),
         ColorOption("Oranje", Color.parseColor("#FF9800")),

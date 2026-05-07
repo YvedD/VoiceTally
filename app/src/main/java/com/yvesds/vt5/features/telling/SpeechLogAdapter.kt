@@ -38,6 +38,7 @@ class SpeechLogAdapter :
     private var cachedPartialsTextSizeSp: Float = InstellingenScherm.DEFAULT_LETTERGROOTTE_SP.toFloat()
     private var cachedFinalsTextSizeSp: Float = InstellingenScherm.DEFAULT_LETTERGROOTTE_SP.toFloat()
     private var cachedPartialsTextColor: Int = android.graphics.Color.WHITE
+    private var cachedUnmatchedPartialsTextColor: Int = InstellingenScherm.DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR
     private var cachedFinalsTextColor: Int = android.graphics.Color.WHITE
 
     object Diff : DiffUtil.ItemCallback<TellingScherm.SpeechLogRow>() {
@@ -91,6 +92,13 @@ class SpeechLogAdapter :
     }
 
     /**
+     * Update de gecachede tekstkleur voor niet-herkende partials logregels.
+     */
+    fun updateUnmatchedPartialsTextColor(argb: Int) {
+        cachedUnmatchedPartialsTextColor = argb
+    }
+
+    /**
      * Update de gecachede tekstkleur voor finals logregels.
      */
     fun updateFinalsTextColor(argb: Int) {
@@ -103,6 +111,7 @@ class SpeechLogAdapter :
         cachedPartialsTextSizeSp = InstellingenScherm.getPartialsTextSizeSp(parent.context).toFloat()
         cachedFinalsTextSizeSp = InstellingenScherm.getFinalsTextSizeSp(parent.context).toFloat()
         cachedPartialsTextColor = InstellingenScherm.getPartialsTextColor(parent.context)
+        cachedUnmatchedPartialsTextColor = InstellingenScherm.getUnmatchedPartialsTextColor(parent.context)
         cachedFinalsTextColor = InstellingenScherm.getFinalsTextColor(parent.context)
         return VH(vb)
     }
@@ -116,6 +125,7 @@ class SpeechLogAdapter :
         holder.vb.tvMsg.text = row.tekst
 
         val defaultPartials = cachedPartialsTextColor
+        val unmatchedPartials = cachedUnmatchedPartialsTextColor
         val defaultFinals = cachedFinalsTextColor
         val pendingColor = android.graphics.Color.rgb(255, 183, 77)
         val errorColor = android.graphics.Color.RED
@@ -144,7 +154,7 @@ class SpeechLogAdapter :
             }
             "partial" -> {
                 holder.vb.tvMsg.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedPartialsTextSizeSp)
-                val partialColor = if (row.isError) errorColor else defaultPartials
+                val partialColor = if (row.isError) unmatchedPartials else defaultPartials
                 holder.vb.tvMsg.setTextColor(partialColor)
                 holder.vb.tvTime.setTextColor(partialColor)
             }

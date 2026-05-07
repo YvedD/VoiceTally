@@ -26,6 +26,7 @@
     <color name="popup_text_lichtgrijs">#FFE0E0E0</color>
     <color name="popup_text_zwart">#FF000000</color>
     <color name="popup_text_donkergrijs">#FF222222</color>
+    <color name="popup_text_felgeel">#FFFFFF00</color>
     <color name="popup_text_geel">#FFFFEB3B</color>
     <color name="popup_text_cyaan">#FF00BCD4</color>
     <color name="popup_text_oranje">#FFFF9800</color>
@@ -58,6 +59,7 @@
         <item>Lichtgrijs</item>
         <item>Zwart</item>
         <item>Donkergrijs</item>
+        <item>Felgeel</item>
         <item>Geel</item>
         <item>Cyaan</item>
         <item>Oranje</item>
@@ -69,6 +71,7 @@
         <item>@color/popup_text_lichtgrijs</item>
         <item>@color/popup_text_zwart</item>
         <item>@color/popup_text_donkergrijs</item>
+        <item>@color/popup_text_felgeel</item>
         <item>@color/popup_text_geel</item>
         <item>@color/popup_text_cyaan</item>
         <item>@color/popup_text_oranje</item>
