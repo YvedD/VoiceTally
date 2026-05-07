@@ -4,7 +4,6 @@ package com.yvesds.vt5.features.serverdata.model
 import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.*
-import kotlin.system.measureTimeMillis
 
 /**
  * Improved in-memory cache for DataSnapshot with safe, single-loader semantics.
@@ -46,10 +45,10 @@ object ServerDataCache {
 
     /**
      * Two-phase startup:
-     * Phase 1: Load ONLY codes (ultra-fast, ~50ms)
+     * Phase 1: Load minimal metadata (sites + codes)
      * Phase 2: Load everything else in background when idle
      *
-     * This allows MetadataScherm to open instantly with just codes,
+     * This allows MetadataScherm to open safely with telpost + code data,
      * while heavy data (species, sites, protocols) loads in background.
      */
     fun preload(context: Context) {
@@ -63,11 +62,11 @@ object ServerDataCache {
             return
         }
 
-        // Phase 1: Load ONLY codes immediately (ultra-fast)
+        // Phase 1: Load minimal metadata immediately.
         synchronized(this) {
             if (loadingDeferred == null || loadingDeferred?.isCompleted == true) {
                 loadingDeferred = loaderScope.async {
-                    loadCodesOnly(context)
+                    loadMinimalSnapshot(context)
                 }
                 
                 // Phase 2: Schedule full data load in background (delayed start)
@@ -87,23 +86,22 @@ object ServerDataCache {
     }
     
     /**
-     * Phase 1: Load ONLY codes - ultra-fast startup
-     * Creates a minimal DataSnapshot with just codes (55 records, 3 fields = ~4KB)
+     * Phase 1: Load minimal metadata needed by startup/metadata flows.
      */
-    private suspend fun loadCodesOnly(context: Context): DataSnapshot = withContext(Dispatchers.IO) {
+    private suspend fun loadMinimalSnapshot(context: Context): DataSnapshot = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
             val repo = ServerDataRepository(context.applicationContext)
-            val codesByCategory = repo.loadCodesOnly()
-            
-            // Create minimal snapshot with only codes
-            val snap = DataSnapshot(codesByCategory = codesByCategory)
+            val snap = repo.loadMinimalData()
+            if (!snap.hasMetadataEssentials()) {
+                throw IllegalStateException("Minimale serverdata onvolledig: telposten of codes ontbreken")
+            }
             cached = snap
             val elapsed = System.currentTimeMillis() - start
-            Log.i(TAG, "loadCodesOnly: loaded codes in ${elapsed}ms (instant startup!)")
+            Log.i(TAG, "loadMinimalSnapshot: loaded minimal snapshot in ${elapsed}ms")
             return@withContext snap
         } catch (ex: Exception) {
-            Log.e(TAG, "loadCodesOnly failed: ${ex.message}", ex)
+            Log.e(TAG, "loadMinimalSnapshot failed: ${ex.message}", ex)
             throw ex
         } finally {
             synchronized(this@ServerDataCache) {
@@ -121,7 +119,9 @@ object ServerDataCache {
      */
     suspend fun getOrLoad(context: Context): DataSnapshot = coroutineScope {
         cached?.let {
-            return@coroutineScope it
+            if (it.hasFullDataset()) {
+                return@coroutineScope it
+            }
         }
 
         // If a loader exists, await it
@@ -129,7 +129,9 @@ object ServerDataCache {
         if (existing != null) {
             try {
                 val snap = existing.await()
-                return@coroutineScope snap
+                if (snap.hasFullDataset()) {
+                    return@coroutineScope snap
+                }
             } catch (ex: CancellationException) {
                 // Propagate coroutine cancellation
                 throw ex
@@ -175,6 +177,9 @@ object ServerDataCache {
         try {
             val repo = ServerDataRepository(context.applicationContext)
             val snap = repo.loadAllFromSaf()
+            if (!snap.hasFullDataset()) {
+                throw IllegalStateException("Volledige serverdata ontbreekt of is onleesbaar")
+            }
             cached = snap
             lastLoadTimeMs = System.currentTimeMillis() - start
             Log.i(TAG, "loadFromSaf: loaded snapshot in ${lastLoadTimeMs}ms")

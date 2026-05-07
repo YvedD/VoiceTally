@@ -239,13 +239,11 @@ class SaFStorageHelper(private val context: Context) {
             countsDir = vt5Dir.createDirectory(COUNTS_DIR) ?: return false
         }
         
-        // Delete existing file if present
-        countsDir.findFile(filename)?.delete()
-        
-        // Create new file
         val mimeType = if (filename.endsWith(".json")) "application/json" else "text/plain"
-        val newFile = countsDir.createFile(mimeType, filename) ?: return false
-        
+        val newFile = countsDir.findFile(filename)?.takeIf { it.isFile }
+            ?: countsDir.createFile(mimeType, filename)
+            ?: return false
+
         return try {
             context.contentResolver.openOutputStream(newFile.uri)?.use { out ->
                 out.write(content.toByteArray(Charsets.UTF_8))

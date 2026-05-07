@@ -92,13 +92,13 @@ object ServerJsonDownloader {
                 val pretty: String = jsonPretty.encodeToString(JsonElement.serializer(), parsed)
 
                 // 1) .json altijd overschrijven
-                val jsonFile = createOrReplaceFile(serverdataDir, "$name.json", "application/json")
+                val jsonFile = getOrCreateFile(serverdataDir, "$name.json", "application/json")
                 val jsonOk = jsonFile?.let { writeText(context.contentResolver, it.uri, pretty) } == true
 
                 // 2) .bin (VT5BIN10, JSON + GZIP payload) — optioneel
                 var binOk = false
                 if (binDir != null) {
-                    val binFile = createOrReplaceFile(binDir, "$name.bin", "application/octet-stream")
+                    val binFile = getOrCreateFile(binDir, "$name.bin", "application/octet-stream")
                     if (binFile != null) {
                         val jsonBytes = bodyRaw.toByteArray(Charsets.UTF_8)
                         val gzBytes = gzip(jsonBytes)
@@ -170,9 +170,8 @@ object ServerJsonDownloader {
 
     /* ---------------- SAF helpers ---------------- */
 
-    private fun createOrReplaceFile(dir: DocumentFile, name: String, mime: String): DocumentFile? {
-        dir.findFile(name)?.delete()
-        return dir.createFile(mime, name)
+    private fun getOrCreateFile(dir: DocumentFile, name: String, mime: String): DocumentFile? {
+        return dir.findFile(name)?.takeIf { it.isFile } ?: dir.createFile(mime, name)
     }
 
     private fun writeText(cr: ContentResolver, uri: Uri, text: String): Boolean =
@@ -268,6 +267,3 @@ object ServerJsonDownloader {
     }
 }
 
-/* -------------------- DocumentFile helper -------------------- */
-private fun DocumentFile.findFile(name: String): DocumentFile? =
-    listFiles().firstOrNull { it.name == name }

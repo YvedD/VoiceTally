@@ -219,7 +219,7 @@ class SoortSelectieScherm : AppCompatActivity() {
             try {
                 // Fast-path: check cache first without showing dialog
                 val cachedData = ServerDataCache.getCachedOrNull()
-                if (cachedData != null) {
+                if (cachedData?.hasSpeciesData() == true) {
                     // Cache hit - process immediately without dialog
                     snapshot = cachedData
                     

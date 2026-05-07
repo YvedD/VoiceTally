@@ -183,7 +183,7 @@ class MetadataScherm : AppCompatActivity() {
             try {
                 // Check eerst of we al volledige data in cache hebben
                 val cachedData = ServerDataCache.getCachedOrNull()
-                if (cachedData != null) {
+                if (cachedData?.hasMetadataEssentials() == true) {
                     snapshot = cachedData
                     initializeDropdowns()
                     
@@ -207,6 +207,9 @@ class MetadataScherm : AppCompatActivity() {
                     }
 
                     val minimal = repo.loadMinimalData()
+                    if (!minimal.hasMetadataEssentials()) {
+                        throw IllegalStateException("Telpost- of codedata ontbreken in de lokale serverdata")
+                    }
                     snapshot = minimal
 
                     // Update progress: initializing UI

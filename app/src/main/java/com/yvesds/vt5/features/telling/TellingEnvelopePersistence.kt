@@ -10,7 +10,6 @@ import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.text.SimpleDateFormat
@@ -124,14 +123,11 @@ class TellingEnvelopePersistence(
                     envelopeList
                 )
                 
-                // Probeer eerst SAF
-                var savedPath = saveToSaf(prettyJson)
-                
-                // Fallback naar internal storage
-                if (savedPath == null) {
-                    savedPath = saveToInternal(prettyJson)
-                }
-                
+                // Bewaar altijd ook een interne fallback zodat crash recovery niet afhangt van SAF alleen.
+                val savedPathSaf = saveToSaf(prettyJson)
+                val savedPathInternal = saveToInternal(prettyJson)
+                val savedPath = savedPathSaf ?: savedPathInternal
+
                 if (savedPath != null) {
                     Log.i(TAG, "Envelope opgeslagen: $savedPath (${records.size} records)")
                 } else {
@@ -172,14 +168,8 @@ class TellingEnvelopePersistence(
                 return null
             }
             
-            // Verwijder bestaand bestand indien aanwezig
-            val existingFile = countsDir.findFile(ACTIVE_FILENAME)
-            if (existingFile != null) {
-                existingFile.delete()
-            }
-            
-            // Maak nieuw bestand
-            val doc = countsDir.createFile("application/json", ACTIVE_FILENAME)
+            val doc = countsDir.findFile(ACTIVE_FILENAME)?.takeIf { it.isFile }
+                ?: countsDir.createFile("application/json", ACTIVE_FILENAME)
             if (doc == null) {
                 Log.w(TAG, "Kon active_telling.json niet maken via SAF")
                 return null

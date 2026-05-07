@@ -154,4 +154,24 @@ data class DataSnapshot(
     // Optimized: Uses CodeItemSlim (3 fields) instead of CodeItem (6 fields)
     // Only includes relevant categories (7 out of 20) = 66% memory reduction
     val codesByCategory: Map<String, List<CodeItemSlim>> = emptyMap()
-)
+) {
+    fun hasMetadataEssentials(): Boolean =
+        sitesById.isNotEmpty() && codesByCategory.isNotEmpty()
+
+    fun hasSpeciesData(): Boolean =
+        speciesById.isNotEmpty()
+
+    fun hasFullDataset(): Boolean =
+        hasMetadataEssentials() && hasSpeciesData() && siteSpeciesBySite.isNotEmpty()
+
+    fun isCompletelyEmpty(): Boolean =
+        currentUser == null &&
+            speciesById.isEmpty() &&
+            sitesById.isEmpty() &&
+            siteLocationsBySite.isEmpty() &&
+            siteHeightsBySite.isEmpty() &&
+            siteSpeciesBySite.isEmpty() &&
+            protocolsInfo.isEmpty() &&
+            protocolSpeciesByProtocol.isEmpty() &&
+            codesByCategory.isEmpty()
+}
