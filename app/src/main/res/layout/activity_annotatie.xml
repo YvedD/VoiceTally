@@ -615,6 +615,8 @@
                 </LinearLayout>
 
                 <!-- Checkboxes row -->
+
+                <!-- Sighting Direction (Compass) row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -625,7 +627,7 @@
                     <CheckBox
                         android:id="@+id/cb_markeren"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="30dp"
                         android:padding="1dp"
                         android:text="@string/annotation_mark"
                         android:textSize="11sp" />
@@ -633,7 +635,7 @@
                     <CheckBox
                         android:id="@+id/cb_markeren_lokaal"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="30dp"
                         android:layout_marginStart="12dp"
                         android:padding="1dp"
                         android:text="@string/annotation_mark_local"
@@ -642,14 +644,13 @@
                     <CheckBox
                         android:id="@+id/cb_tally"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="30dp"
                         android:layout_marginStart="12dp"
                         android:padding="1dp"
                         android:text="@string/annotation_tally"
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <!-- Sighting Direction (Compass) row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -666,7 +667,7 @@
                     <Button
                         android:id="@+id/btn_compass"
                         android:layout_width="wrap_content"
-                        android:layout_height="36dp"
+                        android:layout_height="30dp"
                         android:layout_marginStart="8dp"
                         android:minWidth="100dp"
                         android:padding="4dp"
@@ -697,7 +698,7 @@
 
                     <TextView
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="25dp"
                         android:paddingBottom="8dp"
                         android:text="@string/annotation_manual_counts_title"
                         android:textSize="12sp"
@@ -721,7 +722,7 @@
                         <EditText
                             android:id="@+id/et_aantal"
                             android:layout_width="100dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="40dp"
                             android:layout_margin="1dp"
                             android:contentDescription="@string/annotation_count_main"
                             android:hint="0"
@@ -750,7 +751,7 @@
                         <EditText
                             android:id="@+id/et_aantalterug"
                             android:layout_width="100dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="40dp"
                             android:layout_margin="1dp"
                             android:contentDescription="@string/annotation_count_return"
                             android:hint="0"
@@ -778,7 +779,7 @@
                         <EditText
                             android:id="@+id/et_aantal_lokaal"
                             android:layout_width="100dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="40dp"
                             android:layout_margin="1dp"
                             android:contentDescription="@string/annotation_count_local"
                             android:hint="0"
@@ -808,7 +809,7 @@
                         <EditText
                             android:id="@+id/et_opmerkingen"
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="35dp"
                             android:layout_weight="1"
                             android:contentDescription="@string/annotation_remarks"
                             android:hint="@string/annotation_remarks_hint"
@@ -832,7 +833,7 @@
                     <Button
                         android:id="@+id/btn_cancel"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="25dp"
                         android:padding="5dp"
                         android:paddingLeft="5dp"
                         android:paddingTop="5dp"
@@ -843,7 +844,7 @@
                     <Button
                         android:id="@+id/btn_ok"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="25dp"
                         android:layout_marginStart="12dp"
                         android:padding="5dp"
                         android:paddingLeft="5dp"

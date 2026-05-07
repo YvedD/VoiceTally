@@ -177,7 +177,7 @@
             android:text=""
             app:icon="@drawable/ic_action_sum"
             app:iconPadding="0dp"
-            app:iconTint="@color/vt5_white" />
+            app:iconTint="@null" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAddSoorten"
@@ -191,7 +191,7 @@
             android:text=""
             app:icon="@drawable/ic_action_add"
             app:iconPadding="0dp"
-            app:iconTint="@color/vt5_white" />
+            app:iconTint="@null" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAfronden"
@@ -206,7 +206,7 @@
             android:text=""
             app:icon="@drawable/ic_action_upload"
             app:iconPadding="0dp"
-            app:iconTint="@color/vt5_white" />
+            app:iconTint="@null" />
     </LinearLayout>
 
     <!-- Grid met soort-tiles -->
