@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 820" width="1100" height="820" font-family="Consolas, 'Courier New', monospace">
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#333"/>
+    </marker>
+    <style>
+      .title { font-size: 18px; font-weight: bold; fill: #1a1a1a; font-family: Arial, sans-serif; }
+      .subtitle { font-size: 12px; fill: #555; font-family: Arial, sans-serif; }
+      .label { font-size: 11px; fill: #333; font-family: Arial, sans-serif; }
+      .value { font-size: 10px; fill: #666; font-family: Arial, sans-serif; }
+      .component { font-size: 11px; font-weight: bold; fill: #1a6b3a; font-family: Arial, sans-serif; }
+      .pin { font-size: 9px; fill: #888; font-family: Arial, sans-serif; }
+      .note { font-size: 10px; fill: #c44; font-family: Arial, sans-serif; font-style: italic; }
+      .wire { stroke: #333; stroke-width: 2; fill: none; }
+      .wire-power { stroke: #cc0000; stroke-width: 2; fill: none; }
+      .wire-gnd { stroke: #333; stroke-width: 2; fill: none; }
+      .wire-signal { stroke: #0066cc; stroke-width: 2.5; fill: none; }
+      .box { stroke: #333; stroke-width: 1.5; fill: #f9f9f0; rx: 6; }
+      .box-mic { stroke: #2a7a3a; stroke-width: 2; fill: #e8f5e9; rx: 8; }
+      .box-power { stroke: #cc0000; stroke-width: 2; fill: #fff0f0; rx: 8; }
+      .box-output { stroke: #0066cc; stroke-width: 2; fill: #e8f0ff; rx: 8; }
+      .box-filter { stroke: #aa6600; stroke-width: 1.5; fill: #fff8e8; rx: 6; }
+      .box-pcb { stroke: #666; stroke-width: 2.5; fill: #fffff5; rx: 12; stroke-dasharray: 8,4; }
+      .gnd-symbol { stroke: #333; stroke-width: 2; fill: none; }
+      .dot { fill: #333; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="820" fill="#ffffff" rx="0"/>
+
+  <!-- Title -->
+  <text x="550" y="35" text-anchor="middle" class="title">EM272Z1 Hulpprintje – Schakelschema</text>
+  <text x="550" y="55" text-anchor="middle" class="subtitle">4× EM272Z1 parallel → Sound Blaster Play! 3 → Raspberry Pi 4B</text>
+
+  <!-- ==================== HELPER PCB BOUNDARY ==================== -->
+  <rect x="180" y="75" width="740" height="580" class="box-pcb"/>
+  <text x="200" y="100" class="label" font-weight="bold" fill="#666">HULPPRINTJE (PCB)</text>
+
+  <!-- ==================== POWER SUPPLY SECTION ==================== -->
+  <!-- USB Power Input (from powerbank) -->
+  <rect x="20" y="180" width="140" height="100" class="box-power"/>
+  <text x="90" y="205" text-anchor="middle" class="component" fill="#cc0000">POWERBANK</text>
+  <text x="90" y="222" text-anchor="middle" class="value">30.000 mAh</text>
+  <text x="90" y="238" text-anchor="middle" class="value">USB-A uitgang</text>
+  <text x="90" y="255" text-anchor="middle" class="pin">5V DC / 2A+</text>
+  <text x="90" y="272" text-anchor="middle" class="value">── USB-kabel ──▶</text>
+
+  <!-- USB Micro/C connector on PCB -->
+  <rect x="195" y="185" width="110" height="85" class="box-power" style="fill:#fff5f5"/>
+  <text x="250" y="208" text-anchor="middle" class="component" fill="#cc0000">J1</text>
+  <text x="250" y="224" text-anchor="middle" class="label">USB-C/Micro</text>
+  <text x="250" y="240" text-anchor="middle" class="label">Connector</text>
+  <text x="250" y="258" text-anchor="middle" class="pin">VBUS  GND</text>
+
+  <!-- Power wire from USB connector -->
+  <line x1="305" y1="210" x2="360" y2="210" class="wire-power"/>
+  <text x="332" y="203" text-anchor="middle" class="pin" fill="#cc0000">+5V</text>
+
+  <!-- LC Filter -->
+  <rect x="360" y="135" width="180" height="150" class="box-filter"/>
+  <text x="450" y="158" text-anchor="middle" class="component" fill="#aa6600">LC-FILTER (optioneel)</text>
+  <text x="450" y="175" text-anchor="middle" class="value">Ruisonderdrukking</text>
+
+  <!-- Inductor L1 -->
+  <line x1="380" y1="210" x2="400" y2="210" class="wire-power"/>
+  <!-- Coil symbol -->
+  <path d="M400,210 C405,200 415,200 415,210 C415,200 425,200 425,210 C425,200 435,200 435,210 C435,200 445,200 445,210 C445,200 455,200 455,210 C455,200 465,200 465,210 C465,200 475,200 475,210" class="wire-power" style="stroke-width:1.8"/>
+  <line x1="475" y1="210" x2="520" y2="210" class="wire-power"/>
+  <text x="437" y="235" text-anchor="middle" class="component" fill="#aa6600">L1</text>
+  <text x="437" y="248" text-anchor="middle" class="value">10 µH</text>
+
+  <!-- Filter Capacitor C2 -->
+  <line x1="500" y1="210" x2="500" y2="245" class="wire-power"/>
+  <line x1="488" y1="245" x2="512" y2="245" class="wire-power" style="stroke-width:2.5"/>
+  <line x1="488" y1="252" x2="512" y2="252" class="wire-power" style="stroke-width:2.5"/>
+  <line x1="500" y1="252" x2="500" y2="273" class="wire-gnd"/>
+  <text x="520" y="252" class="component" fill="#aa6600">C2</text>
+  <text x="520" y="265" class="value">100 µF</text>
+  <!-- GND symbol for C2 -->
+  <line x1="490" y1="273" x2="510" y2="273" class="gnd-symbol"/>
+  <line x1="493" y1="278" x2="507" y2="278" class="gnd-symbol"/>
+  <line x1="496" y1="283" x2="504" y2="283" class="gnd-symbol"/>
+
+  <!-- Junction dot after filter -->
+  <circle cx="520" cy="210" r="4" class="dot"/>
+
+  <!-- Power rail label -->
+  <text x="540" y="200" class="label" fill="#cc0000" font-weight="bold">V_BIAS</text>
+  <text x="540" y="185" class="value" fill="#cc0000">(~5V gefilterd)</text>
+
+  <!-- GND wire from USB connector -->
+  <line x1="305" y1="250" x2="360" y2="250" class="wire-gnd"/>
+  <line x1="360" y1="250" x2="360" y2="210" class="wire-gnd"/>
+  <line x1="360" y1="210" x2="380" y2="210" class="wire-gnd" style="opacity:0"/>
+  <!-- Separate GND path -->
+  <line x1="305" y1="250" x2="340" y2="250" class="wire-gnd"/>
+  <line x1="340" y1="250" x2="340" y2="640" class="wire-gnd"/>
+  <text x="345" y="268" class="pin">GND</text>
+
+  <!-- ==================== BIAS RESISTORS ==================== -->
+  <!-- Power rail line going down to resistors -->
+  <line x1="520" y1="210" x2="520" y2="330" class="wire-power"/>
+  <line x1="520" y1="330" x2="520" y2="530" class="wire-power"/>
+
+  <!-- Branch to R1 -->
+  <line x1="520" y1="330" x2="570" y2="330" class="wire-power"/>
+  <circle cx="520" cy="330" r="3" class="dot"/>
+  <!-- R1 resistor -->
+  <rect x="570" y="322" width="70" height="16" fill="#e8d8c0" stroke="#8b6914" stroke-width="1.5" rx="3"/>
+  <text x="605" y="315" text-anchor="middle" class="component">R1</text>
+  <text x="605" y="350" text-anchor="middle" class="value">2,2 kΩ</text>
+  <line x1="640" y1="330" x2="700" y2="330" class="wire"/>
+
+  <!-- Branch to R2 -->
+  <line x1="520" y1="380" x2="570" y2="380" class="wire-power"/>
+  <circle cx="520" cy="380" r="3" class="dot"/>
+  <!-- R2 resistor -->
+  <rect x="570" y="372" width="70" height="16" fill="#e8d8c0" stroke="#8b6914" stroke-width="1.5" rx="3"/>
+  <text x="605" y="365" text-anchor="middle" class="component">R2</text>
+  <text x="605" y="400" text-anchor="middle" class="value">2,2 kΩ</text>
+  <line x1="640" y1="380" x2="700" y2="380" class="wire"/>
+
+  <!-- Branch to R3 -->
+  <line x1="520" y1="430" x2="570" y2="430" class="wire-power"/>
+  <circle cx="520" cy="430" r="3" class="dot"/>
+  <!-- R3 resistor -->
+  <rect x="570" y="422" width="70" height="16" fill="#e8d8c0" stroke="#8b6914" stroke-width="1.5" rx="3"/>
+  <text x="605" y="415" text-anchor="middle" class="component">R3</text>
+  <text x="605" y="450" text-anchor="middle" class="value">2,2 kΩ</text>
+  <line x1="640" y1="430" x2="700" y2="430" class="wire"/>
+
+  <!-- Branch to R4 -->
+  <line x1="520" y1="480" x2="570" y2="480" class="wire-power"/>
+  <circle cx="520" cy="480" r="3" class="dot"/>
+  <!-- R4 resistor -->
+  <rect x="570" y="472" width="70" height="16" fill="#e8d8c0" stroke="#8b6914" stroke-width="1.5" rx="3"/>
+  <text x="605" y="465" text-anchor="middle" class="component">R4</text>
+  <text x="605" y="500" text-anchor="middle" class="value">2,2 kΩ</text>
+  <line x1="640" y1="480" x2="700" y2="480" class="wire"/>
+
+  <!-- ==================== MICROPHONE CONNECTORS ==================== -->
+  <!-- MIC 1 -->
+  <rect x="700" y="310" width="120" height="40" class="box-mic"/>
+  <text x="760" y="328" text-anchor="middle" class="component" fill="#2a7a3a">MIC 1</text>
+  <text x="760" y="343" text-anchor="middle" class="value">EM272Z1</text>
+  <line x1="760" y1="350" x2="760" y2="370" class="wire-gnd"/>
+  <text x="825" y="335" class="pin" fill="#2a7a3a">+ sig</text>
+  <text x="760" y="366" text-anchor="middle" class="pin">GND</text>
+
+  <!-- MIC 2 -->
+  <rect x="700" y="360" width="120" height="40" class="box-mic"/>
+  <text x="760" y="378" text-anchor="middle" class="component" fill="#2a7a3a">MIC 2</text>
+  <text x="760" y="393" text-anchor="middle" class="value">EM272Z1</text>
+  <line x1="760" y1="400" x2="760" y2="415" class="wire-gnd"/>
+
+  <!-- MIC 3 -->
+  <rect x="700" y="410" width="120" height="40" class="box-mic"/>
+  <text x="760" y="428" text-anchor="middle" class="component" fill="#2a7a3a">MIC 3</text>
+  <text x="760" y="443" text-anchor="middle" class="value">EM272Z1</text>
+  <line x1="760" y1="450" x2="760" y2="465" class="wire-gnd"/>
+
+  <!-- MIC 4 -->
+  <rect x="700" y="460" width="120" height="40" class="box-mic"/>
+  <text x="760" y="478" text-anchor="middle" class="component" fill="#2a7a3a">MIC 4</text>
+  <text x="760" y="493" text-anchor="middle" class="value">EM272Z1</text>
+  <line x1="760" y1="500" x2="760" y2="515" class="wire-gnd"/>
+
+  <!-- MIC GND connections to GND rail -->
+  <line x1="760" y1="370" x2="850" y2="370" class="wire-gnd" style="opacity:0"/>
+  <!-- Collect all mic GNDs -->
+  <line x1="760" y1="370" x2="760" y2="515" class="wire-gnd" style="opacity:0"/>
+  <!-- Visible GND collection on right side -->
+  <line x1="830" y1="330" x2="850" y2="330" class="wire-gnd"/>
+  <line x1="850" y1="330" x2="850" y2="500" class="wire-gnd"/>
+  <line x1="830" y1="380" x2="850" y2="380" class="wire-gnd"/>
+  <line x1="830" y1="430" x2="850" y2="430" class="wire-gnd"/>
+  <line x1="830" y1="480" x2="850" y2="480" class="wire-gnd"/>
+  <circle cx="850" cy="380" r="3" class="dot"/>
+  <circle cx="850" cy="430" r="3" class="dot"/>
+  <circle cx="850" cy="480" r="3" class="dot"/>
+  <!-- GND rail down -->
+  <line x1="850" y1="500" x2="850" y2="640" class="wire-gnd"/>
+  <text x="860" y="520" class="pin">GND</text>
+
+  <!-- ==================== SIGNAL SUMMING POINT ==================== -->
+  <!-- Signal lines from resistor outputs going left to summing point -->
+  <line x1="700" y1="330" x2="680" y2="330" class="wire-signal"/>
+  <line x1="700" y1="380" x2="680" y2="380" class="wire-signal"/>
+  <line x1="700" y1="430" x2="680" y2="430" class="wire-signal"/>
+  <line x1="700" y1="480" x2="680" y2="480" class="wire-signal"/>
+
+  <!-- Actually the signal goes: R → mic capsule (+), and the audio comes back on the same wire -->
+  <!-- So the summing point is between R and mic, collecting all AC signals -->
+  <!-- Let me redo: signal junction is at the R-to-mic connection points -->
+  
+  <!-- Summing bus (vertical line connecting all signal nodes) -->
+  <line x1="695" y1="330" x2="695" y2="480" class="wire-signal"/>
+  <circle cx="695" cy="330" r="3" fill="#0066cc"/>
+  <circle cx="695" cy="380" r="3" fill="#0066cc"/>
+  <circle cx="695" cy="430" r="3" fill="#0066cc"/>
+  <circle cx="695" cy="480" r="3" fill="#0066cc"/>
+
+  <!-- Signal line down from summing point -->
+  <line x1="695" y1="480" x2="695" y2="555" class="wire-signal"/>
+  <text x="680" y="520" text-anchor="end" class="label" fill="#0066cc">Σ signaal</text>
+
+  <!-- ==================== COUPLING CAPACITOR C1 ==================== -->
+  <!-- Signal goes left to C1 -->
+  <line x1="695" y1="555" x2="440" y2="555" class="wire-signal"/>
+
+  <!-- C1 capacitor symbol -->
+  <line x1="440" y1="540" x2="440" y2="570" class="wire-signal" style="stroke-width:3"/>
+  <line x1="430" y1="540" x2="430" y2="570" class="wire-signal" style="stroke-width:3"/>
+  <text x="435" y="535" text-anchor="middle" class="component" fill="#0066cc">C1</text>
+  <text x="435" y="590" text-anchor="middle" class="value">10 µF</text>
+  <text x="435" y="602" text-anchor="middle" class="value">(filmcondensator)</text>
+
+  <line x1="430" y1="555" x2="350" y2="555" class="wire-signal"/>
+
+  <!-- ==================== DISCHARGE RESISTOR R5 ==================== -->
+  <!-- R5 from signal line to GND -->
+  <line x1="380" y1="555" x2="380" y2="580" class="wire"/>
+  <circle cx="380" cy="555" r="3" fill="#0066cc"/>
+  <rect x="372" y="580" width="16" height="50" fill="#e8d8c0" stroke="#8b6914" stroke-width="1.5" rx="3"/>
+  <text x="365" y="610" text-anchor="end" class="component">R5</text>
+  <text x="365" y="623" text-anchor="end" class="value">10 kΩ</text>
+  <line x1="380" y1="630" x2="380" y2="640" class="wire-gnd"/>
+
+  <!-- ==================== GND BUS ==================== -->
+  <line x1="340" y1="640" x2="880" y2="640" class="wire-gnd" style="stroke-width:3"/>
+  <text x="610" y="660" text-anchor="middle" class="label" font-weight="bold">GND (massa)</text>
+  <!-- GND symbols -->
+  <line x1="590" y1="670" x2="630" y2="670" class="gnd-symbol" style="stroke-width:2.5"/>
+  <line x1="597" y1="676" x2="623" y2="676" class="gnd-symbol" style="stroke-width:2"/>
+  <line x1="604" y1="682" x2="616" y2="682" class="gnd-symbol" style="stroke-width:1.5"/>
+
+  <!-- ==================== OUTPUT: 3.5mm JACK ==================== -->
+  <line x1="350" y1="555" x2="260" y2="555" class="wire-signal"/>
+
+  <!-- 3.5mm Jack connector box -->
+  <rect x="195" y="520" width="110" height="85" class="box-output"/>
+  <text x="250" y="543" text-anchor="middle" class="component" fill="#0066cc">J2</text>
+  <text x="250" y="560" text-anchor="middle" class="label">3,5 mm TRS</text>
+  <text x="250" y="575" text-anchor="middle" class="label">Jack</text>
+  <text x="250" y="593" text-anchor="middle" class="pin">TIP: signaal</text>
+  <!-- GND from jack -->
+  <line x1="250" y1="605" x2="250" y2="640" class="wire-gnd"/>
+  <circle cx="250" cy="640" r="3" class="dot"/>
+  <text x="250" y="598" text-anchor="middle" class="pin">SLEEVE: GND</text>
+
+  <!-- ==================== EXTERNAL DEVICES ==================== -->
+  <!-- Sound Blaster Play! 3 -->
+  <rect x="20" y="510" width="150" height="80" class="box-output"/>
+  <text x="95" y="535" text-anchor="middle" class="component" fill="#0066cc">SOUND BLASTER</text>
+  <text x="95" y="552" text-anchor="middle" class="label">Play! 3</text>
+  <text x="95" y="570" text-anchor="middle" class="value">MIC ingang (3,5mm)</text>
+  <text x="95" y="585" text-anchor="middle" class="value">◄── audiokabel ──</text>
+
+  <!-- Arrow from Jack to SB Play 3 -->
+  <line x1="195" y1="555" x2="170" y2="555" class="wire-signal" marker-end="url(#arrowhead)"/>
+
+  <!-- Raspberry Pi -->
+  <rect x="20" y="690" width="150" height="80" class="box" style="fill:#f0e8ff; stroke:#6a0dad;"/>
+  <text x="95" y="715" text-anchor="middle" class="component" fill="#6a0dad">RASPBERRY PI</text>
+  <text x="95" y="732" text-anchor="middle" class="label">4B – 4GB</text>
+  <text x="95" y="749" text-anchor="middle" class="value">USB ◄── SB Play! 3</text>
+  <text x="95" y="764" text-anchor="middle" class="value">BirdNet-GO</text>
+
+  <!-- USB connection SB to Pi -->
+  <line x1="95" y1="590" x2="95" y2="690" stroke="#6a0dad" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="105" y="645" class="value" fill="#6a0dad">USB</text>
+
+  <!-- Powerbank to Pi -->
+  <line x1="90" y1="280" x2="90" y2="690" stroke="#cc0000" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <text x="60" y="500" class="value" fill="#cc0000" transform="rotate(-90, 60, 500)">USB voeding Pi</text>
+
+  <!-- ==================== NOTES ==================== -->
+  <rect x="200" y="710" width="700" height="95" fill="#fffff0" stroke="#ccc" stroke-width="1" rx="8"/>
+  <text x="215" y="732" class="label" font-weight="bold">📝 Opmerkingen:</text>
+  <text x="215" y="748" class="value">• De powerbank (30.000 mAh) voedt zowel de Pi als het hulpprintje via aparte USB-uitgangen.</text>
+  <text x="215" y="763" class="value">• Bij 2 mA verbruik door de microfoons gaat de powerbank &gt; 1000 uur mee voor de mic-voeding alleen.</text>
+  <text x="215" y="778" class="value">• Het LC-filter (L1 + C2) is optioneel maar sterk aanbevolen om USB-ruis van de powerbank te filteren.</text>
+  <text x="215" y="793" class="value">• Gebruik afgeschermde kabel tussen de microfoons en het printje. Houd kabels zo kort mogelijk (&lt; 2m).</text>
+
+  <!-- ==================== LEGEND ==================== -->
+  <rect x="930" y="85" width="155" height="180" fill="#fafafa" stroke="#ccc" stroke-width="1" rx="6"/>
+  <text x="1007" y="108" text-anchor="middle" class="label" font-weight="bold">Legenda</text>
+  <line x1="945" y1="125" x2="985" y2="125" class="wire-power"/>
+  <text x="990" y="129" class="value">Voeding (+5V)</text>
+  <line x1="945" y1="145" x2="985" y2="145" class="wire-signal"/>
+  <text x="990" y="149" class="value">Audiosignaal</text>
+  <line x1="945" y1="165" x2="985" y2="165" class="wire-gnd"/>
+  <text x="990" y="169" class="value">Massa (GND)</text>
+  <rect x="945" y="180" width="40" height="12" fill="#e8d8c0" stroke="#8b6914" stroke-width="1" rx="2"/>
+  <text x="990" y="191" class="value">Weerstand</text>
+  <line x1="950" y1="210" x2="950" y2="220" style="stroke:#0066cc; stroke-width:3"/>
+  <line x1="960" y1="210" x2="960" y2="220" style="stroke:#0066cc; stroke-width:3"/>
+  <text x="990" y="219" class="value">Condensator</text>
+  <circle cx="955" cy="242" r="4" class="dot"/>
+  <text x="990" y="246" class="value">Verbindingspunt</text>
+</svg>

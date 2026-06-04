@@ -144,12 +144,24 @@ De capsule heeft een ingebouwde FET die zowel de biasspanning als het audiosigna
                           GND
 ```
 
-### Optie C: Powerbank / aparte USB-adapter
+### Optie C: Powerbank (aanbevolen ✅)
 
-- Vergelijkbaar met optie B, maar fysiek gescheiden van de Pi.
-- Biedt een goede balans tussen gemak en ruisonderdrukking.
+- Gebruik een **aparte USB-uitgang** van dezelfde powerbank (30.000 mAh) die ook de Raspberry Pi voedt.
+- Sluit een USB-kabel aan op het hulpprintje (USB-C of Micro-B connector → J1 op het PCB).
+- De powerbank levert 5 V DC — meer dan voldoende voor 4 capsules (slechts ~2 mA nodig).
+- **Levensduur microfoon-voeding:** 30.000 mAh / 2 mA = **~15.000 uur** (ruim 600 dagen!) — de Pi verbruikt het overgrote deel.
+- Fysiek gescheiden USB-uitgang = minder kans op digitale ruis in het audiosignaal.
+- **Tip:** Gebruik het **LC-filter** (L1 + C2) op het hulpprintje om eventuele schakelruis van de powerbank te filteren.
 
-> 💡 **Aanbeveling:** Gebruik **batterijvoeding (optie A)** voor de meest ruisarme opnames. Voor langdurige onbeheerde opnames is **optie B met LC-filter** praktischer.
+> 💡 **Aanbeveling:** Gebruik **optie C (powerbank)** — dit is de meest praktische oplossing. Je hebt de powerbank al, het verbruik is verwaarloosbaar, en met het LC-filter op het hulpprintje is de ruisonderdrukking uitstekend.
+
+### 📐 Schakelschema
+
+Zie het volledige schakelschema van het hulpprintje:
+
+👉 **[EM272Z1-hulpprintje-schema.svg](EM272Z1-hulpprintje-schema.svg)**
+
+![Hulpprintje Schema](EM272Z1-hulpprintje-schema.svg)
 
 ---
 
