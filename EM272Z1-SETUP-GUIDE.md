@@ -163,6 +163,14 @@ Zie het volledige schakelschema van het hulpprintje:
 
 ![Hulpprintje Schema](EM272Z1-hulpprintje-schema.svg)
 
+### 🔲 PCB Layout
+
+De PCB-layout toont de fysieke plaatsing van componenten en kopersporen op het hulpprintje (60 × 40 mm, enkelzijdig):
+
+👉 **[EM272Z1-hulpprintje-pcb-layout.svg](EM272Z1-hulpprintje-pcb-layout.svg)**
+
+![Hulpprintje PCB Layout](EM272Z1-hulpprintje-pcb-layout.svg)
+
 ---
 
 ## 5. Tips voor ruisvrije opnames
