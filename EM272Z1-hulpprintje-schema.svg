@@ -280,7 +280,7 @@
   <rect x="200" y="710" width="700" height="95" fill="#fffff0" stroke="#ccc" stroke-width="1" rx="8"/>
   <text x="215" y="732" class="label" font-weight="bold">📝 Opmerkingen:</text>
   <text x="215" y="748" class="value">• De powerbank (30.000 mAh) voedt zowel de Pi als het hulpprintje via aparte USB-uitgangen.</text>
-  <text x="215" y="763" class="value">• Bij 2 mA verbruik door de microfoons gaat de powerbank &gt; 1000 uur mee voor de mic-voeding alleen.</text>
+  <text x="215" y="763" class="value">• Bij 2 mA verbruik door de microfoons gaat de powerbank ~15.000 uur mee voor de mic-voeding alleen.</text>
   <text x="215" y="778" class="value">• Het LC-filter (L1 + C2) is optioneel maar sterk aanbevolen om USB-ruis van de powerbank te filteren.</text>
   <text x="215" y="793" class="value">• Gebruik afgeschermde kabel tussen de microfoons en het printje. Houd kabels zo kort mogelijk (&lt; 2m).</text>
 
