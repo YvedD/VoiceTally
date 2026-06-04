@@ -171,6 +171,16 @@ De PCB-layout toont de fysieke plaatsing van componenten en kopersporen op het h
 
 ![Hulpprintje PCB Layout](EM272Z1-hulpprintje-pcb-layout.svg)
 
+### 🧪 Prototype op Gaatjesprint
+
+Wil je het hulpprintje bouwen op een standaard prototype-/gaatjesprint (perfboard)? Gebruik deze layout:
+
+👉 **[EM272Z1-hulpprintje-prototype.svg](EM272Z1-hulpprintje-prototype.svg)**
+
+![Hulpprintje Prototype](EM272Z1-hulpprintje-prototype.svg)
+
+De tekening toont de exacte plaatsing van alle componenten op een 24×16 gaatjesprint (2,54 mm raster), inclusief kleurgecodeerde draadverbindingen en soldeerinstructies.
+
 ### 📦 EasyEDA Projectbestand
 
 Het schakelschema is ook beschikbaar als EasyEDA-importeerbaar JSON-bestand:

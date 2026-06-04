@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1050 820" width="1050" height="820" font-family="Arial, sans-serif">
+  <defs>
+    <style>
+      .board { fill: #2d8a4e; stroke: #1a5c30; stroke-width: 2; rx: 4; }
+      .hole-ring { fill: #c8a84e; stroke: #a08030; stroke-width: 0.8; }
+      .hole { fill: #1a5c30; }
+      .wire-red { stroke: #dd2222; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-black { stroke: #222; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-blue { stroke: #2266dd; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-yellow { stroke: #ddaa00; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-green { stroke: #22aa44; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .solder { fill: #c0c0c0; stroke: #999; stroke-width: 0.5; opacity: 0.85; }
+      .resistor-body { fill: #d2b48c; stroke: #8b6914; stroke-width: 1.2; rx: 3; }
+      .resistor-band1 { fill: #cc0000; }
+      .resistor-band2 { fill: #cc0000; }
+      .resistor-band3 { fill: #cc0000; }
+      .cap-elec { fill: #1a1a8a; stroke: #111166; stroke-width: 1.5; }
+      .cap-film { fill: #ccaa22; stroke: #aa8800; stroke-width: 1.2; rx: 2; }
+      .inductor-body { fill: #444; stroke: #333; stroke-width: 1.2; rx: 3; }
+      .wire-leg { stroke: #888; stroke-width: 1; fill: none; }
+      .label { font-size: 10px; fill: #fff; font-weight: bold; }
+      .label-dark { font-size: 10px; fill: #333; font-weight: bold; }
+      .label-sm { font-size: 8px; fill: #ddd; }
+      .label-sm-dark { font-size: 8px; fill: #555; }
+      .label-val { font-size: 8px; fill: #eee; }
+      .title { font-size: 16px; fill: #1a1a1a; font-weight: bold; }
+      .subtitle { font-size: 11px; fill: #555; }
+      .legend-text { font-size: 10px; fill: #333; }
+      .pin-label { font-size: 7px; fill: #fff; font-weight: bold; }
+      .connector { fill: #222; stroke: #444; stroke-width: 1.5; }
+      .jack-body { fill: #555; stroke: #333; stroke-width: 1.5; }
+      .usb-body { fill: #bbb; stroke: #888; stroke-width: 1.2; rx: 2; }
+      .note { font-size: 9px; fill: #c44; font-style: italic; }
+    </style>
+    <!-- Perfboard hole (copper ring + hole) -->
+    <g id="ph">
+      <circle r="4.2" class="hole-ring"/>
+      <circle r="1.8" class="hole"/>
+    </g>
+    <!-- Used/soldered hole -->
+    <g id="ps">
+      <circle r="4.2" class="hole-ring"/>
+      <circle r="3.5" class="solder"/>
+    </g>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1050" height="820" fill="#f8f6f0"/>
+
+  <!-- Title -->
+  <text x="525" y="30" text-anchor="middle" class="title">EM272Z1 Hulpprintje – Prototype op Gaatjesprint</text>
+  <text x="525" y="48" text-anchor="middle" class="subtitle">Bovenaanzicht | Gaatjesprint 24×16 gaten (≈ 63 × 42 mm) | Raster 2,54 mm</text>
+
+  <!-- ==================== PERFBOARD ==================== -->
+  <rect x="70" y="75" width="610" height="430" class="board"/>
+
+  <!-- Row/column reference markers -->
+  <!-- Column numbers (top) -->
+  <text x="100" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">1</text>
+  <text x="125" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">2</text>
+  <text x="150" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">3</text>
+  <text x="175" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">4</text>
+  <text x="200" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">5</text>
+  <text x="225" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">6</text>
+  <text x="250" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">7</text>
+  <text x="275" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">8</text>
+  <text x="300" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">9</text>
+  <text x="325" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">10</text>
+  <text x="350" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">11</text>
+  <text x="375" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">12</text>
+  <text x="400" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">13</text>
+  <text x="425" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">14</text>
+  <text x="450" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">15</text>
+  <text x="475" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">16</text>
+  <text x="500" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">17</text>
+  <text x="525" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">18</text>
+  <text x="550" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">19</text>
+  <text x="575" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">20</text>
+  <text x="600" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">21</text>
+  <text x="625" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">22</text>
+  <text x="650" y="70" text-anchor="middle" class="label-sm-dark" style="font-size:7px">23</text>
+
+  <!-- Row letters (left) -->
+  <text x="82" y="104" text-anchor="middle" class="label-sm" style="font-size:7px">A</text>
+  <text x="82" y="129" text-anchor="middle" class="label-sm" style="font-size:7px">B</text>
+  <text x="82" y="154" text-anchor="middle" class="label-sm" style="font-size:7px">C</text>
+  <text x="82" y="179" text-anchor="middle" class="label-sm" style="font-size:7px">D</text>
+  <text x="82" y="204" text-anchor="middle" class="label-sm" style="font-size:7px">E</text>
+  <text x="82" y="229" text-anchor="middle" class="label-sm" style="font-size:7px">F</text>
+  <text x="82" y="254" text-anchor="middle" class="label-sm" style="font-size:7px">G</text>
+  <text x="82" y="279" text-anchor="middle" class="label-sm" style="font-size:7px">H</text>
+  <text x="82" y="304" text-anchor="middle" class="label-sm" style="font-size:7px">I</text>
+  <text x="82" y="329" text-anchor="middle" class="label-sm" style="font-size:7px">J</text>
+  <text x="82" y="354" text-anchor="middle" class="label-sm" style="font-size:7px">K</text>
+  <text x="82" y="379" text-anchor="middle" class="label-sm" style="font-size:7px">L</text>
+  <text x="82" y="404" text-anchor="middle" class="label-sm" style="font-size:7px">M</text>
+  <text x="82" y="429" text-anchor="middle" class="label-sm" style="font-size:7px">N</text>
+  <text x="82" y="454" text-anchor="middle" class="label-sm" style="font-size:7px">O</text>
+  <text x="82" y="479" text-anchor="middle" class="label-sm" style="font-size:7px">P</text>
+
+  <!-- ==================== HOLE GRID ==================== -->
+  <!-- Generate 24 cols × 16 rows of holes -->
+  <!-- Row A (y=100) -->
+  <use href="#ph" x="100" y="100"/><use href="#ph" x="125" y="100"/><use href="#ph" x="150" y="100"/><use href="#ph" x="175" y="100"/>
+  <use href="#ph" x="200" y="100"/><use href="#ph" x="225" y="100"/><use href="#ph" x="250" y="100"/><use href="#ph" x="275" y="100"/>
+  <use href="#ph" x="300" y="100"/><use href="#ph" x="325" y="100"/><use href="#ph" x="350" y="100"/><use href="#ph" x="375" y="100"/>
+  <use href="#ph" x="400" y="100"/><use href="#ph" x="425" y="100"/><use href="#ph" x="450" y="100"/><use href="#ph" x="475" y="100"/>
+  <use href="#ph" x="500" y="100"/><use href="#ph" x="525" y="100"/><use href="#ph" x="550" y="100"/><use href="#ph" x="575" y="100"/>
+  <use href="#ph" x="600" y="100"/><use href="#ph" x="625" y="100"/><use href="#ph" x="650" y="100"/>
+
+  <!-- Row B (y=125) -->
+  <use href="#ph" x="100" y="125"/><use href="#ph" x="125" y="125"/><use href="#ph" x="150" y="125"/><use href="#ph" x="175" y="125"/>
+  <use href="#ph" x="200" y="125"/><use href="#ph" x="225" y="125"/><use href="#ph" x="250" y="125"/><use href="#ph" x="275" y="125"/>
+  <use href="#ph" x="300" y="125"/><use href="#ph" x="325" y="125"/><use href="#ph" x="350" y="125"/><use href="#ph" x="375" y="125"/>
+  <use href="#ph" x="400" y="125"/><use href="#ph" x="425" y="125"/><use href="#ph" x="450" y="125"/><use href="#ph" x="475" y="125"/>
+  <use href="#ph" x="500" y="125"/><use href="#ph" x="525" y="125"/><use href="#ph" x="550" y="125"/><use href="#ph" x="575" y="125"/>
+  <use href="#ph" x="600" y="125"/><use href="#ph" x="625" y="125"/><use href="#ph" x="650" y="125"/>
+
+  <!-- Row C (y=150) -->
+  <use href="#ph" x="100" y="150"/><use href="#ph" x="125" y="150"/><use href="#ph" x="150" y="150"/><use href="#ph" x="175" y="150"/>
+  <use href="#ph" x="200" y="150"/><use href="#ph" x="225" y="150"/><use href="#ph" x="250" y="150"/><use href="#ph" x="275" y="150"/>
+  <use href="#ph" x="300" y="150"/><use href="#ph" x="325" y="150"/><use href="#ph" x="350" y="150"/><use href="#ph" x="375" y="150"/>
+  <use href="#ph" x="400" y="150"/><use href="#ph" x="425" y="150"/><use href="#ph" x="450" y="150"/><use href="#ph" x="475" y="150"/>
+  <use href="#ph" x="500" y="150"/><use href="#ph" x="525" y="150"/><use href="#ph" x="550" y="150"/><use href="#ph" x="575" y="150"/>
+  <use href="#ph" x="600" y="150"/><use href="#ph" x="625" y="150"/><use href="#ph" x="650" y="150"/>
+
+  <!-- Row D (y=175) -->
+  <use href="#ph" x="100" y="175"/><use href="#ph" x="125" y="175"/><use href="#ph" x="150" y="175"/><use href="#ph" x="175" y="175"/>
+  <use href="#ph" x="200" y="175"/><use href="#ph" x="225" y="175"/><use href="#ph" x="250" y="175"/><use href="#ph" x="275" y="175"/>
+  <use href="#ph" x="300" y="175"/><use href="#ph" x="325" y="175"/><use href="#ph" x="350" y="175"/><use href="#ph" x="375" y="175"/>
+  <use href="#ph" x="400" y="175"/><use href="#ph" x="425" y="175"/><use href="#ph" x="450" y="175"/><use href="#ph" x="475" y="175"/>
+  <use href="#ph" x="500" y="175"/><use href="#ph" x="525" y="175"/><use href="#ph" x="550" y="175"/><use href="#ph" x="575" y="175"/>
+  <use href="#ph" x="600" y="175"/><use href="#ph" x="625" y="175"/><use href="#ph" x="650" y="175"/>
+
+  <!-- Row E (y=200) -->
+  <use href="#ph" x="100" y="200"/><use href="#ph" x="125" y="200"/><use href="#ph" x="150" y="200"/><use href="#ph" x="175" y="200"/>
+  <use href="#ph" x="200" y="200"/><use href="#ph" x="225" y="200"/><use href="#ph" x="250" y="200"/><use href="#ph" x="275" y="200"/>
+  <use href="#ph" x="300" y="200"/><use href="#ph" x="325" y="200"/><use href="#ph" x="350" y="200"/><use href="#ph" x="375" y="200"/>
+  <use href="#ph" x="400" y="200"/><use href="#ph" x="425" y="200"/><use href="#ph" x="450" y="200"/><use href="#ph" x="475" y="200"/>
+  <use href="#ph" x="500" y="200"/><use href="#ph" x="525" y="200"/><use href="#ph" x="550" y="200"/><use href="#ph" x="575" y="200"/>
+  <use href="#ph" x="600" y="200"/><use href="#ph" x="625" y="200"/><use href="#ph" x="650" y="200"/>
+
+  <!-- Row F (y=225) -->
+  <use href="#ph" x="100" y="225"/><use href="#ph" x="125" y="225"/><use href="#ph" x="150" y="225"/><use href="#ph" x="175" y="225"/>
+  <use href="#ph" x="200" y="225"/><use href="#ph" x="225" y="225"/><use href="#ph" x="250" y="225"/><use href="#ph" x="275" y="225"/>
+  <use href="#ph" x="300" y="225"/><use href="#ph" x="325" y="225"/><use href="#ph" x="350" y="225"/><use href="#ph" x="375" y="225"/>
+  <use href="#ph" x="400" y="225"/><use href="#ph" x="425" y="225"/><use href="#ph" x="450" y="225"/><use href="#ph" x="475" y="225"/>
+  <use href="#ph" x="500" y="225"/><use href="#ph" x="525" y="225"/><use href="#ph" x="550" y="225"/><use href="#ph" x="575" y="225"/>
+  <use href="#ph" x="600" y="225"/><use href="#ph" x="625" y="225"/><use href="#ph" x="650" y="225"/>
+
+  <!-- Row G (y=250) -->
+  <use href="#ph" x="100" y="250"/><use href="#ph" x="125" y="250"/><use href="#ph" x="150" y="250"/><use href="#ph" x="175" y="250"/>
+  <use href="#ph" x="200" y="250"/><use href="#ph" x="225" y="250"/><use href="#ph" x="250" y="250"/><use href="#ph" x="275" y="250"/>
+  <use href="#ph" x="300" y="250"/><use href="#ph" x="325" y="250"/><use href="#ph" x="350" y="250"/><use href="#ph" x="375" y="250"/>
+  <use href="#ph" x="400" y="250"/><use href="#ph" x="425" y="250"/><use href="#ph" x="450" y="250"/><use href="#ph" x="475" y="250"/>
+  <use href="#ph" x="500" y="250"/><use href="#ph" x="525" y="250"/><use href="#ph" x="550" y="250"/><use href="#ph" x="575" y="250"/>
+  <use href="#ph" x="600" y="250"/><use href="#ph" x="625" y="250"/><use href="#ph" x="650" y="250"/>
+
+  <!-- Row H (y=275) -->
+  <use href="#ph" x="100" y="275"/><use href="#ph" x="125" y="275"/><use href="#ph" x="150" y="275"/><use href="#ph" x="175" y="275"/>
+  <use href="#ph" x="200" y="275"/><use href="#ph" x="225" y="275"/><use href="#ph" x="250" y="275"/><use href="#ph" x="275" y="275"/>
+  <use href="#ph" x="300" y="275"/><use href="#ph" x="325" y="275"/><use href="#ph" x="350" y="275"/><use href="#ph" x="375" y="275"/>
+  <use href="#ph" x="400" y="275"/><use href="#ph" x="425" y="275"/><use href="#ph" x="450" y="275"/><use href="#ph" x="475" y="275"/>
+  <use href="#ph" x="500" y="275"/><use href="#ph" x="525" y="275"/><use href="#ph" x="550" y="275"/><use href="#ph" x="575" y="275"/>
+  <use href="#ph" x="600" y="275"/><use href="#ph" x="625" y="275"/><use href="#ph" x="650" y="275"/>
+
+  <!-- Row I (y=300) -->
+  <use href="#ph" x="100" y="300"/><use href="#ph" x="125" y="300"/><use href="#ph" x="150" y="300"/><use href="#ph" x="175" y="300"/>
+  <use href="#ph" x="200" y="300"/><use href="#ph" x="225" y="300"/><use href="#ph" x="250" y="300"/><use href="#ph" x="275" y="300"/>
+  <use href="#ph" x="300" y="300"/><use href="#ph" x="325" y="300"/><use href="#ph" x="350" y="300"/><use href="#ph" x="375" y="300"/>
+  <use href="#ph" x="400" y="300"/><use href="#ph" x="425" y="300"/><use href="#ph" x="450" y="300"/><use href="#ph" x="475" y="300"/>
+  <use href="#ph" x="500" y="300"/><use href="#ph" x="525" y="300"/><use href="#ph" x="550" y="300"/><use href="#ph" x="575" y="300"/>
+  <use href="#ph" x="600" y="300"/><use href="#ph" x="625" y="300"/><use href="#ph" x="650" y="300"/>
+
+  <!-- Row J (y=325) -->
+  <use href="#ph" x="100" y="325"/><use href="#ph" x="125" y="325"/><use href="#ph" x="150" y="325"/><use href="#ph" x="175" y="325"/>
+  <use href="#ph" x="200" y="325"/><use href="#ph" x="225" y="325"/><use href="#ph" x="250" y="325"/><use href="#ph" x="275" y="325"/>
+  <use href="#ph" x="300" y="325"/><use href="#ph" x="325" y="325"/><use href="#ph" x="350" y="325"/><use href="#ph" x="375" y="325"/>
+  <use href="#ph" x="400" y="325"/><use href="#ph" x="425" y="325"/><use href="#ph" x="450" y="325"/><use href="#ph" x="475" y="325"/>
+  <use href="#ph" x="500" y="325"/><use href="#ph" x="525" y="325"/><use href="#ph" x="550" y="325"/><use href="#ph" x="575" y="325"/>
+  <use href="#ph" x="600" y="325"/><use href="#ph" x="625" y="325"/><use href="#ph" x="650" y="325"/>
+
+  <!-- Row K (y=350) -->
+  <use href="#ph" x="100" y="350"/><use href="#ph" x="125" y="350"/><use href="#ph" x="150" y="350"/><use href="#ph" x="175" y="350"/>
+  <use href="#ph" x="200" y="350"/><use href="#ph" x="225" y="350"/><use href="#ph" x="250" y="350"/><use href="#ph" x="275" y="350"/>
+  <use href="#ph" x="300" y="350"/><use href="#ph" x="325" y="350"/><use href="#ph" x="350" y="350"/><use href="#ph" x="375" y="350"/>
+  <use href="#ph" x="400" y="350"/><use href="#ph" x="425" y="350"/><use href="#ph" x="450" y="350"/><use href="#ph" x="475" y="350"/>
+  <use href="#ph" x="500" y="350"/><use href="#ph" x="525" y="350"/><use href="#ph" x="550" y="350"/><use href="#ph" x="575" y="350"/>
+  <use href="#ph" x="600" y="350"/><use href="#ph" x="625" y="350"/><use href="#ph" x="650" y="350"/>
+
+  <!-- Row L (y=375) -->
+  <use href="#ph" x="100" y="375"/><use href="#ph" x="125" y="375"/><use href="#ph" x="150" y="375"/><use href="#ph" x="175" y="375"/>
+  <use href="#ph" x="200" y="375"/><use href="#ph" x="225" y="375"/><use href="#ph" x="250" y="375"/><use href="#ph" x="275" y="375"/>
+  <use href="#ph" x="300" y="375"/><use href="#ph" x="325" y="375"/><use href="#ph" x="350" y="375"/><use href="#ph" x="375" y="375"/>
+  <use href="#ph" x="400" y="375"/><use href="#ph" x="425" y="375"/><use href="#ph" x="450" y="375"/><use href="#ph" x="475" y="375"/>
+  <use href="#ph" x="500" y="375"/><use href="#ph" x="525" y="375"/><use href="#ph" x="550" y="375"/><use href="#ph" x="575" y="375"/>
+  <use href="#ph" x="600" y="375"/><use href="#ph" x="625" y="375"/><use href="#ph" x="650" y="375"/>
+
+  <!-- Row M (y=400) -->
+  <use href="#ph" x="100" y="400"/><use href="#ph" x="125" y="400"/><use href="#ph" x="150" y="400"/><use href="#ph" x="175" y="400"/>
+  <use href="#ph" x="200" y="400"/><use href="#ph" x="225" y="400"/><use href="#ph" x="250" y="400"/><use href="#ph" x="275" y="400"/>
+  <use href="#ph" x="300" y="400"/><use href="#ph" x="325" y="400"/><use href="#ph" x="350" y="400"/><use href="#ph" x="375" y="400"/>
+  <use href="#ph" x="400" y="400"/><use href="#ph" x="425" y="400"/><use href="#ph" x="450" y="400"/><use href="#ph" x="475" y="400"/>
+  <use href="#ph" x="500" y="400"/><use href="#ph" x="525" y="400"/><use href="#ph" x="550" y="400"/><use href="#ph" x="575" y="400"/>
+  <use href="#ph" x="600" y="400"/><use href="#ph" x="625" y="400"/><use href="#ph" x="650" y="400"/>
+
+  <!-- Row N (y=425) -->
+  <use href="#ph" x="100" y="425"/><use href="#ph" x="125" y="425"/><use href="#ph" x="150" y="425"/><use href="#ph" x="175" y="425"/>
+  <use href="#ph" x="200" y="425"/><use href="#ph" x="225" y="425"/><use href="#ph" x="250" y="425"/><use href="#ph" x="275" y="425"/>
+  <use href="#ph" x="300" y="425"/><use href="#ph" x="325" y="425"/><use href="#ph" x="350" y="425"/><use href="#ph" x="375" y="425"/>
+  <use href="#ph" x="400" y="425"/><use href="#ph" x="425" y="425"/><use href="#ph" x="450" y="425"/><use href="#ph" x="475" y="425"/>
+  <use href="#ph" x="500" y="425"/><use href="#ph" x="525" y="425"/><use href="#ph" x="550" y="425"/><use href="#ph" x="575" y="425"/>
+  <use href="#ph" x="600" y="425"/><use href="#ph" x="625" y="425"/><use href="#ph" x="650" y="425"/>
+
+  <!-- Row O (y=450) -->
+  <use href="#ph" x="100" y="450"/><use href="#ph" x="125" y="450"/><use href="#ph" x="150" y="450"/><use href="#ph" x="175" y="450"/>
+  <use href="#ph" x="200" y="450"/><use href="#ph" x="225" y="450"/><use href="#ph" x="250" y="450"/><use href="#ph" x="275" y="450"/>
+  <use href="#ph" x="300" y="450"/><use href="#ph" x="325" y="450"/><use href="#ph" x="350" y="450"/><use href="#ph" x="375" y="450"/>
+  <use href="#ph" x="400" y="450"/><use href="#ph" x="425" y="450"/><use href="#ph" x="450" y="450"/><use href="#ph" x="475" y="450"/>
+  <use href="#ph" x="500" y="450"/><use href="#ph" x="525" y="450"/><use href="#ph" x="550" y="450"/><use href="#ph" x="575" y="450"/>
+  <use href="#ph" x="600" y="450"/><use href="#ph" x="625" y="450"/><use href="#ph" x="650" y="450"/>
+
+  <!-- Row P (y=475) -->
+  <use href="#ph" x="100" y="475"/><use href="#ph" x="125" y="475"/><use href="#ph" x="150" y="475"/><use href="#ph" x="175" y="475"/>
+  <use href="#ph" x="200" y="475"/><use href="#ph" x="225" y="475"/><use href="#ph" x="250" y="475"/><use href="#ph" x="275" y="475"/>
+  <use href="#ph" x="300" y="475"/><use href="#ph" x="325" y="475"/><use href="#ph" x="350" y="475"/><use href="#ph" x="375" y="475"/>
+  <use href="#ph" x="400" y="475"/><use href="#ph" x="425" y="475"/><use href="#ph" x="450" y="475"/><use href="#ph" x="475" y="475"/>
+  <use href="#ph" x="500" y="475"/><use href="#ph" x="525" y="475"/><use href="#ph" x="550" y="475"/><use href="#ph" x="575" y="475"/>
+  <use href="#ph" x="600" y="475"/><use href="#ph" x="625" y="475"/><use href="#ph" x="650" y="475"/>
+
+
+  <!-- ================================================================ -->
+  <!--  SOLDERED HOLES (component pins - drawn OVER the grid holes)     -->
+  <!-- ================================================================ -->
+
+  <!-- J1 USB power input: pins at (1,E)=100,200 VBUS and (1,F)=100,225 GND -->
+  <use href="#ps" x="100" y="200"/>
+  <use href="#ps" x="100" y="225"/>
+
+  <!-- L1 inductor: (3,D)=150,175 to (6,D)=225,175 -->
+  <use href="#ps" x="150" y="175"/>
+  <use href="#ps" x="225" y="175"/>
+
+  <!-- C2 filter cap: (7,D)=250,175 (+) to (7,F)=250,225 (-/GND) -->
+  <use href="#ps" x="250" y="175"/>
+  <use href="#ps" x="250" y="225"/>
+
+  <!-- R1: (10,B)=325,125 to (14,B)=425,125 -->
+  <use href="#ps" x="325" y="125"/>
+  <use href="#ps" x="425" y="125"/>
+  <!-- R2: (10,D)=325,175 to (14,D)=425,175 -->
+  <use href="#ps" x="325" y="175"/>
+  <use href="#ps" x="425" y="175"/>
+  <!-- R3: (10,F)=325,225 to (14,F)=425,225 -->
+  <use href="#ps" x="325" y="225"/>
+  <use href="#ps" x="425" y="225"/>
+  <!-- R4: (10,H)=325,275 to (14,H)=425,275 -->
+  <use href="#ps" x="325" y="275"/>
+  <use href="#ps" x="425" y="275"/>
+
+  <!-- MIC1 pads: SIG+(17,B)=500,125  GND(19,B)=550,125 -->
+  <use href="#ps" x="500" y="125"/>
+  <use href="#ps" x="550" y="125"/>
+  <!-- MIC2 pads: SIG+(17,D)=500,175  GND(19,D)=550,175 -->
+  <use href="#ps" x="500" y="175"/>
+  <use href="#ps" x="550" y="175"/>
+  <!-- MIC3 pads: SIG+(17,F)=500,225  GND(19,F)=550,225 -->
+  <use href="#ps" x="500" y="225"/>
+  <use href="#ps" x="550" y="225"/>
+  <!-- MIC4 pads: SIG+(17,H)=500,275  GND(19,H)=550,275 -->
+  <use href="#ps" x="500" y="275"/>
+  <use href="#ps" x="550" y="275"/>
+
+  <!-- Signal summing bus junction: (15,B)=450,125 .. (15,H)=450,275 already on signal path -->
+  <use href="#ps" x="450" y="125"/>
+  <use href="#ps" x="450" y="175"/>
+  <use href="#ps" x="450" y="225"/>
+  <use href="#ps" x="450" y="275"/>
+
+  <!-- C1 coupling cap: (10,K)=325,350 to (13,K)=400,350 -->
+  <use href="#ps" x="325" y="350"/>
+  <use href="#ps" x="400" y="350"/>
+
+  <!-- R5 discharge: (7,K)=250,350 to (7,M)=250,400 -->
+  <use href="#ps" x="250" y="350"/>
+  <use href="#ps" x="250" y="400"/>
+
+  <!-- J2 3.5mm jack: TIP(3,L)=150,375  SLEEVE(3,N)=150,425 -->
+  <use href="#ps" x="150" y="375"/>
+  <use href="#ps" x="150" y="425"/>
+
+  <!-- Power bus junction points -->
+  <use href="#ps" x="275" y="175"/>
+  <use href="#ps" x="300" y="175"/>
+  <use href="#ps" x="300" y="125"/>
+  <use href="#ps" x="300" y="225"/>
+  <use href="#ps" x="300" y="275"/>
+
+  <!-- GND bus solder points along row P -->
+  <use href="#ps" x="100" y="475"/>
+  <use href="#ps" x="150" y="475"/>
+  <use href="#ps" x="250" y="475"/>
+  <use href="#ps" x="550" y="475"/>
+
+  <!-- Signal path solder points -->
+  <use href="#ps" x="250" y="350"/>
+  <use href="#ps" x="200" y="350"/>
+
+  <!-- ================================================================ -->
+  <!--  WIRING (colored jumper wires on the underside / top)            -->
+  <!-- ================================================================ -->
+
+  <!-- === RED WIRES: +5V power rail === -->
+  <!-- J1 VBUS (1,E) → L1 in (3,D) -->
+  <polyline points="100,200 100,175 150,175" class="wire-red"/>
+  <!-- L1 out (6,D) → C2+ (7,D) → power bus node (8,D) -->
+  <polyline points="225,175 250,175 275,175 300,175" class="wire-red"/>
+  <!-- Power bus vertical: (9,B) down to (9,H) -->
+  <line x1="300" y1="125" x2="300" y2="275" class="wire-red"/>
+  <!-- Power bus → R1 in -->
+  <line x1="300" y1="125" x2="325" y2="125" class="wire-red"/>
+  <!-- Power bus → R2 in -->
+  <line x1="300" y1="175" x2="325" y2="175" class="wire-red"/>
+  <!-- Power bus → R3 in -->
+  <line x1="300" y1="225" x2="325" y2="225" class="wire-red"/>
+  <!-- Power bus → R4 in -->
+  <line x1="300" y1="275" x2="325" y2="275" class="wire-red"/>
+  <!-- Junction dots -->
+  <circle cx="300" cy="125" r="3" fill="#dd2222"/>
+  <circle cx="300" cy="175" r="3" fill="#dd2222"/>
+  <circle cx="300" cy="225" r="3" fill="#dd2222"/>
+  <circle cx="300" cy="275" r="3" fill="#dd2222"/>
+
+  <!-- === BLUE WIRES: Signal path === -->
+  <!-- R1 out (14,B) → junction (15,B) → MIC1 SIG+ (17,B) -->
+  <polyline points="425,125 450,125 500,125" class="wire-blue"/>
+  <!-- R2 out (14,D) → junction (15,D) → MIC2 SIG+ (17,D) -->
+  <polyline points="425,175 450,175 500,175" class="wire-blue"/>
+  <!-- R3 out (14,F) → junction (15,F) → MIC3 SIG+ (17,F) -->
+  <polyline points="425,225 450,225 500,225" class="wire-blue"/>
+  <!-- R4 out (14,H) → junction (15,H) → MIC4 SIG+ (17,H) -->
+  <polyline points="425,275 450,275 500,275" class="wire-blue"/>
+
+  <!-- Signal summing bus (vertical) -->
+  <line x1="450" y1="125" x2="450" y2="350" class="wire-blue"/>
+  <circle cx="450" cy="125" r="3" fill="#2266dd"/>
+  <circle cx="450" cy="175" r="3" fill="#2266dd"/>
+  <circle cx="450" cy="225" r="3" fill="#2266dd"/>
+  <circle cx="450" cy="275" r="3" fill="#2266dd"/>
+
+  <!-- Signal bus → C1 in (13,K) -->
+  <polyline points="450,350 400,350" class="wire-blue"/>
+  <use href="#ps" x="450" y="350"/>
+
+  <!-- C1 out (10,K) → R5 junction (7,K) → J2 TIP -->
+  <polyline points="325,350 250,350 200,350" class="wire-blue"/>
+  <circle cx="250" cy="350" r="3" fill="#2266dd"/>
+  <use href="#ps" x="200" y="350"/>
+
+  <!-- R5 top (7,K) to signal node -->
+  <!-- (already connected at 250,350) -->
+
+  <!-- Signal → J2 TIP (3,L) -->
+  <polyline points="200,350 200,375 150,375" class="wire-blue"/>
+
+  <!-- === BLACK WIRES: GND === -->
+  <!-- GND bus along row P (bottom) -->
+  <line x1="100" y1="475" x2="650" y2="475" class="wire-black" style="stroke-width:4"/>
+
+  <!-- J1 GND (1,F) → GND bus (1,P) -->
+  <line x1="100" y1="225" x2="100" y2="475" class="wire-black"/>
+
+  <!-- C2 GND (7,F) → GND bus (7,P) -->
+  <line x1="250" y1="225" x2="250" y2="475" class="wire-black"/>
+
+  <!-- R5 bottom (7,M) → GND bus (7,P) -->
+  <line x1="250" y1="400" x2="250" y2="475" class="wire-black"/>
+  <circle cx="250" cy="400" r="3" fill="#222"/>
+
+  <!-- J2 SLEEVE (3,N) → GND bus (3,P) -->
+  <line x1="150" y1="425" x2="150" y2="475" class="wire-black"/>
+
+  <!-- MIC1 GND (19,B) → GND bus via (19,P) -->
+  <line x1="550" y1="125" x2="550" y2="475" class="wire-black"/>
+  <!-- MIC2-4 GND junctions -->
+  <circle cx="550" cy="175" r="3" fill="#222"/>
+  <circle cx="550" cy="225" r="3" fill="#222"/>
+  <circle cx="550" cy="275" r="3" fill="#222"/>
+
+  <!-- ================================================================ -->
+  <!--  COMPONENTS (drawn on top of solder points)                      -->
+  <!-- ================================================================ -->
+
+  <!-- ===== J1: USB-C CONNECTOR (left edge) ===== -->
+  <rect x="88" y="188" width="30" height="48" class="usb-body"/>
+  <rect x="95" y="195" width="16" height="8" fill="#555" rx="1"/>
+  <text x="103" y="218" text-anchor="middle" class="pin-label" fill="#333">J1</text>
+  <text x="103" y="228" text-anchor="middle" style="font-size:6px; fill:#555">USB</text>
+  <!-- Arrow indicating cable entry from left -->
+  <text x="78" y="212" style="font-size:10px; fill:#888">◄</text>
+  <text x="103" y="182" text-anchor="middle" class="label" fill="#ff4444">J1 USB</text>
+  <text x="92" y="196" style="font-size:5px; fill:#333">+5V</text>
+  <text x="92" y="230" style="font-size:5px; fill:#333">GND</text>
+
+  <!-- ===== L1: INDUCTOR ===== -->
+  <rect x="145" y="167" width="85" height="16" class="inductor-body"/>
+  <!-- Coil marking lines -->
+  <line x1="160" y1="170" x2="160" y2="180" stroke="#888" stroke-width="0.8"/>
+  <line x1="170" y1="170" x2="170" y2="180" stroke="#888" stroke-width="0.8"/>
+  <line x1="180" y1="170" x2="180" y2="180" stroke="#888" stroke-width="0.8"/>
+  <line x1="190" y1="170" x2="190" y2="180" stroke="#888" stroke-width="0.8"/>
+  <line x1="200" y1="170" x2="200" y2="180" stroke="#888" stroke-width="0.8"/>
+  <line x1="210" y1="170" x2="210" y2="180" stroke="#888" stroke-width="0.8"/>
+  <text x="188" y="163" text-anchor="middle" class="label">L1 10µH</text>
+
+  <!-- ===== C2: ELECTROLYTIC CAPACITOR ===== -->
+  <circle cx="250" cy="200" r="14" class="cap-elec"/>
+  <text x="250" y="196" text-anchor="middle" class="pin-label">C2</text>
+  <text x="250" y="206" text-anchor="middle" style="font-size:6px; fill:#ccc">100µF</text>
+  <!-- Polarity marking -->
+  <text x="240" y="193" style="font-size:9px; fill:#fff; font-weight:bold">+</text>
+  <text x="258" y="220" style="font-size:7px; fill:#fff">−</text>
+  <!-- Lead wires -->
+  <line x1="250" y1="186" x2="250" y2="175" class="wire-leg"/>
+  <line x1="250" y1="214" x2="250" y2="225" class="wire-leg"/>
+
+  <!-- ===== R1: 2.2kΩ ===== -->
+  <rect x="335" y="117" width="80" height="16" class="resistor-body"/>
+  <rect x="348" y="119" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="360" y="119" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="372" y="119" width="8" height="12" fill="#ff0000" rx="1"/>
+  <rect x="384" y="119" width="8" height="12" fill="#d4a017" rx="1"/>
+  <text x="375" y="112" text-anchor="middle" class="label">R1 2k2</text>
+
+  <!-- ===== R2: 2.2kΩ ===== -->
+  <rect x="335" y="167" width="80" height="16" class="resistor-body"/>
+  <rect x="348" y="169" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="360" y="169" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="372" y="169" width="8" height="12" fill="#ff0000" rx="1"/>
+  <rect x="384" y="169" width="8" height="12" fill="#d4a017" rx="1"/>
+  <text x="375" y="162" text-anchor="middle" class="label">R2 2k2</text>
+
+  <!-- ===== R3: 2.2kΩ ===== -->
+  <rect x="335" y="217" width="80" height="16" class="resistor-body"/>
+  <rect x="348" y="219" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="360" y="219" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="372" y="219" width="8" height="12" fill="#ff0000" rx="1"/>
+  <rect x="384" y="219" width="8" height="12" fill="#d4a017" rx="1"/>
+  <text x="375" y="212" text-anchor="middle" class="label">R3 2k2</text>
+
+  <!-- ===== R4: 2.2kΩ ===== -->
+  <rect x="335" y="267" width="80" height="16" class="resistor-body"/>
+  <rect x="348" y="269" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="360" y="269" width="8" height="12" fill="#cc0000" rx="1"/>
+  <rect x="372" y="269" width="8" height="12" fill="#ff0000" rx="1"/>
+  <rect x="384" y="269" width="8" height="12" fill="#d4a017" rx="1"/>
+  <text x="375" y="262" text-anchor="middle" class="label">R4 2k2</text>
+
+  <!-- ===== MIC CONNECTOR PADS (soldering pads for mic wires) ===== -->
+  <!-- MIC1 -->
+  <rect x="488" y="113" width="74" height="25" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+  <text x="524" y="108" text-anchor="middle" class="label" fill="#44dd66">MIC1 EM272Z1</text>
+  <text x="500" y="133" text-anchor="middle" class="pin-label">S+</text>
+  <text x="550" y="133" text-anchor="middle" class="pin-label">G</text>
+
+  <!-- MIC2 -->
+  <rect x="488" y="163" width="74" height="25" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+  <text x="524" y="158" text-anchor="middle" class="label" fill="#44dd66">MIC2 EM272Z1</text>
+  <text x="500" y="183" text-anchor="middle" class="pin-label">S+</text>
+  <text x="550" y="183" text-anchor="middle" class="pin-label">G</text>
+
+  <!-- MIC3 -->
+  <rect x="488" y="213" width="74" height="25" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+  <text x="524" y="208" text-anchor="middle" class="label" fill="#44dd66">MIC3 EM272Z1</text>
+  <text x="500" y="233" text-anchor="middle" class="pin-label">S+</text>
+  <text x="550" y="233" text-anchor="middle" class="pin-label">G</text>
+
+  <!-- MIC4 -->
+  <rect x="488" y="263" width="74" height="25" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+  <text x="524" y="258" text-anchor="middle" class="label" fill="#44dd66">MIC4 EM272Z1</text>
+  <text x="500" y="283" text-anchor="middle" class="pin-label">S+</text>
+  <text x="550" y="283" text-anchor="middle" class="pin-label">G</text>
+
+  <!-- ===== C1: COUPLING CAPACITOR (film) ===== -->
+  <rect x="335" y="340" width="55" height="20" class="cap-film"/>
+  <text x="362" y="354" text-anchor="middle" style="font-size:7px; fill:#333; font-weight:bold">10µF</text>
+  <text x="362" y="336" text-anchor="middle" class="label">C1</text>
+
+  <!-- ===== R5: 10kΩ (vertical) ===== -->
+  <rect x="242" y="355" width="16" height="40" class="resistor-body"/>
+  <rect x="244" y="362" width="12" height="6" fill="#8b4513" rx="1"/>
+  <rect x="244" y="370" width="12" height="6" fill="#222" rx="1"/>
+  <rect x="244" y="378" width="12" height="6" fill="#ff8c00" rx="1"/>
+  <text x="235" y="378" text-anchor="end" class="label">R5</text>
+  <text x="235" y="390" text-anchor="end" class="label-val">10k</text>
+
+  <!-- ===== J2: 3.5mm JACK ===== -->
+  <rect x="130" y="365" width="45" height="70" class="jack-body" rx="4"/>
+  <circle cx="152" cy="395" r="8" stroke="#888" stroke-width="1.5" fill="#666"/>
+  <circle cx="152" cy="395" r="3" fill="#333"/>
+  <text x="152" y="360" text-anchor="middle" class="label" fill="#44aaff">J2 3,5mm</text>
+  <text x="152" y="440" text-anchor="middle" class="pin-label">SLEEVE</text>
+  <text x="170" y="390" class="pin-label">TIP</text>
+  <!-- Arrow indicating cable exit -->
+  <text x="120" y="398" style="font-size:10px; fill:#888">◄</text>
+  <text x="152" y="456" text-anchor="middle" style="font-size:6px; fill:#aaa">→ SB Play! 3</text>
+
+  <!-- ===== GND BUS label ===== -->
+  <text x="375" y="490" text-anchor="middle" class="label" fill="#aaa">━━━ GND BUS (zwarte draad) ━━━</text>
+
+  <!-- ===== Signal summing label ===== -->
+  <text x="462" y="318" class="label-sm" fill="#6699ff" transform="rotate(90,462,318)">Σ signaal</text>
+
+
+  <!-- ================================================================ -->
+  <!--  LEGEND & NOTES                                                  -->
+  <!-- ================================================================ -->
+  <rect x="70" y="530" width="610" height="55" fill="#fafafa" stroke="#ddd" stroke-width="1" rx="6"/>
+  <text x="85" y="548" class="legend-text" font-weight="bold">Draadkleuren:</text>
+  <line x1="185" y1="544" x2="215" y2="544" class="wire-red" style="stroke-width:3"/>
+  <text x="220" y="548" class="legend-text">+5V voeding (rood)</text>
+  <line x1="340" y1="544" x2="370" y2="544" class="wire-blue" style="stroke-width:3"/>
+  <text x="375" y="548" class="legend-text">Audiosignaal (blauw)</text>
+  <line x1="510" y1="544" x2="540" y2="544" class="wire-black" style="stroke-width:4"/>
+  <text x="545" y="548" class="legend-text">Massa / GND (zwart)</text>
+
+  <text x="85" y="572" class="legend-text" font-weight="bold">Componenten:</text>
+  <rect x="185" y="562" width="30" height="10" class="resistor-body"/>
+  <text x="220" y="572" class="legend-text">Weerstand</text>
+  <circle cx="310" cy="567" r="7" class="cap-elec"/>
+  <text x="322" y="572" class="legend-text">Elco</text>
+  <rect x="365" y="562" width="25" height="10" class="cap-film"/>
+  <text x="395" y="572" class="legend-text">Filmcond.</text>
+  <rect x="460" y="562" width="30" height="10" class="inductor-body"/>
+  <text x="495" y="572" class="legend-text">Spoel</text>
+  <circle cx="555" cy="567" r="4.2" class="hole-ring"/>
+  <circle cx="555" cy="567" r="3.5" class="solder"/>
+  <text x="565" y="572" class="legend-text">Soldeerpad</text>
+
+  <!-- ==================== BOM TABLE (right side) ==================== -->
+  <rect x="700" y="75" width="330" height="430" fill="#fafafa" stroke="#ddd" stroke-width="1" rx="8"/>
+  <text x="865" y="100" text-anchor="middle" class="title" style="font-size:14px">Onderdelenlijst (BOM)</text>
+
+  <!-- Table header -->
+  <text x="715" y="125" class="legend-text" font-weight="bold">Ref</text>
+  <text x="770" y="125" class="legend-text" font-weight="bold">Waarde</text>
+  <text x="870" y="125" class="legend-text" font-weight="bold">Positie</text>
+  <text x="955" y="125" class="legend-text" font-weight="bold">LCSC</text>
+  <line x1="710" y1="130" x2="1020" y2="130" stroke="#ccc" stroke-width="1"/>
+
+  <text x="715" y="148" class="legend-text">R1</text>
+  <text x="770" y="148" class="legend-text">2,2 kΩ</text>
+  <text x="870" y="148" class="legend-text">B10–B14</text>
+  <text x="955" y="148" class="legend-text" fill="#0066cc">C17521</text>
+
+  <text x="715" y="166" class="legend-text">R2</text>
+  <text x="770" y="166" class="legend-text">2,2 kΩ</text>
+  <text x="870" y="166" class="legend-text">D10–D14</text>
+  <text x="955" y="166" class="legend-text" fill="#0066cc">C17521</text>
+
+  <text x="715" y="184" class="legend-text">R3</text>
+  <text x="770" y="184" class="legend-text">2,2 kΩ</text>
+  <text x="870" y="184" class="legend-text">F10–F14</text>
+  <text x="955" y="184" class="legend-text" fill="#0066cc">C17521</text>
+
+  <text x="715" y="202" class="legend-text">R4</text>
+  <text x="770" y="202" class="legend-text">2,2 kΩ</text>
+  <text x="870" y="202" class="legend-text">H10–H14</text>
+  <text x="955" y="202" class="legend-text" fill="#0066cc">C17521</text>
+
+  <text x="715" y="220" class="legend-text">R5</text>
+  <text x="770" y="220" class="legend-text">10 kΩ</text>
+  <text x="870" y="220" class="legend-text">K7–M7</text>
+  <text x="955" y="220" class="legend-text" fill="#0066cc">C17414</text>
+
+  <line x1="710" y1="228" x2="1020" y2="228" stroke="#eee" stroke-width="1"/>
+
+  <text x="715" y="248" class="legend-text">C1</text>
+  <text x="770" y="248" class="legend-text">10 µF film</text>
+  <text x="870" y="248" class="legend-text">K10–K13</text>
+  <text x="955" y="248" class="legend-text" fill="#0066cc">C29936</text>
+
+  <text x="715" y="266" class="legend-text">C2</text>
+  <text x="770" y="266" class="legend-text">100 µF elco</text>
+  <text x="870" y="266" class="legend-text">D7–F7</text>
+  <text x="955" y="266" class="legend-text" fill="#0066cc">C29946</text>
+
+  <line x1="710" y1="274" x2="1020" y2="274" stroke="#eee" stroke-width="1"/>
+
+  <text x="715" y="294" class="legend-text">L1</text>
+  <text x="770" y="294" class="legend-text">10 µH</text>
+  <text x="870" y="294" class="legend-text">D3–D6</text>
+  <text x="955" y="294" class="legend-text" fill="#0066cc">C78828</text>
+
+  <line x1="710" y1="302" x2="1020" y2="302" stroke="#eee" stroke-width="1"/>
+
+  <text x="715" y="322" class="legend-text">J1</text>
+  <text x="770" y="322" class="legend-text">USB-C voeding</text>
+  <text x="870" y="322" class="legend-text">E1, F1</text>
+  <text x="955" y="322" class="legend-text" fill="#888">—</text>
+
+  <text x="715" y="340" class="legend-text">J2</text>
+  <text x="770" y="340" class="legend-text">3,5mm jack</text>
+  <text x="870" y="340" class="legend-text">L3, N3</text>
+  <text x="955" y="340" class="legend-text" fill="#888">—</text>
+
+  <line x1="710" y1="348" x2="1020" y2="348" stroke="#eee" stroke-width="1"/>
+
+  <text x="715" y="368" class="legend-text">MIC1</text>
+  <text x="770" y="368" class="legend-text">EM272Z1</text>
+  <text x="870" y="368" class="legend-text">B17(S+), B19(G)</text>
+  <text x="955" y="368" class="legend-text" fill="#888">extern</text>
+
+  <text x="715" y="386" class="legend-text">MIC2</text>
+  <text x="770" y="386" class="legend-text">EM272Z1</text>
+  <text x="870" y="386" class="legend-text">D17(S+), D19(G)</text>
+  <text x="955" y="386" class="legend-text" fill="#888">extern</text>
+
+  <text x="715" y="404" class="legend-text">MIC3</text>
+  <text x="770" y="404" class="legend-text">EM272Z1</text>
+  <text x="870" y="404" class="legend-text">F17(S+), F19(G)</text>
+  <text x="955" y="404" class="legend-text" fill="#888">extern</text>
+
+  <text x="715" y="422" class="legend-text">MIC4</text>
+  <text x="770" y="422" class="legend-text">EM272Z1</text>
+  <text x="870" y="422" class="legend-text">H17(S+), H19(G)</text>
+  <text x="955" y="422" class="legend-text" fill="#888">extern</text>
+
+  <!-- ==================== WIRING INSTRUCTIONS ==================== -->
+  <rect x="700" y="520" width="330" height="280" fill="#fffff5" stroke="#ddd" stroke-width="1" rx="8"/>
+  <text x="865" y="545" text-anchor="middle" class="title" style="font-size:13px">Soldeerinstructies</text>
+
+  <text x="715" y="568" class="legend-text" font-weight="bold" fill="#dd2222">Rode draden (+5V):</text>
+  <text x="715" y="583" class="legend-text">1. J1 VBUS (E1) → L1 in (D3)</text>
+  <text x="715" y="598" class="legend-text">2. L1 uit (D6) → C2+ (D7) → bus (D9)</text>
+  <text x="715" y="613" class="legend-text">3. Bus (D9) verticaal → B9, F9, H9</text>
+  <text x="715" y="628" class="legend-text">4. Bus → R1(B10), R2(D10), R3(F10), R4(H10)</text>
+
+  <text x="715" y="653" class="legend-text" font-weight="bold" fill="#2266dd">Blauwe draden (signaal):</text>
+  <text x="715" y="668" class="legend-text">5. R1-4 uit (x14) → bus (x15) → MIC S+ (x17)</text>
+  <text x="715" y="683" class="legend-text">6. Σ bus (col 15) → C1 in (K13)</text>
+  <text x="715" y="698" class="legend-text">7. C1 uit (K10) → R5 (K7) → J2 TIP (L3)</text>
+
+  <text x="715" y="723" class="legend-text" font-weight="bold" fill="#222">Zwarte draden (GND):</text>
+  <text x="715" y="738" class="legend-text">8. GND bus langs rij P (hele breedte)</text>
+  <text x="715" y="753" class="legend-text">9. J1 GND (F1) → P1</text>
+  <text x="715" y="768" class="legend-text">10. C2− (F7), R5 (M7), J2 SLV (N3) → rij P</text>
+  <text x="715" y="783" class="legend-text">11. MIC GND (x19) → rij P via col 19</text>
+
+  <!-- ==================== FOOTER ==================== -->
+  <text x="525" y="610" text-anchor="middle" class="subtitle">VoiceTally Project – EM272Z1 Bias Board op gaatjesprint – v1.0</text>
+</svg>
