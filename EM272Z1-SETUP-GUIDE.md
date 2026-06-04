@@ -171,6 +171,28 @@ De PCB-layout toont de fysieke plaatsing van componenten en kopersporen op het h
 
 ![Hulpprintje PCB Layout](EM272Z1-hulpprintje-pcb-layout.svg)
 
+### 📦 EasyEDA Projectbestand
+
+Het schakelschema is ook beschikbaar als EasyEDA-importeerbaar JSON-bestand:
+
+👉 **[EM272Z1-hulpprintje.easyeda.json](EM272Z1-hulpprintje.easyeda.json)**
+
+**Importeren in EasyEDA:**
+1. Open [EasyEDA Standard Edition](https://easyeda.com/editor)
+2. Ga naar **File → Open → EasyEDA...**
+3. Selecteer het bestand `EM272Z1-hulpprintje.easyeda.json`
+4. Het schakelschema wordt geopend met alle componenten en verbindingen
+5. Vervang eventueel de componentensymbolen door LCSC-bibliotheekonderdelen voor PCB-productie
+
+**Aanbevolen LCSC-onderdeelnummers:**
+| Component | LCSC Part # | Omschrijving |
+|---|---|---|
+| R1–R4 (2,2 kΩ) | C17521 | Metaalfilm 1/4W 1% |
+| R5 (10 kΩ) | C17414 | Metaalfilm 1/4W 1% |
+| C1 (10 µF) | C29936 | Filmcondensator |
+| C2 (100 µF) | C29946 | Elektrolytisch 16V |
+| L1 (10 µH) | C78828 | Axiaal inductor |
+
 ---
 
 ## 5. Tips voor ruisvrije opnames
