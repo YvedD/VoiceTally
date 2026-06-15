@@ -17,7 +17,7 @@
     <string name="meta_windkracht">  Windkracht (Bft)  </string>
     <string name="meta_neerslag">  Neerslag  </string>
     <string name="meta_luchtdruk">  Luchtdruk (hPa)  </string>
-    <string name="meta_weer_auto">Auto</string>
+    <string name="meta_weer_auto">Auto Weather</string>
 
     <string name="meta_typetelling">  Type telling  </string>
     <string name="meta_opmerkingen">  Opmerkingen  </string>

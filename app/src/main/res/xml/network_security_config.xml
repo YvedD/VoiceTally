@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    VoiceTally – Network Security Configuration
+    =====================================================================
+    Opgesteld voor BirdNET-GO integratie via lokaal Wi-Fi (Raspberry Pi)
+    Laatste update: 2026-05-20
+
+    BEWUSTE KEUZE: cleartextTrafficPermitted="true" globaal
+    ──────────────────────────────────────────────────────
+    Android Network Security Config ondersteunt GEEN CIDR-notatie voor
+    IP-adresreeksen. Het is onmogelijk om "alle 192.168.x.x adressen"
+    of "alle 10.x.x.x adressen" via NSC te autoriseren.
+
+    De gebruiker kan op elk moment een andere Pi configureren met een
+    willekeurig lokaal IP-adres. Globale cleartext is hier de ENIGE
+    veilige keuze die ook in de praktijk werkt.
+
+    EXTERNE communicatie van VoiceTally (serverdata, master/client,
+    backup-uploads) gebruikt exclusief HTTPS en is dus beschermd.
+
+    VALKUILEN WAARVOOR DIT BESTAND BESCHERMT:
+    ─────────────────────────────────────────
+    1. Android 9+ blokkeert cleartext HTTP standaard → opgelost
+    2. Willekeurig Pi IP-adres (192.168.x, 10.x, 172.x) → opgelost
+    3. mDNS hostnamen (raspberrypi.local, birdnet.local) → opgelost
+    4. Zelfondertekend HTTPS-certificaat op de Pi → opgelost via
+       <certificates src="user"/> zodat de gebruiker het cert eenmalig
+       kan installeren en de app het daarna automatisch vertrouwt
+    5. IPv6 lokale adressen (fe80::, fd00::) → opgelost
+    6. Toekomstige BirdNET-GO TLS-port :8443 → werkt zonder
+       codewijziging zodra Pi-cert is geïnstalleerd
+
+    TOEKOMSTIGE HARDENING (optioneel):
+    ────────────────────────────────────────────────────────────────────
+    Als BirdNET-GO geconfigureerd wordt met HTTPS + een CA-ondertekend
+    certificaat (Let's Encrypt via DuckDNS, of eigen CA), kan hier
+    worden teruggegaan naar:
+
+        <base-config cleartextTrafficPermitted="false">
+
+    En optioneel certificate pinning per BirdNET-GO host:
+
+        <domain-config>
+            <domain>birdnet.local</domain>
+            <pin-set expiration="2027-01-01">
+                <pin digest="SHA-256">...</pin>
+            </pin-set>
+        </domain-config>
+
+    GEEN agressieve debug-verruiming in productie:
+    debug-overrides hieronder heeft enkel user-CA toevoeging,
+    geen verdere verluiming van TLS.
+    =====================================================================
+-->
+
+<network-security-config>
+
+    <!--
+        Basisbeleid voor alle hosts en connecties.
+
+        cleartextTrafficPermitted="true":
+            Noodzakelijk voor BirdNET-GO op http://<pi>:8080 via lokaal
+            netwerk. Zie argumentatie bovenaan dit bestand.
+
+        <certificates src="user"/>:
+            Vertrouwt door de gebruiker geïnstalleerde CA-certificaten.
+            Vereist wanneer de Raspberry Pi draait met een zelf-
+            ondertekend HTTPS-certificaat. Installeer het Pi-certifi-
+            caat eenmalig via Android-instellingen → Beveiliging →
+            Certificaat installeren. Daarna werkt https://<pi>:8443
+            automatisch, zonder codewijzigingen.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!--
+        Debug-only uitbreidingen.
+        Zelfde vertrouwen als base, expliciet herhaald zodat een
+        toekomstige verstrengde base-config de debug-flexibiliteit
+        behoudt (bv. Charles Proxy, mitmproxy voor network debugging).
+    -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!--
+        VOOR TOEKOMSTIG GEBRUIK – momenteel uitgecommentarieerd.
+
+        Zodra BirdNET-GO op TLS draait en men cleartext wil beperken,
+        uncomment dit blok en verander base-config naar false:
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">birdnet.local</domain>
+        <domain includeSubdomains="true">raspberrypi.local</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+    -->
+
+</network-security-config>
+

@@ -57,6 +57,7 @@
             android:visibility="gone"
             app:tint="#808080" />
 
+
         <ImageButton
             android:id="@+id/btnOpenSettings"
             android:layout_width="36dp"

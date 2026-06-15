@@ -10,6 +10,7 @@ import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
+import com.yvesds.vt5.R
 import com.yvesds.vt5.databinding.SchermTellingBinding
 
 /**
@@ -42,6 +43,7 @@ class TellingUiManager(
     var onToggleAlarmCallback: (() -> Unit)? = null
     var onMasterClientConnectionCallback: (() -> Unit)? = null
     var onShowMasterQrCallback: (() -> Unit)? = null
+    var onBirdNetCallback: (() -> Unit)? = null
 
     /**
      * Setup partials RecyclerView with tap handling.
@@ -175,6 +177,10 @@ class TellingUiManager(
 
         binding.btnShowMasterQr.setOnClickListener {
             onShowMasterQrCallback?.invoke()
+        }
+
+        binding.root.findViewById<android.view.View>(R.id.btnBirdNet)?.setOnClickListener {
+            onBirdNetCallback?.invoke()
         }
     }
 

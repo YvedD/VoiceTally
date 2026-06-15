@@ -62,10 +62,16 @@ import kotlin.coroutines.resume
 import kotlin.jvm.Volatile
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.features.birdnet.BirdNetConfig
+import com.yvesds.vt5.features.birdnet.BirdNetDiscovery
+import com.yvesds.vt5.features.birdnet.BirdNetPendingDetection
+import com.yvesds.vt5.features.birdnet.BirdNetSseClient
 import com.yvesds.vt5.features.speech.Candidate
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import com.yvesds.vt5.utils.TelpostDirectionLabelProvider
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /**
  * TellingScherm.kt
@@ -103,6 +109,8 @@ class TellingScherm : AppCompatActivity() {
     private lateinit var tilesAdapter: SpeciesTileAdapter
     private lateinit var partialsAdapter: SpeechLogAdapter
     private lateinit var finalsAdapter: SpeechLogAdapter
+    private var birdNetPendingTickerView: TextView? = null
+    private var birdNetPendingTickerJob: Job? = null
 
     // ViewModel (optional mirror for rotation persistence) - ensure TellingViewModel.kt is present
     private lateinit var viewModel: TellingViewModel
@@ -253,6 +261,8 @@ class TellingScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = SchermTellingBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        birdNetPendingTickerView = findViewById(R.id.tvBirdNetPendingTicker)
+        birdNetPendingTickerView?.isSelected = true
         setupBackPressedCallback()
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -598,9 +608,194 @@ class TellingScherm : AppCompatActivity() {
         uiManager.onToggleAlarmCallback = { toggleHourlyAlarm() }
         uiManager.onMasterClientConnectionCallback = { handleMasterClientPressed() }
         uiManager.onShowMasterQrCallback = { handleShowMasterQrPressed() }
+        uiManager.onBirdNetCallback = { handleBirdNetPressed() }
 
         // Setup buttons
         uiManager.setupButtons()
+    }
+
+    private fun startBirdNetPendingTickerIfNeeded() {
+        val tickerView = birdNetPendingTickerView ?: return
+        val config = BirdNetConfig.load()
+
+        birdNetPendingTickerJob?.cancel()
+
+        if (!config.isConfigured) {
+            tickerView.text = getString(R.string.telling_birdnet_pending_not_configured)
+            return
+        }
+
+        birdNetPendingTickerJob = lifecycleScope.launch {
+            while (isActive) {
+                runOnUiThread {
+                    tickerView.text = getString(
+                        R.string.telling_birdnet_pending_connecting,
+                        config.displayLabel.ifBlank { config.host }
+                    )
+                }
+
+                var receivedConnectedEvent = false
+
+                try {
+                    BirdNetSseClient.streamEvents(config) { event ->
+                        when (event) {
+                            is BirdNetSseClient.SseEvent.Connected -> {
+                                receivedConnectedEvent = true
+                                runOnUiThread {
+                                    tickerView.text = getString(R.string.telling_birdnet_pending_waiting)
+                                }
+                            }
+
+                            is BirdNetSseClient.SseEvent.Pending -> {
+                                val text = formatBirdNetPendingTickerText(event.detections)
+                                runOnUiThread {
+                                    tickerView.text = text
+                                }
+                            }
+
+                            is BirdNetSseClient.SseEvent.ConnectionError -> {
+                                Log.w(TAG, "BirdNET pending ticker verbinding fout: ${event.message}")
+                            }
+
+                            else -> Unit
+                        }
+                    }
+                } catch (ex: Exception) {
+                    if (!isActive) break
+                    Log.w(TAG, "BirdNET pending ticker gestopt: ${ex.message}", ex)
+                }
+
+                if (!isActive) break
+
+                runOnUiThread {
+                    tickerView.text = getString(R.string.telling_birdnet_pending_reconnecting)
+                }
+                delay(if (receivedConnectedEvent) 1_500L else 4_000L)
+            }
+        }
+    }
+
+    private fun stopBirdNetPendingTicker() {
+        birdNetPendingTickerJob?.cancel()
+        birdNetPendingTickerJob = null
+    }
+
+    private fun handleBirdNetPressed() {
+        val config = BirdNetConfig.load()
+        val message = if (config.isConfigured) {
+            getString(R.string.telling_birdnet_dialog_current, config.displayLabel)
+        } else {
+            getString(R.string.telling_birdnet_dialog_not_configured)
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.telling_birdnet_dialog_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.telling_birdnet_action_discover) { _, _ ->
+                discoverBirdNetHost()
+            }
+            .setNeutralButton(R.string.telling_birdnet_action_check) { _, _ ->
+                checkCurrentBirdNetHost()
+            }
+            .setNegativeButton(R.string.telling_birdnet_action_clear) { _, _ ->
+                BirdNetConfig.clear()
+                startBirdNetPendingTickerIfNeeded()
+                Toast.makeText(this, getString(R.string.telling_birdnet_cleared), Toast.LENGTH_SHORT).show()
+            }
+            .create()
+        DialogStyler.apply(dialog)
+        dialog.show()
+    }
+
+    private fun discoverBirdNetHost() {
+        lifecycleScope.launch {
+            val progressDialog = ProgressDialogHelper.show(
+                this@TellingScherm,
+                getString(R.string.telling_birdnet_discover_progress)
+            )
+
+            try {
+                val found = withContext(Dispatchers.IO) {
+                    BirdNetDiscovery.discover(this@TellingScherm)
+                }
+
+                if (found != null) {
+                    BirdNetConfig.save(found.toConfig())
+                    startBirdNetPendingTickerIfNeeded()
+                    Toast.makeText(
+                        this@TellingScherm,
+                        getString(R.string.telling_birdnet_discover_found, found.displayLabel),
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        this@TellingScherm,
+                        getString(R.string.telling_birdnet_discover_not_found),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (ex: Exception) {
+                Log.w(TAG, "BirdNET auto-discover mislukt: ${ex.message}", ex)
+                Toast.makeText(
+                    this@TellingScherm,
+                    getString(R.string.telling_birdnet_discover_not_found),
+                    Toast.LENGTH_LONG
+                ).show()
+            } finally {
+                progressDialog.dismiss()
+            }
+        }
+    }
+
+    private fun checkCurrentBirdNetHost() {
+        val config = BirdNetConfig.load()
+        if (!config.isConfigured) {
+            Toast.makeText(this, getString(R.string.telling_birdnet_dialog_not_configured), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            val reachable = withContext(Dispatchers.IO) {
+                BirdNetDiscovery.pingHost(config)
+            }
+
+            if (reachable) {
+                startBirdNetPendingTickerIfNeeded()
+                Toast.makeText(
+                    this@TellingScherm,
+                    getString(R.string.telling_birdnet_host_online, config.displayLabel),
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(
+                    this@TellingScherm,
+                    getString(R.string.telling_birdnet_host_offline, config.displayLabel),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun formatBirdNetPendingTickerText(detections: List<BirdNetPendingDetection>): String {
+        if (detections.isEmpty()) {
+            return getString(R.string.telling_birdnet_pending_waiting)
+        }
+
+        return detections
+            .sortedWith(
+                compareByDescending<BirdNetPendingDetection> { it.maxConfidence }
+                    .thenByDescending { it.confidence }
+                    .thenByDescending { it.hitCount }
+            )
+            .take(6)
+            .joinToString(separator = "   •   ") { detection ->
+                getString(
+                    R.string.telling_birdnet_pending_item,
+                    detection.displayName,
+                    detection.displayConfidencePct,
+                    detection.hitCount.coerceAtLeast(1)
+                )
+            }
     }
 
     private fun openInstellingenScherm() {
@@ -959,6 +1154,7 @@ class TellingScherm : AppCompatActivity() {
         refreshDailyTotalsUi()
         applyTileSortingPreference()
         refreshDailyObservationOrdering()
+        startBirdNetPendingTickerIfNeeded()
     }
 
     private fun ensurePendingTellingPromptOnRestore() {
@@ -1119,6 +1315,7 @@ class TellingScherm : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        stopBirdNetPendingTicker()
         if (::alarmHandler.isInitialized) {
             alarmHandler.stopMonitoring()
         }
@@ -1140,6 +1337,7 @@ class TellingScherm : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        stopBirdNetPendingTicker()
         dismissMasterPairingDialog()
         try {
             unregisterReceiver(aliasReloadReceiver)
