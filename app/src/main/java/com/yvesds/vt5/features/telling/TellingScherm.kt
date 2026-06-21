@@ -147,9 +147,6 @@ class TellingScherm : AppCompatActivity() {
     private val PARTIAL_UI_DEBOUNCE_MS = 200L
     private val parseJobsByUtteranceId = linkedMapOf<String, Job>()
 
-    // Local pendingRecords (legacy) — we mirror to ViewModel for persistence but keep this for compatibility
-    private val pendingRecords = mutableListOf<ServerTellingDataItem>()
-
     // Track backup files created per-record (DocumentFile or internal path strings)
     private val pendingBackupDocs = mutableListOf<DocumentFile>()
     private val pendingBackupInternalPaths = mutableListOf<String>()
@@ -301,9 +298,6 @@ class TellingScherm : AppCompatActivity() {
         // Initialize remaining helpers
         initializeHelpers()
 
-        // Initialize legacy helpers
-        aliasEditor = AliasEditor(this, safHelper)
-
         // Setup UI using UiManager
         setupUiWithManager()
         refreshDailyTotalsUi()
@@ -337,8 +331,42 @@ class TellingScherm : AppCompatActivity() {
             viewModel.finals.observe(this) { list ->
                 uiManager.updateFinals(list)
             }
+            
+            // Initialize afrondHandler with repository from ViewModel
+            afrondHandler = TellingAfrondHandler(
+                this, 
+                backupManager, 
+                dataProcessor, 
+                viewModel.repository, 
+                envelopePersistence
+            )
         } catch (ex: Exception) {
             Log.w(TAG, "TellingViewModel not available or failed to init: ${ex.message}")
+        }
+
+        // Phase 3: Connect UI to Database-driven LiveData
+        val activeTellingId = prefs.getString("pref_telling_id", null)
+        if (activeTellingId != null) {
+            viewModel.setTellingId(activeTellingId)
+        }
+
+        viewModel.pendingRecords.observe(this) { records ->
+            // Phase 4: Restore species tiles and counts from database records
+            if (records.isNotEmpty()) {
+                ensureTilesExistForRecords(records)
+                tegelBeheer.recalculateCountsFromRecords(records)
+                updateSelectedSpeciesMap()
+            }
+
+            // Map database records to finals log rows
+            val logRows = records.map { rec ->
+                buildFinalObservationRow(rec)
+            }
+            logManager.setFinals(logRows)
+            updateLogsUi(logRows, "final")
+            
+            // Keep daily totals in sync
+            refreshDailyTotalsUi()
         }
 
         // Register receiver to keep cached context and ASR in sync when AliasManager reloads index
@@ -374,9 +402,6 @@ class TellingScherm : AppCompatActivity() {
         
         // Initialize envelope persistence for continuous backup
         envelopePersistence = TellingEnvelopePersistence(this, safHelper)
-        
-        // Initialize afrondHandler with envelope persistence for cleanup on success
-        afrondHandler = TellingAfrondHandler(this, backupManager, dataProcessor, envelopePersistence)
         
         // tegelBeheer already initialized before super.onCreate()
 
@@ -501,17 +526,17 @@ class TellingScherm : AppCompatActivity() {
         annotationHandler.onGetFinalsList = {
             if (::viewModel.isInitialized) viewModel.finals.value.orEmpty() else finalsAdapter.currentList
         }
-        annotationHandler.onGetPendingRecords = { synchronized(pendingRecords) { pendingRecords.toList() } }
+        annotationHandler.onGetPendingRecords = {
+            if (::viewModel.isInitialized) viewModel.pendingRecords.value.orEmpty() else emptyList()
+        }
         annotationHandler.onUpdatePendingRecord = { idx, updated ->
-            synchronized(pendingRecords) {
-                if (idx in pendingRecords.indices) {
-                    pendingRecords[idx] = updated
-                    if (::viewModel.isInitialized) viewModel.setPendingRecords(pendingRecords.toList())
-                    
-                    // Recalculate tile counts from all pending records
-                    val recordsSnapshot = pendingRecords.toList()
-                    ensureTilesExistForRecords(recordsSnapshot)
-                    tegelBeheer.recalculateCountsFromRecords(recordsSnapshot)
+            if (::viewModel.isInitialized) {
+                viewModel.updateObservation(updated)
+                
+                // Recalculate tile counts from current records
+                viewModel.pendingRecords.value?.let { records ->
+                    ensureTilesExistForRecords(records)
+                    tegelBeheer.recalculateCountsFromRecords(records)
                 }
             }
 
@@ -519,17 +544,6 @@ class TellingScherm : AppCompatActivity() {
             updateClientFinalObservationRow(updated)
             syncDailyTotalsRecord(updated)
             syncDailyObservationRecord(updated)
-
-            // Save full envelope after annotation update to preserve changes.
-            // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                    envelopePersistence.saveEnvelopeWithRecords(records)
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Envelope persistence failed after record update: ${ex.message}", ex)
-                }
-            }
         }
         annotationHandler.onGetTelpostId = {
             try {
@@ -605,6 +619,15 @@ class TellingScherm : AppCompatActivity() {
         uiManager.onAfrondenCallback = { handleAfrondenWithConfirmation() }
         uiManager.onSaveCloseCallback = { tiles -> handleSaveClose(tiles) }
         uiManager.onOpenSettingsCallback = { openInstellingenScherm() }
+        uiManager.onManageRecordsCallback = {
+            val tellingId = prefs.getString("pref_telling_id", null)
+            if (tellingId != null) {
+                com.yvesds.vt5.features.telling.ui.records.RecordManagerFragment.newInstance(tellingId)
+                    .show(supportFragmentManager, "recordManager")
+            } else {
+                Toast.makeText(this, "Geen actieve telling ID", Toast.LENGTH_SHORT).show()
+            }
+        }
         uiManager.onToggleAlarmCallback = { toggleHourlyAlarm() }
         uiManager.onMasterClientConnectionCallback = { handleMasterClientPressed() }
         uiManager.onShowMasterQrCallback = { handleShowMasterQrPressed() }
@@ -1160,7 +1183,7 @@ class TellingScherm : AppCompatActivity() {
     private fun ensurePendingTellingPromptOnRestore() {
         if (intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true) return
         if (restoredFromSavedEnvelope) return
-        if (pendingRecords.isNotEmpty()) return
+        if ((viewModel.pendingRecords.value ?: emptyList()).isNotEmpty()) return
 
         lifecycleScope.launch {
             try {
@@ -1321,18 +1344,6 @@ class TellingScherm : AppCompatActivity() {
         }
         lifecycleScope.launch {
             tileTapAggregationManager.flushAllAndAwait()
-
-            // Always persist the latest envelope snapshot as a safety net
-            withContext(Dispatchers.IO) {
-                try {
-                    val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                    if (records.isNotEmpty()) {
-                        envelopePersistence.saveEnvelopeWithRecords(records)
-                    }
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Envelope persistence failed onPause: ${ex.message}", ex)
-                }
-            }
         }
     }
 
@@ -1708,7 +1719,6 @@ class TellingScherm : AppCompatActivity() {
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
         tileTapAggregationManager.flushAllAndAwait()
         val result = afrondHandler.handleAfronden(
-            pendingRecords = synchronized(pendingRecords) { ArrayList(pendingRecords) },
             pendingBackupDocs = pendingBackupDocs,
             pendingBackupInternalPaths = pendingBackupInternalPaths,
             metadataUpdates = metadataUpdates
@@ -1718,10 +1728,12 @@ class TellingScherm : AppCompatActivity() {
             when (result) {
                 is TellingAfrondHandler.AfrondResult.Success -> {
                     // Cleanup local state
-                    synchronized(pendingRecords) { pendingRecords.clear() }
                     pendingBackupDocs.clear()
                     pendingBackupInternalPaths.clear()
-                    if (::viewModel.isInitialized) viewModel.clearPendingRecords()
+                    if (::viewModel.isInitialized) {
+                        viewModel.setTellingId(null) // This will clear pendingRecords in Room-driven flow
+                        viewModel.clearPendingRecords()
+                    }
 
                     // Store the eindtijd for potential vervolgtelling
                     // Use ifBlank to handle empty strings and fallback to system time
@@ -1829,63 +1841,21 @@ class TellingScherm : AppCompatActivity() {
     private suspend fun restorePendingTellingIfAvailable() {
         if (restoredFromSavedEnvelope) return
         try {
-            val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
-            val savedRecords = savedEnvelope.data
-
-            if (savedRecords.isEmpty()) return
-
-            // Skip restore if this telling was already sent
-            if (TellingUploadFlags.isSent(this, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
-                Log.i(TAG, "Pending envelope already marked as sent; skipping restore")
-                return
-            }
-
-            // Restore tiles based on saved records
-            val snapshot = withContext(Dispatchers.IO) {
-                com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(this@TellingScherm)
-            }
-            val speciesById = snapshot.speciesById
-            val countsBySoort = savedRecords.groupBy { it.soortid }
-
-            val restoredTiles = countsBySoort.mapNotNull { (soortId, items) ->
-                val soortNaam = speciesById[soortId]?.soortnaam ?: return@mapNotNull null
-                val countMain = items.sumOf { it.aantal.toIntOrNull() ?: 0 }
-                val countReturn = items.sumOf { it.aantalterug.toIntOrNull() ?: 0 }
-                SoortTile(soortId, soortNaam, countMain, countReturn)
-            }.sortedBy { it.naam.lowercase() }
-
-            if (restoredTiles.isNotEmpty()) {
-                tegelBeheer.setTiles(restoredTiles)
-                updateSelectedSpeciesMap()
-            }
-
-            // Restore pending records and reflect to ViewModel
-            synchronized(pendingRecords) {
-                pendingRecords.clear()
-                pendingRecords.addAll(savedRecords)
-            }
+            // Get active telling ID from preferences (set when starting a telling)
+            val tellingId = prefs.getString("pref_telling_id", null) ?: return
+            
+            Log.i(TAG, "Restoring session from Room database for ID: $tellingId")
+            
+            // Just set the ID in the ViewModel. 
+            // The LiveData observer (configured in onCreate) will handle loading the records 
+            // and updating the UI automatically via Step 3.1 & 3.2 logic.
             if (::viewModel.isInitialized) {
-                viewModel.setPendingRecords(savedRecords)
+                viewModel.setTellingId(tellingId)
+                
+                // We'll mark as restored here; the observer will handle the data population
+                restoredFromSavedEnvelope = true
+                Toast.makeText(this, getString(R.string.pending_telling_restored), Toast.LENGTH_LONG).show()
             }
-            savedRecords.forEach { syncDailyTotalsRecord(it) }
-            savedRecords.forEach { syncDailyObservationRecord(it, refreshOrder = false) }
-            refreshDailyObservationOrdering()
-
-            // Restore finals log from records (partials remain empty)
-            val restoredFinals = savedRecords.map { rec ->
-                buildFinalObservationRow(rec)
-            }
-            logManager.setFinals(restoredFinals)
-            logManager.setPartials(emptyList())
-            uiManager.updateFinals(restoredFinals)
-            uiManager.updatePartials(emptyList())
-            if (::viewModel.isInitialized) {
-                viewModel.setFinals(restoredFinals)
-                viewModel.setPartials(emptyList())
-            }
-
-            restoredFromSavedEnvelope = true
-            Toast.makeText(this, getString(R.string.pending_telling_restored), Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Log.w(TAG, "restorePendingTellingIfAvailable failed: ${e.message}", e)
         }
@@ -2715,19 +2685,18 @@ class TellingScherm : AppCompatActivity() {
         opmerkingen: String,
         recordPayload: String
     ) {
-        val idx = synchronized(pendingRecords) {
-            when {
-                !idLocal.isNullOrBlank() -> pendingRecords.indexOfFirst { it.idLocal == idLocal || it.groupid == eventKey }
-                else -> pendingRecords.indexOfFirst { it.groupid == eventKey }
-            }
+        val records = viewModel.pendingRecords.value.orEmpty()
+        val idx = when {
+            !idLocal.isNullOrBlank() -> records.indexOfFirst { it.idLocal == idLocal || it.groupid == eventKey }
+            else -> records.indexOfFirst { it.groupid == eventKey }
         }
         if (idx < 0) return
 
-        val resolvedIdLocal = synchronized(pendingRecords) { pendingRecords[idx].idLocal }
+        val resolvedIdLocal = records[idx].idLocal
         val clientLogPrefix = mcClientLogPrefixByRecordId[resolvedIdLocal]
             ?: resolveClientLogPrefix(clientId).also { mcClientLogPrefixByRecordId[resolvedIdLocal] = it }
 
-        val existing = synchronized(pendingRecords) { pendingRecords[idx] }
+        val existing = records[idx]
         val payloadRecord = runCatching {
             VT5App.json.decodeFromString(ServerTellingDataItem.serializer(), recordPayload)
         }.getOrNull()
@@ -2744,14 +2713,14 @@ class TellingScherm : AppCompatActivity() {
             payloadRecord = payloadRecord
         )
 
-        synchronized(pendingRecords) { pendingRecords[idx] = updated }
         if (::viewModel.isInitialized) {
-            viewModel.setPendingRecords(synchronized(pendingRecords) { pendingRecords.toList() })
+            viewModel.updateObservation(updated)
         }
-        val recordsSnapshot = synchronized(pendingRecords) { pendingRecords.toList() }
-        ensureTilesExistForRecords(recordsSnapshot)
-        tegelBeheer.recalculateCountsFromRecords(recordsSnapshot)
-        persistEnvelopeAsync()
+        
+        // Use updated list for UI sync
+        val updatedRecords = viewModel.pendingRecords.value.orEmpty()
+        ensureTilesExistForRecords(updatedRecords)
+        tegelBeheer.recalculateCountsFromRecords(updatedRecords)
         syncDailyTotalsRecord(updated)
         syncDailyObservationRecord(updated)
 
@@ -2806,7 +2775,7 @@ class TellingScherm : AppCompatActivity() {
         lifecycleScope.launch {
             UploadedObservationStateStore.updates().collect { changedTellingId ->
                 val activeTellingId = prefs.getString("pref_telling_id", null).orEmpty()
-                    .ifBlank { synchronized(pendingRecords) { pendingRecords.firstOrNull()?.tellingid }.orEmpty() }
+                    .ifBlank { viewModel.pendingRecords.value?.firstOrNull()?.tellingid.orEmpty() }
                 if (activeTellingId.isBlank() || activeTellingId != changedTellingId) return@collect
                 refreshFinalObservationUploadMarkers()
             }
@@ -2814,11 +2783,11 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun refreshFinalObservationUploadMarkers() {
-        val recordsById = synchronized(pendingRecords) {
-            pendingRecords
-                .filter { it.idLocal.isNotBlank() }
-                .associateBy { it.idLocal }
-        }
+        val records = viewModel.pendingRecords.value.orEmpty()
+        val recordsById = records
+            .filter { it.idLocal.isNotBlank() }
+            .associateBy { it.idLocal }
+            
         if (recordsById.isEmpty()) return
 
         val currentFinals = logManager.getFinals()
@@ -2878,7 +2847,7 @@ class TellingScherm : AppCompatActivity() {
     private fun markClientObservationStateByEventId(eventId: String, state: ObservationDeliveryState) {
         val recordLocalId = mcClientRecordIdByEvent[eventId].orEmpty()
         if (recordLocalId.isBlank()) return
-        val currentRecord = synchronized(pendingRecords) { pendingRecords.firstOrNull { it.idLocal == recordLocalId } }
+        val currentRecord = viewModel.pendingRecords.value?.firstOrNull { it.idLocal == recordLocalId }
         if (currentRecord != null) {
             updateClientFinalObservationRow(currentRecord, state)
             return
@@ -3039,31 +3008,11 @@ class TellingScherm : AppCompatActivity() {
     }
 
     private fun addOrReplacePendingRecord(item: ServerTellingDataItem) {
-        synchronized(pendingRecords) {
-            val index = pendingRecords.indexOfFirst { it.idLocal == item.idLocal }
-            if (index >= 0) {
-                pendingRecords[index] = item
-            } else {
-                pendingRecords.add(item)
-            }
-            if (::viewModel.isInitialized) {
-                viewModel.setPendingRecords(pendingRecords.toList())
-            }
+        if (::viewModel.isInitialized) {
+            viewModel.addObservation(item)
         }
-        persistEnvelopeAsync()
         syncDailyTotalsRecord(item)
         syncDailyObservationRecord(item, refreshOrder = false)
-    }
-
-    private fun persistEnvelopeAsync() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                envelopePersistence.saveEnvelopeWithRecords(records)
-            } catch (ex: Exception) {
-                Log.w(TAG, "Envelope persistence failed: ${ex.message}", ex)
-            }
-        }
     }
 
     private suspend fun backupObservationRecord(item: ServerTellingDataItem) {

@@ -86,6 +86,7 @@ class TellingBeheerScherm : AppCompatActivity() {
     private lateinit var btnRecordToevoegen: MaterialButton
     private lateinit var btnOpslaan: MaterialButton
     private lateinit var btnTellingVerwijderen: MaterialButton
+    private lateinit var btnBeheerRecords: MaterialButton
     private lateinit var rvRecords: RecyclerView
     private lateinit var btnDeleteSelected: MaterialButton
 
@@ -150,6 +151,7 @@ class TellingBeheerScherm : AppCompatActivity() {
         btnRecordToevoegen = findViewById(R.id.btnRecordToevoegen)
         btnOpslaan = findViewById(R.id.btnOpslaan)
         btnTellingVerwijderen = findViewById(R.id.btnTellingVerwijderen)
+        btnBeheerRecords = findViewById(R.id.btnBeheerRecords)
         rvRecords = findViewById(R.id.rvRecords)
         btnDeleteSelected = findViewById(R.id.btnDeleteSelected)
 
@@ -196,6 +198,13 @@ class TellingBeheerScherm : AppCompatActivity() {
 
         btnTellingVerwijderen.setOnClickListener {
             currentFilename?.let { showDeleteTellingDialog(it) }
+        }
+
+        btnBeheerRecords.setOnClickListener {
+            currentEnvelope?.tellingid?.let { tellingId ->
+                com.yvesds.vt5.features.telling.ui.records.RecordManagerFragment.newInstance(tellingId)
+                    .show(supportFragmentManager, "recordManager")
+            }
         }
 
         btnDeleteSelected.setOnClickListener {

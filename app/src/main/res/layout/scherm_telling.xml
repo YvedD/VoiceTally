@@ -59,6 +59,16 @@
 
 
         <ImageButton
+            android:id="@+id/btnManageRecords"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/room_ui_manage_btn"
+            android:src="@android:drawable/ic_menu_agenda"
+            app:tint="@android:color/white" />
+
+        <ImageButton
             android:id="@+id/btnOpenSettings"
             android:layout_width="36dp"
             android:layout_height="36dp"

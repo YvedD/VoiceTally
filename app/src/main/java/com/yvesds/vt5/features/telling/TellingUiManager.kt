@@ -40,6 +40,7 @@ class TellingUiManager(
     var onAfrondenCallback: (() -> Unit)? = null
     var onSaveCloseCallback: ((List<TellingScherm.SoortRow>) -> Unit)? = null
     var onOpenSettingsCallback: (() -> Unit)? = null
+    var onManageRecordsCallback: (() -> Unit)? = null
     var onToggleAlarmCallback: (() -> Unit)? = null
     var onMasterClientConnectionCallback: (() -> Unit)? = null
     var onShowMasterQrCallback: (() -> Unit)? = null
@@ -165,6 +166,10 @@ class TellingUiManager(
 
         binding.btnOpenSettings.setOnClickListener {
             onOpenSettingsCallback?.invoke()
+        }
+
+        binding.btnManageRecords?.setOnClickListener {
+            onManageRecordsCallback?.invoke()
         }
 
         binding.btnToggleAlarm.setOnClickListener {

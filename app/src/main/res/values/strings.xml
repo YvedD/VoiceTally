@@ -216,6 +216,7 @@
     <string name="room_ui_add_record">Record Toevoegen</string>
     <string name="room_ui_delete_confirm_title">Verwijder records?</string>
     <string name="room_ui_delete_confirm_msg">Weet je zeker dat je de geselecteerde records wilt verwijderen?</string>
+    <string name="room_ui_manage_btn">Beheer Records</string>
 
     <!-- Telling Manager UI -->
     <string name="telling_manager_title">Tellingen Beheren</string>
