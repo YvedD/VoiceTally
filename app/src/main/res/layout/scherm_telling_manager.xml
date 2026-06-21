@@ -15,7 +15,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Tellingen Beheren"
+            app:title="@string/telling_manager_title"
             app:titleTextColor="@android:color/white"
             app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"
             app:navigationIconTint="@android:color/white" />
@@ -30,7 +30,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Zoek op datum of locatie"
+                android:hint="@string/telling_manager_search_hint"
                 app:boxBackgroundColor="@color/vt5_medium_gray"
                 app:endIconMode="clear_text"
                 app:startIconDrawable="@android:drawable/ic_menu_search"
@@ -128,7 +128,7 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Verwijder"
+                android:text="@string/room_ui_batch_delete"
                 android:textColor="@android:color/white" />
 
             <Button
@@ -136,7 +136,7 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Annuleer"
+                android:text="@string/room_ui_batch_cancel"
                 android:textColor="@android:color/white" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

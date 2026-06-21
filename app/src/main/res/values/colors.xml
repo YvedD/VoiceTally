@@ -30,4 +30,9 @@
 
     <!-- Waarschuwing / verwijderen -->
     <color name="vt5_red">#CF6679</color>
+    <color name="vt5_error_red">#CF6679</color>
+
+    <!-- UI Record Manager -->
+    <color name="vt5_background_black">#121212</color>
+    <color name="vt5_medium_gray">#323232</color>
 </resources>

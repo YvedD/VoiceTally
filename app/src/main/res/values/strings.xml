@@ -204,6 +204,28 @@
     <string name="beheer_geen_credentials">Geen credentials beschikbaar. Ga naar Installatie om in te loggen.</string>
     <string name="beheer_record_volledig_bewerken">Record volledig bewerken</string>
 
+    <!-- Record Manager UI -->
+    <string name="room_ui_title">Records Beheren</string>
+    <string name="room_ui_search_hint">Zoek op soortnaam of ID</string>
+    <string name="room_ui_filter_all">Alles</string>
+    <string name="room_ui_filter_back">Terugvliegend</string>
+    <string name="room_ui_filter_local">Lokaal</string>
+    <string name="room_ui_batch_delete">Verwijder</string>
+    <string name="room_ui_batch_cancel">Annuleer</string>
+    <string name="room_ui_batch_info">%1$d records geselecteerd</string>
+    <string name="room_ui_add_record">Record Toevoegen</string>
+    <string name="room_ui_delete_confirm_title">Verwijder records?</string>
+    <string name="room_ui_delete_confirm_msg">Weet je zeker dat je de geselecteerde records wilt verwijderen?</string>
+
+    <!-- Telling Manager UI -->
+    <string name="telling_manager_title">Tellingen Beheren</string>
+    <string name="telling_manager_search_hint">Zoek op datum of locatie</string>
+    <string name="telling_manager_total_format">%1$d Tellingen</string>
+    <string name="telling_manager_pending_format">%1$d Niet verzonden</string>
+    <string name="telling_manager_status_sent">VERZONDEN</string>
+    <string name="telling_manager_status_pending">PENDING</string>
+    <string name="telling_manager_batch_info">%1$d tellingen geselecteerd</string>
+
     <!-- SoortSelectieScherm -->
     <string name="soort_no_species_download">Geen soorten gevonden. Download eerst serverdata.</string>
     <string name="soort_error_loading">Fout bij laden: %1$s</string>

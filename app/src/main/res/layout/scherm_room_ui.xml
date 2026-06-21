@@ -15,7 +15,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Records Beheren"
+            app:title="@string/room_ui_title"
             app:titleTextColor="@android:color/white"
             app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"
             app:navigationIconTint="@android:color/white" />
@@ -30,7 +30,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Zoek op soortnaam of ID"
+                android:hint="@string/room_ui_search_hint"
                 app:boxBackgroundColor="@color/vt5_medium_gray"
                 app:endIconMode="clear_text"
                 app:startIconDrawable="@android:drawable/ic_menu_search"
@@ -61,7 +61,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        android:text="Alles"
+                        android:text="@string/room_ui_filter_all"
                         app:chipBackgroundColor="@color/vt5_dark_gray"
                         android:textColor="@android:color/white" />
 
@@ -70,7 +70,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Terugvliegend"
+                        android:text="@string/room_ui_filter_back"
                         app:chipBackgroundColor="@color/vt5_dark_gray"
                         android:textColor="@android:color/white" />
 
@@ -79,7 +79,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Lokaal"
+                        android:text="@string/room_ui_filter_local"
                         app:chipBackgroundColor="@color/vt5_dark_gray"
                         android:textColor="@android:color/white" />
 
@@ -129,7 +129,7 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Verwijder"
+                android:text="@string/room_ui_batch_delete"
                 android:textColor="@android:color/white" />
 
             <Button
@@ -137,7 +137,7 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Annuleer"
+                android:text="@string/room_ui_batch_cancel"
                 android:textColor="@android:color/white" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -148,7 +148,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="24dp"
-        android:contentDescription="Record Toevoegen"
+        android:contentDescription="@string/room_ui_add_record"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="@color/vt5_light_blue"
         app:tint="@android:color/white" />
