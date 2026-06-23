@@ -28,6 +28,7 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.app.HourlyAlarmManager
+import com.yvesds.vt5.core.log.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermTellingBinding
@@ -346,8 +347,11 @@ class TellingScherm : AppCompatActivity() {
 
         // Phase 3: Connect UI to Database-driven LiveData
         val activeTellingId = prefs.getString("pref_telling_id", null)
+        FileLogger.d(TAG, "onCreate: activeTellingId=$activeTellingId")
         if (activeTellingId != null) {
             viewModel.setTellingId(activeTellingId)
+        } else {
+            FileLogger.e(TAG, "onCreate: No active telling ID found in preferences!")
         }
 
         viewModel.pendingRecords.observe(this) { records ->
@@ -379,6 +383,18 @@ class TellingScherm : AppCompatActivity() {
         }
 
         // Preload tiles (if preselected) then initialize ASR
+        val intentSpeciesIds = intent.getStringArrayListExtra(com.yvesds.vt5.features.soort.ui.SoortSelectieScherm.EXTRA_SELECTED_SOORT_IDS)
+        val intentTelpostId = intent.getStringExtra(com.yvesds.vt5.features.soort.ui.SoortSelectieScherm.EXTRA_TELPOST_ID)
+        
+        if (intentTelpostId != null || intentSpeciesIds != null) {
+            FileLogger.d(TAG, "onCreate: Herstel sessie via Intent (telpost=$intentTelpostId, soorten=${intentSpeciesIds?.size})")
+            intentTelpostId?.let { TellingSessionManager.setTelpost(it) }
+            intentSpeciesIds?.let { TellingSessionManager.setPreselectedSoorten(it) }
+        } else {
+            val pre = TellingSessionManager.preselectState.value
+            FileLogger.d(TAG, "onCreate: Gebruik bestaande SessionManager (telpost=${pre.telpostId}, soorten=${pre.selectedSoortIds.size})")
+        }
+
         initializer.loadPreselection()
 
         // Ask user if a pending, non-uploaded telling should be restored

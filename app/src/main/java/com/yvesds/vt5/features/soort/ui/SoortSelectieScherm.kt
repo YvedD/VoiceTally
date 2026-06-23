@@ -1,5 +1,6 @@
 package com.yvesds.vt5.features.soort.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.log.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermSoortSelectieBinding
@@ -19,6 +21,7 @@ import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
+import com.yvesds.vt5.features.speech.AliasMatcher
 import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import kotlinx.coroutines.CoroutineScope
@@ -188,12 +191,40 @@ class SoortSelectieScherm : AppCompatActivity() {
         }
 
         binding.btnOk.setOnClickListener {
-            // Pas bij bevestigen de keuze opslaan in de session manager
             val chosen = ArrayList(selectedIds)
-            TellingSessionManager.setPreselectedSoorten(chosen)
-            val data = intent.apply { putExtra(EXTRA_SELECTED_SOORT_IDS, chosen) }
-            setResult(RESULT_OK, data)
-            finish()
+            FileLogger.d(TAG, "btnOk: chosen=${chosen.size} species: $chosen")
+            
+            uiScope.launch {
+                val dialog = ProgressDialogHelper.show(this@SoortSelectieScherm, "Gegevens in het geheugen laden...")
+                try {
+                    // 1. Zorg dat de alias index geladen is (bron van waarheid voor soorten)
+                    withContext(Dispatchers.IO) {
+                        AliasManager.ensureIndexLoadedSuspend(this@SoortSelectieScherm, saf)
+                    }
+                    
+                    // 2. Warm-up de spraakherkenning matcher (laadt alias_master.cbor etc in memory)
+                    withContext(Dispatchers.Default) {
+                        AliasMatcher.ensureLoaded(this@SoortSelectieScherm, saf)
+                    }
+                    
+                    // 3. Pas daarna sessie bijwerken en resultaat teruggeven
+                    TellingSessionManager.setPreselectedSoorten(chosen)
+                    
+                    // Revert naar stabiele callback: geef IDs én telpostId terug aan MetadataScherm
+                    val data = Intent().apply {
+                        putStringArrayListExtra(EXTRA_SELECTED_SOORT_IDS, chosen)
+                        putExtra(EXTRA_TELPOST_ID, telpostId)
+                    }
+                    setResult(RESULT_OK, data)
+                    finish()
+                    
+                } catch (e: Exception) {
+                    FileLogger.e(TAG, "Fout bij laden van gegevens in geheugen", e)
+                    Toast.makeText(this@SoortSelectieScherm, "Fout bij voorbereiden telling: ${e.message}", Toast.LENGTH_LONG).show()
+                } finally {
+                    dialog.dismiss()
+                }
+            }
         }
 
         // Debounced zoekfunctie (optimalisatie)

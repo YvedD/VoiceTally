@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.log.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermMetadataBinding
@@ -102,8 +103,11 @@ class MetadataScherm : AppCompatActivity() {
         // Alleen bij een volledig nieuwe telling-reset zetten we terug naar solo.
         if (!preserveMasterClientSession) {
             MasterClientPrefs.resetToSolo(this)
+            // ALLEEN clear bij nieuwe sessie, niet bij lifecycle restore
+            if (savedInstanceState == null) {
+                TellingSessionManager.clear()
+            }
         }
-        TellingSessionManager.clear()
 
         // Initialize SAF helper
         saf = SaFStorageHelper(this)
@@ -208,6 +212,7 @@ class MetadataScherm : AppCompatActivity() {
 
                     val minimal = repo.loadMinimalData()
                     if (!minimal.hasMetadataEssentials()) {
+                        FileLogger.e(TAG, "Codedata ontbreekt in loadEssentialData")
                         throw IllegalStateException("Telpost- of codedata ontbreken in de lokale serverdata")
                     }
                     snapshot = minimal
@@ -224,7 +229,7 @@ class MetadataScherm : AppCompatActivity() {
                     progressDialog.dismiss()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading essential data: ${e.message}")
+                FileLogger.e(TAG, "Error loading essential data in MetadataScherm", e)
                 Toast.makeText(this@MetadataScherm, getString(R.string.metadata_error_loading_data), Toast.LENGTH_SHORT).show()
             }
         }
@@ -360,10 +365,22 @@ class MetadataScherm : AppCompatActivity() {
     ) { res ->
         if (res.resultCode == RESULT_OK) {
             val ids = res.data?.getStringArrayListExtra(SoortSelectieScherm.EXTRA_SELECTED_SOORT_IDS).orEmpty()
-            formManager.gekozenTelpostId?.let { TellingSessionManager.setTelpost(it) }
+            val intentTelpostId = res.data?.getStringExtra(SoortSelectieScherm.EXTRA_TELPOST_ID)
+            
+            FileLogger.d(TAG, "soortSelectieLauncher: ids=${ids.size}, telpostId=$intentTelpostId")
+            
+            // Werk sessie bij
+            val activeTelpostId = intentTelpostId ?: formManager.gekozenTelpostId
+            activeTelpostId?.let { TellingSessionManager.setTelpost(it) }
             TellingSessionManager.setPreselectedSoorten(ids)
-            val intent = Intent(this, com.yvesds.vt5.features.telling.TellingScherm::class.java)
+            
+            // Start TellingScherm expliciet vanuit MetadataScherm
+            val intent = Intent(this, com.yvesds.vt5.features.telling.TellingScherm::class.java).apply {
+                putStringArrayListExtra(SoortSelectieScherm.EXTRA_SELECTED_SOORT_IDS, ArrayList(ids))
+                putExtra(SoortSelectieScherm.EXTRA_TELPOST_ID, activeTelpostId)
+            }
             startActivity(intent)
+            finish()
         }
     }
 

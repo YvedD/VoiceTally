@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.yvesds.vt5.core.log.FileLogger
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -48,6 +49,7 @@ class TellingInitializer(
      * Load preselected species tiles from session state.
      */
     fun loadPreselection() {
+        FileLogger.d(TAG, "loadPreselection gestart")
         activity.lifecycleScope.launch {
             try {
                 val dialog = ProgressDialogHelper.show(activity, "Soorten laden...")
@@ -56,6 +58,7 @@ class TellingInitializer(
                         val snapshot = ServerDataCache.getOrLoad(activity)
                         val pre = TellingSessionManager.preselectState.value
                         val ids = pre.selectedSoortIds
+                        FileLogger.d(TAG, "loadPreselection: ids in TellingSessionManager = ${ids.size}")
 
                         val speciesById = snapshot.speciesById
                         ids.mapNotNull { sid ->
@@ -64,7 +67,10 @@ class TellingInitializer(
                         }.sortedBy { it.naam.lowercase(Locale.getDefault()) }
                     }
 
+                    FileLogger.d(TAG, "loadPreselection: geladen tegels = ${initial.size}")
+
                     if (initial.isEmpty()) {
+                        FileLogger.w(TAG, "loadPreselection: Geen soorten gevonden in preselectie!")
                         if (MasterClientPrefs.getMode(activity) == MasterClientPrefs.MODE_CLIENT) {
                             onTilesLoaded?.invoke(emptyList())
                             onLogMessage?.invoke("Clientmodus gestart - wachten op tegelsync van master.", "systeem")
@@ -103,7 +109,7 @@ class TellingInitializer(
                     dialog.dismiss()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error loading species: ${e.message}")
+                FileLogger.e(TAG, "Error loading species in loadPreselection", e)
                 Toast.makeText(
                     activity,
                     activity.getString(R.string.soort_error_loading_species),

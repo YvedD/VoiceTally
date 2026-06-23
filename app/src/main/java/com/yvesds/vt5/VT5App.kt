@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import com.yvesds.vt5.core.log.FileLogger
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.features.speech.MatchLogWriter
 import com.yvesds.vt5.features.speech.AliasMatcher
@@ -44,6 +45,16 @@ class VT5App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        
+        FileLogger.i(TAG, "VT5 App gestart")
+
+        // Catch global uncaught exceptions
+        val oldHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            FileLogger.e("FATAL", "Onverwachte fout in thread ${thread.name}", throwable)
+            oldHandler?.uncaughtException(thread, throwable)
+        }
+
         try {
             MatchLogWriter.start(this)
         } catch (ex: Exception) {
