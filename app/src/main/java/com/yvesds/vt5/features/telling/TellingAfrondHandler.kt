@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.features.telling.data.TellingRepository
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.utils.SessionRemarksMarker
@@ -15,20 +16,19 @@ import kotlinx.serialization.json.Json
 import java.util.Date
 
 /**
- * TellingAfrondHandler: Handles the complete "Afronden" (finalize) flow for TellingScherm.
+ * TellingAfrondHandler: Handelt de volledige "Afronden" (afsluiten) flow af.
  * 
- * Responsibilities:
- * - Building the final envelope with counts
- * - Uploading to server
- * - Handling server response
- * - Cleanup of temporary files and preferences
- * - Cleanup of active_telling.json (continuous backup)
- * - Error handling and user feedback
+ * Verantwoordelijkheden:
+ * - Bouwen van de finale envelope met waarnemingen
+ * - Uploaden naar de server
+ * - Bijwerken van de Room database status (isUploaded)
+ * - Opschonen van tijdelijke bestanden en voorkeuren
  */
 class TellingAfrondHandler(
     private val context: Context,
     private val backupManager: TellingBackupManager,
     private val dataProcessor: TellingDataProcessor,
+    private val repository: TellingRepository,
     private val envelopePersistence: TellingEnvelopePersistence? = null
 ) {
     companion object {
@@ -41,9 +41,6 @@ class TellingAfrondHandler(
         private val PRETTY_JSON: Json by lazy { Json { prettyPrint = true; encodeDefaults = true } }
     }
 
-    /**
-     * Result of handleAfronden operation.
-     */
     sealed class AfrondResult {
         data class Success(
             val savedPrettyPath: String?,
@@ -59,12 +56,7 @@ class TellingAfrondHandler(
     }
 
     /**
-     * Handle the complete Afronden (finalize and upload) flow.
-     * 
-     * @param pendingRecords List of records to include in the envelope
-     * @param pendingBackupDocs List of backup document files to clean up on success
-     * @param pendingBackupInternalPaths List of internal backup paths to clean up on success
-     * @param metadataUpdates Optional metadata updates (begintijd, eindtijd, opmerkingen)
+     * Handelt het afronden en uploaden af.
      */
     suspend fun handleAfronden(
         pendingRecords: List<ServerTellingDataItem>,
@@ -74,12 +66,12 @@ class TellingAfrondHandler(
     ): AfrondResult = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         
-        // 1. Load saved envelope
+        // 1. Laad opgeslagen envelope (fallback voor metadata)
         val savedEnvelopeJson = prefs.getString(PREF_SAVED_ENVELOPE_JSON, null)
         if (savedEnvelopeJson.isNullOrBlank()) {
             return@withContext AfrondResult.Failure(
                 title = "Geen metadata",
-                message = "Er is geen opgeslagen metadata (counts_save header). Keer terug naar metadata en start een telling."
+                message = "Er is geen opgeslagen metadata. Start de telling opnieuw via het MetadataScherm."
             )
         }
 
@@ -96,21 +88,18 @@ class TellingAfrondHandler(
         if (envelopeList.isNullOrEmpty()) {
             return@withContext AfrondResult.Failure(
                 title = "Ongeldige envelope",
-                message = "Opgeslagen envelope ongeldig."
+                message = "Opgeslagen envelope is ongeldig."
             )
         }
 
         val savedOnlineId = prefs.getString(PREF_ONLINE_ID, "")
 
-        // 2. Build final envelope with times and records
+        // 2. Bouw finale envelope
         val nowEpoch = (System.currentTimeMillis() / 1000L)
         val nowEpochStr = nowEpoch.toString()
 
         val baseEnv = envelopeList[0]
 
-        // Apply metadata updates if provided (begintijd, eindtijd, opmerkingen)
-        // Otherwise use defaults: keep original begintijd, set eindtijd to now
-        // Note: Use ifBlank to also handle empty string cases, not just null
         val effectiveBegintijd = metadataUpdates?.begintijd?.ifBlank { null } ?: baseEnv.begintijd
         val effectiveEindtijd = metadataUpdates?.eindtijd?.ifBlank { null } ?: nowEpochStr
         val effectiveOpmerkingen = SessionRemarksMarker.remove(metadataUpdates?.opmerkingen ?: baseEnv.opmerkingen)
@@ -139,7 +128,7 @@ class TellingAfrondHandler(
         )
         val envelopeToSend = listOf(finalEnv)
 
-        // 3. Pretty print and save envelope
+        // 3. Opslaan voor audit
         val onlineIdPref = savedOnlineId ?: ""
         val prettyJson = try {
             PRETTY_JSON.encodeToString(
@@ -162,7 +151,7 @@ class TellingAfrondHandler(
             )
         }
 
-        // 4. Upload to server via centrale uploadkern
+        // 4. Uploaden
         val uploadResult = uploadCore.uploadPrepared(
             TellingUploadCore.UploadRequest(
                 mode = TellingUploadCore.Mode.FINALIZE,
@@ -174,7 +163,7 @@ class TellingAfrondHandler(
         )
         val resp = uploadResult.responseText
 
-        // 5. Write audit file
+        // 5. Audit bestand schrijven
         val auditPath = try {
             backupManager.writeEnvelopeResponseToSaf(
                 finalEnv.tellingid, 
@@ -190,20 +179,21 @@ class TellingAfrondHandler(
             null
         }
 
-        // 6. Handle result
+        // 6. Afhandelen resultaat
         if (!uploadResult.success) {
             return@withContext AfrondResult.Failure(
                 title = "Upload mislukt",
-                message = "Kon telling niet uploaden:\n${uploadResult.errorMessage ?: resp}\n\n" +
-                         "Envelope opgeslagen: ${savedPrettyPath ?: "niet beschikbaar"}\n" +
-                         "Auditbestand: ${auditPath ?: "niet beschikbaar"}",
+                message = "Kon telling niet uploaden:\n${uploadResult.errorMessage ?: resp}",
                 savedPrettyPath = savedPrettyPath,
                 auditPath = auditPath
             )
         }
         val effectiveOnlineId = uploadResult.effectiveOnlineId ?: savedOnlineId ?: finalEnv.onlineid
 
-        // 7. Cleanup: remove backups and clear preferences
+        // 7. Room Database bijwerken
+        repository.markTellingAsUploaded(finalEnv.tellingid, effectiveOnlineId)
+
+        // 8. Opschonen
         try {
             pendingBackupDocs.forEach { doc -> 
                 try { doc.delete() } catch (_: Exception) {} 
@@ -213,22 +203,18 @@ class TellingAfrondHandler(
                 try { java.io.File(path).delete() } catch (_: Exception) {} 
             }
 
-            // Remove telling-related preferences
             prefs.edit {
                 remove(PREF_ONLINE_ID)
                 remove(PREF_TELLING_ID)
                 remove(PREF_SAVED_ENVELOPE_JSON)
             }
             
-            // Save the FINAL envelope (with correct eindtijd) to counts folder
-            // This ensures the saved JSON is IDENTICAL to what was sent to the server
             try {
                 val tellingId = finalEnv.tellingid
                 val archiveOnlineId = effectiveOnlineId.ifBlank { finalEnv.onlineid }
                 if (prettyJson != null) {
                     envelopePersistence?.saveFinalEnvelopeToCountsDir(tellingId, archiveOnlineId, prettyJson)
                 } else {
-                    // Fallback: archive the old way if prettyJson is null
                     envelopePersistence?.archiveSavedEnvelope(tellingId, archiveOnlineId)
                 }
             } catch (ex: Exception) {
@@ -244,11 +230,26 @@ class TellingAfrondHandler(
         )
     }
 
-
-    /**
-     * Build envelope summary for display.
-     */
     fun buildEnvelopeSummary(envelope: ServerTellingEnvelope): String {
         return dataProcessor.buildEnvelopeSummary(envelope)
+    }
+
+    /**
+     * Haalt de momenteel actieve metadata (envelope) op uit SharedPreferences.
+     */
+    fun getCurrentMetadata(): ServerTellingEnvelope? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val savedEnvelopeJson = prefs.getString(PREF_SAVED_ENVELOPE_JSON, null) ?: return null
+        
+        return try {
+            val envelopeList = VT5App.json.decodeFromString(
+                ListSerializer(ServerTellingEnvelope.serializer()), 
+                savedEnvelopeJson
+            )
+            if (envelopeList.isNotEmpty()) envelopeList[0] else null
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed decoding current metadata: ${e.message}")
+            null
+        }
     }
 }

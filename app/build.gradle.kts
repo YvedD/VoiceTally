@@ -1,8 +1,9 @@
 // app/build.gradle.kts
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -33,6 +34,7 @@ android {
     buildFeatures {
         viewBinding = true
         compose = false
+        buildConfig = true
     }
 
     packaging {
@@ -43,16 +45,35 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+
+    sourceSets {
+        named("main") {
+            kotlin.directories += "build/generated/ksp/main/kotlin"
+        }
+        named("debug") {
+            kotlin.directories += "build/generated/ksp/debug/kotlin"
+        }
+    }
+}
+
+// KSP configuration (outside android block)
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation(libs.androidx.core.ktx)
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.activity:activity-ktx:1.9.2")
+    implementation("androidx.fragment:fragment-ktx:1.8.4")
 
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // Flexbox voor wrap-content tiles in meerdere kolommen
@@ -68,14 +89,28 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.12.0")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // WorkManager (toegevoegd)
+    // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
 
     implementation("androidx.media:media:1.7.1")
+
+    // Room
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
 }
+
 // Tests uit
 tasks.matching {
     it.name.startsWith("test", true) || it.name.startsWith("connectedAndroidTest", true)

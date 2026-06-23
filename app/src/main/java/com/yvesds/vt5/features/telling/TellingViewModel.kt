@@ -5,17 +5,23 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yvesds.vt5.features.telling.TellingScherm.SoortRow
+import com.yvesds.vt5.features.telling.data.TellingRepository
 import com.yvesds.vt5.net.ServerTellingDataItem
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /**
- * ViewModel that coordinates with RecordsBeheer for collecting finals and exposes LiveData for UI.
+ * ViewModel voor het TellingScherm.
+ * Coördineert met TellingRepository voor het opslaan en ophalen van waarnemingen.
  */
-class TellingViewModel : ViewModel() {
+@HiltViewModel
+class TellingViewModel @Inject constructor(
+    val repository: TellingRepository
+) : ViewModel() {
 
     private val _tiles = MutableLiveData<List<SoortRow>>(emptyList())
     val tiles: LiveData<List<SoortRow>> = _tiles
@@ -29,26 +35,32 @@ class TellingViewModel : ViewModel() {
     private val _pendingRecords = MutableLiveData<List<ServerTellingDataItem>>(emptyList())
     val pendingRecords: LiveData<List<ServerTellingDataItem>> = _pendingRecords
 
-    // Expose repository error messages as single LiveData string (UI can display Toast)
     private val _repoError = MutableLiveData<String?>(null)
     val repoError: LiveData<String?> = _repoError
 
-    // RecordsBeheer injected at runtime
-    private lateinit var recordsBeheer: RecordsBeheer
+    private var currentTellingId: String? = null
     private var recordsCollectorJob: Job? = null
 
-    fun setRecordsBeheer(rb: RecordsBeheer) {
-        this.recordsBeheer = rb
-
-        // cancel old collector (if any) then collect new flow to keep LiveData up-to-date
+    /**
+     * Zet de actieve telling ID en start het observeren van waarnemingen uit de database.
+     */
+    fun setTellingId(tellingId: String?) {
+        this.currentTellingId = tellingId
+        
+        // Stop vorige observatie
         recordsCollectorJob?.cancel()
+        
+        if (tellingId == null) {
+            _pendingRecords.postValue(emptyList())
+            return
+        }
+
+        // Start nieuwe observatie van de database
         recordsCollectorJob = viewModelScope.launch {
-            rb.pendingRecordsFlow.collect { list ->
-                _pendingRecords.postValue(list)
+            repository.getObservationsFlow(tellingId).collect { list ->
+                _pendingRecords.postValue(list.map { with(repository) { it.toDomain() } })
             }
         }
-        // seed current list
-        _pendingRecords.value = rb.getPendingRecordsSnapshot()
     }
 
     fun setTiles(list: List<SoortRow>) { _tiles.value = list }
@@ -64,32 +76,70 @@ class TellingViewModel : ViewModel() {
     fun clearFinals() { _finals.value = emptyList() }
 
     /**
-     * Collect a final via the repository. The ViewModel orchestrates the call and updates LiveData.
-     * UI should call this (keeps Activity thin).
+     * Slaat een nieuwe waarneming op in de Room database.
      */
-    fun collectFinal(soortId: String, amount: Int, explicitTijdstipSeconds: Long? = null) {
-        if (!::recordsBeheer.isInitialized) {
-            _repoError.value = "Repository niet geïnitialiseerd"
-            return
-        }
-
+    fun addObservation(record: ServerTellingDataItem) {
+        val tellingId = currentTellingId ?: return
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                recordsBeheer.collectFinalAsRecord(soortId, amount, explicitTijdstipSeconds)
-            }
-            when (result) {
-                is OperationResult.Success -> {
-                    // pendingRecordsFlow will update LiveData via collector; clear any previous error
-                    _repoError.value = null
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.addObservation(tellingId, record)
                 }
-                is OperationResult.Failure -> {
-                    _repoError.value = result.reason
-                }
+                _repoError.postValue(null)
+            } catch (e: Exception) {
+                _repoError.postValue(e.message ?: "Fout bij toevoegen waarneming")
             }
         }
     }
 
-    // allow Activity to directly append a pending record (compat)
+    /**
+     * Werkt een bestaande waarneming bij in de Room database.
+     */
+    fun updateObservation(record: ServerTellingDataItem) {
+        val tellingId = currentTellingId ?: return
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    // Mapping terug naar entity via id
+                    val existing = repository.getObservations(tellingId).find { it.id == record.idLocal }
+                    if (existing != null) {
+                        // Hier zouden we een mapping van record -> existing entity moeten doen
+                        // Voor nu gebruiken we de repository addObservation die REPLACE doet indien ID hetzelfde is
+                        repository.addObservation(tellingId, record)
+                    }
+                }
+                _repoError.postValue(null)
+            } catch (e: Exception) {
+                _repoError.postValue(e.message ?: "Fout bij bijwerken waarneming")
+            }
+        }
+    }
+
+    /**
+     * Collect a final via the repository.
+     */
+    fun collectFinal(soortId: String, amount: Int, explicitTijdstipSeconds: Long? = null) {
+        val tellingId = currentTellingId ?: return
+        
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val timestamp = explicitTijdstipSeconds ?: (System.currentTimeMillis() / 1000L)
+                    val record = ServerTellingDataItem(
+                        tellingid = tellingId,
+                        soortid = soortId,
+                        aantal = amount.toString(),
+                        tijdstip = timestamp.toString()
+                    )
+                    repository.addObservation(tellingId, record)
+                }
+                _repoError.postValue(null)
+            } catch (e: Exception) {
+                _repoError.postValue(e.message ?: "Fout bij opslaan waarneming")
+            }
+        }
+    }
+
     fun addPendingRecord(item: ServerTellingDataItem) {
         _pendingRecords.value = (_pendingRecords.value ?: emptyList()) + item
     }

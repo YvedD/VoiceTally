@@ -16,34 +16,45 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import com.yvesds.vt5.features.telling.data.TellingRepository
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+
 private const val TAG = "AfrondWorker"
 
 /**
  * Worker responsible for uploading a pending telling.
- * - It uses RecordsBeheer to obtain pending records (restores index first).
+ * - It uses TellingRepository to obtain pending records.
  * - Reads saved envelope from prefs (same as Activity).
  * - Builds final envelope, posts to TrektellenApi.
  * - Writes audit file and pretty envelope JSON (SAF or internal).
- * - On success: clears pending records/backups using RecordsBeheer.
+ * - On success: marks telling as uploaded in Room.
  *
- * Input: none (reads prefs/index)
+ * Input: none (reads prefs/database)
  */
 class AfrondWorker(
     appContext: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface AfrondWorkerEntryPoint {
+        fun repository(): TellingRepository
+    }
+
     override suspend fun doWork(): Result {
         try {
             val context = applicationContext
-            val recordsBeheer = RecordsBeheer(context)
+            val entryPoint = EntryPointAccessors.fromApplication(context, AfrondWorkerEntryPoint::class.java)
+            val repository = entryPoint.repository()
 
-            // Restore any index persisted to disk, so repository holds latest
-            recordsBeheer.restorePendingIndex()
-
-            // Read saved envelope JSON
+            // Read saved envelope JSON (legacy backup, structured data is in Room)
             val prefs = context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
             val savedEnvelopeJson = prefs.getString("pref_saved_envelope_json", null)
+            
             if (savedEnvelopeJson.isNullOrBlank()) {
                 Log.w(TAG, "No saved envelope JSON available (abort)")
                 return Result.failure()
@@ -59,14 +70,17 @@ class AfrondWorker(
                 Log.w(TAG, "Saved envelope empty")
                 return Result.failure()
             }
-
-            // Build final envelope with pending records
-            val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
             val baseEnv = envelopeList[0]
+            val tellingId = baseEnv.tellingid
+
+            // Build final envelope with pending records from Room
+            val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
             val envWithTimes = baseEnv.copy(eindtijd = nowEpoch)
 
             // Ensure repository snapshot is fresh
-            val recordsSnapshot = recordsBeheer.getPendingRecordsSnapshot()
+            val recordsSnapshot = with(repository) {
+                repository.getObservations(tellingId).map { it.toDomain() }
+            }
             val nrec = recordsSnapshot.size
             val nsoort = recordsSnapshot.map { it.soortid }.toSet().size
 
@@ -110,14 +124,16 @@ class AfrondWorker(
                 return Result.retry()
             }
 
-            // Success: clear pending records + backups
-            recordsBeheer.clearPendingRecordsAndBackups()
+            // Success: mark telling as uploaded in Room
+            repository.markTellingAsUploaded(tellingId, uploadResult.effectiveOnlineId)
+            
+            // Success: optionally clear observations if we don't want to keep them locally after upload
+            // repository.deleteObservationsForTelling(tellingId)
             
             // Archive the active_telling.json (rename to timestamped file in counts folder)
             try {
                 val saf = SaFStorageHelper(context)
                 val envelopePersistence = TellingEnvelopePersistence(context, saf)
-                val tellingId = finalEnv.tellingid
                 val archiveOnlineId = uploadResult.effectiveOnlineId ?: prefs.getString("pref_online_id", null) ?: finalEnv.onlineid
                 envelopePersistence.archiveSavedEnvelope(tellingId, archiveOnlineId)
             } catch (ex: Exception) {

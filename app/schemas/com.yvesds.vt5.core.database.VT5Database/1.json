@@ -1,0 +1,425 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "172e1775cee8144f8a28af4b5fdc0a1f",
+    "entities": [
+      {
+        "tableName": "tellings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `telpostId` TEXT NOT NULL, `begintijd` INTEGER NOT NULL, `eindtijd` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `isUploaded` INTEGER NOT NULL, `uploadedAt` INTEGER, `externid` TEXT NOT NULL, `timezoneid` TEXT NOT NULL, `bron` TEXT NOT NULL, `tellers` TEXT NOT NULL, `weer` TEXT NOT NULL, `windrichting` TEXT NOT NULL, `windkracht` TEXT NOT NULL, `temperatuur` TEXT NOT NULL, `bewolking` TEXT NOT NULL, `bewolkinghoogte` TEXT NOT NULL, `neerslag` TEXT NOT NULL, `duurneerslag` TEXT NOT NULL, `zicht` TEXT NOT NULL, `tellersactief` TEXT NOT NULL, `tellersaanwezig` TEXT NOT NULL, `typetelling` TEXT NOT NULL, `metersnet` TEXT NOT NULL, `geluid` TEXT NOT NULL, `opmerkingen` TEXT NOT NULL, `onlineid` TEXT NOT NULL, `hydro` TEXT NOT NULL, `hpa` TEXT NOT NULL, `equipment` TEXT NOT NULL, `uuid` TEXT NOT NULL, `uploadtijdstip` TEXT NOT NULL, `nrec` TEXT NOT NULL, `nsoort` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "telpostId",
+            "columnName": "telpostId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "begintijd",
+            "columnName": "begintijd",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eindtijd",
+            "columnName": "eindtijd",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isUploaded",
+            "columnName": "isUploaded",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadedAt",
+            "columnName": "uploadedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "externid",
+            "columnName": "externid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timezoneid",
+            "columnName": "timezoneid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bron",
+            "columnName": "bron",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tellers",
+            "columnName": "tellers",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weer",
+            "columnName": "weer",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windrichting",
+            "columnName": "windrichting",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windkracht",
+            "columnName": "windkracht",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "temperatuur",
+            "columnName": "temperatuur",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bewolking",
+            "columnName": "bewolking",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bewolkinghoogte",
+            "columnName": "bewolkinghoogte",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "neerslag",
+            "columnName": "neerslag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duurneerslag",
+            "columnName": "duurneerslag",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zicht",
+            "columnName": "zicht",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tellersactief",
+            "columnName": "tellersactief",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tellersaanwezig",
+            "columnName": "tellersaanwezig",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typetelling",
+            "columnName": "typetelling",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metersnet",
+            "columnName": "metersnet",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "geluid",
+            "columnName": "geluid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "opmerkingen",
+            "columnName": "opmerkingen",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "onlineid",
+            "columnName": "onlineid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hydro",
+            "columnName": "hydro",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hpa",
+            "columnName": "hpa",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equipment",
+            "columnName": "equipment",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uploadtijdstip",
+            "columnName": "uploadtijdstip",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nrec",
+            "columnName": "nrec",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nsoort",
+            "columnName": "nsoort",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "observations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `tellingId` TEXT NOT NULL, `speciesId` TEXT NOT NULL, `count` TEXT NOT NULL, `direction` TEXT, `timestamp` INTEGER NOT NULL, `countReturn` TEXT NOT NULL, `directionReturn` TEXT, `sightingDirection` TEXT, `local` TEXT NOT NULL, `countPlus` TEXT NOT NULL, `countReturnPlus` TEXT NOT NULL, `localPlus` TEXT NOT NULL, `mark` TEXT NOT NULL, `markLocal` TEXT NOT NULL, `geslacht` TEXT, `leeftijd` TEXT, `kleed` TEXT, `notes` TEXT, `trektype` TEXT, `teltype` TEXT, `location` TEXT, `height` TEXT, `groupId` TEXT, `uploadTimestamp` TEXT, `totalCount` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`tellingId`) REFERENCES `tellings`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tellingId",
+            "columnName": "tellingId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speciesId",
+            "columnName": "speciesId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "count",
+            "columnName": "count",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "direction",
+            "columnName": "direction",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countReturn",
+            "columnName": "countReturn",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "directionReturn",
+            "columnName": "directionReturn",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sightingDirection",
+            "columnName": "sightingDirection",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "local",
+            "columnName": "local",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countPlus",
+            "columnName": "countPlus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countReturnPlus",
+            "columnName": "countReturnPlus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localPlus",
+            "columnName": "localPlus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mark",
+            "columnName": "mark",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "markLocal",
+            "columnName": "markLocal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "geslacht",
+            "columnName": "geslacht",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "leeftijd",
+            "columnName": "leeftijd",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "kleed",
+            "columnName": "kleed",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "trektype",
+            "columnName": "trektype",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "teltype",
+            "columnName": "teltype",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "location",
+            "columnName": "location",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "height",
+            "columnName": "height",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "uploadTimestamp",
+            "columnName": "uploadTimestamp",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "totalCount",
+            "columnName": "totalCount",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_observations_tellingId",
+            "unique": false,
+            "columnNames": [
+              "tellingId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_observations_tellingId` ON `${TABLE_NAME}` (`tellingId`)"
+          },
+          {
+            "name": "index_observations_speciesId",
+            "unique": false,
+            "columnNames": [
+              "speciesId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_observations_speciesId` ON `${TABLE_NAME}` (`speciesId`)"
+          },
+          {
+            "name": "index_observations_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_observations_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tellings",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tellingId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '172e1775cee8144f8a28af4b5fdc0a1f')"
+    ]
+  }
+}

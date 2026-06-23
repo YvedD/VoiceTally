@@ -23,6 +23,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 import androidx.core.content.edit
+import dagger.hilt.android.HiltAndroidApp
 
 /**
  * VT5 – App singleton
@@ -34,6 +35,7 @@ import androidx.core.content.edit
  *
  * Note: Zware dataverwerking gebeurt in een background scope, onzichtbaar voor de gebruiker.
  */
+@HiltAndroidApp
 class VT5App : Application() {
     // Speciale scope die blijft bestaan gedurende de hele app-lifecycle
     private val appScope = CoroutineScope(Job() + Dispatchers.IO)

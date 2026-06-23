@@ -20,8 +20,11 @@ import javax.inject.Singleton
 private val Context.dataStore by preferencesDataStore(name = "telling_prefs")
 
 /**
- * Repository para Telling (sesiones de conteo).
- * Proporciona acceso unificado a Room (persistencia local) y DataStore (preferencias).
+ * Repository voor Telling (telsessies).
+ * Biedt uniforme toegang tot Room (lokale persistentie) en DataStore (voorkeuren).
+ * 
+ * BELANGRIJK: Alle waarnemingsvelden en metadata worden strikt als String behandeld om
+ * compatibiliteit met de server-API (Trektellen) te garanderen.
  */
 @Singleton
 class TellingRepository @Inject constructor(
@@ -38,7 +41,7 @@ class TellingRepository @Inject constructor(
     }
 
     // ═══════════════════════════════════════════════════════
-    // Telling Operations
+    // Telling Operaties
     // ═══════════════════════════════════════════════════════
 
     suspend fun saveTelling(envelope: ServerTellingEnvelope) {
@@ -48,7 +51,35 @@ class TellingRepository @Inject constructor(
             begintijd = envelope.begintijd.toLongOrNull() ?: (System.currentTimeMillis() / 1000),
             eindtijd = envelope.eindtijd.toLongOrNull() ?: 0L,
             createdAt = System.currentTimeMillis(),
-            opmerkingen = envelope.opmerkingen
+            opmerkingen = envelope.opmerkingen,
+            
+            // Metadata mapping
+            externid = envelope.externid,
+            timezoneid = envelope.timezoneid,
+            bron = envelope.bron,
+            tellers = envelope.tellers,
+            weer = envelope.weer,
+            windrichting = envelope.windrichting,
+            windkracht = envelope.windkracht,
+            temperatuur = envelope.temperatuur,
+            bewolking = envelope.bewolking,
+            bewolkinghoogte = envelope.bewolkinghoogte,
+            neerslag = envelope.neerslag,
+            duurneerslag = envelope.duurneerslag,
+            zicht = envelope.zicht,
+            tellersactief = envelope.tellersactief,
+            tellersaanwezig = envelope.tellersaanwezig,
+            typetelling = envelope.typetelling,
+            metersnet = envelope.metersnet,
+            geluid = envelope.geluid,
+            onlineid = envelope.onlineid,
+            hydro = envelope.hydro,
+            hpa = envelope.hpa,
+            equipment = envelope.equipment,
+            uuid = envelope.uuid,
+            uploadtijdstip = envelope.uploadtijdstip,
+            nrec = envelope.nrec,
+            nsoort = envelope.nsoort
         )
         tellingDao.insertTelling(telling)
 
@@ -94,13 +125,17 @@ class TellingRepository @Inject constructor(
 
     suspend fun getTelling(id: String): TellingEntity? = tellingDao.getTelling(id)
 
-    suspend fun markTellingAsUploaded(tellingId: String) {
+    suspend fun markTellingAsUploaded(tellingId: String, onlineId: String? = null) {
         val telling = tellingDao.getTelling(tellingId) ?: return
-        tellingDao.updateTelling(telling.copy(isUploaded = true, uploadedAt = System.currentTimeMillis()))
+        tellingDao.updateTelling(telling.copy(
+            isUploaded = true, 
+            uploadedAt = System.currentTimeMillis(),
+            onlineid = onlineId ?: telling.onlineid
+        ))
     }
 
     // ═══════════════════════════════════════════════════════
-    // Observation Operations
+    // Waarneming Operaties
     // ═══════════════════════════════════════════════════════
 
     fun getObservationsFlow(tellingId: String): Flow<List<ObservationEntity>> =
@@ -137,6 +172,47 @@ class TellingRepository @Inject constructor(
             groupid = groupId ?: id,
             uploadtijdstip = uploadTimestamp ?: "",
             totaalaantal = totalCount
+        )
+    }
+
+    /**
+     * Reconstruct een volledige ServerTellingEnvelope vanuit een TellingEntity en zijn waarnemingen.
+     */
+    fun TellingEntity.toEnvelope(observations: List<ServerTellingDataItem>): ServerTellingEnvelope {
+        return ServerTellingEnvelope(
+            externid = externid,
+            timezoneid = timezoneid,
+            bron = bron,
+            idLocal = "",
+            tellingid = id,
+            telpostid = telpostId,
+            begintijd = begintijd.toString(),
+            eindtijd = if (eindtijd == 0L) "" else eindtijd.toString(),
+            tellers = tellers,
+            weer = weer,
+            windrichting = windrichting,
+            windkracht = windkracht,
+            temperatuur = temperatuur,
+            bewolking = bewolking,
+            bewolkinghoogte = bewolkinghoogte,
+            neerslag = neerslag,
+            duurneerslag = duurneerslag,
+            zicht = zicht,
+            tellersactief = tellersactief,
+            tellersaanwezig = tellersaanwezig,
+            typetelling = typetelling,
+            metersnet = metersnet,
+            geluid = geluid,
+            opmerkingen = opmerkingen,
+            onlineid = onlineid,
+            hydro = hydro,
+            hpa = hpa,
+            equipment = equipment,
+            uuid = uuid,
+            uploadtijdstip = uploadtijdstip,
+            nrec = nrec,
+            nsoort = nsoort,
+            data = observations
         )
     }
 
@@ -192,7 +268,7 @@ class TellingRepository @Inject constructor(
     }
 
     // ═══════════════════════════════════════════════════════
-    // DataStore Operations (preferences)
+    // DataStore Operaties (voorkeuren)
     // ═══════════════════════════════════════════════════════
 
     fun getSavedEnvelopeFlow(): Flow<ServerTellingEnvelope?> =
@@ -219,4 +295,3 @@ class TellingRepository @Inject constructor(
         }
     }
 }
-

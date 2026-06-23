@@ -45,8 +45,8 @@ class RecordManagerFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Optioneel: Stijl instellen voor DialogFragment
-        setStyle(STYLE_NORMAL, R.style.Theme_MaterialComponents_NoActionBar)
+        // Stijl instellen voor DialogFragment
+        setStyle(STYLE_NORMAL, R.style.Theme_VT5_Dark)
     }
 
     override fun onCreateView(

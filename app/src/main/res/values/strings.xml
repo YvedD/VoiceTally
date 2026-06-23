@@ -358,6 +358,7 @@
     <string name="beheer_laden_fout">Fout bij laden: %1$s</string>
     <string name="beheer_detail_telpost_tellers">Telpost: %1$s • Tellers: %2$s</string>
     <string name="beheer_record_verwijder_msg">Weet je zeker dat je record %1$d (%2$s) wilt verwijderen?</string>
+    <string name="beheer_bewerken">Bewerken</string>
     <string name="beheer_verwijderen">Verwijderen</string>
     <string name="beheer_record_index">#%1$d</string>
     <string name="beheer_record_soort">Soort: %1$s</string>

@@ -1719,6 +1719,7 @@ class TellingScherm : AppCompatActivity() {
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
         tileTapAggregationManager.flushAllAndAwait()
         val result = afrondHandler.handleAfronden(
+            pendingRecords = viewModel.pendingRecords.value ?: emptyList(),
             pendingBackupDocs = pendingBackupDocs,
             pendingBackupInternalPaths = pendingBackupInternalPaths,
             metadataUpdates = metadataUpdates
