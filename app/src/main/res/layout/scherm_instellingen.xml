@@ -3,6 +3,7 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginBottom="40dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
@@ -40,8 +41,8 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/vt5_on_surface"
-        android:alpha="0.3" />
+        android:alpha="0.3"
+        android:background="@color/vt5_on_surface" />
 
     <!-- Scrollable content -->
     <ScrollView
@@ -62,8 +63,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp">
 
@@ -96,8 +97,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp">
 
@@ -130,11 +131,11 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp"
                 android:text="@string/instellingen_partials_text_color_label"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp"
-                android:paddingBottom="4dp" />
+                android:textSize="14sp" />
 
             <Spinner
                 android:id="@+id/spPartialsTextColor"
@@ -144,11 +145,11 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp"
                 android:text="@string/instellingen_unmatched_partials_text_color_label"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp"
-                android:paddingBottom="4dp" />
+                android:textSize="14sp" />
 
             <Spinner
                 android:id="@+id/spUnmatchedPartialsTextColor"
@@ -158,11 +159,11 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp"
                 android:text="@string/instellingen_finals_text_color_label"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp"
-                android:paddingBottom="4dp" />
+                android:textSize="14sp" />
 
             <Spinner
                 android:id="@+id/spFinalsTextColor"
@@ -174,15 +175,15 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="6dp"
-                android:background="@color/vt5_on_surface"
-                android:alpha="0.3" />
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
 
             <!-- Lettergrootte tegels (compact) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp">
 
@@ -216,8 +217,8 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="6dp"
-                android:background="@color/vt5_on_surface"
-                android:alpha="0.3" />
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
 
             <TextView
                 android:id="@+id/tvDynamicTileSortingTitle"
@@ -244,10 +245,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:layout_marginBottom="6dp"
+                android:alpha="0.82"
                 android:text="@string/instellingen_dynamic_tile_sorting_description"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="12sp"
-                android:alpha="0.82" />
+                android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/tvDoubleTapTitel"
@@ -279,8 +280,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_double_tap_10" />
 
@@ -289,8 +290,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_double_tap_50" />
 
@@ -299,8 +300,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_double_tap_100" />
             </LinearLayout>
@@ -344,8 +345,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_pending_tiles_3" />
 
@@ -354,8 +355,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_pending_tiles_5" />
 
@@ -364,8 +365,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_pending_tiles_8" />
             </LinearLayout>
@@ -390,8 +391,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_pending_tiles_12" />
 
@@ -400,8 +401,8 @@
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:layout_marginStart="6dp"
+                    android:layout_weight="1"
                     android:checkable="true"
                     android:text="@string/instellingen_pending_tiles_15" />
             </LinearLayout>
@@ -429,42 +430,42 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:checkable="true"
                     android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_15"
-                    android:checkable="true" />
+                    android:text="@string/instellingen_fav_15" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFav20"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_20"
                     android:layout_marginStart="6dp"
-                    android:checkable="true" />
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_20" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFav25"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_25"
                     android:layout_marginStart="6dp"
-                    android:checkable="true" />
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_25" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFav30"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_30"
                     android:layout_marginStart="6dp"
-                    android:checkable="true" />
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_30" />
             </LinearLayout>
 
             <LinearLayout
@@ -479,42 +480,42 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:checkable="true"
                     android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_35"
-                    android:checkable="true" />
+                    android:text="@string/instellingen_fav_35" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFav40"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_40"
                     android:layout_marginStart="6dp"
-                    android:checkable="true" />
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_40" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFav75"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_75"
                     android:layout_marginStart="6dp"
-                    android:checkable="true" />
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_75" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnFavAll"
                     style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="40dp"
-                    android:text="@string/instellingen_fav_all"
                     android:layout_marginStart="6dp"
-                    android:checkable="true" />
+                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:minHeight="40dp"
+                    android:text="@string/instellingen_fav_all" />
             </LinearLayout>
 
             <View
@@ -522,29 +523,90 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
-                android:background="@color/vt5_on_surface"
-                android:alpha="0.3" />
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
 
+            <!-- Opslagmethode -->
+            <TextView
+                android:id="@+id/tvOpslagTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_opslag_titel"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpslagJson"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:text="@string/instellingen_opslag_json" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpslagRoom"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_opslag_room" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpslagParallel"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:checkable="true"
+                    android:text="@string/instellingen_opslag_parallel" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvOpslagDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:alpha="0.82"
+                android:text="@string/instellingen_opslag_omschrijving"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
 
             <!-- Kleuren -->
             <TextView
                 android:id="@+id/tvKleurTitel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
                 android:text="@string/instellingen_colors_title"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="4dp"
-                android:paddingBottom="6dp" />
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:paddingBottom="4dp"
                 android:text="@string/instellingen_bg_color_label"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="14sp"
-                android:paddingBottom="4dp" />
+                android:textSize="14sp" />
 
             <Spinner
                 android:id="@+id/spBackgroundColor"
@@ -554,11 +616,11 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:paddingBottom="4dp"
                 android:text="@string/instellingen_text_color_label"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="14sp"
-                android:layout_marginTop="6dp"
-                android:paddingBottom="4dp" />
+                android:textSize="14sp" />
 
             <Spinner
                 android:id="@+id/spTextColor"
@@ -570,20 +632,20 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
-                android:background="@color/vt5_on_surface"
-                android:alpha="0.3" />
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
 
             <!-- Toestemmingen (info) -->
             <TextView
                 android:id="@+id/tvPermissiesTitel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
                 android:text="@string/instellingen_permissions_title"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:paddingTop="4dp"
-                android:paddingBottom="6dp" />
+                android:textStyle="bold" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cbPermAudio"

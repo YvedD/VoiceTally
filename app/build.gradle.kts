@@ -3,6 +3,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -69,10 +70,20 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.21")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // WorkManager (toegevoegd)
     implementation("androidx.work:work-runtime-ktx:2.8.1")
+
+    // Room Database
+    val roomVersion = "2.8.4"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+    // Voor Kotlin: gebruik ksp of kapt (VT5 gebruikt kapt of standaard annotationProcessor)
+    // Gezien de huidige configuratie voegen we kapt toe als plugin indien nodig, 
+    // maar we proberen eerst de standaard annotationProcessor voor Room.
 
     implementation("androidx.media:media:1.7.1")
 }

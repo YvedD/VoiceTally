@@ -20,6 +20,7 @@ import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.app.AppShutdown
 import com.yvesds.vt5.core.app.HourlyAlarmManager
+import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
@@ -32,6 +33,7 @@ import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
 import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.features.telling.TellingUploadFlags
+import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
 import com.yvesds.vt5.core.ui.DialogStyler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,10 +45,15 @@ import kotlinx.serialization.ExperimentalSerializationApi
  * 
  * Biedt drie opties:
  * 1. (Her)Installatie → InstallatieScherm
- * 2. Invoeren telpostgegevens → MetadataScherm  
- * 3. Afsluiten → Veilige app shutdown met cleanup
- * 4. Bewerk tellingen → TellingBeheerScherm
- * 5. Opkuis exports → Verwijder oude bestanden uit exports map
+ * 2. Invoeren telpostgegevens → MetadataScherm
+ * 3. Invoegen als client in de master-client modus
+ * 4. Afsluiten → Veilige app shutdown met cleanup
+ * ------------------------------------------------
+ * 5. Toggle uurlijks alarm aan/uit
+ * 6. Bewerk tellingen → TellingBeheerScherm
+ * 7. Opkuis exports → Verwijder oude bestanden uit exports map
+ * 8. Instellingen bewerken
+ * 9. Databasebeheer
  */
 class HoofdActiviteit : AppCompatActivity() {
     private val TAG = "HoofdActiviteit"
@@ -59,6 +66,7 @@ class HoofdActiviteit : AppCompatActivity() {
     }
 
     private lateinit var safHelper: SaFStorageHelper
+    private lateinit var fileLogger: FileLogger
     private var pendingTellingDialogShown = false
 
     private val clientQrScanLauncher = registerForActivityResult(ScanContract()) { result ->
@@ -112,7 +120,14 @@ class HoofdActiviteit : AppCompatActivity() {
         setContentView(R.layout.scherm_hoofd)
         
         safHelper = SaFStorageHelper(this)
+        fileLogger = FileLogger(this)
         requestStartupPermissionsIfNeeded()
+
+        lifecycleScope.launch {
+            val storageMode = InstellingenScherm.getStorageMode(this@HoofdActiviteit)
+            fileLogger.info("HoofdActiviteit gestart - VT5 App actief")
+            fileLogger.info("Geselecteerde opslagmodus: $storageMode")
+        }
 
         val btnInstall   = findViewById<MaterialButton>(R.id.btnInstall)
         val btnVerder    = findViewById<MaterialButton>(R.id.btnVerder)
@@ -121,7 +136,8 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
         val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
         val btnInstellingen = findViewById<MaterialButton>(R.id.btnInstellingen)
-        
+        val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
+
         // Alarm sectie - altijd zichtbaar
         setupAlarmSection()
 
@@ -182,6 +198,13 @@ class HoofdActiviteit : AppCompatActivity() {
         btnInstellingen.setOnClickListener {
             it.isEnabled = false
             startActivity(Intent(this, InstellingenScherm::class.java))
+            it.isEnabled = true
+        }
+
+        // Database Beheer knop
+        btnDatabaseBeheer.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, DatabaseBeheerScherm::class.java))
             it.isEnabled = true
         }
 

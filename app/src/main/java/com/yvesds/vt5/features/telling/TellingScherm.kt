@@ -28,6 +28,9 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.app.HourlyAlarmManager
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
+import com.yvesds.vt5.core.database.toServerItem
+import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermTellingBinding
@@ -131,6 +134,7 @@ class TellingScherm : AppCompatActivity() {
     private lateinit var annotationHandler: TellingAnnotationHandler
     private lateinit var initializer: TellingInitializer
     private lateinit var alarmHandler: TellingAlarmHandler
+    private val hybridRepository by lazy { HybridTellingRepository(this) }
 
     // Continuous envelope persistence - saves full envelope after each observation
     private lateinit var envelopePersistence: TellingEnvelopePersistence
@@ -315,30 +319,54 @@ class TellingScherm : AppCompatActivity() {
         // Initialize ViewModel (if you have TellingViewModel in project)
         try {
             viewModel = ViewModelProvider(this).get(TellingViewModel::class.java)
-            // Observe VM lists and keep adapters in sync (this ensures rotation preserves UI)
-            viewModel.tiles.observe(this) { tiles ->
-                // update adapter (observer will call submitList callback if configured)
-                uiManager.updateTiles(tiles)
-
-                // Rebuild cachedMatchContext asynchronously on Default to avoid blocking parse path
-                lifecycleScope.launch(Dispatchers.Default) {
-                    try {
-                        val tilesIds = tiles.map { it.soortId }.toSet()
-                        val mc = initializer.buildMatchContext(tilesIds)
-                        speechHandler.updateCachedMatchContext(mc)
-                    } catch (ex: Exception) {
-                        Log.w(TAG, "Failed rebuilding cachedMatchContext after tiles change: ${ex.message}", ex)
+            
+            lifecycleScope.launch {
+                val emergencyLogger = FileLogger(applicationContext)
+                try {
+                    // CRITICAL FIX: Ensure envelopePersistence is ready
+                    if (!::envelopePersistence.isInitialized) {
+                        initializeHelpers()
                     }
+
+                    val rb = RecordsBeheer(applicationContext, VT5App.json, envelopePersistence)
+                    viewModel.setRecordsBeheer(rb)
+
+                    // Observe VM lists and keep adapters in sync
+                    viewModel.tiles.observe(this@TellingScherm) { tiles ->
+                        uiManager.updateTiles(tiles)
+                        lifecycleScope.launch(Dispatchers.Default) {
+                            try {
+                                val tilesIds = tiles.map { it.soortId }.toSet()
+                                val mc = initializer.buildMatchContext(tilesIds)
+                                speechHandler.updateCachedMatchContext(mc)
+                            } catch (e: Exception) {
+                                emergencyLogger.error("CachedMatchContext rebuild failed: ${e.message}")
+                            }
+                        }
+                    }
+                    
+                    viewModel.partials.observe(this@TellingScherm) { list -> uiManager.updatePartials(list) }
+                    viewModel.finals.observe(this@TellingScherm) { list -> uiManager.updateFinals(list) }
+                    
+                    viewModel.pendingRecords.observe(this@TellingScherm) { records ->
+                        tegelBeheer.recalculateCountsFromRecords(records)
+                        synchronized(pendingRecords) {
+                            pendingRecords.clear()
+                            pendingRecords.addAll(records)
+                        }
+                    }
+
+                    val currentTellingId = prefs.getString("pref_telling_id", null)
+                    if (currentTellingId != null) {
+                        viewModel.observeRecords(currentTellingId)
+                    }
+                } catch (e: Exception) {
+                    emergencyLogger.error("FATAL: TellingScherm initialisatie mislukt: ${e.message}")
+                    android.util.Log.e(TAG, "Fatal init error", e)
                 }
             }
-            viewModel.partials.observe(this) { list ->
-                uiManager.updatePartials(list)
-            }
-            viewModel.finals.observe(this) { list ->
-                uiManager.updateFinals(list)
-            }
         } catch (ex: Exception) {
-            Log.w(TAG, "TellingViewModel not available or failed to init: ${ex.message}")
+            Log.w(TAG, "TellingViewModel provider failed: ${ex.message}")
         }
 
         // Register receiver to keep cached context and ASR in sync when AliasManager reloads index
@@ -524,10 +552,13 @@ class TellingScherm : AppCompatActivity() {
             // Runs async on IO dispatcher; failures are logged but don't interrupt the UI flow.
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
+                    // Room shadow update
+                    hybridRepository.saveWaarnemingToRoom(updated)
+
                     val records = synchronized(pendingRecords) { pendingRecords.toList() }
                     envelopePersistence.saveEnvelopeWithRecords(records)
                 } catch (ex: Exception) {
-                    Log.w(TAG, "Envelope persistence failed after record update: ${ex.message}", ex)
+                    Log.w(TAG, "Room/Envelope persistence failed after record update: ${ex.message}", ex)
                 }
             }
         }
@@ -1829,13 +1860,34 @@ class TellingScherm : AppCompatActivity() {
     private suspend fun restorePendingTellingIfAvailable() {
         if (restoredFromSavedEnvelope) return
         try {
-            val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
-            val savedRecords = savedEnvelope.data
+            val mode = InstellingenScherm.getStorageMode(this)
+            val savedRecords: List<ServerTellingDataItem>
+            val tellingId: String
+            val onlineId: String
+
+            if (mode == InstellingenScherm.STORAGE_MODE_ROOM) {
+                // Restore from Room
+                tellingId = prefs.getString("pref_telling_id", "") ?: ""
+                onlineId = prefs.getString("pref_online_id", "") ?: ""
+                if (tellingId.isBlank()) return
+                
+                val hybridRepository = HybridTellingRepository(this)
+                val roomRecords = withContext(Dispatchers.IO) {
+                    hybridRepository.getWaarnemingenList(tellingId)
+                }
+                savedRecords = roomRecords.map { it.toServerItem() }
+            } else {
+                // Restore from JSON
+                val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
+                savedRecords = savedEnvelope.data
+                tellingId = savedEnvelope.tellingid
+                onlineId = savedEnvelope.onlineid
+            }
 
             if (savedRecords.isEmpty()) return
 
             // Skip restore if this telling was already sent
-            if (TellingUploadFlags.isSent(this, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
+            if (TellingUploadFlags.isSent(this, tellingId, onlineId)) {
                 Log.i(TAG, "Pending envelope already marked as sent; skipping restore")
                 return
             }
@@ -3053,6 +3105,11 @@ class TellingScherm : AppCompatActivity() {
         persistEnvelopeAsync()
         syncDailyTotalsRecord(item)
         syncDailyObservationRecord(item, refreshOrder = false)
+        
+        // Room shadow write
+        lifecycleScope.launch(Dispatchers.IO) {
+            hybridRepository.saveWaarnemingToRoom(item)
+        }
     }
 
     private fun persistEnvelopeAsync() {

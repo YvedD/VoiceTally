@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.databinding.SchermMetadataBinding
 import com.yvesds.vt5.features.recent.SpeciesUsageScoreStore
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
@@ -43,6 +44,8 @@ class TellingStarter(
         val errorMessage: String?
     )
     
+    private val hybridRepository by lazy { HybridTellingRepository(context) }
+
     /**
      * Start a new telling session.
      * Returns StartResult with success status and online ID or error message.
@@ -147,6 +150,9 @@ class TellingStarter(
             } catch (ex: Exception) {
                 Log.w(TAG, "Failed initializing next record id: ${ex.message}")
             }
+
+            // Room shadow write: Save the header
+            hybridRepository.saveHeaderToRoom(preparedEnvelope)
 
             return@withContext StartResult(true, onlineId, null)
         } catch (e: Exception) {

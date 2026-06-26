@@ -45,6 +45,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_TILE_DOUBLE_TAP_INCREMENT = "pref_tile_double_tap_increment"
         const val PREF_TILE_TAP_GROUP_WINDOW_SECONDS = "pref_tile_tap_group_window_seconds"
         const val PREF_DYNAMIC_TILE_SORTING_ENABLED = "pref_dynamic_tile_sorting_enabled"
+        const val PREF_STORAGE_MODE = "pref_storage_mode"
 
         const val PREF_PERM_AUDIO_ACK = "pref_perm_audio_ack"
         const val PREF_PERM_SAF_ACK = "pref_perm_saf_ack"
@@ -62,6 +63,11 @@ class InstellingenScherm : AppCompatActivity() {
         const val DEFAULT_TILE_DOUBLE_TAP_INCREMENT = 10
         const val DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS = 5
         const val DEFAULT_DYNAMIC_TILE_SORTING_ENABLED = true
+
+        const val STORAGE_MODE_JSON = "json"
+        const val STORAGE_MODE_ROOM = "room"
+        const val STORAGE_MODE_PARALLEL = "parallel"
+        const val DEFAULT_STORAGE_MODE = STORAGE_MODE_JSON
 
         private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
         private val TILE_TAP_GROUP_WINDOW_OPTIONS = listOf(2, 3, 5, 8, 10, 12, 15)
@@ -145,6 +151,14 @@ class InstellingenScherm : AppCompatActivity() {
             return prefs.getBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, DEFAULT_DYNAMIC_TILE_SORTING_ENABLED)
         }
 
+        /**
+         * Haal de huidige opslagmodus op uit SharedPreferences.
+         */
+        fun getStorageMode(context: Context): String {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getString(PREF_STORAGE_MODE, DEFAULT_STORAGE_MODE) ?: DEFAULT_STORAGE_MODE
+        }
+
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -158,6 +172,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupDoubleTapIncrementButtons()
             setupTileTapGroupWindowButtons()
             setupDynamicTileSortingToggle()
+            setupStorageModeButtons()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupUnmatchedPartialsTextColorSpinner()
@@ -389,6 +404,32 @@ class InstellingenScherm : AppCompatActivity() {
         cb.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit { putBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, isChecked) }
         }
+    }
+
+    private fun setupStorageModeButtons() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
+        val btnJson = findViewById<MaterialButton>(R.id.btnOpslagJson)
+        val btnRoom = findViewById<MaterialButton>(R.id.btnOpslagRoom)
+        val btnParallel = findViewById<MaterialButton>(R.id.btnOpslagParallel)
+
+        val allButtons = listOf(btnJson, btnRoom, btnParallel)
+
+        fun applySelection(value: String) {
+            prefs.edit { putString(PREF_STORAGE_MODE, value) }
+            allButtons.forEach { it.isChecked = false }
+            when (value) {
+                STORAGE_MODE_JSON -> btnJson.isChecked = true
+                STORAGE_MODE_ROOM -> btnRoom.isChecked = true
+                STORAGE_MODE_PARALLEL -> btnParallel.isChecked = true
+            }
+        }
+
+        applySelection(getStorageMode(this))
+
+        btnJson.setOnClickListener { applySelection(STORAGE_MODE_JSON) }
+        btnRoom.setOnClickListener { applySelection(STORAGE_MODE_ROOM) }
+        btnParallel.setOnClickListener { applySelection(STORAGE_MODE_PARALLEL) }
     }
 
 

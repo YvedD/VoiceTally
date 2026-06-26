@@ -6,7 +6,11 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
+import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.hoofd.InstellingenScherm
+import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,6 +41,8 @@ class AfrondWorker(
         try {
             val context = applicationContext
             val recordsBeheer = RecordsBeheer(context)
+            val hybridRepository = HybridTellingRepository(context)
+            val storageMode = InstellingenScherm.getStorageMode(context)
 
             // Restore any index persisted to disk, so repository holds latest
             recordsBeheer.restorePendingIndex()
@@ -66,7 +72,12 @@ class AfrondWorker(
             val envWithTimes = baseEnv.copy(eindtijd = nowEpoch)
 
             // Ensure repository snapshot is fresh
-            val recordsSnapshot = recordsBeheer.getPendingRecordsSnapshot()
+            val recordsSnapshot: List<ServerTellingDataItem> = if (storageMode == InstellingenScherm.STORAGE_MODE_ROOM) {
+                hybridRepository.getWaarnemingenList(baseEnv.tellingid).map { it.toServerItem() }
+            } else {
+                recordsBeheer.getPendingRecordsSnapshot()
+            }
+            
             val nrec = recordsSnapshot.size
             val nsoort = recordsSnapshot.map { it.soortid }.toSet().size
 
@@ -119,6 +130,10 @@ class AfrondWorker(
                 val envelopePersistence = TellingEnvelopePersistence(context, saf)
                 val tellingId = finalEnv.tellingid
                 val archiveOnlineId = uploadResult.effectiveOnlineId ?: prefs.getString("pref_online_id", null) ?: finalEnv.onlineid
+                
+                // Room shadow update: Update the header with final status
+                hybridRepository.saveHeaderToRoom(finalEnv, status = "geupload")
+
                 envelopePersistence.archiveSavedEnvelope(tellingId, archiveOnlineId)
             } catch (ex: Exception) {
                 Log.w(TAG, "Failed to archive active_telling.json: ${ex.message}", ex)

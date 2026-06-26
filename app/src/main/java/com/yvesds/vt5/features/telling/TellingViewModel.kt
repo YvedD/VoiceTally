@@ -4,7 +4,11 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
+import com.yvesds.vt5.core.database.toServerItem
+import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.features.telling.TellingScherm.SoortRow
+import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.net.ServerTellingDataItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -36,19 +40,48 @@ class TellingViewModel : ViewModel() {
     // RecordsBeheer injected at runtime
     private lateinit var recordsBeheer: RecordsBeheer
     private var recordsCollectorJob: Job? = null
+    
+    private val hybridRepository by lazy { HybridTellingRepository(recordsBeheer.getContext()) }
+    private val fileLogger by lazy { FileLogger(recordsBeheer.getContext()) }
 
     fun setRecordsBeheer(rb: RecordsBeheer) {
         this.recordsBeheer = rb
+        // Initial snapshot
+        _pendingRecords.value = rb.getPendingRecordsSnapshot()
+        
+        viewModelScope.launch {
+            fileLogger.info("TellingViewModel: RecordsBeheer gekoppeld")
+        }
+    }
 
-        // cancel old collector (if any) then collect new flow to keep LiveData up-to-date
+    /**
+     * Start observing records based on the selected storage mode.
+     */
+    fun observeRecords(tellingId: String) {
+        if (!::recordsBeheer.isInitialized) {
+            android.util.Log.e("TellingViewModel", "observeRecords: recordsBeheer NOT INITIALIZED")
+            return
+        }
+        
         recordsCollectorJob?.cancel()
         recordsCollectorJob = viewModelScope.launch {
-            rb.pendingRecordsFlow.collect { list ->
-                _pendingRecords.postValue(list)
+            try {
+                val mode = InstellingenScherm.getStorageMode(recordsBeheer.getContext())
+                fileLogger.info("TellingViewModel: Start observatie (Modus: $mode, Telling: $tellingId)")
+                
+                if (mode == InstellingenScherm.STORAGE_MODE_ROOM) {
+                    hybridRepository.getWaarnemingenFlow(tellingId).collect { roomRecords ->
+                        _pendingRecords.postValue(roomRecords.map { it.toServerItem() })
+                    }
+                } else {
+                    recordsBeheer.pendingRecordsFlow.collect { list ->
+                        _pendingRecords.postValue(list)
+                    }
+                }
+            } catch (e: Exception) {
+                fileLogger.error("TellingViewModel: Fout bij observeren records: ${e.message}")
             }
         }
-        // seed current list
-        _pendingRecords.value = rb.getPendingRecordsSnapshot()
     }
 
     fun setTiles(list: List<SoortRow>) { _tiles.value = list }

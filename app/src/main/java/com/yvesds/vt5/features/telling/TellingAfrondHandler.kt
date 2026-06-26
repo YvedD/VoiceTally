@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.utils.SessionRemarksMarker
@@ -31,6 +32,8 @@ class TellingAfrondHandler(
     private val dataProcessor: TellingDataProcessor,
     private val envelopePersistence: TellingEnvelopePersistence? = null
 ) {
+    private val hybridRepository by lazy { HybridTellingRepository(context) }
+
     companion object {
         private const val TAG = "TellingAfrondHandler"
         private const val PREFS_NAME = "vt5_prefs"
@@ -225,6 +228,10 @@ class TellingAfrondHandler(
             try {
                 val tellingId = finalEnv.tellingid
                 val archiveOnlineId = effectiveOnlineId.ifBlank { finalEnv.onlineid }
+                
+                // Room shadow update: Update the header with final times and counts
+                hybridRepository.saveHeaderToRoom(finalEnv, status = "geupload")
+
                 if (prettyJson != null) {
                     envelopePersistence?.saveFinalEnvelopeToCountsDir(tellingId, archiveOnlineId, prettyJson)
                 } else {

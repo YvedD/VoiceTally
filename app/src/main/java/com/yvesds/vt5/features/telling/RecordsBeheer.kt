@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
+import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.network.DataUploader
 import com.yvesds.vt5.net.ServerTellingDataItem
@@ -50,8 +52,13 @@ class RecordsBeheer(
     private val json: Json = VT5App.json,
     private val envelopePersistence: TellingEnvelopePersistence? = null
 ) {
+    fun getContext(): Context = context
+
     private val PREFS_NAME = "vt5_prefs"
     private val PREF_TELLING_ID = "pref_telling_id"
+
+    private val hybridRepository by lazy { HybridTellingRepository(context) }
+    private val fileLogger by lazy { FileLogger(context) }
 
     private val mutex = Mutex()
     private val _pendingRecordsFlow = MutableStateFlow<List<ServerTellingDataItem>>(emptyList())
@@ -167,6 +174,9 @@ class RecordsBeheer(
             // Persist index (best-effort)
             persistIndex()
 
+            // Room shadow write
+            hybridRepository.saveWaarnemingToRoom(item)
+
             // Persist backups (best-effort). Do not hold mutex while performing heavy IO that may suspend.
             try {
                 val doc = writeRecordBackupSaf(tellingId, item)
@@ -270,6 +280,10 @@ class RecordsBeheer(
         }
         if (ok) {
             persistIndex()
+            
+            // Room shadow update
+            hybridRepository.saveWaarnemingToRoom(updated)
+
             // Also save full envelope after update
             try {
                 val currentRecords = _pendingRecordsFlow.value

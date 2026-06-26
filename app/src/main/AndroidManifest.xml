@@ -113,6 +113,37 @@
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />
 
+        <!-- DatabaseBeheerScherm -->
+        <activity
+            android:name=".core.database.ui.DatabaseBeheerScherm"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".core.database.ui.DatabaseTellingLijstActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".core.database.ui.DatabaseTellingDetailActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".core.database.ui.DatabaseRecordDetailActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".core.database.ui.DatabaseSoortOverzichtActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
         <!-- Uurlijks alarm receivers -->
         <receiver
             android:name=".core.app.HourlyAlarmManager$HourlyAlarmReceiver"

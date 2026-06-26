@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PromptTemplates">
+    <option name="builtInPromptOverrides">
+      <list>
+        <BuiltInPromptOverride>
+          <option name="groupId" value="rules" />
+          <option name="promptId" value="project" />
+          <option name="text" value="Werk uitsluitend via Android Studio projectcontext, tenzij ik expliciet terminalgebruik vraag.&#10;&#10;Gebruik geen terminalcommando's, geen PowerShell, geen cmd en geen Gradle-taken zonder mijn expliciete toestemming.&#10;&#10;Wijzig niets in settings.gradle.kts, app/build.gradle.kts of feature:telling zonder mijn expliciete toestemming.&#10;&#10;Maak geen nieuwe modules, rootmappen, packages of bestanden aan zonder mijn expliciete toestemming.&#10;&#10;Voer eerst een analyse uit en geef een wijzigingsplan. Pas daarna bestanden aan, en alleen na mijn expliciete akkoord.&#10;&#10;Werk bij refactoring altijd per bestand of per kleine afgebakende taak.&#10;&#10;Geef bij codewijzigingen altijd aan welke bestanden je wil wijzigen vóór je de wijziging uitvoert." />
+        </BuiltInPromptOverride>
+      </list>
+    </option>
+  </component>
+</project>

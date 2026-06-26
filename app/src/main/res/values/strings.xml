@@ -106,6 +106,31 @@
     <string name="hoofd_opkuis_fout">Fout bij opkuisen: %1$s</string>
     <string name="hoofd_opkuis_laden">Exports laden…</string>
     <string name="hoofd_instellingen">Instellingen</string>
+    <string name="hoofd_database_beheer">Database Beheer</string>
+
+    <!-- Database Beheer Scherm -->
+    <string name="db_beheer_titel">Database Beheer</string>
+    <string name="db_beheer_tabel_naam">Tabel: %1$s</string>
+    <string name="db_beheer_records_count">Records: %1$d</string>
+    <string name="db_beheer_wissen_records">Records Wissen</string>
+    <string name="db_beheer_wissen_tabel">Tabel Wissen (Drop)</string>
+    <string name="db_beheer_confirm_titel">Bevestig actie</string>
+    <string name="db_beheer_confirm_records_msg">Weet je zeker dat je alle records uit tabel %1$s wilt wissen? Dit kan NIET ongedaan worden gemaakt.</string>
+    <string name="db_beheer_confirm_tabel_msg">Weet je zeker dat je de tabel %1$s volledig wilt verwijderen en opnieuw aanmaken? Dit kan NIET ongedaan worden gemaakt en kan de app-stabiliteit beïnvloeden.</string>
+    <string name="db_beheer_actie_gelukt">Actie succesvol uitgevoerd</string>
+    <string name="db_beheer_actie_fout">Fout bij uitvoeren actie: %1$s</string>
+    <string name="db_beheer_log_records_gewist">GEBRUIKER: Alle records gewist uit tabel %1$s</string>
+    <string name="db_beheer_log_tabel_dropped">GEBRUIKER: Tabel %1$s is gedropt en opnieuw aangemaakt</string>
+    <string name="db_beheer_btn_sessies">Sessies (Telling Headers)</string>
+    <string name="db_beheer_btn_soort_zoeken">Zoek op Soortnaam</string>
+    <string name="db_beheer_sessie_overzicht">Sessie Overzicht</string>
+    <string name="db_beheer_telling_details">Telling Details</string>
+    <string name="db_beheer_metadata">Metadata</string>
+    <string name="db_beheer_gekoppelde_records">Gekoppelde Records</string>
+    <string name="db_beheer_record_bewerken">Record Bewerken</string>
+    <string name="db_beheer_hint_soortnaam">Type soortnaam...</string>
+    <string name="db_beheer_opslaan">Opslaan</string>
+    <string name="db_beheer_totaal_info">Totaal: %1$d exemplaren in %2$d waarnemingen.</string>
 
     <!-- InstellingenScherm -->
     <string name="instellingen_titel">Instellingen</string>
@@ -123,6 +148,11 @@
     <string name="instellingen_log_text_color_label">Tekstkleur logregels</string>
     <string name="instellingen_back_arrow">←</string>
     <string name="instellingen_permissions_title">Toestemmingen (info)</string>
+    <string name="instellingen_opslag_titel">Opslagmethode</string>
+    <string name="instellingen_opslag_json">Alleen JSON</string>
+    <string name="instellingen_opslag_room">Alleen ROOM</string>
+    <string name="instellingen_opslag_parallel">Parallel (JSON + ROOM)</string>
+    <string name="instellingen_opslag_omschrijving">Kies hoe waarnemingen moeten worden opgeslagen. Parallel wordt aanbevolen tijdens de migratie.</string>
     <string name="instellingen_double_tap_title">Double-tap verhoging op soorttegel</string>
     <string name="instellingen_double_tap_5">+5</string>
     <string name="instellingen_double_tap_10">+10</string>
