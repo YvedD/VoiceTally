@@ -14,7 +14,7 @@ import java.util.TimeZone
 object StartTellingApi {
 
     fun buildEnvelopeFromUi(
-        tellingId: Long,
+        tellingId: String,
         telpostId: String,
         begintijdEpochSec: Long,
         eindtijdEpochSec: Long,
@@ -33,9 +33,9 @@ object StartTellingApi {
     ): List<ServerTellingEnvelope> {
 
         val nowStr = nowAsSqlLike()
-        val externId = "Android App 1.8.45"
+        val externId = "VoiceTally5 1.f"
         val timezone = "Europe/Brussels"
-        val bron = "4"
+        val bron = "2"
 
         val windkracht = (windkrachtBftOnly ?: "").ifEmpty { "" }
         val temperatuur = (temperatuurC ?: "").ifEmpty { "" }
@@ -49,7 +49,7 @@ object StartTellingApi {
             timezoneid = timezone,
             bron = bron,
             idLocal = "",                     // "_id" leeg
-            tellingid = tellingId.toString(),
+            tellingid = tellingId,
             telpostid = telpostId,
             begintijd = begintijdEpochSec.toString(),
             eindtijd = if (liveMode) "" else eindtijdEpochSec.toString(),  // ← live: eindtijd leeg

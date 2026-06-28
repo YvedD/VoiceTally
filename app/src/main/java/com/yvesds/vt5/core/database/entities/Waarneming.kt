@@ -8,9 +8,12 @@ import androidx.room.PrimaryKey
 /**
  * Waarneming: Bevat de individuele records inclusief alle annotaties.
  * Alle velden zijn Strings voor server-compatibiliteit.
+ * 
+ * Primary Key is een combinatie van idLocal en tellingid om uniekheid over sessies heen te garanderen.
  */
 @Entity(
     tableName = "waarnemingen",
+    primaryKeys = ["idLocal", "tellingid"],
     foreignKeys = [
         ForeignKey(
             entity = TellingHeader::class,
@@ -22,7 +25,7 @@ import androidx.room.PrimaryKey
     indices = [Index(value = ["tellingid"]), Index(value = ["soortid"])]
 )
 data class Waarneming(
-    @PrimaryKey val idLocal: String,
+    val idLocal: String,
     val tellingid: String,
     val soortid: String = "",
     val aantal: String = "0",

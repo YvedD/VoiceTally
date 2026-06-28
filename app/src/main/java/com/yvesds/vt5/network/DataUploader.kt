@@ -239,20 +239,9 @@ object DataUploader {
 
     /**
      * Helper: per-telling incremental _id generator (returns string id)
-     * - stores next id under prefs key: "pref_next_record_id_<tellingId>"
+     * Gebruikt nu de moderne DataStore voor persistente opslag.
      */
-    fun getAndIncrementRecordId(context: Context, tellingId: String): String {
-        try {
-            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            val key = "pref_next_record_id_$tellingId"
-            val current = prefs.getLong(key, 1L)
-            val next = current
-            prefs.edit().putLong(key, current + 1L).apply()
-            return next.toString()
-        } catch (e: Exception) {
-            Log.w(TAG, "getAndIncrementRecordId failed: ${e.message}", e)
-            // fallback to timestamp-based id
-            return (System.currentTimeMillis() / 1000L).toString()
-        }
+    suspend fun getAndIncrementRecordId(context: Context, tellingId: String): String {
+        return com.yvesds.vt5.core.opslag.AppDataStore.nextRecordId(context, tellingId)
     }
 }

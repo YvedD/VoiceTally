@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="20dp"
+    android:layout_marginBottom="40dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="15dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="12dp">
@@ -30,7 +33,7 @@
             android:layout_weight="1"
             android:text="@string/db_beheer_telling_details"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
@@ -48,54 +51,75 @@
         android:alpha="0.3"
         android:background="@color/vt5_on_surface" />
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="16dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
                 android:text="@string/db_beheer_metadata"
-                android:textColor="@color/vt5_on_surface"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/containerMetadata"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/vt5_light_blue"
+                app:strokeWidth="1dp">
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="24dp"
-                android:alpha="0.3"
-                android:background="@color/vt5_on_surface" />
+                <!-- Op Tablet gebruiken we een FlexboxLayout zodat velden naast elkaar komen -->
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/containerMetadata"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    app:flexDirection="row"
+                    app:flexWrap="wrap"
+                    app:justifyContent="flex_start" />
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:layout_marginBottom="12dp"
                 android:text="@string/db_beheer_gekoppelde_records"
-                android:textColor="@color/vt5_on_surface"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="16sp"
+                android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/containerRecords"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:strokeColor="@color/vt5_light_blue"
+                app:strokeWidth="1dp">
+
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/containerRecords"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"
+                    app:flexDirection="row"
+                    app:flexWrap="wrap"
+                    app:justifyContent="flex_start" />
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

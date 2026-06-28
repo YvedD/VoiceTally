@@ -171,15 +171,10 @@ class VT5App : Application() {
         }
 
         /**
-         * Geef volgende telling-id terug als String en verhoog de teller.
-         * Thread-safe via @Synchronized.
+         * Geef volgende telling-id terug als String en verhoog de teller via DataStore.
          */
-        @Synchronized
-        fun nextTellingId(): String {
-            val p = prefs()
-            val current = p.getLong(KEY_TELLING_ID, 1L)
-            p.edit { putLong(KEY_TELLING_ID, current + 1L) }
-            return current.toString()
+        suspend fun nextTellingId(): String {
+            return com.yvesds.vt5.core.opslag.AppDataStore.nextTellingId(instance)
         }
 
         // ====== Shared singletons ======

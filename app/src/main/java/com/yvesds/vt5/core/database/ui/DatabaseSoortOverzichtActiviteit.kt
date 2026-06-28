@@ -1,5 +1,6 @@
 package com.yvesds.vt5.core.database.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -72,23 +73,33 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     ) : RecyclerView.Adapter<WaarnemingAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val tvTitel: TextView = view.findViewById(android.R.id.text1)
-            val tvSubtitel: TextView = view.findViewById(android.R.id.text2)
+            val tvIndex: TextView = view.findViewById(R.id.tvIndex)
+            val tvSoortNaam: TextView = view.findViewById(R.id.tvSoortNaam)
+            val tvDetails: TextView = view.findViewById(R.id.tvDetails)
+            val tvAantal: TextView = view.findViewById(R.id.tvAantal)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
-                .inflate(android.R.layout.simple_list_item_2, parent, false)
+                .inflate(R.layout.item_db_waarneming, parent, false)
             return ViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
-            holder.tvTitel.text = "$soortNaam (${item.aantal} ex)"
-            holder.tvTitel.setTextColor(resources.getColor(R.color.vt5_on_surface))
-            holder.tvSubtitel.text = "Telling: ${item.tellingid} | Tijd: ${item.tijdstip} | Opmerking: ${item.opmerkingen}"
-            holder.tvSubtitel.setTextColor(resources.getColor(R.color.vt5_on_surface))
-            holder.tvSubtitel.alpha = 0.7f
+            holder.tvIndex.text = (position + 1).toString()
+            holder.tvSoortNaam.text = soortNaam
+            
+            val readableTime = SpeciesNameResolver.formatTimestamp(item.tijdstip)
+            holder.tvDetails.text = "Sessie: ${item.tellingid} | Tijd: $readableTime"
+            holder.tvAantal.text = item.aantal
+            
+            holder.itemView.setOnClickListener {
+                val intent = Intent(this@DatabaseSoortOverzichtActiviteit, DatabaseRecordDetailActiviteit::class.java)
+                intent.putExtra("recordid", item.idLocal)
+                intent.putExtra("tellingid", item.tellingid)
+                startActivity(intent)
+            }
         }
 
         override fun getItemCount() = items.size

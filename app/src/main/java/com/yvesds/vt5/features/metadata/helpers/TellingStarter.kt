@@ -58,12 +58,7 @@ class TellingStarter(
     ): StartResult = withContext(Dispatchers.IO) {
         try {
             // Generate telling ID
-            val tellingIdLong = try {
-                VT5App.nextTellingId().toLong()
-            } catch (ex: Exception) {
-                Log.w(TAG, "nextTellingId->Long failed: ${ex.message}")
-                (System.currentTimeMillis() / 1000L)
-            }
+            val tellingId = VT5App.nextTellingId()
 
             // Get form values
             val begintijdEpoch = formManager.computeBeginEpochSec()
@@ -85,7 +80,7 @@ class TellingStarter(
             
             // Build envelope (live mode = true so eindtijd == "")
             val envelope = StartTellingApi.buildEnvelopeFromUi(
-                tellingId = tellingIdLong,
+                tellingId = tellingId,
                 telpostId = telpostId,
                 begintijdEpochSec = begintijdEpoch,
                 eindtijdEpochSec = eindtijdEpoch,
@@ -136,20 +131,11 @@ class TellingStarter(
 
             // Store in preferences
             prefs.edit {
-                putString(PREF_TELLING_ID, tellingIdLong.toString())
+                putString(PREF_TELLING_ID, tellingId)
             }
 
             // Mark this telling as not sent yet
-            TellingUploadFlags.markNotSent(context, tellingIdLong.toString(), onlineId)
-
-            // Initialize record counter
-            try {
-                prefs.edit {
-                    putLong("pref_next_record_id_$tellingIdLong", 1L)
-                }
-            } catch (ex: Exception) {
-                Log.w(TAG, "Failed initializing next record id: ${ex.message}")
-            }
+            TellingUploadFlags.markNotSent(context, tellingId, onlineId)
 
             // Room shadow write: Save the header
             hybridRepository.saveHeaderToRoom(preparedEnvelope)

@@ -67,7 +67,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val STORAGE_MODE_JSON = "json"
         const val STORAGE_MODE_ROOM = "room"
         const val STORAGE_MODE_PARALLEL = "parallel"
-        const val DEFAULT_STORAGE_MODE = STORAGE_MODE_JSON
+        const val DEFAULT_STORAGE_MODE = STORAGE_MODE_PARALLEL
 
         private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
         private val TILE_TAP_GROUP_WINDOW_OPTIONS = listOf(2, 3, 5, 8, 10, 12, 15)

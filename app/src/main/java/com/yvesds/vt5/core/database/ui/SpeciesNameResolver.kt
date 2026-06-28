@@ -25,4 +25,19 @@ object SpeciesNameResolver {
         val snap = ServerDataCache.getOrLoad(context)
         return snap.speciesById.values.toList().sortedBy { it.soortnaam }
     }
+
+    /**
+     * Vertaalt een Unix timestamp (seconden) naar een leesbare datum/tijd.
+     */
+    fun formatTimestamp(epochSecs: String?): String {
+        if (epochSecs.isNullOrBlank()) return ""
+        return try {
+            val seconds = epochSecs.toLong()
+            val date = java.util.Date(seconds * 1000L)
+            val sdf = java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss", java.util.Locale.getDefault())
+            sdf.format(date)
+        } catch (e: Exception) {
+            epochSecs
+        }
+    }
 }

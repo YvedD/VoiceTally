@@ -68,8 +68,15 @@ class HybridTellingRepository(private val context: Context) {
                     uploadtijdstip = item.uploadtijdstip,
                     totaalaantal = item.totaalaantal
                 )
+                
+                // Check of de header bestaat (optioneel, voor debugging)
+                val header = tellingDao.getHeader(item.tellingid)
+                if (header == null) {
+                    fileLogger.warn("ROOM: Waarschuwing - Waarneming ingevoegd voor onbekende telling [${item.tellingid}]")
+                }
+                
                 tellingDao.insertWaarneming(entity)
-                fileLogger.info("ROOM: Waarneming [${item.idLocal}] succesvol ingevoegd in database")
+                fileLogger.info("ROOM: Waarneming [${item.idLocal}] voor telling [${item.tellingid}] succesvol opgeslagen")
                 
                 // Kopieer database naar zichtbare SAF map voor controle
                 exportDatabaseToSaf()
@@ -142,9 +149,18 @@ class HybridTellingRepository(private val context: Context) {
         try {
             // 1. Forceer een checkpoint om data van WAL naar DB file te pushen
             try {
-                database.openHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(FULL)")
+                // Gebruik rawQuery voor PRAGMAs die resultaten teruggeven om "unknown error (code 0 SQLITE_OK)" te vermijden
+                database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { cursor ->
+                    // Cursor consumeren/sluiten triggert de actie
+                    if (cursor.moveToFirst()) {
+                        val busy = cursor.getInt(0)
+                        val log = cursor.getInt(1)
+                        val checkpointed = cursor.getInt(2)
+                        fileLogger.info("Database checkpoint resultaat: busy=$busy, log=$log, checkpointed=$checkpointed")
+                    }
+                }
             } catch (e: Exception) {
-                fileLogger.warn("Database checkpoint mislukt: ${e.message}")
+                fileLogger.warn("Database checkpoint mislukt of waarschuwing: ${e.message}")
             }
 
             // 2. Definieer bronpaden

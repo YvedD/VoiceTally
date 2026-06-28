@@ -73,8 +73,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.21")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // WorkManager (toegevoegd)
+    // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
+
+    // DataStore (toegevoegd voor moderne persistente opslag)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Room Database
     val roomVersion = "2.8.4"

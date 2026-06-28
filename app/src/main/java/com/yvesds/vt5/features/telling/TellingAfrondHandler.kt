@@ -231,6 +231,11 @@ class TellingAfrondHandler(
                 
                 // Room shadow update: Update the header with final times and counts
                 hybridRepository.saveHeaderToRoom(finalEnv, status = "geupload")
+                
+                // Extra check: Ensure all records are also in Room
+                recordsSnapshot.forEach { record ->
+                    hybridRepository.saveWaarnemingToRoom(record)
+                }
 
                 if (prettyJson != null) {
                     envelopePersistence?.saveFinalEnvelopeToCountsDir(tellingId, archiveOnlineId, prettyJson)

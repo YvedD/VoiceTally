@@ -3,6 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="15dp"
+    android:layout_marginBottom="40dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
@@ -49,54 +51,87 @@
         android:alpha="0.3"
         android:background="@color/vt5_on_surface" />
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="10dp"
+            android:paddingBottom="40dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
                 android:text="@string/db_beheer_metadata"
-                android:textColor="@color/vt5_on_surface"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/containerMetadata"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/vt5_light_blue"
+                app:strokeWidth="1dp">
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
-                android:alpha="0.3"
-                android:background="@color/vt5_on_surface" />
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/containerMetadata"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="4dp"
+                    app:flexDirection="row"
+                    app:flexWrap="wrap"
+                    app:justifyContent="flex_start" />
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"
                 android:text="@string/db_beheer_gekoppelde_records"
-                android:textColor="@color/vt5_on_surface"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
-            <LinearLayout
-                android:id="@+id/containerRecords"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/vt5_light_blue"
+                app:strokeWidth="1dp">
+
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/containerRecords"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="4dp"
+                    app:flexDirection="row"
+                    app:flexWrap="wrap"
+                    app:justifyContent="flex_start" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUploadServer"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="Sync: Alle wijzigingen naar Server pushen"
+                android:textColor="@color/vt5_orange"
+                app:icon="@android:drawable/stat_sys_upload"
+                app:iconTint="@color/vt5_orange"
+                app:strokeColor="@color/vt5_orange" />
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

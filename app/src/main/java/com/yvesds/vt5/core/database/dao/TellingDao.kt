@@ -42,8 +42,8 @@ interface TellingDao {
     @Query("SELECT * FROM waarnemingen WHERE soortid = :soortId ORDER BY tijdstip DESC")
     suspend fun getWaarnemingenBySoort(soortId: String): List<Waarneming>
 
-    @Query("SELECT * FROM waarnemingen WHERE idLocal = :idLocal")
-    suspend fun getWaarnemingById(idLocal: String): Waarneming?
+    @Query("SELECT * FROM waarnemingen WHERE idLocal = :idLocal AND tellingid = :tellingId")
+    suspend fun getWaarnemingById(idLocal: String, tellingId: String): Waarneming?
 
     @Query("DELETE FROM waarnemingen WHERE tellingid = :tellingId")
     suspend fun deleteWaarnemingenVoorTelling(tellingId: String)

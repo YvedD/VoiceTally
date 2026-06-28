@@ -27,6 +27,7 @@ class DatabaseRecordDetailActiviteit : AppCompatActivity() {
     private lateinit var fileLogger: FileLogger
     private lateinit var containerVelden: LinearLayout
     private var currentRecordId: String? = null
+    private var currentTellingId: String? = null
     private var currentRecord: Waarneming? = null
     
     private var selectedSoortId: String? = null
@@ -39,6 +40,7 @@ class DatabaseRecordDetailActiviteit : AppCompatActivity() {
         fileLogger = FileLogger(this)
         containerVelden = findViewById(R.id.containerVelden)
         currentRecordId = intent.getStringExtra("recordid")
+        currentTellingId = intent.getStringExtra("tellingid")
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
         findViewById<MaterialButton>(R.id.btnOpslaan).setOnClickListener { saveChanges() }
@@ -47,9 +49,10 @@ class DatabaseRecordDetailActiviteit : AppCompatActivity() {
     }
 
     private fun loadData() {
-        val id = currentRecordId ?: return
+        val rid = currentRecordId ?: return
+        val tid = currentTellingId ?: return
         lifecycleScope.launch {
-            val record = database.tellingDao().getWaarnemingById(id) ?: return@launch
+            val record = database.tellingDao().getWaarnemingById(rid, tid) ?: return@launch
             currentRecord = record
             selectedSoortId = record.soortid
             renderFields(record)
@@ -129,7 +132,17 @@ class DatabaseRecordDetailActiviteit : AppCompatActivity() {
 
     private fun addEditField(label: String, value: String, enabled: Boolean = true) {
         val view = LayoutInflater.from(this).inflate(R.layout.item_db_veld_edit, containerVelden, false)
-        view.findViewById<TextView>(R.id.tvLabel).text = label
+        
+        val displayLabel = if (label.contains("tijd", ignoreCase = true) || label == "tijdstip" || label == "uploadtijdstip") {
+            "$label (${SpeciesNameResolver.formatTimestamp(value)})"
+        } else {
+            label
+        }
+        
+        val tvLabel = view.findViewById<TextView>(R.id.tvLabel)
+        tvLabel.text = displayLabel
+        tvLabel.tag = label // Originele naam bewaren
+
         val et = view.findViewById<EditText>(R.id.etValue)
         et.setText(value)
         et.isEnabled = enabled
@@ -144,7 +157,7 @@ class DatabaseRecordDetailActiviteit : AppCompatActivity() {
         for (i in 0 until containerVelden.childCount) {
             val row = containerVelden.getChildAt(i)
             val labelView = row.findViewById<TextView>(R.id.tvLabel) ?: continue
-            val label = labelView.text.toString()
+            val label = labelView.tag?.toString() ?: labelView.text.toString()
             
             if (label != "Soort (Zoek op naam)") {
                 val et = row.findViewById<EditText>(R.id.etValue)

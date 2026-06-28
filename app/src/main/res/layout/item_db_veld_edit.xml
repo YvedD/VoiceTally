@@ -2,23 +2,25 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:minWidth="120dp"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="6dp">
 
     <TextView
         android:id="@+id/tvLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:alpha="0.6"
         android:textColor="@color/vt5_on_surface"
-        android:textSize="12sp"
-        android:alpha="0.6" />
+        android:textSize="11sp" />
 
     <EditText
         android:id="@+id/etValue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:backgroundTint="@color/vt5_light_blue"
+        android:paddingVertical="4dp"
+        android:singleLine="true"
         android:textColor="@color/vt5_on_surface"
-        android:textSize="16sp"
-        android:backgroundTint="@color/vt5_on_surface"
-        android:singleLine="true" />
+        android:textSize="14sp" />
 </LinearLayout>

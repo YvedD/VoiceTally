@@ -51,23 +51,31 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
     ) : RecyclerView.Adapter<TellingAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val tvTitel: TextView = view.findViewById(android.R.id.text1)
-            val tvSubtitel: TextView = view.findViewById(android.R.id.text2)
+            val tvTellingId: TextView = view.findViewById(R.id.tvTellingId)
+            val tvOnlineId: TextView = view.findViewById(R.id.tvOnlineId)
+            val tvTijd: TextView = view.findViewById(R.id.tvTijd)
+            val tvStats: TextView = view.findViewById(R.id.tvStats)
+            val tvStatus: TextView = view.findViewById(R.id.tvStatus)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context)
-                .inflate(android.R.layout.simple_list_item_2, parent, false)
+                .inflate(R.layout.item_db_telling_sessie, parent, false)
             return ViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
-            holder.tvTitel.text = "Telling: ${item.tellingid} (${item.onlineid})"
-            holder.tvTitel.setTextColor(resources.getColor(R.color.vt5_on_surface))
-            holder.tvSubtitel.text = "Start: ${item.begintijd} | Records: ${item.nrec} | Status: ${item.status}"
-            holder.tvSubtitel.setTextColor(resources.getColor(R.color.vt5_on_surface))
-            holder.tvSubtitel.alpha = 0.7f
+            holder.tvTellingId.text = item.tellingid
+            holder.tvOnlineId.text = "Online ID: ${item.onlineid.ifBlank { "N/A" }}"
+            
+            val start = SpeciesNameResolver.formatTimestamp(item.begintijd)
+            val eind = if (item.eindtijd.isNotBlank()) SpeciesNameResolver.formatTimestamp(item.eindtijd) else "..."
+            holder.tvTijd.text = "$start - $eind"
+
+            holder.tvStats.text = "${item.nrec} rec • ${item.nsoort} soorten"
+            holder.tvStatus.text = item.status.uppercase()
+
             holder.itemView.setOnClickListener { onClick(item) }
         }
 

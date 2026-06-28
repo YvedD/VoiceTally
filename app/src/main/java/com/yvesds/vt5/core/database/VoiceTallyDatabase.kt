@@ -13,7 +13,7 @@ import java.io.File
 
 @Database(
     entities = [TellingHeader::class, Waarneming::class, SyncLog::class],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class VoiceTallyDatabase : RoomDatabase() {
@@ -33,6 +33,12 @@ abstract class VoiceTallyDatabase : RoomDatabase() {
                     VoiceTallyDatabase::class.java,
                     dbFile.absolutePath
                 )
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        db.execSQL("PRAGMA foreign_keys = ON")
+                    }
+                })
                 .fallbackToDestructiveMigration() // Voor ontwikkeling, later wijzigen naar echte migraties
                 .build()
                 INSTANCE = instance
