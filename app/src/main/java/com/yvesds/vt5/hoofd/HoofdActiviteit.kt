@@ -33,6 +33,8 @@ import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
 import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.features.telling.TellingUploadFlags
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
 import com.yvesds.vt5.core.ui.DialogStyler
 import kotlinx.coroutines.Dispatchers
@@ -215,15 +217,47 @@ class HoofdActiviteit : AppCompatActivity() {
         if (pendingTellingDialogShown) return
         lifecycleScope.launch {
             try {
-                val envelopePersistence = TellingEnvelopePersistence(this@HoofdActiviteit, safHelper)
-                val hasSaved = envelopePersistence.hasSavedEnvelope()
-                if (!hasSaved) return@launch
+                val mode = InstellingenScherm.getStorageMode(this@HoofdActiviteit)
+                val isHybrid = mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL
+                
+                val tellingId: String
+                val onlineId: String
+                val hasPending: Boolean
 
-                val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return@launch
-                if (savedEnvelope.data.isEmpty()) return@launch
+                if (isHybrid) {
+                    val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
+                    tellingId = prefs.getString("pref_telling_id", "") ?: ""
+                    onlineId = prefs.getString("pref_online_id", "") ?: ""
+                    
+                    if (tellingId.isBlank()) {
+                        hasPending = false
+                    } else {
+                        val hybridRepo = HybridTellingRepository(this@HoofdActiviteit)
+                        val header = withContext(Dispatchers.IO) { 
+                            VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao().getHeader(tellingId) 
+                        }
+                        // Sessie is pending als status 'actief' is en er records zijn
+                        if (header != null && header.status == "actief") {
+                            val count = withContext(Dispatchers.IO) { 
+                                VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao().getWaarnemingenList(tellingId).size 
+                            }
+                            hasPending = count > 0
+                        } else {
+                            hasPending = false
+                        }
+                    }
+                } else {
+                    val envelopePersistence = TellingEnvelopePersistence(this@HoofdActiviteit, safHelper)
+                    val savedEnvelope = if (envelopePersistence.hasSavedEnvelope()) envelopePersistence.loadSavedEnvelope() else null
+                    tellingId = savedEnvelope?.tellingid ?: ""
+                    onlineId = savedEnvelope?.onlineid ?: ""
+                    hasPending = savedEnvelope != null && savedEnvelope.data.isNotEmpty()
+                }
 
-                if (TellingUploadFlags.isSent(this@HoofdActiviteit, savedEnvelope.tellingid, savedEnvelope.onlineid)) {
-                    Log.i(TAG, "Pending envelope already marked as sent; skipping prompt")
+                if (!hasPending) return@launch
+
+                if (TellingUploadFlags.isSent(this@HoofdActiviteit, tellingId, onlineId)) {
+                    Log.i(TAG, "Pending session already marked as sent; skipping prompt")
                     return@launch
                 }
 
@@ -239,7 +273,8 @@ class HoofdActiviteit : AppCompatActivity() {
                         }
                         .setNegativeButton(getString(R.string.pending_telling_delete)) { _, _ ->
                             lifecycleScope.launch {
-                                deletePendingTelling(envelopePersistence, savedEnvelope.tellingid, savedEnvelope.onlineid)
+                                val envelopePersistence = TellingEnvelopePersistence(this@HoofdActiviteit, safHelper)
+                                deletePendingTelling(envelopePersistence, tellingId, onlineId)
                             }
                         }
                         .setOnDismissListener { pendingTellingDialogShown = false }

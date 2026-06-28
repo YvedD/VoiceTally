@@ -28,6 +28,7 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.app.HourlyAlarmManager
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.core.opslag.FileLogger
@@ -1865,15 +1866,14 @@ class TellingScherm : AppCompatActivity() {
             val tellingId: String
             val onlineId: String
 
-            if (mode == InstellingenScherm.STORAGE_MODE_ROOM) {
-                // Restore from Room
+            if (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
+                // Restore from Room (Primary source in Hybrid mode)
                 tellingId = prefs.getString("pref_telling_id", "") ?: ""
                 onlineId = prefs.getString("pref_online_id", "") ?: ""
                 if (tellingId.isBlank()) return
                 
-                val hybridRepository = HybridTellingRepository(this)
                 val roomRecords = withContext(Dispatchers.IO) {
-                    hybridRepository.getWaarnemingenList(tellingId)
+                    VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao().getWaarnemingenList(tellingId)
                 }
                 savedRecords = roomRecords.map { it.toServerItem() }
             } else {

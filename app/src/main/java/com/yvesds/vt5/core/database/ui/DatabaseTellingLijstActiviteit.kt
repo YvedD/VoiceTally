@@ -36,7 +36,7 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
 
     private fun loadTellingen() {
         lifecycleScope.launch {
-            val tellingen = database.tellingDao().getAllHeaders()
+            val tellingen = database.tellingDao().getAllHeaders().sortedByDescending { it.tellingid }
             recyclerView.adapter = TellingAdapter(tellingen) { telling ->
                 val intent = Intent(this@DatabaseTellingLijstActiviteit, DatabaseTellingDetailActiviteit::class.java)
                 intent.putExtra("tellingid", telling.tellingid)
