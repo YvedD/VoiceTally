@@ -78,8 +78,7 @@ class HybridTellingRepository(private val context: Context) {
                 tellingDao.insertWaarneming(entity)
                 fileLogger.info("ROOM: Waarneming [${item.idLocal}] voor telling [${item.tellingid}] succesvol opgeslagen")
                 
-                // Kopieer database naar zichtbare SAF map voor controle
-                exportDatabaseToSaf()
+                // exportDatabaseToSaf() // UITGESCHAKELD voor snelheid in Hybride modus
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan waarneming [${item.idLocal}]: ${e.message}")
                 android.util.Log.e("HybridRepo", "DB Insert error", e)
@@ -134,8 +133,7 @@ class HybridTellingRepository(private val context: Context) {
                 tellingDao.insertHeader(header)
                 fileLogger.info("ROOM: Header voor telling [${envelope.tellingid}] opgeslagen (Status: $status)")
                 
-                // Kopieer database naar zichtbare SAF map voor controle
-                exportDatabaseToSaf()
+                // exportDatabaseToSaf() // UITGESCHAKELD voor snelheid in Hybride modus
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan header [${envelope.tellingid}]: ${e.message}")
             }
@@ -143,9 +141,9 @@ class HybridTellingRepository(private val context: Context) {
     }
 
     /**
-     * Kopieert het interne SQLite databasebestand naar de zichtbare SAF map (/VT5/database/).
+     * Handmatige backup: Kopieert het interne SQLite databasebestand naar de zichtbare SAF map (/VT5/database/).
      */
-    suspend fun exportDatabaseToSaf() = withContext(Dispatchers.IO) {
+    suspend fun forceDatabaseBackup() = withContext(Dispatchers.IO) {
         try {
             // 1. Forceer een checkpoint om data van WAL naar DB file te pushen
             try {

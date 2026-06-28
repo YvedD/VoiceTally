@@ -555,8 +555,8 @@ class TellingScherm : AppCompatActivity() {
                     // Room shadow update
                     hybridRepository.saveWaarnemingToRoom(updated)
 
-                    val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                    envelopePersistence.saveEnvelopeWithRecords(records)
+                    // val records = synchronized(pendingRecords) { pendingRecords.toList() }
+                    // envelopePersistence.saveEnvelopeWithRecords(records) // UITGESCHAKELD
                 } catch (ex: Exception) {
                     Log.w(TAG, "Room/Envelope persistence failed after record update: ${ex.message}", ex)
                 }
@@ -2803,7 +2803,7 @@ class TellingScherm : AppCompatActivity() {
         val recordsSnapshot = synchronized(pendingRecords) { pendingRecords.toList() }
         ensureTilesExistForRecords(recordsSnapshot)
         tegelBeheer.recalculateCountsFromRecords(recordsSnapshot)
-        persistEnvelopeAsync()
+        // persistEnvelopeAsync() // UITGESCHAKELD
         syncDailyTotalsRecord(updated)
         syncDailyObservationRecord(updated)
 
@@ -3102,7 +3102,7 @@ class TellingScherm : AppCompatActivity() {
                 viewModel.setPendingRecords(pendingRecords.toList())
             }
         }
-        persistEnvelopeAsync()
+        // persistEnvelopeAsync() // UITGESCHAKELD: Room is nu de bron tijdens het tellen
         syncDailyTotalsRecord(item)
         syncDailyObservationRecord(item, refreshOrder = false)
         
