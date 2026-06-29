@@ -64,7 +64,7 @@ object AlarmSoundHelper {
                         }
                     }
                     setOnErrorListener { mp, what, extra ->
-                        Log.e(TAG, "MediaPlayer error: what=$what, extra=$extra")
+                        Log.e(TAG, "MediaPlayer fout: what=$what, extra=$extra")
                         synchronized(mediaPlayerLock) {
                             mp.release()
                             if (mediaPlayer === mp) {

@@ -10,14 +10,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * SaFStorageHelper
- *
- * - Keeps the original synchronous helpers for compatibility.
- * - Adds suspend wrappers that execute DocumentFile/contentResolver work on Dispatchers.IO.
- * - Callers in coroutines should prefer the suspend variants (foldersExistSuspend, ensureFoldersSuspend, getVt5DirIfExistsSuspend, findOrCreateDirectorySuspend)
- *   to avoid blocking the UI thread.
- *
- * Note: DocumentFile.listFiles() and contentResolver I/O can be slow on some devices. Always prefer the suspend wrappers in production code.
+ * SaFStorageHelper - Behoudt de originele synchrone helpers voor compatibiliteit.
+ * Voegt suspend-wrappers toe die DocumentFilecontentResolver uitvoeren op Dispatchers.IO.
+ * Aanroepers in coroutines moeten de suspend-varianten (
+ * foldersExistSuspend,
+ * ensureFoldersSuspend,
+ * getVt5DirIfExistsSuspend,
+ * findOrCreateDirectorySuspend)
+ * prefereren om te voorkomen dat de UI-thread wordt geblokkeerd.
+ * Opmerking: DocumentFile.listFiles() en contentResolver IO kunnen op sommige apparaten traag zijn.
+ * Ik geef altijd de voorkeur aan de suspend wrappers in productiecode.
  */
 class SaFStorageHelper(private val context: Context) {
 
@@ -36,7 +38,7 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Ensure we have persistable permission for the selected tree.
+     * Zorg ervoor dat we een volhoudbare toestemming hebben voor de geselecteerde boom.
      */
     fun takePersistablePermission(uri: Uri) {
         val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -48,28 +50,28 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Synchronous variant: check if VT5 root and subfolders exist.
-     * Prefer foldersExistSuspend() when called from a coroutine.
+     * Synchrone variant: controleer of VT5 root- en submappen bestaan.
+     * Prefereer mappenExistSuspend() wanneer je wordt aangeroepen vanuit een coroutine.
      */
     fun foldersExist(): Boolean {
         val rootTree = getRootUri() ?: return false
         val rootDoc = DocumentFile.fromTreeUri(context, rootTree) ?: return false
         val vt5 = rootDoc.findFile("VT5")?.takeIf { it.isDirectory } ?: return false
-        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "database")
+        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs")
         val present = vt5.listFiles().filter { it.isDirectory }.mapNotNull { it.name }.toSet()
         return expected.all { it in present }
     }
 
     /**
-     * Suspend variant of foldersExist() (runs on Dispatchers.IO).
+     * Suspend variant van foldersExist() (draait op Dispatchers.IO).
      */
     suspend fun foldersExistSuspend(): Boolean = withContext(Dispatchers.IO) {
         foldersExist()
     }
 
     /**
-     * Synchronous ensure (idempotent) of VT5 tree and subfolders.
-     * Prefer ensureFoldersSuspend() in coroutine contexts.
+     * Synchrone ensure (idempotent) van de VT5-boom en submappen.
+     * Geef de voorkeur aan ensureFoldersSuspend() in coroutinecontexten.
      */
     fun ensureFolders(): Boolean {
         val rootTree = getRootUri() ?: return false
@@ -85,15 +87,15 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Suspend variant of ensureFolders (runs on Dispatchers.IO).
+     * Suspend-variant van ensureFolders (draait op Dispatchers.IO).
      */
     suspend fun ensureFoldersSuspend(): Boolean = withContext(Dispatchers.IO) {
         ensureFolders()
     }
 
     /**
-     * Synchronous get VT5 DocumentFile if it exists.
-     * Prefer getVt5DirIfExistsSuspend() when calling from coroutine.
+     * Synchronous download VT5 DocumentFile als die bestaat.
+     * Prefereer getVt5DirIfExistsSuspend() wanneer je vanuit coroutine aanroept.
      */
     fun getVt5DirIfExists(): DocumentFile? {
         val rootTree = getRootUri() ?: return null
@@ -101,16 +103,15 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Suspend variant (runs on Dispatchers.IO).
+     * Suspend-variant (draait op Dispatchers.IO).
      */
     suspend fun getVt5DirIfExistsSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
         getVt5DirIfExists()
     }
 
     /**
-     * Find existing directory by exact name (case-sensitive) or create it.
-     *
-     * Note: listFiles() can be slow — prefer calling this via the suspend wrapper.
+     * Zoek een bestaande map op exacte naam (hoofdlettergevoelig) of maak deze aan.
+     * Opmerking: listFiles() kan traag zijn — geef de voorkeur aan dit aan te roepen via de suspend wrapper.
      */
     fun findOrCreateDirectory(parent: DocumentFile, name: String): DocumentFile? {
         parent.listFiles().firstOrNull { it.isDirectory && it.name == name }?.let { return it }
@@ -118,7 +119,7 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Suspend-safe wrapper for findOrCreateDirectory.
+     * Suspend-safe wrapper voor findOrCreateDirectory.
      */
     suspend fun findOrCreateDirectorySuspend(parent: DocumentFile, name: String): DocumentFile? = withContext(Dispatchers.IO) {
         findOrCreateDirectory(parent, name)
@@ -129,26 +130,24 @@ class SaFStorageHelper(private val context: Context) {
     // ========================================================================
     
     /**
-     * Get the counts directory (Documents/VT5/counts/) if it exists.
-     * 
-     * @return DocumentFile for counts directory, or null if not available
-     */
+    * Download de counts-map (DocumentsVT5counts) als die bestaat.
+    * @return DocumentFile voor de counts-map, of null als niet beschikbaar
+    */
     fun getCountsDir(): DocumentFile? {
         val vt5Dir = getVt5DirIfExists() ?: return null
         return vt5Dir.findFile(COUNTS_DIR)?.takeIf { it.isDirectory }
     }
     
     /**
-     * Suspend variant of getCountsDir().
+     * Suspend variant van getCountsDir().
      */
     suspend fun getCountsDirSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
         getCountsDir()
     }
     
     /**
-     * List all files in the counts directory.
-     * 
-     * @return List of DocumentFile objects for files in counts directory
+     * Vermeld alle bestanden in de counts-map.
+     * @return Lijst van DocumentFile-objecten voor bestanden in counts-directory
      */
     fun listCountsFiles(): List<DocumentFile> {
         val countsDir = getCountsDir() ?: return emptyList()
@@ -156,17 +155,16 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of listCountsFiles().
+     * Pauzeer variant van listCountsFiles().
      */
     suspend fun listCountsFilesSuspend(): List<DocumentFile> = withContext(Dispatchers.IO) {
         listCountsFiles()
     }
     
     /**
-     * Delete a file from the counts directory.
-     * 
-     * @param filename Name of the file to delete (not a path)
-     * @return true if file was deleted, false otherwise
+     * Verwijder een bestand uit de counts-map.
+     * @param filename van het bestand dat verwijderd moet worden (geen pad)
+     * @return waar als het bestand is verwijderd, anders onwaar
      */
     fun deleteCountsFile(filename: String): Boolean {
         // Validate filename (no path traversal)
@@ -180,20 +178,19 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of deleteCountsFile().
+     * Suspend variant van deleteCountsFile().
      */
     suspend fun deleteCountsFileSuspend(filename: String): Boolean = withContext(Dispatchers.IO) {
         deleteCountsFile(filename)
     }
     
     /**
-     * Read contents of a file in the counts directory.
-     * 
-     * @param filename Name of the file to read
-     * @return File contents as String, or null if file not found or read failed
+     * Lees de inhoud van een bestand in de counts-map.
+     * @param filename Naam van het bestand dat gelezen moet worden
+     * @return File inhoud als String, of null als bestand niet gevonden of gelezen mislukt
      */
     fun readCountsFile(filename: String): String? {
-        // Validate filename (no path traversal)
+        // Valideer bestandsnaam (geen paddoorloop)
         if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             return null
         }
@@ -211,22 +208,21 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of readCountsFile().
+     * Suspend variant van readCountsFile().
      */
     suspend fun readCountsFileSuspend(filename: String): String? = withContext(Dispatchers.IO) {
         readCountsFile(filename)
     }
     
     /**
-     * Write content to a file in the counts directory.
-     * If file exists, it will be overwritten.
-     * 
-     * @param filename Name of the file to write
-     * @param content Content to write
-     * @return true if write was successful, false otherwise
+     * Schrijf inhoud naar een bestand in de counts-map.
+     * Als er een bestand bestaat, wordt het overschreven.
+     * @param filename Naam van het bestand dat geschreven moet worden
+     * @param content Inhoud om te schrijven
+     * @return 'waar' als write succesvol was, anders 'onwaar'
      */
     fun writeCountsFile(filename: String, content: String): Boolean {
-        // Validate filename (no path traversal)
+        // Valideer bestandsnaam (geen paddoorloop)
         if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             return false
         }
@@ -234,7 +230,7 @@ class SaFStorageHelper(private val context: Context) {
         val vt5Dir = getVt5DirIfExists() ?: return false
         var countsDir = vt5Dir.findFile(COUNTS_DIR)
         
-        // Create counts directory if it doesn't exist
+        // Maak een counts-map aan als die niet bestaat
         if (countsDir == null || !countsDir.isDirectory) {
             countsDir = vt5Dir.createDirectory(COUNTS_DIR) ?: return false
         }
@@ -250,14 +246,14 @@ class SaFStorageHelper(private val context: Context) {
             }
             true
         } catch (e: Exception) {
-            // Try to clean up failed file
+            // Probeer een mislukt bestand op te schonen
             try { newFile.delete() } catch (_: Exception) {}
             false
         }
     }
     
     /**
-     * Suspend variant of writeCountsFile().
+     * Suspend-variant van writeCountsFile().
      */
     suspend fun writeCountsFileSuspend(filename: String, content: String): Boolean = withContext(Dispatchers.IO) {
         writeCountsFile(filename, content)
@@ -268,9 +264,8 @@ class SaFStorageHelper(private val context: Context) {
     // ========================================================================
     
     /**
-     * Get the exports directory (Documents/VT5/exports/) if it exists.
-     * 
-     * @return DocumentFile for exports directory, or null if not available
+     * Haal de exportmap (DocumentsVT5exports) op als die bestaat.
+     * @return DocumentFile voor exportsdirectory, of null als niet beschikbaar
      */
     fun getExportsDir(): DocumentFile? {
         val vt5Dir = getVt5DirIfExists() ?: return null
@@ -278,16 +273,15 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of getExportsDir().
+     * Suspend variant van getExportsDir().
      */
     suspend fun getExportsDirSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
         getExportsDir()
     }
     
     /**
-     * List all files in the exports directory.
-     * 
-     * @return List of DocumentFile objects for files in exports directory
+     * Vermeld alle bestanden in de exportmap.
+     * @return List of DocumentFile Objecten voor bestanden in de exportmap
      */
     fun listExportsFiles(): List<DocumentFile> {
         val exportsDir = getExportsDir() ?: return emptyList()
@@ -295,17 +289,16 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of listExportsFiles().
+     * Suspend variant van listExportsFiles().
      */
     suspend fun listExportsFilesSuspend(): List<DocumentFile> = withContext(Dispatchers.IO) {
         listExportsFiles()
     }
     
     /**
-     * Delete a file from the exports directory.
-     * 
-     * @param filename Name of the file to delete (not a path)
-     * @return true if file was deleted, false otherwise
+     * Verwijder een bestand uit de exportmap.
+     * @param filename Naam van het bestand dat verwijderd moet worden (geen pad)
+     * @return 'waar' als write succesvol was, anders 'onwaar'
      */
     fun deleteExportsFile(filename: String): Boolean {
         // Validate filename (no path traversal)
@@ -319,17 +312,17 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of deleteExportsFile().
+     * Suspend variant van deleteExportsFile().
      */
     suspend fun deleteExportsFileSuspend(filename: String): Boolean = withContext(Dispatchers.IO) {
         deleteExportsFile(filename)
     }
     
     /**
-     * Clean up the exports directory by deleting all files except the most recent ones.
+     * Maak de exportmap schoon door alle bestanden te verwijderen behalve de meest recente.
      * 
-     * @param keepCount Number of most recent files to keep (default 10)
-     * @return Pair<Int, Int> - (number of files deleted, number of files that failed to delete)
+     * @param keepCount Aantal meest recente bestanden om te behouden (standaard 10)
+     * @return Pair<Int, Int> - (aantal verwijderde bestanden, aantal bestanden dat niet kon verwijderen)
      */
     fun cleanupExportsDir(keepCount: Int = 10): Pair<Int, Int> {
         val exportsDir = getExportsDir() ?: return Pair(0, 0)
@@ -339,10 +332,10 @@ class SaFStorageHelper(private val context: Context) {
             return Pair(0, 0)
         }
         
-        // Sort by last modified (most recent first)
+        // Sorteer op laatst gewijzigd (meest recente eerst)
         val sortedFiles = files.sortedByDescending { it.lastModified() }
         
-        // Files to delete (all except the most recent 'keepCount')
+        // Bestanden te verwijderen (behalve de meest recente 'keepCount')
         val filesToDelete = sortedFiles.drop(keepCount)
         
         var deleted = 0
@@ -360,17 +353,17 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of cleanupExportsDir().
+     * Suspend variant van cleanupExportsDir().
      */
     suspend fun cleanupExportsDirSuspend(keepCount: Int = 10): Pair<Int, Int> = withContext(Dispatchers.IO) {
         cleanupExportsDir(keepCount)
     }
     
     /**
-     * Get the count of files that would be deleted by cleanupExportsDir().
+     * Krijg het aantal bestanden dat verwijderd zou worden door cleanupExportsDir().
      * 
-     * @param keepCount Number of most recent files to keep (default 10)
-     * @return Number of files that would be deleted
+     * @param keepCount Aantal meest recente bestanden om te behouden (standaard 10)
+     * @return Aantal bestanden die verwijderd zouden worden
      */
     fun getExportsCleanupCount(keepCount: Int = 10): Int {
         val exportsDir = getExportsDir() ?: return 0
@@ -379,7 +372,7 @@ class SaFStorageHelper(private val context: Context) {
     }
     
     /**
-     * Suspend variant of getExportsCleanupCount().
+     * Suspend variant van getExportsCleanupCount().
      */
     suspend fun getExportsCleanupCountSuspend(keepCount: Int = 10): Int = withContext(Dispatchers.IO) {
         getExportsCleanupCount(keepCount)

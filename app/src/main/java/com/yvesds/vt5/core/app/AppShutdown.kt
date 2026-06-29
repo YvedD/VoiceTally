@@ -41,39 +41,39 @@ object AppShutdown {
             isShuttingDown = true
         }
 
-        Log.i(TAG, "Starting graceful app shutdown")
+        Log.i(TAG, "Start met een nette app afsluiting")
 
         try {
             // 1. Stop any pending logs/writes and release alarm sound resources
             try {
                 MatchLogWriter.stop()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to stop MatchLogWriter: ${e.message}", e)
+                Log.w(TAG, "Niet in staat om MatchLogWriter te stoppen: ${e.message}", e)
             }
 
             try {
                 AlarmSoundHelper.cleanup()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to cleanup AlarmSoundHelper: ${e.message}", e)
+                Log.w(TAG, "AlarmSoundHelper niet opgeruimd: ${e.message}", e)
             }
 
             try {
                 HourlyAlarmManager.cancelScheduledAlarm(context)
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to cancel legacy hourly alarm: ${e.message}", e)
+                Log.w(TAG, "Legacy-uurlijks-alarm niet kunnen annuleren: ${e.message}", e)
             }
 
             // 2. Shutdown network clients (closes connection pools, stops executors)
             try {
                 TrektellenAuth.shutdown()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to shutdown TrektellenAuth: ${e.message}", e)
+                Log.w(TAG, "Niet afgesloten TrektellenAuth: ${e.message}", e)
             }
 
             try {
                 ServerJsonDownloader.shutdown()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to shutdown ServerJsonDownloader: ${e.message}", e)
+                Log.w(TAG, "Niet afgesloten ServerJsonDownloader: ${e.message}", e)
             }
 
             // 3. Shutdown shared OkHttp client from VT5App
@@ -82,13 +82,13 @@ object AppShutdown {
                 VT5App.http.connectionPool.evictAll()
                 VT5App.http.cache?.close()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to shutdown VT5App.http: ${e.message}", e)
+                Log.w(TAG, "Niet afgesloten VT5App.http: ${e.message}", e)
             }
 
             try {
                 MasterClientRuntimeStore.clearAll()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to clear MasterClient runtime: ${e.message}", e)
+                Log.w(TAG, "Niet goedgekeurd MasterClient runtime: ${e.message}", e)
             }
 
 
@@ -99,9 +99,9 @@ object AppShutdown {
             // - Clear image caches (if any)
             // - Cancel pending notifications
 
-            Log.i(TAG, "Graceful app shutdown complete")
+            Log.i(TAG, "nette app afsluiting compleet")
         } catch (e: Exception) {
-            Log.e(TAG, "Error during app shutdown: ${e.message}", e)
+            Log.e(TAG, "Fout tijdens het afsluiten van de app: ${e.message}", e)
         } finally {
             isShuttingDown = false
         }

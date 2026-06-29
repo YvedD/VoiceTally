@@ -208,7 +208,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                     hydro = updatedMap["hydro"] ?: header.hydro,
                     hpa = updatedMap["hpa"] ?: header.hpa,
                     equipment = updatedMap["equipment"] ?: header.equipment,
-                    bron = "4" // Geforceerd op "4" voor Trektellen API consistentie
+                    bron = "2" // Geforceerd op "4" voor Trektellen API consistentie
                 )
                 database.tellingDao().updateHeader(updatedHeader)
                 fileLogger.info("GEBRUIKER: Metadata van telling [${header.tellingid}] volledig bijgewerkt in database")

@@ -62,7 +62,7 @@ class FileLogger(private val context: Context) {
             }
         } catch (e: Exception) {
             // Als file logging faalt, vallen we terug op Logcat voor debugging
-            Log.e(TAG, "Failed to write to log file: ${e.message}")
+            Log.e(TAG, "Niet in staat om naar logbestand te schrijven: ${e.message}")
         }
     }
 

@@ -3,12 +3,10 @@ package com.yvesds.vt5.core.ui
 import androidx.appcompat.app.AlertDialog
 
 /**
- * Central place to style popup dialogs (AlertDialog) consistently.
- *
- * User requirement: ONLY popups should react to the chosen colors.
- *
- * This class remains as a compatibility layer for existing callsites.
- * It delegates to [PopupThemeHelper] which applies background + text colors.
+ * Centrale plek om pop-updialogen (AlertDialog) consistent te stylen.
+ * Gebruikersvereiste: ALLEEN popups mogen reageren op de gekozen kleuren.
+ * Deze class blijft bestaan als compatibiliteitslaag voor bestaande callsites.
+ * Het delegeert aan [PopupThemeHelper] die achtergrond + tekstkleuren toepast.
  */
 object DialogStyler {
 

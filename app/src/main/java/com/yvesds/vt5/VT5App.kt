@@ -45,21 +45,21 @@ class VT5App : Application() {
         try {
             MatchLogWriter.start(this)
         } catch (ex: Exception) {
-            Log.w(TAG, "Failed to start MatchLogWriter in Application.onCreate: ${ex.message}", ex)
+            Log.w(TAG, "MatchLogWriter niet kunnen starten in Application.onCreate: ${ex.message}", ex)
         }
         instance = this
 
         try {
             McRuntimePermissions.refreshCachedPermissionStates(this)
         } catch (ex: Exception) {
-            Log.w(TAG, "Failed to refresh permission cache at startup: ${ex.message}", ex)
+            Log.w(TAG, "Het is niet gelukt om de machtigingscache bij het opstarten te verversen: ${ex.message}", ex)
         }
         
         // Ruim eventueel nog aanwezige legacy AlarmManager-registraties op.
         try {
             com.yvesds.vt5.core.app.HourlyAlarmManager.cancelScheduledAlarm(this)
         } catch (ex: Exception) {
-            Log.w(TAG, "Failed to clean up legacy hourly alarm: ${ex.message}", ex)
+            Log.w(TAG, "Is er niet in geslaagd het oude uuralarm op te ruimen: ${ex.message}", ex)
         }
 
         // Preload data in de achtergrond - verhoogt app responsiviteit
@@ -69,43 +69,45 @@ class VT5App : Application() {
             try {
                 AliasStartupInitializer.rebuildAndWarmup(applicationContext)
             } catch (ex: Exception) {
-                Log.w(TAG, "Startup alias rebuild failed: ${ex.message}", ex)
+                Log.w(TAG, "Startup-alias herbouw mislukt: ${ex.message}", ex)
                 null
             }
         }
         startupAliasRefreshDeferred = startupAliasRefreshJob
 
-        // Best-effort: preload alias indexes so first recognitions don't block on CBOR/SAN load.
-        // We deliberately split IO checks and CPU-bound work:
-        //  - small SAF existence checks run on IO
-        //  - heavy index building / CPU work runs on Default
+        /** Beste inspanning: voorlaad aliasindexen zodat eerste herkenning niet blokkeren
+        * bij de belasting van CBORSAN.
+        * We splitsen bewust IO-checks en CPU-gebonden werk:
+        * - kleine SAF-bestaanscontroles draaien op IO
+        * - zwaar CPU-bouwwerk draait op standaard
+        */
         appScope.launch {
             try {
                 val saf = SaFStorageHelper(applicationContext)
-                // Quick IO check: touch the VT5 directory state once on IO before CPU-heavy preloads.
+                // Snelle IO-controle: raak de VT5-directorystatus één keer aan op IO voordat je CPU-zware preloads plaatst.
                 withContext(Dispatchers.IO) { saf.getVt5DirIfExists() }
 
-                // Run index preloads on Default so CPU-bound work uses Default threads.
-                // Note: ensureLoaded / ensureIndexLoadedSuspend internally use appropriate dispatchers
-                // for their IO vs CPU phases; calling from Default ensures CPU phases run on Default.
+                // Voer index-preloads uit op Default zodat CPU-gebonden werk Default threads gebruikt.
+                // Opmerking: ensureLoaded ensureIndexLoadedSuspend intern gebruik de juiste dispatchers
+                // voor hun IO- versus CPU-fasen; Oproepen vanuit Default zorgt ervoor dat CPU-fasen op Default draaien.
                 withContext(Dispatchers.Default) {
                     try {
                         AliasMatcher.ensureLoaded(applicationContext, saf)
                     } catch (ex: Exception) {
-                        Log.w(TAG, "AliasMatcher.ensureLoaded failed (background): ${ex.message}", ex)
+                        Log.w(TAG, "AliasMatcher.ensureLoaded mislukt (achtergrond): ${ex.message}", ex)
                     }
 
                     try {
                         // AliasManager.ensureIndexLoadedSuspend does IO & CPU; calling from Default lets its CPU parts run there.
                         AliasManager.ensureIndexLoadedSuspend(applicationContext, saf)
                     } catch (ex: Exception) {
-                        Log.w(TAG, "AliasManager.ensureIndexLoadedSuspend failed (background): ${ex.message}", ex)
+                        Log.w(TAG, "AliasManager.ensureIndexLoadedSuspend mislukt (achtergrond): ${ex.message}", ex)
                     }
                 }
 
-                // Nothing else to block startup on here; the preload is best-effort only.
+                // Niets anders om de opstart te blokkeren hier; De preload is alleen best-effort.
             } catch (ex: Exception) {
-                Log.w(TAG, "Background alias index preload skipped: ${ex.message}", ex)
+                Log.w(TAG, "Achtergrondalias-index préloading overgeslagen: ${ex.message}", ex)
             }
         }
     }
@@ -119,37 +121,37 @@ class VT5App : Application() {
             try {
                 ServerDataCache.preload(applicationContext)
             } catch (e: Exception) {
-                Log.e(TAG, "Error during data preloading: ${e.message}", e)
+                Log.e(TAG, "Fout tijdens het préloaden van data: ${e.message}", e)
             }
         }
     }
 
     override fun onTerminate() {
         try {
-            // Cancel all background coroutines
+            // Annuleer alle achtergrondcoroutines
             appScope.cancel()
             
-            // Clean up match log writer
+            // Opruimen match log writer
             try {
                 MatchLogWriter.stop()
             } catch (ex: Exception) {
-                Log.w(TAG, "Failed to stop MatchLogWriter: ${ex.message}", ex)
+                Log.w(TAG, "Niet gestopt MatchLogWriter: ${ex.message}", ex)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during app termination: ${e.message}", e)
+            Log.e(TAG, "Fout tijdens app-beëindiging: ${e.message}", e)
         }
         super.onTerminate()
     }
 
     override fun onLowMemory() {
-        Log.w(TAG, "VT5App onLowMemory - clearing caches")
+        Log.w(TAG, "VT5App onLowMemory - Caches wissen")
         super.onLowMemory()
-        // Opportunity to clear caches if needed
+        // Mogelijkheid om caches te wissen indien nodig
     }
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        // Additional memory cleanup based on level if needed
+        // Extra geheugenopruiming op basis van niveau indien nodig
     }
 
     companion object {
@@ -183,8 +185,8 @@ class VT5App : Application() {
             Json {
                 ignoreUnknownKeys = true
                 explicitNulls = false
-                encodeDefaults = true  // Always include all fields, even empty strings
-                coerceInputValues = true  // Convert null to default values when decoding
+                encodeDefaults = true  // Sluit altijd alle velden op, zelfs lege strings,
+                coerceInputValues = true  // Zet null om naar standaardwaarden bij het decoderen
             }
         }
 

@@ -5,15 +5,12 @@ import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.opslag.FileLogger
-import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.Closeable
 
 /**
  * HybridTellingRepository: Beheert de opslag-logica tussen JSON en ROOM.
@@ -76,8 +73,6 @@ class HybridTellingRepository(private val context: Context) {
                 
                 tellingDao.insertWaarneming(entity)
                 fileLogger.info("ROOM: Waarneming [${item.idLocal}] voor telling [${item.tellingid}] succesvol opgeslagen")
-                
-                // exportDatabaseToSaf() // UITGESCHAKELD voor snelheid in Hybride modus
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan waarneming [${item.idLocal}]: ${e.message}")
                 android.util.Log.e("HybridRepo", "DB Insert error", e)
@@ -131,8 +126,6 @@ class HybridTellingRepository(private val context: Context) {
                 )
                 tellingDao.insertHeader(header)
                 fileLogger.info("ROOM: Header voor telling [${envelope.tellingid}] opgeslagen (Status: $status)")
-                
-                // exportDatabaseToSaf() // UITGESCHAKELD voor snelheid in Hybride modus
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan header [${envelope.tellingid}]: ${e.message}")
             }

@@ -31,7 +31,7 @@ object HourlyAlarmManager {
     private const val ALARM_REQUEST_CODE = 1001
     
     /**
-     * Controleert of het uurlijkse alarm is ingeschakeld
+     * Controleert of het uurlijks-alarm is ingeschakeld
      */
     fun isEnabled(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -39,7 +39,7 @@ object HourlyAlarmManager {
     }
     
     /**
-     * Schakelt het uurlijkse alarm in of uit
+     * Schakelt het uurlijks-alarm in of uit
      */
     fun setEnabled(context: Context, enabled: Boolean) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -48,10 +48,10 @@ object HourlyAlarmManager {
         }
         
         if (enabled) {
-            Log.i(TAG, "Uurlijks alarm ingeschakeld (alleen tijdens actieve TellingScherm-sessie)")
+            Log.i(TAG, "Uurlijks-alarm ingeschakeld (alleen tijdens actieve TellingScherm-sessie)")
         } else {
             cancelAlarm(context)
-            Log.i(TAG, "Uurlijks alarm uitgeschakeld")
+            Log.i(TAG, "Uurlijks-alarm uitgeschakeld")
         }
     }
 
@@ -64,7 +64,7 @@ object HourlyAlarmManager {
     }
     
     /**
-     * Plant het volgende legacy alarm op de 00e minuut van het huidige of volgende uur.
+     * Plan het volgende legacy alarm op de 00e minuut van het huidige of volgende uur.
      *
      * Let op: de huidige app-flow gebruikt dit pad niet meer automatisch.
      * De schermgebonden `TellingAlarmHandler` is de leidende implementatie voor
@@ -197,7 +197,7 @@ object HourlyAlarmManager {
     class BootReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-                Log.i(TAG, "Device opgestart, alarm herschedulen")
+                Log.i(TAG, "Toestel opgestart, alarm herinplannen")
                 scheduleNextAlarm(context)
             }
         }

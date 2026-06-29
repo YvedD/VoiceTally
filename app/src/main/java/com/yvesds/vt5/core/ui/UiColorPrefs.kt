@@ -11,10 +11,11 @@ import androidx.core.content.edit
 import com.yvesds.vt5.R
 
 /**
- * Central place for user-configurable UI colors (background + text).
+ * Centrale plek voor door de gebruiker configureerbare UI-kleuren (achtergrond + tekst).
  *
- * This is intentionally simple (SharedPreferences + runtime application) so we don't need to
- * recompile resources or use dynamic theming APIs.
+ * Dit is bewust eenvoudig (SharedPreferences + runtime-applicatie) zodat we
+ * geen resources hoeven te hercompileren
+ * of dynamische thematiserings-API's hoeven te gebruiken.
  */
 object UiColorPrefs {
 
@@ -23,10 +24,10 @@ object UiColorPrefs {
     const val PREF_BG_COLOR = "pref_ui_bg_color"
     const val PREF_TEXT_COLOR = "pref_ui_text_color"
 
-    // A small palette of high-contrast colors.
+    // Een klein palet van kleuren met hoog contrast.
     data class ColorOption(val label: String, val argb: Int)
 
-    // Defaults (fallback if resource presets aren't available)
+    // Standaardinstellingen (fallback als resource presets niet beschikbaar zijn)
     private val fallbackBackgroundOptions: List<ColorOption> = listOf(
         ColorOption("Zwart", Color.parseColor("#000000")),
         ColorOption("Donkergrijs", Color.parseColor("#222222")),
@@ -50,7 +51,7 @@ object UiColorPrefs {
         ColorOption("Lichtgroen", Color.parseColor("#8BC34A"))
     )
 
-    /** Resource-defined presets from res/values/popup_colors.xml. */
+    /** Resource-defined presets van res/values/popup_colors.xml. */
     fun getBackgroundOptions(context: Context): List<ColorOption> {
         return runCatching {
             val labels = context.resources.getStringArray(R.array.popup_bg_labels)
@@ -65,7 +66,7 @@ object UiColorPrefs {
         }
     }
 
-    /** Resource-defined presets from res/values/popup_colors.xml. */
+    /** Resource-defined presets van res/values/popup_colors.xml. */
     fun getTextOptions(context: Context): List<ColorOption> {
         return runCatching {
             val labels = context.resources.getStringArray(R.array.popup_text_labels)
@@ -102,7 +103,7 @@ object UiColorPrefs {
         }
     }
 
-    /** Apply colors to an Activity root view + all nested TextViews. */
+    /** Pas kleuren toe op een Activity-rootweergave + alle geneste TextViews. */
     fun applyToActivity(activity: Activity) {
         val root = activity.findViewById<View>(android.R.id.content) ?: return
         val bg = getBackgroundColor(activity)
@@ -111,7 +112,7 @@ object UiColorPrefs {
         root.setBackgroundColor(bg)
         applyTextColorRecursive(root, fg)
 
-        // Window background (helps with dialogs/overdraw)
+        // Vensterachtergrond (helpt bij dialogsoverdraw)
         activity.window?.decorView?.setBackgroundColor(bg)
     }
 

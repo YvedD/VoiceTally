@@ -32,8 +32,8 @@ class CredentialsStore(context: Context) {
         private val lock = Any()
         
         /**
-         * Get or create the SharedPreferences instance.
-         * Uses double-checked locking for thread safety.
+         * Haal of maak de SharedPreferences-instantie aan.
+         * gebruik 'double-checked locking' voor thread bescherming.
          */
         private fun getOrCreatePrefs(context: Context): SharedPreferences {
             cachedPrefs?.let { return it }
@@ -49,38 +49,38 @@ class CredentialsStore(context: Context) {
         }
         
         /**
-         * Creates preferences, trying encrypted first, then falling back to regular SharedPreferences.
+         * Maakt voorkeuren aan, probeert eerst versleuteld en valt dan terug naar de gewone SharedPreferences.
          */
         private fun createPreferencesInternal(appContext: Context): SharedPreferences {
-            Log.i(TAG, "Creating preferences (singleton)...")
+            Log.i(TAG, "Voorkeur creërens (singleton)...")
             
-            // First, try EncryptedSharedPreferences
+            // Probeer eerst EncryptedSharedPreferences
             val encryptedPrefs = tryCreateEncryptedPrefsInternal(appContext)
             if (encryptedPrefs != null) {
                 return encryptedPrefs
             }
             
-            // Fallback to regular SharedPreferences (credentials still saved, just not encrypted)
-            Log.w(TAG, "Using fallback regular SharedPreferences (unencrypted but persistent)")
+            // Val terug naar de gewone SharedPreferences (inloggegevens nog steeds opgeslagen, alleen niet versleuteld)
+            Log.w(TAG, "Gebruik van de fallback-reguliere SharedPreferences (onversleuteld maar persistent)")
             return appContext.getSharedPreferences(FALLBACK_PREFS_FILE_NAME, Context.MODE_PRIVATE)
         }
         
         /**
-         * Attempts to create EncryptedSharedPreferences.
-         * Returns null if encryption is not available on this device.
+         * Pogingen om EncryptedSharedPreferences aan te maken.
+         * Geeft nul terug als versleuteling niet beschikbaar is op dit apparaat.
          */
         private fun tryCreateEncryptedPrefsInternal(appContext: Context): SharedPreferences? {
-            // First, try to create MasterKey
+            // Probeer eerst MasterKey te maken
             val masterKey = try {
                 MasterKey.Builder(appContext)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                     .build()
             } catch (e: Exception) {
-                Log.w(TAG, "MasterKey creation failed: ${e.javaClass.simpleName} - ${e.message}")
+                Log.w(TAG, "De creatie van MasterKey mislukte: ${e.javaClass.simpleName} - ${e.message}")
                 return null
             }
             
-            // Try to create EncryptedSharedPreferences
+            // Probeer EncryptedSharedPreferences aan te maken
             return try {
                 val prefs = EncryptedSharedPreferences.create(
                     appContext,
@@ -89,12 +89,12 @@ class CredentialsStore(context: Context) {
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                 )
-                Log.i(TAG, "EncryptedSharedPreferences created successfully")
+                Log.i(TAG, "EncryptedSharedPreferences met success aangemaakt")
                 prefs
             } catch (e: Exception) {
-                Log.w(TAG, "EncryptedSharedPreferences creation failed: ${e.javaClass.simpleName} - ${e.message}")
+                Log.w(TAG, "EncryptedSharedPreferences niet geslaagd: ${e.javaClass.simpleName} - ${e.message}")
                 
-                // Try to clear corrupted data and retry once
+                // Probeer corrupte data te wissen en probeer het één keer opnieuw
                 clearCorruptedPrefsFileInternal(appContext)
                 
                 try {
@@ -105,17 +105,17 @@ class CredentialsStore(context: Context) {
                         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                     )
-                    Log.i(TAG, "EncryptedSharedPreferences created after recovery")
+                    Log.i(TAG, "EncryptedSharedPreferences aangemaakt na herstel")
                     prefs
                 } catch (e2: Exception) {
-                    Log.w(TAG, "EncryptedSharedPreferences recovery failed: ${e2.javaClass.simpleName} - ${e2.message}")
+                    Log.w(TAG, "EncryptedSharedPreferences herstel mislukt: ${e2.javaClass.simpleName} - ${e2.message}")
                     null
                 }
             }
         }
         
         /**
-         * Deletes the corrupted SharedPreferences file from disk.
+         * Verwijdert het corrupte SharedPreferences-bestand van de schijf.
          */
         private fun clearCorruptedPrefsFileInternal(appContext: Context) {
             try {
@@ -123,10 +123,10 @@ class CredentialsStore(context: Context) {
                 val prefsFile = File(prefsDir, "$PREFS_FILE_NAME.xml")
                 if (prefsFile.exists()) {
                     prefsFile.delete()
-                    Log.i(TAG, "Deleted corrupted prefs file: ${prefsFile.absolutePath}")
+                    Log.i(TAG, "Beschadigd prefs-bestand verwijderd: ${prefsFile.absolutePath}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete corrupted prefs file: ${e.message}")
+                Log.e(TAG, "Mislukt om het corrupte prefs-bestand te verwijderen: ${e.message}")
             }
         }
     }
@@ -134,17 +134,17 @@ class CredentialsStore(context: Context) {
     private val prefs: SharedPreferences = getOrCreatePrefs(context)
 
     fun save(username: String, password: String) {
-        Log.i(TAG, "Saving credentials - username: ${if (username.isNotBlank()) "present" else "blank"}, password: ${if (password.isNotBlank()) "present" else "blank"}")
+        Log.i(TAG, "Inloggegevens opslaan - gebruikersnaam: ${if (username.isNotBlank()) "present" else "blank"}, password: ${if (password.isNotBlank()) "present" else "blank"}")
         val result = prefs.edit()
             .putString(KEY_USER, username)
             .putString(KEY_PASS, password)
             .commit()  // Use commit() for synchronous save
-        Log.i(TAG, "Credentials save: ${if (result) "success" else "failed"}")
+        Log.i(TAG, "Inloggegevens opgeslagen: ${if (result) "success" else "failed"}")
         
         // Verify by immediately reading back
         val savedUsername = prefs.getString(KEY_USER, null)
         val savedPassword = prefs.getString(KEY_PASS, null)
-        Log.i(TAG, "Verification - username saved: ${if (savedUsername == username) "OK" else "MISMATCH"}, password saved: ${if (savedPassword == password) "OK" else "MISMATCH"}")
+        Log.i(TAG, "Verificatie - gebruikersnaam opgeslagen: ${if (savedUsername == username) "OK" else "MISMATCH"}, password saved: ${if (savedPassword == password) "OK" else "MISMATCH"}")
     }
 
     fun getUsername(): String? {
@@ -159,6 +159,6 @@ class CredentialsStore(context: Context) {
 
     fun clear() {
         prefs.edit().remove(KEY_USER).remove(KEY_PASS).commit()
-        Log.i(TAG, "Credentials cleared")
+        Log.i(TAG, "Inloggegevens opgeschoond")
     }
 }
