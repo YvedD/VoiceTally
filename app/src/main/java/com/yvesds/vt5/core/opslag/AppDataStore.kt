@@ -30,6 +30,15 @@ object AppDataStore {
     }
 
     /**
+     * Zet de telling ID teller terug op 1 (of 0 naar keuze).
+     */
+    suspend fun resetTellingId(context: Context) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_NEXT_TELLING_ID] = 1L
+        }
+    }
+
+    /**
      * Haalt het volgende record ID op voor een specifieke telling en verhoogt de teller.
      * Returned de waarde VOOR de verhoging.
      */

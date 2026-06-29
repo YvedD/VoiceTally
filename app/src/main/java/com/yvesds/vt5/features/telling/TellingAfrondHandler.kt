@@ -254,13 +254,15 @@ class TellingAfrondHandler(
                 // Room shadow update: Update the header with final times and counts
                 hybridRepository.saveHeaderToRoom(finalEnv, status = "geupload")
 
+                // Extra check: Zorg dat álle records ook in Room staan (Fase 4 consistentie)
+                finalRecords.forEach { record ->
+                    hybridRepository.saveWaarnemingToRoom(record)
+                }
+
                 // Archive the JSON to counts folder (historical reference)
                 if (prettyJson != null) {
                     envelopePersistence?.saveFinalEnvelopeToCountsDir(currentTellingId, archiveOnlineId, prettyJson)
                 }
-                
-                // Final export of the database to SAF for the user
-                hybridRepository.forceDatabaseBackup()
                 
             } catch (ex: Exception) {
                 Log.w(TAG, "Hybride cleanup actions failed: ${ex.message}", ex)

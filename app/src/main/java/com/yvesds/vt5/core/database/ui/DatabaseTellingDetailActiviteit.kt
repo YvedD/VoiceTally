@@ -2,6 +2,7 @@ package com.yvesds.vt5.core.database.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
@@ -125,31 +126,46 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
     private suspend fun renderRecords(records: List<Waarneming>) {
         containerRecords.removeAllViews()
         
-        for ((index, record) in records.withIndex()) {
-            val view = LayoutInflater.from(this).inflate(R.layout.item_db_waarneming, containerRecords, false)
-            val soortNaam = SpeciesNameResolver.getName(this, record.soortid)
-            
-            view.findViewById<TextView>(R.id.tvIndex).text = (index + 1).toString()
-            view.findViewById<TextView>(R.id.tvSoortNaam).text = soortNaam
-            
-            val readableTime = SpeciesNameResolver.formatTimestamp(record.tijdstip)
-            view.findViewById<TextView>(R.id.tvDetails).text = "Tijd: $readableTime"
-            view.findViewById<TextView>(R.id.tvAantal).text = record.aantal
-            
-            view.setOnClickListener {
-                val intent = Intent(this@DatabaseTellingDetailActiviteit, DatabaseRecordDetailActiviteit::class.java)
-                intent.putExtra("recordid", record.idLocal)
-                intent.putExtra("tellingid", record.tellingid)
-                startActivity(intent)
+        if (records.isEmpty()) {
+            val emptyView = TextView(this).apply {
+                text = "Geen records gevonden voor deze telling."
+                setTextColor(ContextCompat.getColor(this@DatabaseTellingDetailActiviteit, R.color.vt5_light_gray))
+                setPadding(16, 16, 16, 16)
             }
-            
-            val params = view.layoutParams as FlexboxLayout.LayoutParams
-            params.flexBasisPercent = 0.48f
-            params.flexGrow = 1.0f
-            view.layoutParams = params
-
-            containerRecords.addView(view)
+            containerRecords.addView(emptyView)
+            return
         }
+
+        for ((index, record) in records.withIndex()) {
+            try {
+                val view = LayoutInflater.from(this).inflate(R.layout.item_db_waarneming, containerRecords, false)
+                val soortNaam = SpeciesNameResolver.getName(this, record.soortid)
+                
+                view.findViewById<TextView>(R.id.tvIndex).text = (index + 1).toString()
+                view.findViewById<TextView>(R.id.tvSoortNaam).text = soortNaam
+                
+                val readableTime = SpeciesNameResolver.formatTimestamp(record.tijdstip)
+                view.findViewById<TextView>(R.id.tvDetails).text = "Tijd: $readableTime"
+                view.findViewById<TextView>(R.id.tvAantal).text = record.aantal
+                
+                view.setOnClickListener {
+                    val intent = Intent(this@DatabaseTellingDetailActiviteit, DatabaseRecordDetailActiviteit::class.java)
+                    intent.putExtra("recordid", record.idLocal)
+                    intent.putExtra("tellingid", record.tellingid)
+                    startActivity(intent)
+                }
+                
+                val params = view.layoutParams as FlexboxLayout.LayoutParams
+                params.flexBasisPercent = 0.48f
+                params.flexGrow = 1.0f
+                view.layoutParams = params
+
+                containerRecords.addView(view)
+            } catch (e: Exception) {
+                Log.w("DetailRoom", "Fout bij renderen record $index: ${e.message}")
+            }
+        }
+        containerRecords.requestLayout()
     }
 
     private fun saveChanges() {

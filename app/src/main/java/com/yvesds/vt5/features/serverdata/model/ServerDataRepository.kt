@@ -3,69 +3,49 @@
 package com.yvesds.vt5.features.serverdata.model
 
 import android.content.Context
-import android.util.Log
+import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.features.serverdata.helpers.ServerDataDecoder
 import com.yvesds.vt5.features.serverdata.helpers.ServerDataFileReader
 import com.yvesds.vt5.features.serverdata.helpers.ServerDataTransformer
 import com.yvesds.vt5.features.serverdata.helpers.VT5Bin
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.Json
 import java.util.Locale
 
 /**
- * Optimized ServerDataRepository with helper delegation:
- * - ServerDataFileReader: File discovery and stream management
- * - ServerDataDecoder: Binary/JSON parsing
- * - ServerDataTransformer: Data mapping and normalization
- * 
- * Features:
- * - Parallel loading for faster startup
- * - Selective data loading (codes-only, minimal, full)
- * - Efficient caching and memory usage
- * - Off-main execution with Dispatchers.IO and Default
+ * Optimized ServerDataRepository with helper delegation.
+ * Uses FileLogger for on-device debugging.
  */
 class ServerDataRepository(
     private val context: Context,
     private val json: Json = ServerDataDecoder.defaultJson,
     private val cbor: Cbor = ServerDataDecoder.defaultCbor
 ) {
-    companion object {
-        private const val TAG = "ServerDataRepo"
-    }
-
+    private val fileLogger by lazy { FileLogger(context) }
     private val snapshotState = MutableStateFlow(DataSnapshot())
     val snapshot: StateFlow<DataSnapshot> = snapshotState
 
     private val fileReader = ServerDataFileReader(context)
     private val decoder = ServerDataDecoder(context, json, cbor)
+    
+    private val loaderScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    /**
-     * Checks if required data files exist without loading them.
-     */
     suspend fun hasRequiredFiles(): Boolean = fileReader.hasRequiredFiles()
 
-    /**
-     * Clear any cached file information.
-     */
     fun clearFileCache() {
         fileReader.clearCache()
     }
 
     /**
      * Load only minimal data required for startup (sites and codes).
-     * Optimized with parallel loading and processing.
      */
     suspend fun loadMinimalData(): DataSnapshot = withContext(Dispatchers.IO) {
         val serverdata = fileReader.getServerdataDir() ?: return@withContext DataSnapshot()
 
         coroutineScope {
-            // Load both files in parallel
             val sitesJob = async { readList<SiteItem>(serverdata, "sites", VT5Bin.Kind.SITES) }
             val codesJob = async {
                 runCatching {
@@ -76,7 +56,6 @@ class ServerDataRepository(
             val sites = sitesJob.await()
             val codes = codesJob.await()
 
-            // Process in parallel on Default dispatcher
             val (sitesById, codesByCategory) = ServerDataTransformer.processMinimalData(sites, codes)
 
             DataSnapshot(
@@ -87,32 +66,21 @@ class ServerDataRepository(
     }
 
     /**
-     * Load ONLY codes - ultra-fast startup for code-dependent screens.
-     */
-    suspend fun loadCodesOnly(): Map<String, List<CodeItemSlim>> = withContext(Dispatchers.IO) {
-        val serverdata = fileReader.getServerdataDir() ?: return@withContext emptyMap()
-
-        val codes = runCatching {
-            readList<CodeItem>(serverdata, "codes", VT5Bin.Kind.CODES)
-        }.getOrElse { emptyList() }
-
-        ServerDataTransformer.transformCodes(codes)
-    }
-
-    /**
      * Full data load with parallel processing for better performance.
      */
     suspend fun loadAllFromSaf(): DataSnapshot = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
 
-        val serverdata = fileReader.getServerdataDir() ?: return@withContext DataSnapshot()
-
-        if (!hasRequiredFiles()) {
-            Log.w(TAG, "Missing required data files")
+        val serverdata = fileReader.getServerdataDir() ?: run {
+            fileLogger.warn("Serverdata directory niet gevonden")
             return@withContext DataSnapshot()
         }
 
-        // Parallel loading of all data files
+        if (!hasRequiredFiles()) {
+            fileLogger.warn("Essentiële databestanden ontbreken in ${serverdata.uri}")
+            return@withContext DataSnapshot()
+        }
+
         return@withContext coroutineScope {
             val userObjDef = async { readOne<CheckUserItem>(serverdata, "checkuser", VT5Bin.Kind.CHECK_USER) }
             val speciesListDef = async { readList<SpeciesItem>(serverdata, "species", VT5Bin.Kind.SPECIES) }
@@ -124,7 +92,6 @@ class ServerDataRepository(
             val siteSpeciesDef = async { readList<SiteSpeciesItem>(serverdata, "site_species", VT5Bin.Kind.SITE_SPECIES) }
             val codesDef = async { runCatching { readList<CodeItem>(serverdata, "codes", VT5Bin.Kind.CODES) }.getOrElse { emptyList() } }
 
-            // Await all results
             val userObj = userObjDef.await()
             val speciesList = speciesListDef.await()
             val protocolInfo = protocolInfoDef.await()
@@ -135,7 +102,11 @@ class ServerDataRepository(
             val siteSpecies = siteSpeciesDef.await()
             val codes = codesDef.await()
 
-            // Transform data in parallel using helper
+            if (speciesList.isEmpty()) fileLogger.warn("Bestand 'species' is leeg of onleesbaar")
+            if (sites.isEmpty()) fileLogger.warn("Bestand 'sites' is leeg of onleesbaar")
+            if (siteSpecies.isEmpty()) fileLogger.warn("Bestand 'site_species' is leeg of onleesbaar")
+            if (codes.isEmpty()) fileLogger.warn("Bestand 'codes' is leeg of onleesbaar")
+
             val (speciesById, speciesByCanonical) = ServerDataTransformer.transformSpecies(speciesList)
             val sitesById = ServerDataTransformer.transformSites(sites)
             val (siteLocationsBySite, siteHeightsBySite) = ServerDataTransformer.transformSiteValues(siteLocations, siteHeights)
@@ -158,49 +129,24 @@ class ServerDataRepository(
             )
 
             val elapsed = System.currentTimeMillis() - startTime
+            fileLogger.info("loadAllFromSaf voltooid in ${elapsed}ms")
 
             snapshotState.value = snap
             snap
         }
     }
 
-    /**
-     * Load only site data.
-     */
-    @Suppress("unused")
-    suspend fun loadSitesOnly(): Map<String, SiteItem> = withContext(Dispatchers.IO) {
-        val serverdata = fileReader.getServerdataDir() ?: return@withContext emptyMap()
-        val sites = readList<SiteItem>(serverdata, "sites", VT5Bin.Kind.SITES)
-        ServerDataTransformer.transformSites(sites)
-    }
-
-    /**
-     * Load only codes for a specific field with caching.
-     */
-    @Suppress("unused")
-    suspend fun loadCodesFor(field: String): List<CodeItemSlim> = withContext(Dispatchers.IO) {
-        val serverdata = fileReader.getServerdataDir() ?: return@withContext emptyList()
-
-        // Reuse cached codes if available
-        val cachedCodes = snapshotState.value.codesByCategory[field]
-        if (!cachedCodes.isNullOrEmpty()) {
-            return@withContext cachedCodes.sortedBy { it.text.lowercase(Locale.getDefault()) }
-        }
-
-        val codes = runCatching { readList<CodeItem>(serverdata, "codes", VT5Bin.Kind.CODES) }.getOrElse { emptyList() }
-        val transformed = ServerDataTransformer.transformCodes(codes)
-        
-        transformed[field]?.sortedBy { it.text.lowercase(Locale.getDefault()) } ?: emptyList()
-    }
-
-    /* ============ Private helper methods for reading data ============ */
-
     private inline fun <reified T> readList(
         dir: androidx.documentfile.provider.DocumentFile,
         baseName: String,
         expectedKind: UShort
     ): List<T> {
-        val (file, isBinary) = fileReader.findFile(dir, baseName) ?: return emptyList()
+        val found = fileReader.findFile(dir, baseName)
+        if (found == null) {
+            loaderScope.launch { fileLogger.warn("Bestand niet gevonden: $baseName") }
+            return emptyList()
+        }
+        val (file, isBinary) = found
 
         return if (isBinary) {
             decoder.decodeListFromBinary<T>(file, expectedKind) ?: emptyList()
@@ -214,7 +160,12 @@ class ServerDataRepository(
         baseName: String,
         expectedKind: UShort
     ): T? {
-        val (file, isBinary) = fileReader.findFile(dir, baseName) ?: return null
+        val found = fileReader.findFile(dir, baseName)
+        if (found == null) {
+            loaderScope.launch { fileLogger.warn("Bestand niet gevonden: $baseName") }
+            return null
+        }
+        val (file, isBinary) = found
 
         return if (isBinary) {
             decoder.decodeOneFromBinary<T>(file, expectedKind)

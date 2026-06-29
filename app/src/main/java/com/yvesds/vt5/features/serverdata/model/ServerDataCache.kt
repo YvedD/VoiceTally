@@ -3,23 +3,15 @@ package com.yvesds.vt5.features.serverdata.model
 
 import android.content.Context
 import android.util.Log
+import com.yvesds.vt5.core.opslag.FileLogger
 import kotlinx.coroutines.*
 
 /**
  * Improved in-memory cache for DataSnapshot with safe, single-loader semantics.
  *
- * Key changes vs your original:
- * - Replaced busy-wait loop / Thread.sleep with a single Deferred loader that callers can await.
- * - preload() now starts a best-effort background loader and returns immediately (non-blocking).
- * - getOrLoad() will await an in-progress loader (if any) or start and await a loader itself.
- * - Loader lifecycle: on success cached is set; on failure the deferred is cleared so future calls can retry.
- * - All IO runs on Dispatchers.IO; CPU-bound merging (if any) can run in Default inside the loader.
- * - Simpler and more robust concurrency (no manual isLoading flags or sleep loops).
- *
- * Usage:
- * - Call preload(context) early (e.g. Application.onCreate) to warm the cache (best-effort).
- * - Call getOrLoad(context) in suspending code to get the snapshot (will await loader if needed).
- * - Call invalidate() after you update server JSONs to force reload on next getOrLoad().
+ * Key changes:
+ * - Uses FileLogger for on-device debugging.
+ * - Two-phase loading: minimal essentials first, full dataset in background.
  */
 object ServerDataCache {
     private const val TAG = "ServerDataCache"
@@ -30,64 +22,56 @@ object ServerDataCache {
     @Volatile
     private var lastLoadTimeMs: Long = 0
 
-    // Single loader Deferred; volatile so we can read without locking.
     @Volatile
     private var loadingDeferred: Deferred<DataSnapshot>? = null
 
-    // Dedicated scope for loading work
     private val loaderScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    fun invalidate() {
+    private fun getLogger(context: Context) = FileLogger(context)
+
+    fun invalidate(context: Context? = null) {
         cached = null
+        loadingDeferred = null
+        if (context != null) {
+            ServerDataRepository(context).clearFileCache()
+            loaderScope.launch {
+                getLogger(context).info("ServerDataCache geïnvalideerd")
+            }
+        }
     }
 
     fun getCachedOrNull(): DataSnapshot? = cached
 
     /**
-     * Two-phase startup:
-     * Phase 1: Load minimal metadata (sites + codes)
-     * Phase 2: Load everything else in background when idle
-     *
-     * This allows MetadataScherm to open safely with telpost + code data,
-     * while heavy data (species, sites, protocols) loads in background.
+     * Twee-fase opstart:
+     * Fase 1: Laad minimale metadata (telposten + codes)
+     * Fase 2: Laad de rest in de achtergrond
      */
     fun preload(context: Context) {
-        // Fast-path: already cached -> nothing to do
-        if (cached != null) {
-            return
-        }
+        if (cached != null && cached?.hasFullDataset() == true) return
 
-        // If there's already a loader, don't spawn another
-        if (loadingDeferred != null && loadingDeferred?.isActive == true) {
-            return
-        }
+        if (loadingDeferred != null && loadingDeferred?.isActive == true) return
 
-        // Phase 1: Load minimal metadata immediately.
         synchronized(this) {
             if (loadingDeferred == null || loadingDeferred?.isCompleted == true) {
                 loadingDeferred = loaderScope.async {
                     loadMinimalSnapshot(context)
                 }
                 
-                // Phase 2: Schedule full data load in background (delayed start)
                 loaderScope.launch {
-                    delay(500) // Wait 500ms to ensure app is idle
+                    delay(500)
                     try {
                         val fullSnapshot = loadFromSaf(context)
                         cached = fullSnapshot
-                        Log.i(TAG, "Phase 2 complete: all data loaded in background")
+                        getLogger(context).info("Fase 2 voltooid: alle serverdata geladen in achtergrond")
                     } catch (ex: Exception) {
-                        Log.w(TAG, "Phase 2 background load failed: ${ex.message}", ex)
+                        getLogger(context).warn("Fase 2 achtergrond-load mislukt: ${ex.message}")
                     }
                 }
-            } else {
             }
         }
     }
     
-    /**
-     * Phase 1: Load minimal metadata needed by startup/metadata flows.
-     */
     private suspend fun loadMinimalSnapshot(context: Context): DataSnapshot = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
@@ -96,54 +80,39 @@ object ServerDataCache {
             if (!snap.hasMetadataEssentials()) {
                 throw IllegalStateException("Minimale serverdata onvolledig: telposten of codes ontbreken")
             }
-            cached = snap
+            if (cached == null || cached?.hasFullDataset() == false) {
+                cached = snap
+            }
             val elapsed = System.currentTimeMillis() - start
-            Log.i(TAG, "loadMinimalSnapshot: loaded minimal snapshot in ${elapsed}ms")
+            getLogger(context).info("loadMinimalSnapshot: minimale snapshot geladen in ${elapsed}ms")
             return@withContext snap
         } catch (ex: Exception) {
-            Log.e(TAG, "loadMinimalSnapshot failed: ${ex.message}", ex)
+            getLogger(context).error("loadMinimalSnapshot mislukt: ${ex.message}")
             throw ex
         } finally {
             synchronized(this@ServerDataCache) {
-                val cur = loadingDeferred
-                if (cur != null && cur.isCompleted) {
-                    loadingDeferred = null
-                }
+                if (loadingDeferred?.isCompleted == true) loadingDeferred = null
             }
         }
     }
 
-    /**
-     * Get cached snapshot or load synchronously (suspending) if not present.
-     * If a background preload is running, this will await that loader rather than spawn a second.
-     */
     suspend fun getOrLoad(context: Context): DataSnapshot = coroutineScope {
         cached?.let {
-            if (it.hasFullDataset()) {
-                return@coroutineScope it
-            }
+            if (it.hasFullDataset()) return@coroutineScope it
         }
 
-        // If a loader exists, await it
         val existing = loadingDeferred
         if (existing != null) {
             try {
                 val snap = existing.await()
-                if (snap.hasFullDataset()) {
-                    return@coroutineScope snap
-                }
-            } catch (ex: CancellationException) {
-                // Propagate coroutine cancellation
-                throw ex
+                if (snap.hasFullDataset()) return@coroutineScope snap
             } catch (ex: Exception) {
-                // Loader failed — fall through and try to load directly
-                Log.w(TAG, "getOrLoad - background loader failed: ${ex.message}; will try direct load", ex)
+                if (ex is CancellationException) throw ex
+                getLogger(context).warn("getOrLoad - achtergrondlader mislukt: ${ex.message}; probeer directe load")
             }
         }
 
-        // No loader or it failed -> create and await a loader ourselves
         val loader = synchronized(this@ServerDataCache) {
-            // re-check inside lock
             val cur = loadingDeferred
             if (cur != null && cur.isActive) {
                 cur
@@ -156,52 +125,44 @@ object ServerDataCache {
 
         try {
             return@coroutineScope loader.await()
-        } catch (ex: CancellationException) {
-            throw ex
         } catch (ex: Exception) {
-            // ensure we clear the failed deferred so future calls can retry
+            if (ex is CancellationException) throw ex
             synchronized(this@ServerDataCache) {
                 if (loadingDeferred === loader) loadingDeferred = null
             }
-            Log.e(TAG, "getOrLoad failed loading data: ${ex.message}", ex)
+            getLogger(context).error("getOrLoad mislukt bij laden data: ${ex.message}")
             throw ex
         }
     }
 
-    /**
-     * Internal loader that actually reads from SAF (ServerDataRepository).
-     * Runs on the loaderScope (Dispatchers.IO) and sets cached on success.
-     */
     private suspend fun loadFromSaf(context: Context): DataSnapshot = withContext(Dispatchers.IO) {
         val start = System.currentTimeMillis()
         try {
             val repo = ServerDataRepository(context.applicationContext)
             val snap = repo.loadAllFromSaf()
+            
             if (!snap.hasFullDataset()) {
-                throw IllegalStateException("Volledige serverdata ontbreekt of is onleesbaar")
+                val missing = mutableListOf<String>()
+                if (!snap.hasMetadataEssentials()) missing.add("Telposten/Codes")
+                if (!snap.hasSpeciesData()) missing.add("Soortenlijst")
+                if (snap.siteSpeciesBySite.isEmpty()) missing.add("Telpost-soorten mapping (site_species)")
+                
+                val errorMsg = "Volledige serverdata onvolledig. Ontbrekend: ${missing.joinToString(", ")}"
+                getLogger(context).warn(errorMsg)
+                throw IllegalStateException(errorMsg)
             }
+            
             cached = snap
             lastLoadTimeMs = System.currentTimeMillis() - start
-            Log.i(TAG, "loadFromSaf: loaded snapshot in ${lastLoadTimeMs}ms")
+            getLogger(context).info("loadFromSaf: volledige snapshot geladen in ${lastLoadTimeMs}ms")
             return@withContext snap
         } catch (ex: Exception) {
-            Log.e(TAG, "loadFromSaf failed: ${ex.message}", ex)
+            getLogger(context).error("loadFromSaf mislukt: ${ex.message}")
             throw ex
         } finally {
-            // Clear the deferred reference if this coroutine corresponds to current deferred.
-            // This is safe because callers check cached first.
             synchronized(this@ServerDataCache) {
-                // find any completed deferred and clear it so next load can retry
-                val cur = loadingDeferred
-                if (cur != null && cur.isCompleted) {
-                    loadingDeferred = null
-                }
+                if (loadingDeferred?.isCompleted == true) loadingDeferred = null
             }
         }
     }
-
-    /**
-     * Performance statistic: last load duration in milliseconds (0 if never loaded).
-     */
-    //fun getLastLoadTimeMs(): Long = lastLoadTimeMs
 }

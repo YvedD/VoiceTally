@@ -89,7 +89,7 @@ class ServerDataDecoder(
 
             // Use shared buffer
             synchronized(headerBuffer) {
-                if (bis.read(headerBuffer) != VT5Bin.HEADER_SIZE) return null
+                if (bis.readNBytesCompat(headerBuffer) != VT5Bin.HEADER_SIZE) return null
 
                 val hdr = VT5Header.fromBytes(headerBuffer) ?: return null
                 if (!hdr.magic.contentEquals(VT5Bin.MAGIC)) return null

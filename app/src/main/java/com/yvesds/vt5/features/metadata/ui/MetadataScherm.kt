@@ -375,8 +375,19 @@ class MetadataScherm : AppCompatActivity() {
         uiScope.launch {
             try {
                 ProgressDialogHelper.withProgress(this@MetadataScherm, getString(R.string.metadata_preparing)) {
-                    // Ensure full snapshot is available
-                    val fullSnapshot = ServerDataCache.getOrLoad(this@MetadataScherm)
+                    // Forceer volledige load en vang specifieke fouten op
+                    val fullSnapshot = try {
+                        ServerDataCache.getOrLoad(this@MetadataScherm)
+                    } catch (ex: IllegalStateException) {
+                        withContext(Dispatchers.Main) {
+                            AlertDialog.Builder(this@MetadataScherm)
+                                .setTitle("Serverdata Incompleet")
+                                .setMessage("${ex.message}\n\nGa terug naar het installatiescherm en haal de serverdata opnieuw op.")
+                                .setPositiveButton(getString(R.string.dlg_ok), null)
+                                .show()
+                        }
+                        return@withProgress
+                    }
                     
                     // Start the telling via TellingStarter helper
                     val result = tellingStarter.startTelling(telpostId, username, password, fullSnapshot)

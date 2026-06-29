@@ -152,11 +152,11 @@ class InstellingenScherm : AppCompatActivity() {
         }
 
         /**
-         * Haal de huidige opslagmodus op uit SharedPreferences.
+         * Haal de huidige opslagmodus op.
+         * Gefixeerd op het Hybride Systeem (Parallel).
          */
         fun getStorageMode(context: Context): String {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getString(PREF_STORAGE_MODE, DEFAULT_STORAGE_MODE) ?: DEFAULT_STORAGE_MODE
+            return STORAGE_MODE_PARALLEL
         }
 
     }
@@ -172,7 +172,6 @@ class InstellingenScherm : AppCompatActivity() {
             setupDoubleTapIncrementButtons()
             setupTileTapGroupWindowButtons()
             setupDynamicTileSortingToggle()
-            setupStorageModeButtons()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupUnmatchedPartialsTextColorSpinner()
@@ -405,33 +404,6 @@ class InstellingenScherm : AppCompatActivity() {
             prefs.edit { putBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, isChecked) }
         }
     }
-
-    private fun setupStorageModeButtons() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-
-        val btnJson = findViewById<MaterialButton>(R.id.btnOpslagJson)
-        val btnRoom = findViewById<MaterialButton>(R.id.btnOpslagRoom)
-        val btnParallel = findViewById<MaterialButton>(R.id.btnOpslagParallel)
-
-        val allButtons = listOf(btnJson, btnRoom, btnParallel)
-
-        fun applySelection(value: String) {
-            prefs.edit { putString(PREF_STORAGE_MODE, value) }
-            allButtons.forEach { it.isChecked = false }
-            when (value) {
-                STORAGE_MODE_JSON -> btnJson.isChecked = true
-                STORAGE_MODE_ROOM -> btnRoom.isChecked = true
-                STORAGE_MODE_PARALLEL -> btnParallel.isChecked = true
-            }
-        }
-
-        applySelection(getStorageMode(this))
-
-        btnJson.setOnClickListener { applySelection(STORAGE_MODE_JSON) }
-        btnRoom.setOnClickListener { applySelection(STORAGE_MODE_ROOM) }
-        btnParallel.setOnClickListener { applySelection(STORAGE_MODE_PARALLEL) }
-    }
-
 
     private fun setupPartialsTextColorSpinner() {
         setupLogColorSpinner(

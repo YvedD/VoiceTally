@@ -45,7 +45,66 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             startActivity(android.content.Intent(this, DatabaseSoortOverzichtActiviteit::class.java))
         }
 
+        findViewById<MaterialButton>(R.id.btnResetDatabase).setOnClickListener {
+            startDoubleResetConfirmation()
+        }
+
         refreshTableList()
+    }
+
+    private fun startDoubleResetConfirmation() {
+        val firstDlg = AlertDialog.Builder(this)
+            .setTitle("Database Resetten?")
+            .setMessage("Wil je echt alle gegevens uit de database verwijderen? Dit kan niet ongedaan worden gemaakt.")
+            .setPositiveButton("Verwijderen") { _, _ ->
+                showSecondResetConfirmation()
+            }
+            .setNegativeButton(R.string.annuleer, null)
+            .show()
+        DialogStyler.apply(firstDlg)
+    }
+
+    private fun showSecondResetConfirmation() {
+        val secondDlg = AlertDialog.Builder(this)
+            .setTitle("Laatste waarschuwing")
+            .setMessage("Weet u het zeker?")
+            .setPositiveButton("JA, RESET ALLES") { _, _ ->
+                performFullDatabaseReset()
+            }
+            .setNegativeButton(R.string.annuleer, null)
+            .show()
+        
+        DialogStyler.apply(secondDlg)
+        
+        // Specifieke styling voor de tweede waarschuwing (oranje kleur)
+        secondDlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(android.graphics.Color.parseColor("#FF9800"))
+        secondDlg.findViewById<TextView>(android.R.id.message)?.setTextColor(android.graphics.Color.parseColor("#FF9800"))
+    }
+
+    private fun performFullDatabaseReset() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Wis alle tabellen
+                database.tellingDao().clearAllHeaders()
+                database.tellingDao().clearAllWaarnemingen()
+                database.tellingDao().clearAllSyncLogs()
+                
+                // 2. Reset de sessie-teller in DataStore
+                com.yvesds.vt5.core.opslag.AppDataStore.resetTellingId(this@DatabaseBeheerScherm)
+                
+                // 3. Log de actie
+                fileLogger.warn("GEBRUIKER: Volledige database reset uitgevoerd (tabellen leeg + teller op 0)")
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@DatabaseBeheerScherm, "Database volledig gereset", Toast.LENGTH_LONG).show()
+                    refreshTableList()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@DatabaseBeheerScherm, "Fout bij reset: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun refreshTableList() {

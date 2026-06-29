@@ -112,7 +112,7 @@ class ServerDataDownloadManager(
                 
                 val cacheJob = async {
                     try {
-                        ServerDataCache.invalidate()
+                        ServerDataCache.invalidate(context)
                         true
                     } catch (e: Exception) {
                         Log.w(TAG, "Cache invalidation failed: ${e.message}", e)

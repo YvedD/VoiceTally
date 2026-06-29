@@ -24,7 +24,6 @@ class HybridTellingRepository(private val context: Context) {
     private val database by lazy { VoiceTallyDatabase.getDatabase(context) }
     private val tellingDao by lazy { database.tellingDao() }
     private val fileLogger by lazy { FileLogger(context) }
-    private val safHelper by lazy { SaFStorageHelper(context) }
 
     /**
      * Slaat een waarneming op in Room als de modus ROOM of Parallel is.
@@ -137,72 +136,6 @@ class HybridTellingRepository(private val context: Context) {
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan header [${envelope.tellingid}]: ${e.message}")
             }
-        }
-    }
-
-    /**
-     * Handmatige backup: Kopieert het interne SQLite databasebestand naar de zichtbare SAF map (/VT5/database/).
-     */
-    suspend fun forceDatabaseBackup() = withContext(Dispatchers.IO) {
-        try {
-            // 1. Forceer een checkpoint om data van WAL naar DB file te pushen
-            try {
-                // Gebruik rawQuery voor PRAGMAs die resultaten teruggeven om "unknown error (code 0 SQLITE_OK)" te vermijden
-                database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").use { cursor ->
-                    // Cursor consumeren/sluiten triggert de actie
-                    if (cursor.moveToFirst()) {
-                        val busy = cursor.getInt(0)
-                        val log = cursor.getInt(1)
-                        val checkpointed = cursor.getInt(2)
-                        fileLogger.info("Database checkpoint resultaat: busy=$busy, log=$log, checkpointed=$checkpointed")
-                    }
-                }
-            } catch (e: Exception) {
-                fileLogger.warn("Database checkpoint mislukt of waarschuwing: ${e.message}")
-            }
-
-            // 2. Definieer bronpaden
-            val internalRoot = context.getExternalFilesDir(null) ?: context.filesDir
-            val dbPath = File(internalRoot, "VT5/database/voicetally.db")
-            val walPath = File(internalRoot, "VT5/database/voicetally.db-wal")
-            val shmPath = File(internalRoot, "VT5/database/voicetally.db-shm")
-
-            // 3. Toegang tot doelmap op SAF
-            val vt5Dir = safHelper.getVt5DirIfExists() ?: return@withContext
-            val dbDirSaf = safHelper.findOrCreateDirectory(vt5Dir, "database") ?: return@withContext
-            
-            // 4. Kopieer alle drie de bestanden voor volledige integriteit
-            if (dbPath.exists()) copyToSafWithOverwrite(dbPath, dbDirSaf, "voicetally.db")
-            if (walPath.exists()) copyToSafWithOverwrite(walPath, dbDirSaf, "voicetally.db-wal")
-            if (shmPath.exists()) copyToSafWithOverwrite(shmPath, dbDirSaf, "voicetally.db-shm")
-            
-            fileLogger.info("SAF: Database export voltooid (inclusief WAL/SHM)")
-
-        } catch (e: Exception) {
-            fileLogger.error("SAF: Fout bij exporteren database: ${e.message}")
-        }
-    }
-
-    private fun copyToSafWithOverwrite(source: File, targetDir: androidx.documentfile.provider.DocumentFile, fileName: String) {
-        try {
-            var targetFile = targetDir.findFile(fileName)
-            if (targetFile == null) {
-                val mime = if (fileName.endsWith(".db")) "application/x-sqlite3" else "application/octet-stream"
-                targetFile = targetDir.createFile(mime, fileName)
-            }
-            
-            targetFile?.let { file ->
-                val os = context.contentResolver.openOutputStream(file.uri, "wt")
-                val isSource = source.inputStream()
-                
-                os?.use { output ->
-                    isSource.use { input ->
-                        input.copyTo(output)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("HybridRepo", "Fout bij kopiëren $fileName: ${e.message}")
         }
     }
 

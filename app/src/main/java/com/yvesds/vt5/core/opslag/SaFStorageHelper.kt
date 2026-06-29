@@ -77,7 +77,7 @@ class SaFStorageHelper(private val context: Context) {
 
         val vt5Folder = findOrCreateDirectory(rootDoc, "VT5") ?: return false
 
-        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "database")
+        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs")
         for (name in subfolders) {
             if (findOrCreateDirectory(vt5Folder, name) == null) return false
         }

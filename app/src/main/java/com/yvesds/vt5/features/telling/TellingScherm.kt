@@ -1740,7 +1740,7 @@ class TellingScherm : AppCompatActivity() {
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
         tileTapAggregationManager.flushAllAndAwait()
         val result = afrondHandler.handleAfronden(
-            pendingRecords = synchronized(pendingRecords) { ArrayList(pendingRecords) },
+            pendingRecordsSnapshot = synchronized(pendingRecords) { ArrayList(pendingRecords) },
             pendingBackupDocs = pendingBackupDocs,
             pendingBackupInternalPaths = pendingBackupInternalPaths,
             metadataUpdates = metadataUpdates
@@ -1872,8 +1872,17 @@ class TellingScherm : AppCompatActivity() {
                 onlineId = prefs.getString("pref_online_id", "") ?: ""
                 if (tellingId.isBlank()) return
                 
+                val dao = VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao()
+                val header = withContext(Dispatchers.IO) { dao.getHeader(tellingId) }
+                
+                // Alleen herstellen als de sessie in de database nog op 'actief' staat
+                if (header == null || header.status != "actief") {
+                    Log.i(TAG, "Geen actieve sessie gevonden in Room voor ID $tellingId; overgeslagen")
+                    return
+                }
+
                 val roomRecords = withContext(Dispatchers.IO) {
-                    VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao().getWaarnemingenList(tellingId)
+                    dao.getWaarnemingenList(tellingId)
                 }
                 savedRecords = roomRecords.map { it.toServerItem() }
             } else {
@@ -3106,7 +3115,7 @@ class TellingScherm : AppCompatActivity() {
         syncDailyTotalsRecord(item)
         syncDailyObservationRecord(item, refreshOrder = false)
         
-        // Room shadow write
+        // Room shadow write - CRUCIAL voor Hybride Systeem
         lifecycleScope.launch(Dispatchers.IO) {
             hybridRepository.saveWaarnemingToRoom(item)
         }

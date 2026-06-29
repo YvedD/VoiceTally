@@ -296,6 +296,17 @@ class HoofdActiviteit : AppCompatActivity() {
             envelopePersistence.clearSavedEnvelope()
             TellingUploadFlags.clearFlag(this@HoofdActiviteit, tellingId, onlineId)
 
+            // Database status bijwerken naar 'gearchiveerd'
+            if (!tellingId.isNullOrBlank()) {
+                withContext(Dispatchers.IO) {
+                    val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+                    val header = db.tellingDao().getHeader(tellingId)
+                    if (header != null) {
+                        db.tellingDao().updateHeader(header.copy(status = "gearchiveerd"))
+                    }
+                }
+            }
+
             val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
             prefs.edit {
                 remove("pref_saved_envelope_json")

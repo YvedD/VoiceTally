@@ -35,7 +35,7 @@ object StartTellingApi {
         val nowStr = nowAsSqlLike()
         val externId = "VoiceTally5 v.1.f"
         val timezone = "Europe/Brussels"
-        val bron = "4"
+        val bron = "2"
 
         val windkracht = (windkrachtBftOnly ?: "").ifEmpty { "" }
         val temperatuur = (temperatuurC ?: "").ifEmpty { "" }

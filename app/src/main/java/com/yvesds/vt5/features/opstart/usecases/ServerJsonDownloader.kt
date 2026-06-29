@@ -121,7 +121,7 @@ object ServerJsonDownloader {
             }
             msgs += msg
         }
-        ServerDataCache.invalidate()
+        ServerDataCache.invalidate(context)
         msgs
     }
 

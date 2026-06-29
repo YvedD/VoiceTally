@@ -8,3 +8,4 @@ Dit bestand bevat een overzicht van belangrijke ankerpunten (commits) om naar te
 | 2024-05-22 | `Anchor: Before Hybride Room-JSON transition - Phase 1` | De staat van het project voordat de transitie naar het hybride systeem (Room-first) begon. | `git reset --hard fe8cad2` |
 | 2024-05-22 | `Anchor: Before Hybride Room-JSON - Phase 2` | De staat na Fase 1 (Snelheids-fix) en voor de implementatie van Fase 2 (Robuuste Recovery via Room). | `git reset --hard d89186d` |
 | 2024-05-22 | `Anchor: Before Hybride Room-JSON - Phase 3` | De staat na Fase 2 (Robuuste Recovery) en voor de implementatie van Fase 3 (Clean Upload via Room). | `git reset --hard fd2f2c3` |
+| 2024-05-22 | `Anchor: Before Hybride Room-JSON - Phase 4` | De staat na Fase 3 (Clean Upload) en voor de implementatie van Fase 4 (Status Management). | `git reset --hard 9974ca7` |

@@ -46,15 +46,17 @@ class ServerDataFileReader(private val context: Context) {
             return@withContext it
         }
 
-        // Check for essential files (sites, codes, species)
+        // Check for essential files (sites, codes, species, site_species)
         val hasSites = serverdata.findChildByName("sites.bin") != null || 
                       serverdata.findChildByName("sites.json") != null
         val hasCodes = serverdata.findChildByName("codes.bin") != null || 
                       serverdata.findChildByName("codes.json") != null
         val hasSpecies = serverdata.findChildByName("species.bin") != null || 
                         serverdata.findChildByName("species.json") != null
+        val hasSiteSpecies = serverdata.findChildByName("site_species.bin") != null || 
+                            serverdata.findChildByName("site_species.json") != null
 
-        val result = hasSites && hasCodes && hasSpecies
+        val result = hasSites && hasCodes && hasSpecies && hasSiteSpecies
         fileExistenceCache[cacheKey] = result
 
         return@withContext result

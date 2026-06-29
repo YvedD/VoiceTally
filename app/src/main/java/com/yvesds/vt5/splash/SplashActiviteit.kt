@@ -9,8 +9,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -20,9 +22,6 @@ import kotlinx.coroutines.withTimeoutOrNull
  * 
  * Deze activity toont het vt5.png logo groot en gecentreerd op een donkere achtergrond.
  * Na een korte vertraging navigeert het automatisch naar HoofdActiviteit.
- * 
- * Het logo wordt als een echte afbeelding getoond (geen afgeronde hoeken zoals bij 
- * de standaard Android 12+ splash screen API).
  */
 @SuppressLint("CustomSplashScreen")
 class SplashActiviteit : AppCompatActivity() {
@@ -30,9 +29,9 @@ class SplashActiviteit : AppCompatActivity() {
     companion object {
         /**
          * Duur van de splash screen in milliseconden.
-         * Dit geeft VT5App.preloadDataAsync() de tijd om data in de achtergrond te laden.
+         * Dit geeft tijd om data in de achtergrond te laden.
          */
-        private const val SPLASH_DURATION_MS = 1500L
+        private const val SPLASH_DURATION_MS = 2000L
     }
     
     private var splashJob: Job? = null
@@ -48,12 +47,28 @@ class SplashActiviteit : AppCompatActivity() {
             }
         })
         
-        // Navigeer naar HoofdActiviteit na de splash duur
+        // Navigeer naar HoofdActiviteit na de splash duur en data-load
         splashJob = lifecycleScope.launch {
             val startedAt = System.currentTimeMillis()
-            withTimeoutOrNull(5_000L) {
-                VT5App.awaitStartupAliasRefresh()
+            val pb = findViewById<android.widget.ProgressBar>(R.id.pbLoading)
+            
+            // Wacht op zowel aliassen als serverdata (parallel)
+            withTimeoutOrNull(10_000L) {
+                val aliasJob = async { VT5App.awaitStartupAliasRefresh() }
+                val dataJob = async { 
+                    try {
+                        ServerDataCache.getOrLoad(this@SplashActiviteit)
+                    } catch (e: Exception) {
+                        android.util.Log.w("Splash", "ServerData preload failed: ${e.message}")
+                    }
+                }
+                aliasJob.await()
+                dataJob.await()
             }
+            
+            // Data is geladen: verberg progressbar
+            pb?.visibility = android.view.View.INVISIBLE
+            
             val elapsed = System.currentTimeMillis() - startedAt
             val remaining = (SPLASH_DURATION_MS - elapsed).coerceAtLeast(0L)
             if (remaining > 0L) {
@@ -64,20 +79,14 @@ class SplashActiviteit : AppCompatActivity() {
     }
     
     override fun onDestroy() {
-        // Cancel de splash job om memory leaks te voorkomen
         splashJob?.cancel()
         super.onDestroy()
     }
     
-    /**
-     * Navigeer naar HoofdActiviteit en sluit de splash screen
-     */
     private fun navigateToMain() {
         if (!isFinishing && !isDestroyed) {
             startActivity(Intent(this, HoofdActiviteit::class.java))
             finish()
-            // Fade animatie voor een vloeiende overgang
-            // Gebruik moderne overrideActivityTransition (API 34+) of fallback voor oudere APIs
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 overrideActivityTransition(
                     OVERRIDE_TRANSITION_CLOSE,

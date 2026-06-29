@@ -110,7 +110,7 @@ object WorldSpeciesAdder {
             } else {
                 Log.i(TAG, "Added species $speciesId to site_species")
                 // Invalidate cache so next load picks up the new species
-                ServerDataCache.invalidate()
+                ServerDataCache.invalidate(context)
             }
 
             // 3. Add to alias_master.json
