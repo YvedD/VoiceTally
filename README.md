@@ -589,4 +589,4 @@ Voor vragen of problemen, neem contact op met de app-ontwikkelaar.
 
 ---
 
-*Versie: 1.0.1 | Laatste update: 2025-12-18*
+*Versie: 1.0.3.f | Laatste update: 20265-0-01*
