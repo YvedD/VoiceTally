@@ -4,10 +4,11 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="50dp"
-    android:layout_marginBottom="50dp"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingLeft="8dp"
+    android:paddingRight="8dp"
+    android:paddingBottom="48dp"
+    android:paddingTop="38dp">
 
     <!-- Titel -->
     <LinearLayout
@@ -241,8 +242,8 @@
             android:layout_height="64dp"
             android:layout_margin="5dp"
             android:contentDescription="@string/telling_totals_icon_description"
-            android:minHeight="64dp"
             android:minWidth="64dp"
+            android:minHeight="64dp"
             android:text=""
             app:icon="@drawable/ic_action_sum"
             app:iconPadding="0dp"
@@ -255,8 +256,8 @@
             android:layout_height="64dp"
             android:layout_margin="5dp"
             android:contentDescription="@string/telling_add_icon_description"
-            android:minHeight="64dp"
             android:minWidth="64dp"
+            android:minHeight="64dp"
             android:text=""
             app:icon="@drawable/ic_action_add"
             app:iconPadding="0dp"
@@ -270,8 +271,8 @@
             android:layout_margin="5dp"
             android:layout_marginStart="8dp"
             android:contentDescription="@string/telling_finish_icon_description"
-            android:minHeight="64dp"
             android:minWidth="64dp"
+            android:minHeight="64dp"
             android:text=""
             app:icon="@drawable/ic_action_upload"
             app:iconPadding="0dp"

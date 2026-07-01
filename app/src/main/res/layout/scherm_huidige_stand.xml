@@ -3,8 +3,11 @@
     android:id="@+id/root_huidige_stand"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingTop="30dp"
+    android:paddingBottom="40dp"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:paddingLeft="12dp"
+    android:paddingRight="12dp">
 
     <TextView
         android:id="@+id/tv_title_huidige_stand"

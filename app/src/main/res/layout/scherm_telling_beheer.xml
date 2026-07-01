@@ -4,6 +4,8 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:paddingTop="30dp"
+    android:paddingBottom="40dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
 

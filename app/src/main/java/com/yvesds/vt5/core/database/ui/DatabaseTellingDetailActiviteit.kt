@@ -47,7 +47,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
         findViewById<MaterialButton>(R.id.btnOpslaan).setOnClickListener { saveChanges() }
-        findViewById<MaterialButton>(R.id.btnUploadServer).setOnClickListener { uploadToServer() }
+        findViewById<MaterialButton>(R.id.btnUploadServer)?.setOnClickListener { uploadToServer() }
 
         loadData()
     }
@@ -136,10 +136,18 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
             return
         }
 
+        // Optimalisatie: Haal alle unieke soortnamen in één keer op om suspend overhead in de loop te voorkomen
+        val uniqueSoortIds = records.map { it.soortid }.distinct()
+        val speciesMap = uniqueSoortIds.associateWith { SpeciesNameResolver.getName(this, it) }
+
+        // Bepaal kolombreedte: op tablets (sw600dp) tonen we 3 kolommen, op smartphones 2.
+        val isTablet = resources.configuration.smallestScreenWidthDp >= 600
+        val basisPercent = if (isTablet) 0.31f else 0.48f
+
         for ((index, record) in records.withIndex()) {
             try {
                 val view = LayoutInflater.from(this).inflate(R.layout.item_db_waarneming, containerRecords, false)
-                val soortNaam = SpeciesNameResolver.getName(this, record.soortid)
+                val soortNaam = speciesMap[record.soortid] ?: "Onbekend"
                 
                 view.findViewById<TextView>(R.id.tvIndex).text = (index + 1).toString()
                 view.findViewById<TextView>(R.id.tvSoortNaam).text = soortNaam
@@ -156,7 +164,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                 }
                 
                 val params = view.layoutParams as FlexboxLayout.LayoutParams
-                params.flexBasisPercent = 0.48f
+                params.flexBasisPercent = basisPercent
                 params.flexGrow = 1.0f
                 view.layoutParams = params
 
@@ -208,7 +216,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                     hydro = updatedMap["hydro"] ?: header.hydro,
                     hpa = updatedMap["hpa"] ?: header.hpa,
                     equipment = updatedMap["equipment"] ?: header.equipment,
-                    bron = "2" // Geforceerd op "4" voor Trektellen API consistentie
+                    bron = "4" // Geforceerd op "4" voor Trektellen API consistentie
                 )
                 database.tellingDao().updateHeader(updatedHeader)
                 fileLogger.info("GEBRUIKER: Metadata van telling [${header.tellingid}] volledig bijgewerkt in database")
@@ -230,7 +238,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
         val id = currentTellingId ?: return
         
         lifecycleScope.launch(Dispatchers.Main) {
-            val btn = findViewById<MaterialButton>(R.id.btnUploadServer)
+            val btn = findViewById<MaterialButton>(R.id.btnUploadServer) ?: return@launch
             btn.isEnabled = false
             btn.text = "Bezig met uploaden..."
             

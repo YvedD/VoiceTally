@@ -5,14 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/vt5_black"
-    android:fillViewport="true"
-    android:padding="20dp">
+    android:fillViewport="true">
 
     <LinearLayout
         android:id="@+id/rootContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingTop="30dp"
+        android:paddingBottom="40dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp">
 
         <!-- Titel -->
 

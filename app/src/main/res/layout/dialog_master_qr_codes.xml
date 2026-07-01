@@ -13,30 +13,30 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
             android:text="@string/mc_qr_dialog_title"
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:paddingBottom="8dp" />
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:alpha="0.85"
+            android:paddingBottom="12dp"
             android:text="@string/mc_pairing_master_qr_required"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="13sp"
-            android:alpha="0.85"
-            android:paddingBottom="12dp" />
+            android:textSize="13sp" />
 
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="4dp"
             android:text="@string/mc_pairing_qr_label"
             android:textColor="@color/vt5_on_surface"
             android:textSize="13sp"
-            android:textStyle="bold"
-            android:paddingBottom="4dp" />
+            android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/ivPairingQr"
@@ -51,22 +51,22 @@
             android:id="@+id/tvPairingQrInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="12sp"
             android:alpha="0.8"
+            android:gravity="center_horizontal"
             android:paddingTop="6dp"
-            android:paddingBottom="12dp" />
+            android:paddingBottom="12dp"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/tvConnectedClients"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
+            android:paddingBottom="12dp"
             android:textColor="@color/vt5_on_surface"
             android:textSize="12sp"
-            android:textStyle="bold"
-            android:paddingBottom="12dp" />
+            android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRefreshQr"

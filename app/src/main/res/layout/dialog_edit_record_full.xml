@@ -3,6 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginTop="25dp"
+    android:layout_marginBottom="40dp"
     android:fillViewport="true">
 
     <LinearLayout
@@ -13,11 +15,11 @@
 
         <!-- Soort selectie met zoekbare dropdown -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:hint="@string/beheer_soort"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             app:boxStrokeColor="@color/vt5_light_blue"
             app:hintTextColor="@color/vt5_light_blue">
 
@@ -119,11 +121,11 @@
 
         <!-- Leeftijd dropdown -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:hint="@string/beheer_leeftijd"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             app:boxStrokeColor="@color/vt5_light_blue"
             app:hintTextColor="@color/vt5_light_blue">
 
@@ -137,11 +139,11 @@
 
         <!-- Geslacht dropdown -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:hint="@string/beheer_geslacht"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             app:boxStrokeColor="@color/vt5_light_blue"
             app:hintTextColor="@color/vt5_light_blue">
 
@@ -155,11 +157,11 @@
 
         <!-- Kleed dropdown -->
         <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:hint="@string/beheer_kleed"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             app:boxStrokeColor="@color/vt5_light_blue"
             app:hintTextColor="@color/vt5_light_blue">
 
@@ -176,8 +178,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:orientation="horizontal"
-            android:gravity="start">
+            android:gravity="start"
+            android:orientation="horizontal">
 
             <CheckBox
                 android:id="@+id/cbMarkeren"

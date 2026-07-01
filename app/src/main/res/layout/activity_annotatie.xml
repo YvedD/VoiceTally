@@ -9,8 +9,11 @@
         android:id="@+id/annot_content_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingTop="30dp"
+        android:paddingBottom="40dp"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp">
 
         <LinearLayout
             android:id="@+id/header_row"
@@ -824,16 +827,16 @@
                 <!-- Buttons -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
+                    android:layout_height="45dp"
                     android:layout_marginTop="0dp"
-                    android:paddingTop="0dp"
-                    android:orientation="horizontal">
+                    android:gravity="end"
+                    android:orientation="horizontal"
+                    android:paddingTop="0dp">
 
                     <Button
                         android:id="@+id/btn_cancel"
                         android:layout_width="wrap_content"
-                        android:layout_height="25dp"
+                        android:layout_height="match_parent"
                         android:padding="5dp"
                         android:paddingLeft="5dp"
                         android:paddingTop="5dp"
@@ -844,7 +847,7 @@
                     <Button
                         android:id="@+id/btn_ok"
                         android:layout_width="wrap_content"
-                        android:layout_height="25dp"
+                        android:layout_height="45dp"
                         android:layout_marginStart="12dp"
                         android:padding="5dp"
                         android:paddingLeft="5dp"
@@ -855,7 +858,6 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
-
 
 
     </LinearLayout>

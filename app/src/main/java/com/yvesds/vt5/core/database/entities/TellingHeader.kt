@@ -13,7 +13,7 @@ data class TellingHeader(
     val onlineid: String = "",
     val externid: String = "",
     val timezoneid: String = "Europe/Brussels",
-    val bron: String = "2",
+    val bron: String = "4",
     val telpostid: String = "",
     val begintijd: String = "",
     val eindtijd: String = "",

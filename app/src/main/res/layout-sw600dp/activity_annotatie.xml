@@ -9,8 +9,11 @@
         android:id="@+id/annot_content_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingTop="30dp"
+        android:paddingBottom="40dp"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp">
 
         <LinearLayout
             android:id="@+id/header_row"
@@ -717,9 +720,9 @@
                     android:contentDescription="@string/annotation_count_main"
                     android:hint="0"
                     android:inputType="number"
+                    android:minHeight="48dp"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
-                    android:minHeight="48dp"
                     android:singleLine="false"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -748,9 +751,9 @@
                     android:contentDescription="@string/annotation_count_return"
                     android:hint="0"
                     android:inputType="number"
+                    android:minHeight="48dp"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
-                    android:minHeight="48dp"
                     android:singleLine="false"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -778,9 +781,9 @@
                     android:contentDescription="@string/annotation_count_local"
                     android:hint="0"
                     android:inputType="number"
+                    android:minHeight="48dp"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
-                    android:minHeight="48dp"
                     android:singleLine="false"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -819,17 +822,17 @@
         <!-- Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="73dp"
             android:gravity="end"
-            android:paddingTop="0dp"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:paddingTop="0dp">
 
             <Button
                 android:id="@+id/btn_cancel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minHeight="48dp"
                 android:minWidth="120dp"
+                android:minHeight="55dp"
                 android:padding="8dp"
                 android:text="@string/annotatie_annuleren"
                 android:textSize="16sp" />
@@ -839,8 +842,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:minHeight="48dp"
                 android:minWidth="120dp"
+                android:minHeight="55dp"
                 android:padding="8dp"
                 android:text="@string/annotatie_ok"
                 android:textSize="16sp" />

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginBottom="2dp"
+    android:layout_marginBottom="45dp"
     app:cardUseCompatPadding="false"
     app:strokeWidth="1dp">
 
@@ -375,7 +375,7 @@
         <LinearLayout
             android:id="@+id/bottomBar"
             android:layout_width="0dp"
-            android:layout_height="125dp"
+            android:layout_height="60dp"
             android:orientation="horizontal"
             android:paddingTop="1dp"
             app:layout_constraintBottom_toBottomOf="parent"
