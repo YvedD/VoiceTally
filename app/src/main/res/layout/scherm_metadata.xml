@@ -38,6 +38,7 @@
                     android:layout_marginTop="4dp"
                     android:baselineAligned="false"
                     android:orientation="vertical"
+                    android:gravity="top"
                     android:padding="0dp">
 
                     <!-- Vrijstaande, gecentreerde titel -->

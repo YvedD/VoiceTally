@@ -25,24 +25,22 @@
             android:textSize="18sp" />
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:text="@string/db_beheer_btn_soort_zoeken"
+            android:text="Overzicht"
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnToonGrafieken"
-            style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            app:icon="@drawable/ic_action_sum"
-            app:iconTint="@color/vt5_light_blue"
-            app:iconSize="32dp"
-            android:visibility="gone" />
+            style="@style/Widget.VT5.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="GRAFIEK"
+            android:layout_marginStart="12dp"
+            android:visibility="visible" />
     </LinearLayout>
 
     <View

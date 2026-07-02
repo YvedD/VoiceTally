@@ -14,9 +14,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+import com.patrykandpatrick.vico.core.cartesian.CartesianChart
+import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.Waarneming
@@ -98,6 +102,8 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         }
     }
 
+    private val monthLabels = listOf("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
     private fun prepareAndShowCharts() {
         lifecycleScope.launch(Dispatchers.Default) {
             val items = currentWaarnemingen
@@ -144,10 +150,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         }
     }
 
-    private suspend fun updateChart(chartView: CartesianChartView, producer: CartesianChartModelProducer, data: IntArray) {
+    private suspend fun updateChart(chartView: CartesianChartView?, producer: CartesianChartModelProducer, data: IntArray) {
+        if (chartView == null) return
+
         producer.runTransaction {
             columnSeries { series(data.toList()) }
         }
+        
         withContext(Dispatchers.Main) {
             chartView.modelProducer = producer
         }
