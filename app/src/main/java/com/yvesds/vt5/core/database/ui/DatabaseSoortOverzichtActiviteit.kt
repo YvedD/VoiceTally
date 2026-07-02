@@ -14,8 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
-import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
-import com.patrykandpatrick.vico.views.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
 import com.yvesds.vt5.R
@@ -24,9 +23,7 @@ import com.yvesds.vt5.core.database.entities.Waarneming
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
@@ -112,11 +109,11 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 tellingIds.associateWith { database.tellingDao().getHeader(it) }
             }
 
-            // Maanden 1-12 initialiseren
-            val dataNoord = IntArray(12) { 0 }
-            val dataOost = IntArray(12) { 0 }
-            val dataZuid = IntArray(12) { 0 }
-            val dataWest = IntArray(12) { 0 }
+            // Maanden 0-11 initialiseren
+            val dataNoord = IntArray(12)
+            val dataOost = IntArray(12)
+            val dataZuid = IntArray(12)
+            val dataWest = IntArray(12)
 
             val cal = Calendar.getInstance()
             
@@ -149,9 +146,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
     private suspend fun updateChart(chartView: CartesianChartView, producer: CartesianChartModelProducer, data: IntArray) {
         producer.runTransaction {
-            columnSeries {
-                series(data.toList())
-            }
+            columnSeries { series(data.toList()) }
         }
         withContext(Dispatchers.Main) {
             chartView.modelProducer = producer
