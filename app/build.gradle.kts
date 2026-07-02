@@ -89,6 +89,10 @@ dependencies {
     // maar we proberen eerst de standaard annotationProcessor voor Room.
 
     implementation("androidx.media:media:1.7.1")
+
+    // Vico Charts
+    implementation("com.patrykandpatrick.vico:core:2.0.0-beta.3")
+    implementation("com.patrykandpatrick.vico:views:2.0.0-beta.3")
 }
 // Tests uit
 tasks.matching {

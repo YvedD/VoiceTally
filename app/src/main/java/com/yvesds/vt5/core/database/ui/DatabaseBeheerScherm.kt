@@ -9,6 +9,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
+import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.opslag.FileLogger
@@ -26,6 +29,8 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     private lateinit var database: VoiceTallyDatabase
     private lateinit var fileLogger: FileLogger
     private lateinit var container: LinearLayout
+    private lateinit var chartView: CartesianChartView
+    private val modelProducer = CartesianChartModelProducer()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +39,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         database = VoiceTallyDatabase.getDatabase(this)
         fileLogger = FileLogger(this)
         container = findViewById(R.id.containerTabellen)
+        chartView = findViewById(R.id.chartActivity)
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
         
@@ -49,7 +55,25 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             startDoubleResetConfirmation()
         }
 
+        setupChart()
         refreshTableList()
+    }
+
+    private fun setupChart() {
+        lifecycleScope.launch {
+            // Haal data op voor de grafiek (bijv. aantal waarnemingen per telling)
+            val headers = withContext(Dispatchers.IO) {
+                database.tellingDao().getAllHeaders().take(10).reversed()
+            }
+            
+            if (headers.isNotEmpty()) {
+                val counts = headers.map { it.nrec.toIntOrNull() ?: 0 }
+                modelProducer.runTransaction {
+                    columnSeries { series(counts) }
+                }
+                chartView.modelProducer = modelProducer
+            }
+        }
     }
 
     private fun startDoubleResetConfirmation() {

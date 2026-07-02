@@ -53,6 +53,32 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <!-- Grafiek Sectie -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Activiteit Overzicht"
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_marginBottom="32dp"
+                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardCornerRadius="12dp"
+                app:strokeColor="@color/vt5_light_blue"
+                app:strokeWidth="1dp">
+
+                <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                    android:id="@+id/chartActivity"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="16dp" />
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Navigatie Knoppen -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnTellingenLijst"
