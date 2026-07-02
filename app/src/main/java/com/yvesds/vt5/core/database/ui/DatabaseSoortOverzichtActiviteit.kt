@@ -7,22 +7,41 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AutoCompleteTextView
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
+import com.patrykandpatrick.vico.views.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
+import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.Waarneming
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
     private lateinit var database: VoiceTallyDatabase
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvSoortInfo: TextView
+    private lateinit var layoutGrafieken: LinearLayout
+    private lateinit var btnToonGrafieken: MaterialButton
+    
+    private val producerNoord = CartesianChartModelProducer()
+    private val producerOost = CartesianChartModelProducer()
+    private val producerZuid = CartesianChartModelProducer()
+    private val producerWest = CartesianChartModelProducer()
+
+    private var currentWaarnemingen: List<Waarneming> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,8 +51,19 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         recyclerView = findViewById(R.id.rvWaarnemingen)
         recyclerView.layoutManager = LinearLayoutManager(this)
         tvSoortInfo = findViewById(R.id.tvSoortInfo)
+        layoutGrafieken = findViewById(R.id.layoutGrafieken)
+        btnToonGrafieken = findViewById(R.id.btnToonGrafieken)
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
+
+        btnToonGrafieken.setOnClickListener {
+            if (layoutGrafieken.visibility == View.VISIBLE) {
+                layoutGrafieken.visibility = View.GONE
+            } else {
+                layoutGrafieken.visibility = View.VISIBLE
+                prepareAndShowCharts()
+            }
+        }
 
         setupSearch()
     }
@@ -60,10 +90,71 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private fun loadWaarnemingen(soortId: String, soortNaam: String) {
         lifecycleScope.launch {
             val items = database.tellingDao().getWaarnemingenBySoort(soortId)
+            currentWaarnemingen = items
             val totaalEx = items.sumOf { it.aantal.toIntOrNull() ?: 0 }
             
             tvSoortInfo.text = "Totaal: $totaalEx exemplaren in ${items.size} waarnemingen."
             recyclerView.adapter = WaarnemingAdapter(items, soortNaam)
+            
+            btnToonGrafieken.visibility = if (items.isNotEmpty()) View.VISIBLE else View.GONE
+            layoutGrafieken.visibility = View.GONE // Reset bij nieuwe soort
+        }
+    }
+
+    private fun prepareAndShowCharts() {
+        lifecycleScope.launch(Dispatchers.Default) {
+            val items = currentWaarnemingen
+            if (items.isEmpty()) return@launch
+
+            // We hebben ook de headers nodig voor windrichting (die staat in de header, niet per waarneming)
+            val tellingIds = items.map { it.tellingid }.distinct()
+            val headerMap = withContext(Dispatchers.IO) {
+                tellingIds.associateWith { database.tellingDao().getHeader(it) }
+            }
+
+            // Maanden 1-12 initialiseren
+            val dataNoord = IntArray(12) { 0 }
+            val dataOost = IntArray(12) { 0 }
+            val dataZuid = IntArray(12) { 0 }
+            val dataWest = IntArray(12) { 0 }
+
+            val cal = Calendar.getInstance()
+            
+            for (item in items) {
+                val header = headerMap[item.tellingid] ?: continue
+                val wind = header.windrichting.uppercase().trim()
+                val aantal = item.aantal.toIntOrNull() ?: 0
+                
+                // Tijdstip parsen
+                val ts = item.tijdstip.toLongOrNull() ?: 0L
+                if (ts == 0L) continue
+                cal.timeInMillis = ts * 1000L
+                val month = cal.get(Calendar.MONTH) // 0-11
+
+                // Verdeling per windrichting groep
+                if (wind in listOf("N", "NW", "NNW", "NO", "NNO")) dataNoord[month] += aantal
+                if (wind in listOf("O", "NO", "NNO", "OZO", "ZZO")) dataOost[month] += aantal
+                if (wind in listOf("Z", "ZZO", "ZO", "ZW", "ZZW")) dataZuid[month] += aantal
+                if (wind in listOf("W", "WZW", "ZW", "NW", "WNW")) dataWest[month] += aantal
+            }
+
+            withContext(Dispatchers.Main) {
+                updateChart(findViewById(R.id.chartNoord), producerNoord, dataNoord)
+                updateChart(findViewById(R.id.chartOost), producerOost, dataOost)
+                updateChart(findViewById(R.id.chartZuid), producerZuid, dataZuid)
+                updateChart(findViewById(R.id.chartWest), producerWest, dataWest)
+            }
+        }
+    }
+
+    private suspend fun updateChart(chartView: CartesianChartView, producer: CartesianChartModelProducer, data: IntArray) {
+        producer.runTransaction {
+            columnSeries {
+                series(data.toList())
+            }
+        }
+        withContext(Dispatchers.Main) {
+            chartView.modelProducer = producer
         }
     }
 

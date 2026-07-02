@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingTop="30dp"
@@ -32,6 +33,16 @@
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
             android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToonGrafieken"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:icon="@drawable/ic_action_sum"
+            app:iconTint="@color/vt5_light_blue"
+            app:iconSize="32dp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <View
@@ -63,6 +74,94 @@
             android:textColor="@color/vt5_on_surface"
             android:textSize="16sp"
             android:textStyle="italic" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutGrafieken"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:visibility="gone">
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="2"
+            android:alignmentMode="alignMargins">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:orientation="vertical"
+                android:layout_margin="8dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Noord (N, NW, NNW, NO, NNO)"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp" />
+                <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                    android:id="@+id/chartNoord"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:orientation="vertical"
+                android:layout_margin="8dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Oost (O, NO, NNO, OZO, ZZO)"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp" />
+                <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                    android:id="@+id/chartOost"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:orientation="vertical"
+                android:layout_margin="8dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Zuid (Z, ZZO, ZO, ZW, ZZW)"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp" />
+                <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                    android:id="@+id/chartZuid"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:orientation="vertical"
+                android:layout_margin="8dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="West (W, WZW, ZW, NW, WNW)"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp" />
+                <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                    android:id="@+id/chartWest"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+        </GridLayout>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
