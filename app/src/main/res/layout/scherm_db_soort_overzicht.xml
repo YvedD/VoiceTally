@@ -32,15 +32,6 @@
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
             android:textStyle="bold" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnToonGrafieken"
-            style="@style/Widget.VT5.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="GRAFIEK"
-            android:layout_marginStart="10dp"
-            android:visibility="visible" />
     </LinearLayout>
 
     <View
@@ -74,66 +65,72 @@
             android:textStyle="italic" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/layoutGrafieken"
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabSoortOverzicht"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="10dp"
-        android:visibility="gone">
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        app:tabIndicatorColor="@color/vt5_light_blue"
+        app:tabSelectedTextColor="@color/vt5_light_blue"
+        app:tabTextColor="@color/vt5_on_surface">
 
-        <TextView
-            android:layout_width="match_parent"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Noord (N, NW, NNW, NO, NNO)"
-            android:textColor="@color/vt5_light_blue"
-            android:textSize="12sp" />
-        <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
-            android:id="@+id/chartNoord"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginBottom="8dp" />
+            android:text="Overzicht" />
 
-        <TextView
-            android:layout_width="match_parent"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Oost (O, NO, NNO, OZO, ZZO)"
-            android:textColor="@color/vt5_light_blue"
-            android:textSize="12sp" />
-        <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
-            android:id="@+id/chartOost"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginBottom="8dp" />
+            android:text="Grafieken" />
+    </com.google.android.material.tabs.TabLayout>
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Zuid (Z, ZZO, ZO, ZW, ZZW)"
-            android:textColor="@color/vt5_light_blue"
-            android:textSize="12sp" />
-        <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
-            android:id="@+id/chartZuid"
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="West (W, WZW, ZW, NW, WNW)"
-            android:textColor="@color/vt5_light_blue"
-            android:textSize="12sp" />
-        <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
-            android:id="@+id/chartWest"
-            android:layout_width="match_parent"
-            android:layout_height="120dp" />
-    </LinearLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvWaarnemingen"
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="10dp" />
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/contentOverview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvWaarnemingen"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:padding="10dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutGrafieken"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="10dp"
+                android:visibility="gone">
+
+                <GridLayout
+                    android:id="@+id/gridWindCharts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:alignmentMode="alignMargins"
+                    android:columnCount="1"
+                    android:orientation="horizontal"
+                    android:useDefaultMargins="false" />
+            </LinearLayout>
+
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>
