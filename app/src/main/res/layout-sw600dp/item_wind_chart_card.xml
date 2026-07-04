@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:textColor="@color/vt5_light_blue"
+            android:textColor="@color/popup_bg_wit"
             android:textSize="14sp"
             android:textStyle="bold" />
 

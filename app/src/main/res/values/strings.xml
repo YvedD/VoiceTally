@@ -106,10 +106,10 @@
     <string name="hoofd_opkuis_fout">Fout bij opkuisen: %1$s</string>
     <string name="hoofd_opkuis_laden">Exports laden…</string>
     <string name="hoofd_instellingen">Instellingen</string>
-    <string name="hoofd_database_beheer">Database Beheer</string>
+    <string name="hoofd_database_beheer">Database Beheer (+ analyse)</string>
 
     <!-- Database Beheer Scherm -->
-    <string name="db_beheer_titel">Database Beheer</string>
+    <string name="db_beheer_titel">Database Beheer (+ analyse)</string>
     <string name="db_beheer_tabel_naam">Tabel: %1$s</string>
     <string name="db_beheer_records_count">Records: %1$d</string>
     <string name="db_beheer_wissen_records">Records Wissen</string>
