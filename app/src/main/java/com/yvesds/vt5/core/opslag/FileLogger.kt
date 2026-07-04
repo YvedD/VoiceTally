@@ -46,6 +46,7 @@ class FileLogger(private val context: Context) {
                 if (logDir != null) {
                     val logFile = logDir.findFile(filename) ?: logDir.createFile("text/plain", filename)
                     if (logFile != null) {
+                        Log.d(TAG, "Writing to SAF log: ${logFile.uri}")
                         context.contentResolver.openOutputStream(logFile.uri, "wa")?.use { out ->
                             out.write(logLine.toByteArray(Charsets.UTF_8))
                         }
@@ -58,6 +59,7 @@ class FileLogger(private val context: Context) {
                 if (!logDir.exists()) logDir.mkdirs()
                 
                 val file = File(logDir, filename)
+                Log.d(TAG, "Writing to internal log: ${file.absolutePath}")
                 file.appendText(logLine, Charsets.UTF_8)
             }
         } catch (e: Exception) {

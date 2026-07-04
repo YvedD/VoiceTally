@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.patrykandpatrick.vico.core.cartesian.CartesianChart
+import com.patrykandpatrick.vico.core.cartesian.Zoom
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
 import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
@@ -232,9 +233,8 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     }
 
     private fun setupSingleChart(chartView: CartesianChartView, producer: CartesianChartModelProducer) {
-        // Create two separate layers so the beaufort series uses its own Y-range (fixed 0..7)
-        val countLayer = VicoLineChartHelper.createLineLayer(chartLineColor)
-        val beaufortLayer = VicoLineChartHelper.createBeaufortLineLayer(7.0, beaufortLineColor)
+        val countLayer = VicoLineChartHelper.createCountLineLayer(chartLineColor)
+        val beaufortLayer = VicoLineChartHelper.createBeaufortLineLayer(maxBeaufort = 7.0, beaufortColor = beaufortLineColor)
 
         chartView.chart = CartesianChart(
             countLayer,
@@ -247,7 +247,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         chartView.setBackgroundColor(chartBgColor)
         chartView.modelProducer = producer
         chartView.scrollHandler = ScrollHandler(true)
-        chartView.zoomHandler = ZoomHandler(true)
+        chartView.zoomHandler = ZoomHandler(zoomEnabled = true, initialZoom = Zoom.Content)
     }
 
     private suspend fun updateChart(
@@ -261,10 +261,9 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val clampedBeaufort = beaufortData.map { v -> (v.coerceAtMost(maxBeaufort)).toFloat() }
 
         producer.runTransaction {
-            lineSeries {
-                series(countData.map { it.toFloat() })
-                series(clampedBeaufort)
-            }
+            // Two separate line models: one per layer (count-left axis, beaufort-right axis).
+            lineSeries { series(countData.map { it.toFloat() }) }
+            lineSeries { series(clampedBeaufort) }
         }
 
         withContext(Dispatchers.Main) {

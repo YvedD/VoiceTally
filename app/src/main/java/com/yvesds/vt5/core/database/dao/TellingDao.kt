@@ -65,4 +65,30 @@ interface TellingDao {
 
     @Query("SELECT COUNT(*) FROM sync_logs")
     suspend fun countSyncLogs(): Int
+
+    @Query("""
+        SELECT
+            telling_headers.begintijd AS begintijd,
+            telling_headers.timezoneid AS timezoneid,
+            telling_headers.windrichting AS windrichting,
+            telling_headers.windkracht AS windkracht,
+            CAST(COALESCE(NULLIF(waarnemingen.aantal, ''), '0') AS INTEGER) AS aantal
+        FROM waarnemingen
+        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
+        WHERE waarnemingen.soortid = :soortId
+          AND telling_headers.begintijd IS NOT NULL
+          AND telling_headers.begintijd != ''
+          AND telling_headers.windrichting IS NOT NULL
+          AND telling_headers.windrichting != ''
+        ORDER BY CAST(telling_headers.begintijd AS INTEGER) ASC
+    """)
+    suspend fun getWindDatasetForSpecies(soortId: String): List<SpeciesWindDatasetRow>
 }
+
+data class SpeciesWindDatasetRow(
+    val begintijd: String,
+    val timezoneid: String,
+    val windrichting: String,
+    val windkracht: String,
+    val aantal: Int,
+)
