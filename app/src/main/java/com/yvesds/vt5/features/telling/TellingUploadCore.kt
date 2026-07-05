@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.core.content.edit
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.import.CsvImportPolicy
 import com.yvesds.vt5.core.secure.CredentialsStore
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
@@ -133,6 +135,26 @@ class TellingUploadCore(
     }
 
     suspend fun uploadPrepared(request: UploadRequest): UploadResult {
+        // VEILIGHEIDSCHECK: Voorkom upload van gearchiveerde data
+        if (request.preparedEnvelope.tellingid.isNotBlank()) {
+            val db = VoiceTallyDatabase.getDatabase(context)
+            val header = db.tellingDao().getHeader(request.preparedEnvelope.tellingid)
+            if (header != null && CsvImportPolicy.isUploadBlocked(header.status, header.bron)) {
+                Log.w(
+                    TAG,
+                    "Upload GEBLOKKEERD: Telling ${header.tellingid} is gemarkeerd als importdata (status=${header.status}, bron=${header.bron})"
+                )
+                return UploadResult(
+                    success = false,
+                    skipped = true,
+                    preparedEnvelope = request.preparedEnvelope,
+                    responseText = "Upload niet toegestaan voor gearchiveerde data.",
+                    effectiveOnlineId = request.preparedEnvelope.onlineid,
+                    errorMessage = "Deze data is gearchiveerd en mag niet worden geüpload."
+                )
+            }
+        }
+
         return uploadMutex.withLock {
             doUpload(request)
         }

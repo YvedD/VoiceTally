@@ -1,6 +1,7 @@
 package com.yvesds.vt5.features.telling
 
 import android.content.Context
+import com.yvesds.vt5.core.import.CsvImportPolicy
 
 /**
  * Tracks whether a telling was successfully uploaded.
@@ -23,6 +24,17 @@ object TellingUploadFlags {
     }
 
     fun isSent(context: Context, tellingId: String?, onlineId: String?): Boolean {
+        // GEBRUIKERSWENS: Gearchiveerde sessies (imports) moeten ook als 'verzonden' (groen/geblokkeerd) getoond worden
+        if (tellingId != null) {
+            val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(context)
+            val header = kotlinx.coroutines.runBlocking {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    db.tellingDao().getHeader(tellingId)
+                }
+            }
+            if (header != null && CsvImportPolicy.isUploadBlocked(header.status, header.bron)) return true
+        }
+
         val key = buildKey(tellingId, onlineId) ?: return false
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getBoolean(key, false)

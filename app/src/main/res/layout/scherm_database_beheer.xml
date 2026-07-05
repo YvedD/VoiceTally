@@ -57,11 +57,11 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Activiteit Overzicht"
+                android:layout_marginBottom="8dp"
+                android:text="Overzicht Tellingen"
                 android:textColor="@color/vt5_light_blue"
                 android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
+                android:textStyle="bold" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -76,7 +76,9 @@
                     android:id="@+id/chartActivity"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="12dp" />
+                    android:padding="12dp"
+                    app:scrollEnabled="false"
+                    app:zoomEnabled="false" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Navigatie Knoppen -->
@@ -97,6 +99,25 @@
                 android:layout_marginBottom="16dp"
                 android:text="@string/db_beheer_btn_soort_zoeken"
                 android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Data Import"
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnImportCsv"
+                style="@style/Widget.VT5.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="Importeer CSV (SAF)"
+                android:textSize="16sp"
+                app:icon="@android:drawable/ic_menu_save" />
 
             <View
                 android:layout_width="match_parent"

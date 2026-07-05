@@ -1,13 +1,17 @@
 package com.yvesds.vt5.core.database.entities
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * TellingHeader: Bevat de metadata van een telsessie.
  * Alle velden zijn Strings voor server-compatibiliteit.
  */
-@Entity(tableName = "telling_headers")
+@Entity(
+    tableName = "telling_headers",
+    indices = [Index(value = ["windrichting"]), Index(value = ["begintijd"])]
+)
 data class TellingHeader(
     @PrimaryKey val tellingid: String,
     val onlineid: String = "",

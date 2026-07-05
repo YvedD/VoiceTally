@@ -19,6 +19,7 @@ import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.database.toServerEnvelope
+import com.yvesds.vt5.core.import.CsvImportPolicy
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.features.telling.TellingUploadCore
 import kotlinx.coroutines.Dispatchers
@@ -58,7 +59,8 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
             val header = database.tellingDao().getHeader(id) ?: return@launch
             currentHeader = header
             renderMetadata(header)
-            
+            updateUploadButtonState(header)
+
             val records = database.tellingDao().getWaarnemingenList(id)
             renderRecords(records)
         }
@@ -66,13 +68,16 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
 
     private fun renderMetadata(header: TellingHeader) {
         containerMetadata.removeAllViews()
+        val importLocked = CsvImportPolicy.isUploadBlocked(header.status, header.bron)
+
         // Alle relevante velden voor metadata bewerking
         addEditField("onlineid", header.onlineid)
         addEditField("telpostid", header.telpostid)
         addEditField("begintijd", header.begintijd)
         addEditField("eindtijd", header.eindtijd)
         addEditField("opmerkingen", header.opmerkingen)
-        addEditField("status", header.status)
+        addEditField("status", header.status, enabled = !importLocked)
+        addEditField("bron", header.bron, enabled = false)
         addEditField("nrec", header.nrec)
         addEditField("nsoort", header.nsoort)
         addEditField("tellers", header.tellers)
@@ -178,6 +183,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
 
     private fun saveChanges() {
         val header = currentHeader ?: return
+        val importLocked = CsvImportPolicy.isUploadBlocked(header.status, header.bron)
         val updatedMap = mutableMapOf<String, String>()
         for (i in 0 until containerMetadata.childCount) {
             val row = containerMetadata.getChildAt(i)
@@ -195,7 +201,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                     begintijd = updatedMap["begintijd"] ?: header.begintijd,
                     eindtijd = updatedMap["eindtijd"] ?: header.eindtijd,
                     opmerkingen = updatedMap["opmerkingen"] ?: header.opmerkingen,
-                    status = updatedMap["status"] ?: header.status,
+                    status = if (importLocked) header.status else (updatedMap["status"] ?: header.status),
                     nrec = updatedMap["nrec"] ?: header.nrec,
                     nsoort = updatedMap["nsoort"] ?: header.nsoort,
                     tellers = updatedMap["tellers"] ?: header.tellers,
@@ -216,7 +222,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                     hydro = updatedMap["hydro"] ?: header.hydro,
                     hpa = updatedMap["hpa"] ?: header.hpa,
                     equipment = updatedMap["equipment"] ?: header.equipment,
-                    bron = "4" // Geforceerd op "4" voor Trektellen API consistentie
+                    bron = if (importLocked) header.bron else "4" // Houd import-locked sessies onveranderlijk.
                 )
                 database.tellingDao().updateHeader(updatedHeader)
                 fileLogger.info("GEBRUIKER: Metadata van telling [${header.tellingid}] volledig bijgewerkt in database")
@@ -236,7 +242,12 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
     private fun uploadToServer() {
         val header = currentHeader ?: return
         val id = currentTellingId ?: return
-        
+
+        if (CsvImportPolicy.isUploadBlocked(header.status, header.bron)) {
+            Toast.makeText(this, "Deze sessie is geimporteerd en upload is geblokkeerd.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.Main) {
             val btn = findViewById<MaterialButton>(R.id.btnUploadServer) ?: return@launch
             btn.isEnabled = false
@@ -279,9 +290,20 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this@DatabaseTellingDetailActiviteit, "Fout bij sync: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
-                btn.isEnabled = true
-                btn.text = "Sync: Alle wijzigingen naar Server pushen"
+                updateUploadButtonState(currentHeader)
             }
+        }
+    }
+
+    private fun updateUploadButtonState(header: TellingHeader?) {
+        val btn = findViewById<MaterialButton>(R.id.btnUploadServer) ?: return
+        val blocked = header?.let { CsvImportPolicy.isUploadBlocked(it.status, it.bron) } ?: false
+        if (blocked) {
+            btn.isEnabled = false
+            btn.text = "Upload geblokkeerd (geimporteerde data)"
+        } else {
+            btn.isEnabled = true
+            btn.text = "Sync: Alle wijzigingen naar Server pushen"
         }
     }
 
