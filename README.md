@@ -578,4 +578,4 @@ Voor vragen of problemen, neem contact op met de app-ontwikkelaar.
 
 ---
 
-*Versie: 1.0.3.f | Laatste update: 20265-0-01*
+*Versie: 2.0.0 | Laatste update: 2026-07-10*
