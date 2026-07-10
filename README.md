@@ -27,17 +27,6 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 ![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
 [![License](https://img.shields.io/badge/license-CC--BY--NC--SA--4.0-blue)](https://github.com/YvedD/VoiceTally/blob/main/LICENSE.md)
 
-
-## Master / Client Pre-release
-[![Release](https://img.shields.io/badge/mc--release-red?logo=android)](https://github.com/YvedD/VoiceTally/releases/download/mc_release-v1.0.0/mc-app-release.apk)
-![WiFi](https://img.shields.io/badge/connection-WiFi-blue?logo=wifi)
-![Speech](https://img.shields.io/badge/input-voice-blue?logo=googleassistant)
-![Version](https://img.shields.io/badge/version-v1.0.0-orange)
-![Platform](https://img.shields.io/badge/platform-Android-brightgreen)
-![Min SDK](https://img.shields.io/badge/minSDK-33-blue)
-![Type](https://img.shields.io/badge/build-pre--release-yellow)  
-
-
 ---
 
 ## Inhoudsopgave
