@@ -22,7 +22,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -65,12 +66,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.7.3")
 
-    implementation("commons-codec:commons-codec:1.17.1")
-    implementation("org.apache.commons:commons-text:1.12.0")
-
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.21")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // WorkManager
