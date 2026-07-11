@@ -35,11 +35,11 @@ This report documents the findings of a thorough audit of the VoiceTally codebas
     - `TellingViewModel.clearTiles`, `clearPartials`, `clearFinals`, `addPendingRecord`: Unused methods.
     - `TegelBeheer.logTilesState`: Unused debug method.
 
-### Unused Dependencies (High Size Impact)
-The following libraries are in `build.gradle.kts` but are NOT imported or used by any code:
-- `org.jetbrains.kotlin:kotlin-reflect`: A very heavy library (~2MB) that is not needed for the current project setup.
-- `commons-codec:commons-codec`: App uses standard Java `MessageDigest`.
-- `org.apache.commons:commons-text`: App uses internal Levenshtein implementations.
+### Unused Dependencies (Fixed)
+The following libraries have been removed from `build.gradle.kts`:
+- `org.jetbrains.kotlin:kotlin-reflect`: Removed (Saved ~2MB).
+- `commons-codec:commons-codec`: Removed.
+- `org.apache.commons:commons-text`: Removed.
 
 ---
 
@@ -60,11 +60,11 @@ Startup preloading in `VT5App` is already quite good, using background scopes to
 
 ## 3. APK Size Reduction (Compactness)
 
-### Minification & Shrinking
-- **Enable R8:** Setting `isMinifyEnabled = true` and `isShrinkResources = true` in `build.gradle.kts` will strip unused code and resources, leading to a much smaller APK.
+### Minification & Shrinking (Enabled)
+- **Enable R8:** `isMinifyEnabled = true` and `isShrinkResources = true` have been set in `build.gradle.kts` for release builds. This will strip unused code and resources, leading to a much smaller APK.
 
-### Unused Libraries
-- Removing `kotlin-reflect`, `commons-codec`, and `commons-text` as mentioned above will reduce the APK size by several megabytes.
+### Unused Libraries (Fixed)
+- Removed `kotlin-reflect`, `commons-codec`, and `commons-text` from the build configuration.
 
 ### Image Optimization
 - `vt5.png` (**299 KB**) can be converted to **WebP** to save space without losing quality.
