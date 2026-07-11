@@ -69,6 +69,16 @@ class AfrondWorker(
             // Build final envelope with pending records
             val nowEpoch = (System.currentTimeMillis() / 1000L).toString()
             val baseEnv = envelopeList[0]
+            val sessionOnlineId = prefs.getString("pref_online_id", baseEnv.onlineid)?.ifBlank { null }
+                ?: baseEnv.onlineid.ifBlank { null }
+            if (sessionOnlineId.isNullOrBlank()) {
+                Log.w(TAG, "AfrondWorker mist onlineid voor telling ${baseEnv.tellingid}; upload wordt uitgesteld")
+                return Result.retry()
+            }
+            if (sessionOnlineId == baseEnv.tellingid) {
+                Log.w(TAG, "AfrondWorker blokkeert upload: onlineid valt samen met lokale tellingid ${baseEnv.tellingid}")
+                return Result.retry()
+            }
             val envWithTimes = baseEnv.copy(eindtijd = nowEpoch)
 
             // Ensure repository snapshot is fresh
@@ -84,6 +94,7 @@ class AfrondWorker(
             val uploadCore = TellingUploadCore(context)
             val finalEnv = uploadCore.prepareEnvelopeForUpload(
                 sourceEnvelope = envWithTimes.copy(
+                    onlineid = sessionOnlineId,
                     nrec = nrec.toString(),
                     nsoort = nsoort.toString(),
                     data = recordsSnapshot
@@ -132,7 +143,7 @@ class AfrondWorker(
                 val archiveOnlineId = uploadResult.effectiveOnlineId ?: prefs.getString("pref_online_id", null) ?: finalEnv.onlineid
                 
                 // Room shadow update: Update the header with final status
-                hybridRepository.saveHeaderToRoom(finalEnv, status = "geupload")
+                hybridRepository.saveHeaderToRoom(uploadResult.preparedEnvelope, status = "geupload")
 
                 envelopePersistence.archiveSavedEnvelope(tellingId, archiveOnlineId)
             } catch (ex: Exception) {

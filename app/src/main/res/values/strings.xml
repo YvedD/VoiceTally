@@ -163,6 +163,9 @@
     <string name="instellingen_dynamic_tile_sorting_title">Dynamische soorttegel-sortering</string>
     <string name="instellingen_dynamic_tile_sorting_checkbox">Tegels automatisch naar boven verplaatsen</string>
     <string name="instellingen_dynamic_tile_sorting_description">Sorteert soorttegels volgens het aantal afzonderlijke waarnemingen van vandaag. Uitgevinkt blijft de volgorde alfabetisch.</string>
+    <string name="instellingen_server_response_logging_title">Serverresponses loggen</string>
+    <string name="instellingen_server_response_logging_checkbox">Pretty-print JSON antwoord van counts_save bewaren</string>
+    <string name="instellingen_server_response_logging_description">Bewaart elke serverreturn van counts_save als JSON-bestand in VT5/logs. Handig voor controle of foutopsporing, maar kan extra opslagruimte gebruiken.</string>
     <string name="instellingen_pending_tiles_2">2 s</string>
     <string name="instellingen_pending_tiles_3">3 s</string>
     <string name="instellingen_pending_tiles_5">5 s</string>
@@ -227,6 +230,16 @@
     <string name="beheer_upload_en_opslaan">Upload + Opslaan</string>
     <string name="beheer_alleen_opslaan">Alleen lokaal opslaan</string>
     <string name="beheer_uploading">Uploading naar server…</string>
+    <string name="db_telling_online_id">Online ID: %1$s</string>
+    <string name="db_telling_online_id_na">N/A</string>
+    <string name="db_telling_tijd_range">%1$s - %2$s</string>
+    <string name="db_telling_stats">%1$d rec • %2$d soorten</string>
+    <string name="db_telling_delete_selected">Verwijderen</string>
+    <string name="db_telling_delete_selected_with_count">Verwijderen (%1$d)</string>
+    <string name="db_telling_delete_confirm_title">Sessies verwijderen?</string>
+    <string name="db_telling_delete_confirm_msg">Weet je zeker dat je %1$d geselecteerde telling(en) uit de Room DB wilt verwijderen? Dit kan niet ongedaan worden gemaakt.</string>
+    <string name="db_telling_delete_done">Geselecteerde telling(en) verwijderd</string>
+    <string name="db_telling_delete_none">Selecteer eerst één of meer tellingen</string>
     <string name="beheer_upload_succes_titel">Upload geslaagd</string>
     <string name="beheer_upload_succes_msg">De telling is succesvol naar de server geüpload en lokaal opgeslagen.</string>
     <string name="beheer_upload_fout_titel">Upload mislukt</string>
@@ -405,4 +418,5 @@
     <string name="perm_disable_message_audio">Zonder microfoon kan spraakinvoer niet werken. Manuele invoer blijft wel mogelijk.</string>
     <string name="perm_disable_message_saf">Zonder toegang tot Documents kan de app geen tellingen opslaan of bestanden lezen/schrijven.</string>
     <string name="perm_disable_message_location">Zonder locatie kan de knop "Auto" geen weergegevens ophalen.</string>
+    <string name="prompt_year">Jaar</string>
 </resources>

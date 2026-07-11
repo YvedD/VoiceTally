@@ -6,6 +6,8 @@ import androidx.core.content.edit
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.import.CsvImportPolicy
+import com.yvesds.vt5.core.opslag.ServerResponseLogger
+import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.core.secure.CredentialsStore
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
@@ -16,8 +18,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -35,6 +38,8 @@ import java.util.Locale
 class TellingUploadCore(
     private val context: Context
 ) {
+    private val serverResponseLogger by lazy { ServerResponseLogger(context) }
+
     companion object {
         private const val TAG = "TellingUploadCore"
         private const val PREFS_NAME = "vt5_prefs"
@@ -205,6 +210,17 @@ class TellingUploadCore(
             false to (ex.message ?: "exception")
         }
 
+        val returnedOnlineId = parseOnlineIdFromResponse(resp)?.takeIf { it.isNotBlank() }
+        if (InstellingenScherm.isServerResponseLoggingEnabled(context)) {
+            val loggedPath = serverResponseLogger.logCountsSaveResponse(
+                mode = request.mode.name,
+                tellingId = request.preparedEnvelope.tellingid,
+                onlineId = returnedOnlineId ?: request.preparedEnvelope.onlineid.ifBlank { null },
+                responseText = resp
+            )
+            Log.i(TAG, "Server response log saved (${request.mode}): ${loggedPath ?: "unavailable"}")
+        }
+
         if (!ok) {
             return@withContext UploadResult(
                 success = false,
@@ -216,7 +232,6 @@ class TellingUploadCore(
             )
         }
 
-        val returnedOnlineId = parseOnlineIdFromResponse(resp)?.takeIf { it.isNotBlank() }
         val effectiveOnlineId = when {
             request.keepPreparedOnlineIdOnSuccess && request.preparedEnvelope.onlineid.isNotBlank() -> request.preparedEnvelope.onlineid
             !returnedOnlineId.isNullOrBlank() -> returnedOnlineId
@@ -293,34 +308,58 @@ class TellingUploadCore(
     private fun parseOnlineIdFromResponse(resp: String): String? {
         try {
             val el = VT5App.json.parseToJsonElement(resp)
-            val obj = when {
-                el.jsonArrayOrNull() != null && el.jsonArray.isNotEmpty() -> el.jsonArray.firstOrNull()
-                el.jsonObjectOrNull() != null -> el
-                else -> null
-            }
-            val jsonObject = obj?.jsonObjectOrNull()
-            if (jsonObject != null) {
-                listOf("onlineid", "onlineId", "id", "result", "online_id").forEach { key ->
-                    val candidate = jsonObject[key]?.toString()?.replace("\"", "")?.trim().orEmpty()
-                    if (candidate.isNotBlank()) {
-                        return candidate
-                    }
-                }
-            }
+            extractOnlineIdFromJsonElement(el)?.let { return it }
         } catch (_: Exception) {
             // fallback below
         }
 
-        val regexKeyValue = Regex("""onlineid\s*=\s*([\w-]+)""", RegexOption.IGNORE_CASE)
-        regexKeyValue.find(resp)?.groups?.get(1)?.value?.trim()?.takeIf { it.isNotBlank() }?.let {
-            return it
+        listOf(
+            Regex("['\"]?onlineid['\"]?\\s*:\\s*['\"]?([A-Za-z0-9_-]+)['\"]?", RegexOption.IGNORE_CASE),
+            Regex("\\bonlineid\\b\\s*:\\s*['\"]?([A-Za-z0-9_-]+)['\"]?", RegexOption.IGNORE_CASE),
+            Regex("['\"]?online_id['\"]?\\s*:\\s*['\"]?([A-Za-z0-9_-]+)['\"]?", RegexOption.IGNORE_CASE),
+            Regex("['\"]?onlineId['\"]?\\s*:\\s*['\"]?([A-Za-z0-9_-]+)['\"]?", RegexOption.IGNORE_CASE),
+            Regex("""onlineid\s*=\s*([A-Za-z0-9_-]+)""", RegexOption.IGNORE_CASE)
+        ).forEach { regex ->
+            regex.find(resp)?.groups?.get(1)?.value?.trim()?.takeIf { it.isNotBlank() }?.let {
+                return it
+            }
         }
 
-        val digitFallback = Regex("""\b(\d{4,10})\b""")
-        return digitFallback.find(resp)?.groups?.get(1)?.value
+        val primitiveFallback = resp.trim().removeSurrounding("\"")
+        return primitiveFallback.takeIf { it.matches(Regex("""[A-Za-z0-9_-]{4,}""")) }
+    }
+
+    private fun extractOnlineIdFromJsonElement(element: JsonElement): String? {
+        when (element) {
+            is JsonObject -> {
+                listOf("onlineid", "onlineId", "online_id").forEach { key ->
+                    element[key]?.let { candidate ->
+                        extractPrimitiveValue(candidate)?.let { return it }
+                    }
+                }
+                element.values.forEach { child ->
+                    extractOnlineIdFromJsonElement(child)?.let { return it }
+                }
+                listOf("result", "id").forEach { key ->
+                    element[key]?.let { candidate ->
+                        extractPrimitiveValue(candidate)?.let { return it }
+                    }
+                }
+            }
+            else -> {
+                element.jsonArrayOrNull()?.forEach { child ->
+                    extractOnlineIdFromJsonElement(child)?.let { return it }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun extractPrimitiveValue(element: JsonElement): String? {
+        val primitive = element as? JsonPrimitive ?: return null
+        return primitive.content.trim().takeIf { it.isNotBlank() }
     }
 
     private fun JsonElement.jsonArrayOrNull() = runCatching { this.jsonArray }.getOrNull()
-    private fun JsonElement.jsonObjectOrNull() = runCatching { this.jsonObject }.getOrNull()
 }
 

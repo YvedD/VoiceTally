@@ -12,7 +12,7 @@ import java.io.File
 
 @Database(
     entities = [TellingHeader::class, Waarneming::class, SyncLog::class],
-    version = 4,
+    version = 1,
     exportSchema = false
 )
 abstract class VoiceTallyDatabase : RoomDatabase() {

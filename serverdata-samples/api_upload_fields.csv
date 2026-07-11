@@ -1,0 +1,61 @@
+json_name;dto_property;envelope_or_data;room_table;room_column;origin;description;example
+externid;externid;envelope;telling_headers;externid;StartTellingApi / hardcoded;App identifier / extern id in envelope;Android App 1.8.46
+timezoneid;timezoneid;envelope;telling_headers;timezoneid;StartTellingApi / Room header;Timezone id for timestamps;Europe/Brussels
+bron;bron;envelope;telling_headers;bron;StartTellingApi / Room header;Broncode (app identifier)(string);4
+_id;idLocal;envelope;(n.v.t.);(n.v.t.);StartTellingApi / RoomMappers;Local id (usually empty for header), server assigned after uploading;
+tellingid;tellingid;envelope;telling_headers;tellingid;StartTellingApi / Room;Server assigned (usually empty for header);
+telpostid;telpostid;envelope;telling_headers;telpostid;Metadata UI;Site / telpost id (string);4310
+begintijd;begintijd;envelope;telling_headers;begintijd;Metadata UI / Room;Begin time as epoch sec (string);1657084800
+eindtijd;eindtijd;envelope;telling_headers;eindtijd;Metadata / afronding;End time epoch sec or empty (live),End time as epoch sec when not live (string);1657085100
+tellers;tellers;envelope;telling_headers;tellers;Metadata UI;Names of observers;J. Jansen
+weer;weer;envelope;telling_headers;weer;Metadata UI;Weather summary text;bewolkt, lichte regen
+windrichting;windrichting;envelope;telling_headers;windrichting;Metadata UI;Wind direction code;nw
+windkracht;windkracht;envelope;telling_headers;windkracht;Metadata UI;Wind force / Beaufort (string);3
+temperatuur;temperatuur;envelope;telling_headers;temperatuur;Metadata UI;Temperature (C as string);18
+bewolking;bewolking;envelope;telling_headers;bewolking;Metadata UI;Cloud cover (0..8) (string);4
+bewolkinghoogte;bewolkinghoogte;envelope;telling_headers;bewolkinghoogte;Not set / Room;Cloud height in meters (string);1000
+neerslag;neerslag;envelope;telling_headers;neerslag;Metadata UI / Room;Precipitation code;regen
+duurneerslag;duurneerslag;envelope;telling_headers;duurneerslag;Not set / Room;Precipitation duration (string);30
+zicht;zicht;envelope;telling_headers;zicht;Metadata UI;Visibility in meters (string);5000
+tellersactief;tellersactief;envelope;telling_headers;tellersactief;Not set / Room;Whether observers are active (internal)(strig);2
+tellersaanwezig;tellersaanwezig;envelope;telling_headers;tellersaanwezig;Not set / Room;Observers present (string);4
+typetelling;typetelling;envelope;telling_headers;typetelling;Metadata UI;Type of count;all
+metersnet;metersnet;envelope;telling_headers;metersnet;Not set / Room;Meters net (optional);
+geluid;geluid;envelope;telling_headers;geluid;Not set / Room;Sound indicator/text;
+opmerkingen;opmerkingen;envelope;telling_headers;opmerkingen;Metadata UI;Free text remarks;stille ochtend
+onlineid;onlineid;envelope;telling_headers;onlineid;Code / Server response;Online id assigned by server when count started and stored internally in DataStore (string);3434793
+HYDRO;HYDRO;envelope;telling_headers;hydro;Not set / Room;Hydrology extra field;
+hpa;hpa;envelope;telling_headers;hpa;Metadata UI;Pressure in hPa (string), no decimals;1013
+equipment;equipment;envelope;telling_headers;equipment;Not set / Room;Used equipment;
+uuid;uuid;envelope;telling_headers;uuid;StartTellingApi / Code;UUID device/session;VoiceTally_App_1.3,f_xxxx-xxxx
+uploadtijdstip;uploadtijdstip;envelope;telling_headers;uploadtijdstip;Prepare/upload code;Upload timestamp (yyyy-MM-dd HH:mm:ss);6/07/2026 9:12
+nrec;nrec;envelope;telling_headers;nrec;Prepare/upload code;Number of data records in data array (string);24
+nsoort;nsoort;envelope;telling_headers;nsoort;Prepare/upload code;Number of unique species in telling (string);12
+data;data;envelope;(n.v.t.);(n.v.t.);Room / in-memory;Array of ServerTellingDataItem;[array]
+;;;;;;;
+_id;idLocal;data;waarnemingen;idLocal;Generated / Room;Local record id counter value (string);123
+tellingid;tellingid;data;waarnemingen;tellingid;Room / header;Telling id this record belongs to, internal session counter (string);1
+soortid;soortid;data;waarnemingen;soortid;UI / selection;Species id (server species id)(string);207
+aantal;aantal;data;waarnemingen;aantal;UI / Dialog;Count main direction (string);7
+richting;richting;data;waarnemingen;richting;UI / exact direction;Exact direction text/code;no
+aantalterug;aantalterug;data;waarnemingen;aantalterug;UI / Dialog;Count main return_direction (string);0
+richtingterug;richtingterug;data;waarnemingen;richtingterug;UI / exact direction;Exact return direction tekst/code;o
+sightingdirection;sightingdirection;data;waarnemingen;sightingdirection;Annotatie / UI;Sighting / compass direction;
+lokaal;lokaal;data;waarnemingen;lokaal;UI / Dialog;Local (non-migration) count (string);0
+aantal_plus;aantal_plus;data;waarnemingen;aantal_plus;UI / Dialog;Extra plus count main (string);15
+aantalterug_plus;aantalterug_plus;data;waarnemingen;aantalterug_plus;UI / Dialog;Extra plus count return (string);0
+lokaal_plus;lokaal_plus;data;waarnemingen;lokaal_plus;UI / Dialog;Extra local plus (string);3
+markeren;markeren;data;waarnemingen;markeren;Annotatie UI;Mark flag (1/0) (string);1
+markerenlokaal;markerenlokaal;data;waarnemingen;markerenlokaal;Annotatie UI;Mark local flag (1/0) (string);0
+geslacht;geslacht;data;waarnemingen;geslacht;Annotatie UI;Sex annotation code from 'codes.json';M
+leeftijd;leeftijd;data;waarnemingen;leeftijd;Annotatie UI;Age annotation code from 'codes.json';A
+kleed;kleed;data;waarnemingen;kleed;Annotatie UI;Plumage annotation code from 'codes.json';I
+opmerkingen;opmerkingen;data;waarnemingen;opmerkingen;Annotatie UI;Free text per record;vogel dichtbij
+trektype;trektype;data;waarnemingen;trektype;Annotatie UI;Type of migration code from 'codes.json';raptor
+teltype;teltype;data;waarnemingen;teltype;Annotatie UI;Count type code from 'codes.json';incomplete
+location;location;data;waarnemingen;location;Annotatie UI;Location annotation (land/sea) code from 'codes.json';T
+height;height;data;waarnemingen;height;Annotatie UI;Height annotation;<50m
+tijdstip;tijdstip;data;waarnemingen;tijdstip;Generated / UI;Epoch seconds as string (observation time);1657084823
+groupid;groupid;data;waarnemingen;groupid;Code / UI;Group id to keep records together, server assigned (string);
+uploadtijdstip;uploadtijdstip;data;waarnemingen;uploadtijdstip;CSV import / generated;Upload timestamp / submitted;6/07/2026 9:12
+totaalaantal;totaalaantal;data;waarnemingen;totaalaantal;Computed;Sum of aantal + aantalterug + lokaal (string);7

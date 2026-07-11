@@ -149,9 +149,11 @@ class MetadataScherm : AppCompatActivity() {
             try {
                 val epochSeconds = vervolgBegintijdEpoch.toLongOrNull()
                 if (epochSeconds != null && epochSeconds > 0) {
-                    // Set the time field to match the eindtijd of the previous telling
+                    // Set the date/time fields to match the eindtijd of the previous telling
                     val date = java.util.Date(epochSeconds * 1000L)
+                    val dateFmt = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                     val timeFmt = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    binding.etDatum.setText(dateFmt.format(date))
                     binding.etTijd.setText(timeFmt.format(date))
                     
                     // Update formManager's startEpochSec to reflect this

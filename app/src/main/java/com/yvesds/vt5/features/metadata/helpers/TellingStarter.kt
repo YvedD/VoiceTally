@@ -36,6 +36,7 @@ class TellingStarter(
     companion object {
         private const val TAG = "TellingStarter"
         private const val PREF_TELLING_ID = "pref_telling_id"
+        private const val PREF_ONLINE_ID = "pref_online_id"
     }
     
     data class StartResult(
@@ -128,17 +129,27 @@ class TellingStarter(
                 Log.w(TAG, "Could not parse onlineId from response: ${uploadResult.responseText}")
                 return@withContext StartResult(false, null, "Could not parse online ID: ${uploadResult.responseText}")
             }
+            if (onlineId == tellingId) {
+                Log.w(TAG, "Parsed onlineId matches local tellingId; refusing corrupted session start. response=${uploadResult.responseText}")
+                return@withContext StartResult(
+                    false,
+                    null,
+                    "Server online ID kon niet betrouwbaar worden gelezen (lokale tellingid werd teruggevonden i.p.v. onlineid)."
+                )
+            }
 
             // Store in preferences
             prefs.edit {
                 putString(PREF_TELLING_ID, tellingId)
+                putString(PREF_ONLINE_ID, onlineId)
             }
 
             // Mark this telling as not sent yet
             TellingUploadFlags.markNotSent(context, tellingId, onlineId)
 
-            // Room shadow write: Save the header
-            hybridRepository.saveHeaderToRoom(preparedEnvelope)
+            // Room shadow write: Save the header with the returned online ID
+            // IMPORTANT: Use uploadResult.preparedEnvelope which contains the onlineId from server
+            hybridRepository.saveHeaderToRoom(uploadResult.preparedEnvelope)
 
             return@withContext StartResult(true, onlineId, null)
         } catch (e: Exception) {

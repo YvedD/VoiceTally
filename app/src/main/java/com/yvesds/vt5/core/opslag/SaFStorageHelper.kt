@@ -57,7 +57,7 @@ class SaFStorageHelper(private val context: Context) {
         val rootTree = getRootUri() ?: return false
         val rootDoc = DocumentFile.fromTreeUri(context, rootTree) ?: return false
         val vt5 = rootDoc.findFile("VT5")?.takeIf { it.isDirectory } ?: return false
-        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs")
+        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports")
         val present = vt5.listFiles().filter { it.isDirectory }.mapNotNull { it.name }.toSet()
         return expected.all { it in present }
     }
@@ -79,7 +79,7 @@ class SaFStorageHelper(private val context: Context) {
 
         val vt5Folder = findOrCreateDirectory(rootDoc, "VT5") ?: return false
 
-        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs")
+        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports")
         for (name in subfolders) {
             if (findOrCreateDirectory(vt5Folder, name) == null) return false
         }
@@ -260,6 +260,66 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     // ========================================================================
+    // IMPORTS DIRECTORY HELPERS
+    // ========================================================================
+
+    /**
+     * Haal de imports-map (Documents/VT5/imports) op als die bestaat.
+     */
+    fun getImportsDir(): DocumentFile? {
+        val vt5Dir = getVt5DirIfExists() ?: return null
+        return vt5Dir.findFile(IMPORTS_DIR)?.takeIf { it.isDirectory }
+    }
+
+    /**
+     * Suspend variant van getImportsDir().
+     */
+    suspend fun getImportsDirSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
+        getImportsDir()
+    }
+
+    /**
+     * Schrijf inhoud naar een bestand in de imports-map.
+     * Als er een bestand bestaat, wordt het overschreven.
+     */
+    fun writeImportsFile(filename: String, content: String): Boolean {
+        // Valideer bestandsnaam (geen paddoorloop)
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            return false
+        }
+
+        val vt5Dir = getVt5DirIfExists() ?: return false
+        var importsDir = vt5Dir.findFile(IMPORTS_DIR)
+
+        // Maak een imports-map aan als die niet bestaat
+        if (importsDir == null || !importsDir.isDirectory) {
+            importsDir = vt5Dir.createDirectory(IMPORTS_DIR) ?: return false
+        }
+
+        val mimeType = if (filename.endsWith(".json")) "application/json" else "text/plain"
+        val newFile = importsDir.findFile(filename)?.takeIf { it.isFile }
+            ?: importsDir.createFile(mimeType, filename)
+            ?: return false
+
+        return try {
+            context.contentResolver.openOutputStream(newFile.uri)?.use { out ->
+                out.write(content.toByteArray(Charsets.UTF_8))
+            }
+            true
+        } catch (e: Exception) {
+            try { newFile.delete() } catch (_: Exception) {}
+            false
+        }
+    }
+
+    /**
+     * Suspend-variant van writeImportsFile().
+     */
+    suspend fun writeImportsFileSuspend(filename: String, content: String): Boolean = withContext(Dispatchers.IO) {
+        writeImportsFile(filename, content)
+    }
+
+    // ========================================================================
     // EXPORTS DIRECTORY HELPERS
     // ========================================================================
     
@@ -381,6 +441,7 @@ class SaFStorageHelper(private val context: Context) {
     companion object {
         private const val COUNTS_DIR = "counts"
         private const val EXPORTS_DIR = "exports"
+        private const val IMPORTS_DIR = "imports"
         private const val PREFS_NAME = "saf_storage_prefs"
         private const val KEY_ROOT_URI = "root_tree_uri"
 

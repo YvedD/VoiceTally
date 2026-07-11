@@ -3,7 +3,7 @@ package com.yvesds.vt5.core.database.entities
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import androidx.room.PrimaryKey
+// ...existing imports...
 
 /**
  * Waarneming: Bevat de individuele records inclusief alle annotaties.
@@ -22,11 +22,12 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["tellingid"]), Index(value = ["soortid"])]
+    indices = [Index(value = ["tellingid"]), Index(value = ["soortid"]), Index(value = ["onlineid"]) ]
 )
 data class Waarneming(
     val idLocal: String,
     val tellingid: String,
+    val onlineid: String = "",
     val soortid: String = "",
     val aantal: String = "0",
     val richting: String = "",

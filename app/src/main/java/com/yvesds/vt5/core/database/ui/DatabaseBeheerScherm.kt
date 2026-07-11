@@ -145,33 +145,24 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                     return@withContext
                 }
 
-                val orderedFiles = listOf(headerFile!!, dataFile!!)
-
-                for (csvFile in orderedFiles) {
-                    val inputStream = contentResolver.openInputStream(csvFile.uri)
-                    if (inputStream == null) {
-                        errors.add("Bestand niet leesbaar (${csvFile.fileName})")
-                        continue
-                    }
-
-                    inputStream.use { stream ->
-                        if (csvFile.fileType == CsvFileType.HEADER) {
-                            val result = importManager.importHeaders(stream)
+                // Use combined importer which reads headers sequentially and links matching data rows by online id (countid)
+                val headerStream = contentResolver.openInputStream(headerFile!!.uri)
+                val dataStream = contentResolver.openInputStream(dataFile!!.uri)
+                if (headerStream == null) {
+                    errors.add("Bestand niet leesbaar (${headerFile.fileName})")
+                } else if (dataStream == null) {
+                    errors.add("Bestand niet leesbaar (${dataFile.fileName})")
+                } else {
+                    headerStream.use { hs ->
+                        dataStream.use { ds ->
+                            val result = importManager.importHeadersAndData(hs, ds)
                             result.onSuccess { stats ->
-                                headerInserted += stats.inserted
+                                headerInserted += stats.insertedHeaders
+                                waarnemingInserted += stats.insertedWaarnemingen
                                 skippedRows += stats.skipped
-                                warnings.addAll(stats.warnings.map { "${csvFile.fileName}: $it" })
+                                warnings.addAll(stats.warnings.map { "${headerFile.fileName}/${dataFile.fileName}: $it" })
                             }.onFailure {
-                                errors.add("Header Fout (${csvFile.fileName}): ${it.message}")
-                            }
-                        } else {
-                            val result = importManager.importWaarnemingen(stream)
-                            result.onSuccess { stats ->
-                                waarnemingInserted += stats.inserted
-                                skippedRows += stats.skipped
-                                warnings.addAll(stats.warnings.map { "${csvFile.fileName}: $it" })
-                            }.onFailure {
-                                errors.add("Data Fout (${csvFile.fileName}): ${it.message}")
+                                errors.add("Combined import fout (${headerFile.fileName}, ${dataFile.fileName}): ${it.message}")
                             }
                         }
                     }

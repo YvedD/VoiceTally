@@ -23,6 +23,13 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
+            <CheckBox
+                android:id="@+id/cbSelect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:buttonTint="@color/vt5_light_blue" />
+
             <TextView
                 android:id="@+id/tvTellingId"
                 android:layout_width="0dp"
@@ -33,6 +40,15 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvStats"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -40,7 +56,7 @@
                 android:paddingVertical="2dp"
                 android:background="@color/vt5_light_blue"
                 android:textColor="@color/vt5_white"
-                android:textSize="10sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -50,7 +66,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="@color/vt5_light_gray"
-            android:textSize="12sp" />
+            android:textSize="14sp" />
 
         <View
             android:layout_width="match_parent"
@@ -59,27 +75,14 @@
             android:alpha="0.2"
             android:background="@color/vt5_on_surface" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/tvTijd"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_marginTop="2dp"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="13sp" />
 
-            <TextView
-                android:id="@+id/tvTijd"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="13sp" />
-
-            <TextView
-                android:id="@+id/tvStats"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/vt5_light_blue"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

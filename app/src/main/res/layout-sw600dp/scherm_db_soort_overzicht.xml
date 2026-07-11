@@ -55,6 +55,16 @@
             android:textColor="@color/vt5_on_surface"
             android:textColorHint="@color/vt5_on_surface" />
 
+        <!-- Year selector dropdown: first item will be 'Alle jaren' -->
+        <Spinner
+            android:id="@+id/spinnerYears"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:spinnerMode="dropdown"
+            android:popupBackground="@color/vt5_black"
+            android:prompt="@string/prompt_year" />
+
         <TextView
             android:id="@+id/tvSoortInfo"
             android:layout_width="match_parent"
@@ -63,6 +73,25 @@
             android:textColor="@color/vt5_on_surface"
             android:textSize="16sp"
             android:textStyle="italic" />
+
+        <!-- In-layout progress indicator for overview loading -->
+        <LinearLayout
+            android:id="@+id/pbOverviewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:visibility="gone"
+            android:layout_marginTop="12dp">
+
+            <ProgressBar
+                android:id="@+id/pbOverviewLoading"
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminate="true" />
+
+        </LinearLayout>
     </LinearLayout>
 
     <com.google.android.material.tabs.TabLayout

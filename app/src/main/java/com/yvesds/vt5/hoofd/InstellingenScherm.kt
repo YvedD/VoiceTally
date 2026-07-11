@@ -45,6 +45,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_TILE_DOUBLE_TAP_INCREMENT = "pref_tile_double_tap_increment"
         const val PREF_TILE_TAP_GROUP_WINDOW_SECONDS = "pref_tile_tap_group_window_seconds"
         const val PREF_DYNAMIC_TILE_SORTING_ENABLED = "pref_dynamic_tile_sorting_enabled"
+        const val PREF_SERVER_RESPONSE_LOGGING_ENABLED = "pref_server_response_logging_enabled"
         const val PREF_STORAGE_MODE = "pref_storage_mode"
 
         const val PREF_PERM_AUDIO_ACK = "pref_perm_audio_ack"
@@ -63,6 +64,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val DEFAULT_TILE_DOUBLE_TAP_INCREMENT = 10
         const val DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS = 5
         const val DEFAULT_DYNAMIC_TILE_SORTING_ENABLED = true
+        const val DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED = false
 
         const val STORAGE_MODE_JSON = "json"
         const val STORAGE_MODE_ROOM = "room"
@@ -151,6 +153,14 @@ class InstellingenScherm : AppCompatActivity() {
             return prefs.getBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, DEFAULT_DYNAMIC_TILE_SORTING_ENABLED)
         }
 
+        fun isServerResponseLoggingEnabled(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            return prefs.getBoolean(
+                PREF_SERVER_RESPONSE_LOGGING_ENABLED,
+                DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED
+            )
+        }
+
         /**
          * Haal de huidige opslagmodus op.
          * Gefixeerd op het Hybride Systeem (Parallel).
@@ -172,6 +182,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupDoubleTapIncrementButtons()
             setupTileTapGroupWindowButtons()
             setupDynamicTileSortingToggle()
+            setupServerResponseLoggingToggle()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupUnmatchedPartialsTextColorSpinner()
@@ -402,6 +413,18 @@ class InstellingenScherm : AppCompatActivity() {
         )
         cb.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit { putBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, isChecked) }
+        }
+    }
+
+    private fun setupServerResponseLoggingToggle() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val cb = findViewById<MaterialCheckBox>(R.id.cbServerResponseLogging)
+        cb.isChecked = prefs.getBoolean(
+            PREF_SERVER_RESPONSE_LOGGING_ENABLED,
+            DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED
+        )
+        cb.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, isChecked) }
         }
     }
 

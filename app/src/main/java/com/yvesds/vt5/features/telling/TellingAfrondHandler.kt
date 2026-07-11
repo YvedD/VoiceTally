@@ -125,6 +125,20 @@ class TellingAfrondHandler(
         }
 
         val savedOnlineId = prefs.getString(PREF_ONLINE_ID, baseEnv.onlineid)
+        val sessionOnlineId = savedOnlineId?.ifBlank { null } ?: baseEnv.onlineid.ifBlank { null }
+
+        if (sessionOnlineId.isNullOrBlank()) {
+            return@withContext AfrondResult.Failure(
+                title = "Geen online ID",
+                message = "Deze telling kan niet worden afgerond omdat het onlineid van de eerder gestarte telling ontbreekt. Start de telling opnieuw of herstel eerst de sessiemetadata."
+            )
+        }
+        if (sessionOnlineId == baseEnv.tellingid) {
+            return@withContext AfrondResult.Failure(
+                title = "Ongeldig online ID",
+                message = "Deze telling kan niet worden afgerond omdat het bewaarde onlineid gelijk is aan de lokale tellingid. Daardoor zou de server een nieuwe telling aanmaken i.p.v. de bestaande sessie bij te werken. Start de telling opnieuw zodat eerst een geldig server-onlineid wordt verkregen."
+            )
+        }
 
         // 2. Build final envelope with times and records
         val nowEpoch = (System.currentTimeMillis() / 1000L)
@@ -150,6 +164,7 @@ class TellingAfrondHandler(
             begintijd = effectiveBegintijd,
             eindtijd = effectiveEindtijd,
             opmerkingen = effectiveOpmerkingen,
+            onlineid = sessionOnlineId,
             nrec = nrec.toString(),
             nsoort = nsoort.toString(), 
             data = finalRecords
@@ -252,7 +267,7 @@ class TellingAfrondHandler(
                 val archiveOnlineId = effectiveOnlineId.ifBlank { finalEnv.onlineid }
                 
                 // Room shadow update: Update the header with final times and counts
-                hybridRepository.saveHeaderToRoom(finalEnv, status = "geupload")
+                hybridRepository.saveHeaderToRoom(uploadResult.preparedEnvelope, status = "geupload")
 
                 // Extra check: Zorg dat álle records ook in Room staan (Fase 4 consistentie)
                 finalRecords.forEach { record ->

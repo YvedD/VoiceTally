@@ -1,0 +1,28 @@
+Veld;SQL type;Kotlin type;Default;Primary Key?;Nullable?;FK?;Index?;Beschrijving;Code reference;Veldnaam in 'data' .CSV;Veldnaam in 'header' .CSV;CSV feld 3;CSV veld 4
+idLocal;TEXT;String;;Yes;No; -; -;Lokale record id (uniek per record);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (28);;;;
+tellingid;TEXT;String;;Yes;No;Yes -> telling_headers.tellingid;Index;"FK naar telling_headers; sessie id";app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (29);;;;
+soortid;TEXT;String;;No;No; -;Index;Soort id van de waarneming;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (30);speciesid;;;
+aantal;TEXT;String;0;No;No; -; -;Aantal in hoofdrichting;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (31);direction1;;;
+richting;TEXT;String;;No;No; -; -;Richting code voor hoofdrichting;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (32);exactdirection1;;;
+aantalterug;TEXT;String;0;No;No; -; -;Aantal tegenrichting;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (33);direction2;;;
+richtingterug;TEXT;String;;No;No; -; -;Richting code voor tegenrichting;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (34);exactdirection2;;;
+sightingdirection;TEXT;String;;No;No; -; -;Compass / zichtrichting tekst;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (35);sightingdirection;;;
+lokaal;TEXT;String;0;No;No; -; -;Lokaal geteld aantal (niet in trek);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (36);local;;;
+aantal_plus;TEXT;String;0;No;No; -; -;Extra plus-aantal (hoofdrichting);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (37);;;;
+aantalterug_plus;TEXT;String;0;No;No; -; -;Extra plus-aantal (tegenrichting);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (38);;;;
+lokaal_plus;TEXT;String;0;No;No; -; -;Extra lokaal plus;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (39);;;;
+markeren;TEXT;String;0;No;No; -; -;Markeer-flag (algemeen);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (40);remarkable;;;
+markerenlokaal;TEXT;String;0;No;No; -; -;Markeer lokaal flag;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (41);remarkablelocal;;;
+geslacht;TEXT;String;;No;No; -; -;Annotatie: geslacht;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (42);sex;;;
+leeftijd;TEXT;String;;No;No; -; -;Annotatie: leeftijd;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (43);age;;;
+kleed;TEXT;String;;No;No; -; -;Annotatie: kleed/plumage;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (44);plumage;;;
+opmerkingen;TEXT;String;;No;No; -; -;Vrij tekst opmerkingen per record;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (45);remark;;;
+trektype;TEXT;String;;No;No; -; -;Type trek (annotatie);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (46);migtype;;;
+teltype;TEXT;String;;No;No; -; -;Teltype annotatie;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (47);counttype;;;
+location;TEXT;String;;No;No; -; -;Locatie annotatie (land/zee etc.);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (48);location;;;
+height;TEXT;String;;No;No; -; -;Hoogte annotatie;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (49);height;;;
+tijdstip;TEXT;String;;No;No; -; -;Epoch seconds als string (tijd van waarneming);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (50);date + timestamp;;;
+groupid;TEXT;String;;No;No; -; -;Groeps-id (meestal equals idLocal) om samenhang te bewaren;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (51);groupid;;;
+uploadtijdstip;TEXT;String;;No;No; -; -;Upload timestamp (formatted);app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (52);submitted;;;
+totaalaantal;TEXT;String;0;No;No; -; -;Som van aantal + aantalterug + lokaal;app\\src\\main\\java\\com\\yvesds\\vt5\\core\\database\\entities\\Waarneming.kt (53);;;;
+onlineid;TEXT;String;;No;No;;;Het onlineid word verkregen van de server bij eerste count_save (start telling);;countid;id;;

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.first
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "vt5_settings")
 
@@ -27,6 +26,22 @@ object AppDataStore {
             prefs[KEY_NEXT_TELLING_ID] = current + 1L
         }
         return result.toString()
+    }
+
+    /**
+     * Reserveer in 1 DataStore-update een blok opeenvolgende telling IDs.
+     * Dit is sneller voor bulk-imports dan ID-per-ID ophalen.
+     */
+    suspend fun reserveTellingIds(context: Context, amount: Int): LongRange {
+        require(amount > 0) { "amount must be > 0" }
+
+        var start = 1L
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_NEXT_TELLING_ID] ?: 1L
+            start = current
+            prefs[KEY_NEXT_TELLING_ID] = current + amount
+        }
+        return start..(start + amount - 1L)
     }
 
     /**

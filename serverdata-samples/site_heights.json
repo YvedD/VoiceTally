@@ -1,0 +1,19 @@
+{
+  "json": [
+    {
+      "telpostid": "3745",
+      "waarde": ">100",
+      "sortering": "30"
+    },
+    {
+      "telpostid": "3745",
+      "waarde": "50-100",
+      "sortering": "20"
+    },
+    {
+      "telpostid": "3745",
+      "waarde": "<50m",
+      "sortering": "10"
+    }
+  ]
+}

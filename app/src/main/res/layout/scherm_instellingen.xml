@@ -251,6 +251,36 @@
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/tvServerResponseLoggingTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="6dp"
+                android:paddingBottom="4dp"
+                android:text="@string/instellingen_server_response_logging_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbServerResponseLogging"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_server_response_logging_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvServerResponseLoggingDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginBottom="6dp"
+                android:alpha="0.82"
+                android:text="@string/instellingen_server_response_logging_description"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp" />
+
+            <TextView
                 android:id="@+id/tvDoubleTapTitel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
