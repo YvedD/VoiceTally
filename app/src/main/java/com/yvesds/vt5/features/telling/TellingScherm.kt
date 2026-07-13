@@ -99,9 +99,6 @@ class TellingScherm : AppCompatActivity() {
 
         private const val MAX_LOG_ROWS = 600
         
-        // Auto-dismiss delay for success dialog (ms)
-        private const val SUCCESS_DIALOG_DELAY_MS = 1000L
-        
         // Intent extra key for hourly alarm trigger
         const val EXTRA_SHOW_HUIDIGE_STAND = "SHOW_HUIDIGE_STAND"
         const val EXTRA_RESTORE_PENDING_TELLING = "RESTORE_PENDING_TELLING"
@@ -360,6 +357,14 @@ class TellingScherm : AppCompatActivity() {
                     val currentTellingId = prefs.getString("pref_telling_id", null)
                     if (currentTellingId != null) {
                         viewModel.observeRecords(currentTellingId)
+                        viewModel.loadBaseEnvelope(currentTellingId)
+                    }
+
+                    // Observe active envelope for async persistence
+                    viewModel.activeEnvelope.observe(this@TellingScherm) { envelope ->
+                        if (envelope != null) {
+                            persistEnvelopeAsync()
+                        }
                     }
                 } catch (e: Exception) {
                     emergencyLogger.error("FATAL: TellingScherm initialisatie mislukt: ${e.message}")
@@ -1739,11 +1744,15 @@ class TellingScherm : AppCompatActivity() {
      */
     private suspend fun handleAfronden(metadataUpdates: MetadataUpdates? = null) {
         tileTapAggregationManager.flushAllAndAwait()
+        
+        val hotEnvelope = if (::viewModel.isInitialized) viewModel.activeEnvelope.value else null
+        
         val result = afrondHandler.handleAfronden(
             pendingRecordsSnapshot = synchronized(pendingRecords) { ArrayList(pendingRecords) },
             pendingBackupDocs = pendingBackupDocs,
             pendingBackupInternalPaths = pendingBackupInternalPaths,
-            metadataUpdates = metadataUpdates
+            metadataUpdates = metadataUpdates,
+            hotEnvelope = hotEnvelope
         )
 
         withContext(Dispatchers.Main) {
@@ -1756,12 +1765,18 @@ class TellingScherm : AppCompatActivity() {
                     if (::viewModel.isInitialized) viewModel.clearPendingRecords()
 
                     // Store the eindtijd for potential vervolgtelling
-                    // Use ifBlank to handle empty strings and fallback to system time
                     val eindtijdForVervolg = metadataUpdates?.eindtijd?.ifBlank { null }
                         ?: (System.currentTimeMillis() / 1000L).toString()
 
-                    // Show auto-dismissing success toast (like other popups in the app)
-                    showAutoDissmissSuccessAndThenVervolg(eindtijdForVervolg)
+                    // OPTIMIZATION: Removed fixed 2s delay and blocking dialog.
+                    // Show a snackbar and move directly to follow-up options.
+                    com.google.android.material.snackbar.Snackbar.make(
+                        binding.root, 
+                        R.string.afrond_upload_success, 
+                        com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                    ).show()
+                    
+                    showVervolgtellingDialog(eindtijdForVervolg)
                 }
                 is TellingAfrondHandler.AfrondResult.Failure -> {
                     // Show failure dialog
@@ -1773,32 +1788,6 @@ class TellingScherm : AppCompatActivity() {
                     DialogStyler.apply(dlg)
                 }
             }
-        }
-    }
-    
-    /**
-     * Show auto-dismissing success popup for 2 seconds, then show vervolgtelling dialog.
-     * 
-     * @param eindtijdEpoch The eindtijd of the finished telling (epoch seconds string)
-     */
-    private fun showAutoDissmissSuccessAndThenVervolg(eindtijdEpoch: String) {
-        // Create and show auto-dismissing success dialog
-        val successDialog = AlertDialog.Builder(this@TellingScherm)
-            .setTitle(getString(R.string.dialog_finish_success))
-            .setMessage(getString(R.string.afrond_upload_success))
-            .setCancelable(false)
-            .create()
-        
-        successDialog.show()
-        DialogStyler.apply(successDialog)
-
-        // Auto-dismiss after SUCCESS_DIALOG_DELAY_MS and show vervolgtelling dialog
-        lifecycleScope.launch {
-            kotlinx.coroutines.delay(SUCCESS_DIALOG_DELAY_MS)
-            if (successDialog.isShowing) {
-                successDialog.dismiss()
-            }
-            showVervolgtellingDialog(eindtijdEpoch)
         }
     }
     
@@ -3124,8 +3113,13 @@ class TellingScherm : AppCompatActivity() {
     private fun persistEnvelopeAsync() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val records = synchronized(pendingRecords) { pendingRecords.toList() }
-                envelopePersistence.saveEnvelopeWithRecords(records)
+                val envelope = viewModel.activeEnvelope.value
+                if (envelope != null) {
+                    envelopePersistence.saveEnvelopeWithRecords(envelope.data)
+                } else {
+                    val records = synchronized(pendingRecords) { pendingRecords.toList() }
+                    envelopePersistence.saveEnvelopeWithRecords(records)
+                }
             } catch (ex: Exception) {
                 Log.w(TAG, "Envelope persistence failed: ${ex.message}", ex)
             }

@@ -4,17 +4,22 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.repository.HybridTellingRepository
+import com.yvesds.vt5.core.database.toServerEnvelope
 import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.features.telling.TellingScherm.SoortRow
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.net.ServerTellingDataItem
+import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.ListSerializer
 
 /**
  * ViewModel that coordinates with RecordsBeheer for collecting finals and exposes LiveData for UI.
@@ -32,6 +37,9 @@ class TellingViewModel : ViewModel() {
 
     private val _pendingRecords = MutableLiveData<List<ServerTellingDataItem>>(emptyList())
     val pendingRecords: LiveData<List<ServerTellingDataItem>> = _pendingRecords
+
+    private val _activeEnvelope = MutableLiveData<ServerTellingEnvelope?>(null)
+    val activeEnvelope: LiveData<ServerTellingEnvelope?> = _activeEnvelope
 
     // Expose repository error messages as single LiveData string (UI can display Toast)
     private val _repoError = MutableLiveData<String?>(null)
@@ -127,6 +135,65 @@ class TellingViewModel : ViewModel() {
         _pendingRecords.value = (_pendingRecords.value ?: emptyList()) + item
     }
 
-    fun setPendingRecords(list: List<ServerTellingDataItem>) { _pendingRecords.value = list }
-    fun clearPendingRecords() { _pendingRecords.value = emptyList() }
+    fun setPendingRecords(list: List<ServerTellingDataItem>) { 
+        _pendingRecords.value = list 
+        updateActiveEnvelope(list)
+    }
+    fun clearPendingRecords() { 
+        _pendingRecords.value = emptyList() 
+        _activeEnvelope.value = null
+    }
+
+    /**
+     * Set the base metadata envelope. This should be called once when starting or restoring a telling.
+     */
+    fun setBaseEnvelope(envelope: ServerTellingEnvelope) {
+        _activeEnvelope.value = envelope.copy(data = _pendingRecords.value ?: emptyList())
+    }
+
+    /**
+     * Load base envelope from Room or SharedPreferences.
+     */
+    fun loadBaseEnvelope(tellingId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val dao = VoiceTallyDatabase.getDatabase(recordsBeheer.getContext()).tellingDao()
+                val header = dao.getHeader(tellingId)
+                if (header != null) {
+                    val roomRecords = dao.getWaarnemingenList(tellingId)
+                    val envelope = header.toServerEnvelope(roomRecords)
+                    _activeEnvelope.postValue(envelope)
+                    fileLogger.info("TellingViewModel: Base envelope geladen uit Room voor $tellingId")
+                } else {
+                    // Fallback to SharedPreferences
+                    val prefs = recordsBeheer.getContext().getSharedPreferences("vt5_prefs", 0)
+                    val json = prefs.getString("pref_saved_envelope_json", null)
+                    if (json != null) {
+                        val list = VT5App.json.decodeFromString(ListSerializer(ServerTellingEnvelope.serializer()), json)
+                        if (list.isNotEmpty()) {
+                            _activeEnvelope.postValue(list[0])
+                            fileLogger.info("TellingViewModel: Base envelope geladen uit JSON voor $tellingId")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                fileLogger.error("TellingViewModel: Fout bij laden base envelope: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Update the active envelope with the latest records and calculate counts.
+     */
+    private fun updateActiveEnvelope(records: List<ServerTellingDataItem>) {
+        val current = _activeEnvelope.value ?: return
+        val nrec = records.size
+        val nsoort = records.map { it.soortid }.filter { it.isNotBlank() }.toSet().size
+        
+        _activeEnvelope.value = current.copy(
+            data = records,
+            nrec = nrec.toString(),
+            nsoort = nsoort.toString()
+        )
+    }
 }

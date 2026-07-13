@@ -4,6 +4,7 @@ This report documents the findings of a thorough audit of the VoiceTally codebas
 
 ## Status: IN PROGRESS
 **Last Updated:** 2024-05-22 (Simulated)
+**Git Restore Point:** `v1.1-pre-afrond-opt` (Savepoint before implementing "Afronden" optimizations)
 
 ---
 
@@ -41,20 +42,37 @@ The following libraries have been removed from `build.gradle.kts`:
 - `commons-codec:commons-codec`: Removed.
 - `org.apache.commons:commons-text`: Removed.
 
----
-
 ## 2. Performance Optimizations
 
 ### Redundant Memory Usage (Alias System)
-The app currently loads the same Alias data into memory **three times** in three different formats across three classes (`AliasManager`, `AliasRepository`, `AliasMatcher`). This consumes significantly more RAM than necessary and adds disk I/O overhead at startup.
-- **Recommendation:** Consolidate these into a single optimized Alias Cache managed by `AliasManager`.
+The app currently loads the same Alias data into memory **three times** at startup in three different formats across three classes:
+1.  **`AliasManager`**: Loads `aliases_optimized.cbor.gz` into a raw `AliasIndex` list.
+2.  **`AliasRepository`**: Loads the same file and transforms it into a species-centric `ConcurrentHashMap`.
+3.  **`AliasMatcher`**: Loads the same file again and transforms it into multiple search-optimized maps, buckets, and a bloom filter.
 
-### Triple Redundant Levenshtein Code
-The Levenshtein algorithm is implemented **four times** as private methods in separate classes.
-- **Recommendation:** Move to a single shared `LevenshteinUtils` object for better maintenance and consistency.
+This causes:
+-   **High RAM Usage:** Peak memory during startup is significantly higher than necessary.
+-   **Redundant Disk I/O:** Reading and ungzipping the same file three times.
+-   **Slow Startup:** Parallel/Sequential decoding of the same CBOR data.
 
-### Background Preloading
-Startup preloading in `VT5App` is already quite good, using background scopes to avoid blocking the UI. However, consolidating the Alias loaders would further improve startup speed.
+**Recommendation (Plan):**
+-   Consolidate the loading logic into `AliasManager`. It should be the single source of truth for the raw `AliasIndex`.
+-   Update `AliasRepository` and `AliasMatcher` to accept an existing `AliasIndex` object.
+-   Use a "Producer-Consumer" pattern where `AliasManager` notifies the others when a new index is loaded/rebuilt.
+
+### Multiple Levenshtein Implementations
+The Levenshtein distance algorithm is implemented **four times** as private methods in:
+-   `AliasMatcher`
+-   `AliasPriorityMatcher`
+-   `NumberPatterns`
+-   `SpeechRecognitionManager` (This one uses a less efficient full 2D-array implementation).
+
+**Recommendation:**
+-   Create a shared `com.yvesds.vt5.utils.LevenshteinUtils` object.
+-   Standardize on the highly efficient two-row iterative implementation.
+
+### Background Preloading Efficiency
+`AliasStartupInitializer` explicitly triggers reloads on all three classes, confirming the redundant work. Consolidating the loader will make this warmup phase much faster.
 
 ---
 
@@ -91,12 +109,12 @@ The process of finishing a count ("Afronden") is currently slow due to several f
 3.  **Fixed UI Delays:** There is a hardcoded 2-second delay for the success dialog in `TellingScherm` before showing the follow-up options.
 4.  **Network Overhead:** The transition to a new count requires two sequential network requests (Finalize old -> Start new), which compounds if the connection is weak.
 
-### Recommendations for Optimization
-- **Batch DB Operations:** Replace the record-by-record loop in `TellingAfrondHandler` with a single batch operation, or remove it entirely if the records were already sourced from Room.
-- **Incremental Payload Building:** Maintain a draft `ServerTellingEnvelope` in memory (e.g., in `TellingViewModel`) and update it with every new observation. This makes the payload "ready-to-send" at the moment of completion.
-- **Background Post-Processing:** Move non-critical SAF writes (auditing, historical archiving) to a background scope that doesn't block the user's transition to the next screen.
-- **Reduce UI Latency:** Shorten the fixed success delay or replace the blocking dialog with a non-blocking notification (Snackbar).
-- **Parallelize "Start New":** Pre-calculate/pre-fetch the necessary metadata for the next count while the previous one is still finalizing.
+### Recommendations for Optimization (Implemented)
+- **Batch DB Operations:** (Partially implemented via background processing) The record-by-record loop in `TellingAfrondHandler` now runs in a background scope, not blocking the UI.
+- **Incremental Payload Building:** (Implemented) A draft `ServerTellingEnvelope` is now maintained in `TellingViewModel` and updated with every new observation.
+- **Background Post-Processing:** (Implemented) Moved non-critical SAF writes (auditing, historical archiving) and DB shadow updates to a background scope (`backgroundScope` in `TellingAfrondHandler`).
+- **Reduce UI Latency:** (Implemented) Removed the fixed 2-second success delay and replaced the blocking dialog with a Snackbar.
+- **Parallelize "Start New":** (Not yet implemented) Pre-calculate/pre-fetch the necessary metadata for the next count while the previous one is still finalizing.
 
 ---
 
@@ -123,31 +141,29 @@ Instead of adding tables (which increases complexity and risk of breaking change
 2.  **State Consolidation:** Use the `TellingViewModel` to keep the "Active Session" in memory as a draft payload, backed by the existing Room tables.
 3.  **Refined Indexing:** The current indexing is alreayd sufficient for high-speed lookups.
 
----
+## 7. Concrete Optimization Plan for "Afronden" (Implemented)
 
-## 7. Concrete Optimization Plan for "Afronden"
+The following steps have been implemented to eliminate delays when finishing a count:
 
-To eliminate the delays when finishing a count, the following concrete steps are proposed:
-
-### 1. Continuous Payload Sync (In-Memory)
+### 1. Continuous Payload Sync (In-Memory) - DONE
 - **Action:** Maintain a `ServerTellingEnvelope` object in `TellingViewModel`.
-- **Mechanism:** Every time a record is added or changed, the in-memory envelope is updated instantly.
-- **Benefit:** At the moment of "Afronden", there is no need to query the database or rebuild the list. The payload is "hot" and ready to send.
+- **Mechanism:** Updated on every record addition or change.
+- **Benefit:** Payload is "hot" and ready to send instantly.
 
-### 2. Immediate Async JSON Backup
-- **Action:** Continue using `active_telling.json` but ensure it is written asynchronously on every change.
-- **Benefit:** If the app crashes, the latest state is always on disk, but the user never feels the I/O lag during active counting or finalization.
+### 2. Immediate Async JSON Backup - DONE
+- **Action:** `active_telling.json` is written asynchronously on every change.
+- **Benefit:** Crash protection without UI lag.
 
-### 3. Background Post-Processing (Fire & Forget)
-- **Action:** Move non-essential operations after a successful server response to a background scope:
-    - **Batch Room Update:** One transaction to mark all records as "geupload".
-    - **Archive Move:** Move/rename the JSON from `counts/` to `exports/`.
-    - **Audit Log:** Write the server response log in the background.
-- **Benefit:** The UI can transition to the "New Count" dialog immediately after the network call finishes.
+### 3. Background Post-Processing (Fire & Forget) - DONE
+- **Action:** Post-upload tasks run in `backgroundScope`:
+    - **Batch Room Update:** shadow update marks records as "geupload".
+    - **Archive Move:** JSON moved to `exports/` in background.
+    - **Audit Log:** Written in background.
+- **Benefit:** Instant transition to follow-up options.
 
-### 4. UI Streamlining
-- **Action:** Remove the fixed 2-second `SUCCESS_DIALOG_DELAY_MS`. Replace the blocking success dialog with a non-blocking notification (e.g., a brief Snackbar or a fast-fading overlay) and show the "Follow-up" options immediately.
-- **Benefit:** Saves 2 seconds of human waiting time per count.
+### 4. UI Streamlining - DONE
+- **Action:** Removed `SUCCESS_DIALOG_DELAY_MS` and blocking dialog; replaced with Snackbar.
+- **Benefit:** Saves 2+ seconds per count.
 
 ### 5. Parallel "New Count" Preparation
 - **Action:** While the previous count is finishing its background tasks, allow the `MetadataScherm` to pre-load essentials (sites/codes) so it is ready the moment the user enters.

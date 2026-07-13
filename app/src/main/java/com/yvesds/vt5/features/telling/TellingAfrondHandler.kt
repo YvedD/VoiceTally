@@ -12,22 +12,14 @@ import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import com.yvesds.vt5.utils.SessionRemarksMarker
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.util.Date
 
 /**
  * TellingAfrondHandler: Handles the complete "Afronden" (finalize) flow for TellingScherm.
- * 
- * Responsibilities:
- * - Building the final envelope with counts from Room (Hybrid System)
- * - Uploading to server
- * - Handling server response
- * - Cleanup of temporary files and preferences
- * - Cleanup of active_telling.json (historical)
- * - Error handling and user feedback
+ * Refactored to separate the blocking upload from slow background post-processing.
  */
 class TellingAfrondHandler(
     private val context: Context,
@@ -37,6 +29,9 @@ class TellingAfrondHandler(
 ) {
     private val database by lazy { VoiceTallyDatabase.getDatabase(context) }
     private val hybridRepository by lazy { HybridTellingRepository(context) }
+
+    // Dedicated scope for fire-and-forget background tasks (archiving, DB updates)
+    private val backgroundScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
         private const val TAG = "TellingAfrondHandler"
@@ -67,61 +62,55 @@ class TellingAfrondHandler(
 
     /**
      * Handle the complete Afronden (finalize and upload) flow.
-     * Uses Room as the primary source of truth for records and metadata.
      * 
-     * @param pendingRecordsSnapshot Snaphot of records from memory (as backup/sync source)
-     * @param pendingBackupDocs List of backup document files to clean up on success
-     * @param pendingBackupInternalPaths List of internal backup paths to clean up on success
-     * @param metadataUpdates Optional metadata updates (begintijd, eindtijd, opmerkingen)
+     * @param pendingRecordsSnapshot Snaphot of records from memory
+     * @param pendingBackupDocs List of backup document files to clean up
+     * @param pendingBackupInternalPaths List of internal backup paths to clean up
+     * @param metadataUpdates Optional metadata updates
+     * @param hotEnvelope Optional "warm" envelope from ViewModel for faster start
      */
     suspend fun handleAfronden(
         pendingRecordsSnapshot: List<ServerTellingDataItem>,
         pendingBackupDocs: List<DocumentFile>,
         pendingBackupInternalPaths: List<String>,
-        metadataUpdates: MetadataUpdates? = null
+        metadataUpdates: MetadataUpdates? = null,
+        hotEnvelope: ServerTellingEnvelope? = null
     ): AfrondResult = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val tellingId = prefs.getString(PREF_TELLING_ID, null)
 
-        // 1. Fetch metadata and records from Room (Hybride Systeem source of truth)
-        val header = if (!tellingId.isNullOrBlank()) {
-            database.tellingDao().getHeader(tellingId)
-        } else null
-
-        val roomRecords = if (!tellingId.isNullOrBlank()) {
-            database.tellingDao().getWaarnemingenList(tellingId)
-        } else emptyList()
-
-        val baseEnv = if (header != null) {
-            // Build envelope from database state
-            header.toServerEnvelope(roomRecords)
+        // 1. Get base envelope (prefer hot envelope from ViewModel)
+        val baseEnv = if (hotEnvelope != null) {
+            hotEnvelope
         } else {
-            // LEGACY FALLBACK: Use saved JSON if Room header is missing
-            val savedEnvelopeJson = prefs.getString(PREF_SAVED_ENVELOPE_JSON, null)
-            if (savedEnvelopeJson.isNullOrBlank()) {
-                return@withContext AfrondResult.Failure(
-                    title = "Geen metadata",
-                    message = "Er is geen opgeslagen metadata gevonden in Room of JSON. Keer terug naar metadata en start een telling."
-                )
-            }
+            val header = if (!tellingId.isNullOrBlank()) {
+                database.tellingDao().getHeader(tellingId)
+            } else null
 
-            val envelopeList = try {
-                VT5App.json.decodeFromString(
-                    ListSerializer(ServerTellingEnvelope.serializer()), 
-                    savedEnvelopeJson
-                )
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed decoding saved envelope JSON fallback: ${e.message}", e)
-                null
+            val roomRecords = if (!tellingId.isNullOrBlank()) {
+                database.tellingDao().getWaarnemingenList(tellingId)
+            } else emptyList()
+
+            if (header != null) {
+                header.toServerEnvelope(roomRecords)
+            } else {
+                // LEGACY FALLBACK
+                val savedEnvelopeJson = prefs.getString(PREF_SAVED_ENVELOPE_JSON, null)
+                if (savedEnvelopeJson.isNullOrBlank()) {
+                    return@withContext AfrondResult.Failure(
+                        title = "Geen metadata",
+                        message = "Er is geen opgeslagen metadata gevonden in Room of JSON. Keer terug naar metadata en start een telling."
+                    )
+                }
+                val list = try {
+                    VT5App.json.decodeFromString(ListSerializer(ServerTellingEnvelope.serializer()), savedEnvelopeJson)
+                } catch (e: Exception) { null }
+                
+                if (list.isNullOrEmpty()) {
+                    return@withContext AfrondResult.Failure(title = "Ongeldige metadata", message = "Metadata in database ontbreekt en JSON fallback is ongeldig.")
+                }
+                list[0]
             }
-            
-            if (envelopeList.isNullOrEmpty()) {
-                return@withContext AfrondResult.Failure(
-                    title = "Ongeldige metadata",
-                    message = "Metadata in database ontbreekt en JSON fallback is ongeldig."
-                )
-            }
-            envelopeList[0]
         }
 
         val savedOnlineId = prefs.getString(PREF_ONLINE_ID, baseEnv.onlineid)
@@ -130,43 +119,30 @@ class TellingAfrondHandler(
         if (sessionOnlineId.isNullOrBlank()) {
             return@withContext AfrondResult.Failure(
                 title = "Geen online ID",
-                message = "Deze telling kan niet worden afgerond omdat het onlineid van de eerder gestarte telling ontbreekt. Start de telling opnieuw of herstel eerst de sessiemetadata."
-            )
-        }
-        if (sessionOnlineId == baseEnv.tellingid) {
-            return@withContext AfrondResult.Failure(
-                title = "Ongeldig online ID",
-                message = "Deze telling kan niet worden afgerond omdat het bewaarde onlineid gelijk is aan de lokale tellingid. Daardoor zou de server een nieuwe telling aanmaken i.p.v. de bestaande sessie bij te werken. Start de telling opnieuw zodat eerst een geldig server-onlineid wordt verkregen."
+                message = "Deze telling kan niet worden afgerond omdat het onlineid ontbreekt."
             )
         }
 
-        // 2. Build final envelope with times and records
-        val nowEpoch = (System.currentTimeMillis() / 1000L)
-        val nowEpochStr = nowEpoch.toString()
-
-        // Apply metadata updates if provided
+        // 2. Build final envelope for upload
+        val nowEpochStr = (System.currentTimeMillis() / 1000L).toString()
         val effectiveBegintijd = metadataUpdates?.begintijd?.ifBlank { null } ?: baseEnv.begintijd
         val effectiveEindtijd = metadataUpdates?.eindtijd?.ifBlank { null } ?: nowEpochStr
         val effectiveOpmerkingen = SessionRemarksMarker.remove(metadataUpdates?.opmerkingen ?: baseEnv.opmerkingen)
         
-        // Combine current Room records (primary) with base metadata
-        val finalRecords = if (roomRecords.isNotEmpty()) {
-            roomRecords.map { it.toServerItem() }
+        val finalRecords = if (hotEnvelope != null) {
+            hotEnvelope.data
         } else {
-            // Fallback to memory snapshot if Room is somehow empty but memory has data
-            pendingRecordsSnapshot
+            val roomRecords = if (!tellingId.isNullOrBlank()) database.tellingDao().getWaarnemingenList(tellingId) else emptyList()
+            if (roomRecords.isNotEmpty()) roomRecords.map { it.toServerItem() } else pendingRecordsSnapshot
         }
-
-        val nrec = finalRecords.size
-        val nsoort = finalRecords.map { it.soortid }.filter { it.isNotBlank() }.toSet().size
 
         val finalEnvDraft = baseEnv.copy(
             begintijd = effectiveBegintijd,
             eindtijd = effectiveEindtijd,
             opmerkingen = effectiveOpmerkingen,
             onlineid = sessionOnlineId,
-            nrec = nrec.toString(),
-            nsoort = nsoort.toString(), 
+            nrec = finalRecords.size.toString(),
+            nsoort = finalRecords.map { it.soortid }.filter { it.isNotBlank() }.toSet().size.toString(),
             data = finalRecords
         )
 
@@ -176,34 +152,8 @@ class TellingAfrondHandler(
             useStoredOnlineIdWhenBlank = true,
             now = Date()
         )
-        val envelopeToSend = listOf(finalEnv)
 
-        // 3. Pretty print and save envelope (historical JSON archive)
-        val prettyJson = try {
-            PRETTY_JSON.encodeToString(
-                ListSerializer(ServerTellingEnvelope.serializer()), 
-                envelopeToSend
-            )
-        } catch (e: Exception) {
-            Log.w(TAG, "pretty encode failed: ${e.message}", e)
-            null
-        }
-
-        val onlineIdForFilename = finalEnv.onlineid.ifBlank { 
-            savedOnlineId?.ifBlank { "unknown" } ?: "unknown" 
-        }
-        var savedPrettyPath: String? = null
-        if (prettyJson != null) {
-            savedPrettyPath = backupManager.writePrettyEnvelopeToSaf(
-                onlineIdForFilename, 
-                prettyJson
-            ) ?: backupManager.writePrettyEnvelopeInternal(
-                onlineIdForFilename, 
-                prettyJson
-            )
-        }
-
-        // 4. Upload to server via centrale uploadkern
+        // 3. Upload to server (The only truly blocking part)
         val uploadResult = uploadCore.uploadPrepared(
             TellingUploadCore.UploadRequest(
                 mode = TellingUploadCore.Mode.FINALIZE,
@@ -213,83 +163,81 @@ class TellingAfrondHandler(
                 markTellingSent = true
             )
         )
-        val resp = uploadResult.responseText
 
-        // 5. Write audit file
-        val auditPath = try {
-            backupManager.writeEnvelopeResponseToSaf(
-                finalEnv.tellingid, 
-                prettyJson ?: "{}", 
-                resp
-            ) ?: backupManager.writeEnvelopeResponseInternal(
-                finalEnv.tellingid, 
-                prettyJson ?: "{}", 
-                resp
+        // 4. FIRE AND FORGET: Background post-processing
+        if (uploadResult.success) {
+            val effectiveOnlineId = uploadResult.effectiveOnlineId ?: savedOnlineId ?: finalEnv.onlineid
+            performBackgroundCleanup(
+                finalEnv = finalEnv,
+                uploadResult = uploadResult,
+                effectiveOnlineId = effectiveOnlineId,
+                pendingBackupDocs = pendingBackupDocs,
+                pendingBackupInternalPaths = pendingBackupInternalPaths,
+                finalRecords = finalRecords
             )
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to write audit: ${e.message}", e)
-            null
-        }
-
-        // 6. Handle result
-        if (!uploadResult.success) {
+            
+            return@withContext AfrondResult.Success(savedPrettyPath = null, auditPath = null)
+        } else {
             return@withContext AfrondResult.Failure(
                 title = "Upload mislukt",
-                message = "Kon telling niet uploaden:\n${uploadResult.errorMessage ?: resp}\n\n" +
-                         "Envelope opgeslagen: ${savedPrettyPath ?: "niet beschikbaar"}\n" +
-                         "Auditbestand: ${auditPath ?: "niet beschikbaar"}",
-                savedPrettyPath = savedPrettyPath,
-                auditPath = auditPath
+                message = "Kon telling niet uploaden:\n${uploadResult.errorMessage ?: uploadResult.responseText}"
             )
         }
-        val effectiveOnlineId = uploadResult.effectiveOnlineId ?: savedOnlineId ?: finalEnv.onlineid
+    }
 
-        // 7. Cleanup: remove backups and clear preferences
-        try {
-            pendingBackupDocs.forEach { doc -> 
-                try { doc.delete() } catch (_: Exception) {} 
-            }
-            
-            pendingBackupInternalPaths.forEach { path -> 
-                try { java.io.File(path).delete() } catch (_: Exception) {} 
-            }
-
-            // Remove telling-related preferences
-            prefs.edit {
-                remove(PREF_ONLINE_ID)
-                remove(PREF_TELLING_ID)
-                remove(PREF_SAVED_ENVELOPE_JSON)
-            }
-            
-            // Hybride System final actions:
+    /**
+     * Perform slow post-processing tasks in background scope.
+     */
+    private fun performBackgroundCleanup(
+        finalEnv: ServerTellingEnvelope,
+        uploadResult: TellingUploadCore.UploadResult,
+        effectiveOnlineId: String?,
+        pendingBackupDocs: List<DocumentFile>,
+        pendingBackupInternalPaths: List<String>,
+        finalRecords: List<ServerTellingDataItem>
+    ) {
+        backgroundScope.launch {
             try {
-                val currentTellingId = finalEnv.tellingid
-                val archiveOnlineId = effectiveOnlineId.ifBlank { finalEnv.onlineid }
-                
-                // Room shadow update: Update the header with final times and counts
-                hybridRepository.saveHeaderToRoom(uploadResult.preparedEnvelope, status = "geupload")
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val prettyJson = try {
+                    PRETTY_JSON.encodeToString(ListSerializer(ServerTellingEnvelope.serializer()), listOf(uploadResult.preparedEnvelope))
+                } catch (e: Exception) { null }
 
-                // Extra check: Zorg dat álle records ook in Room staan (Fase 4 consistentie)
-                finalRecords.forEach { record ->
-                    hybridRepository.saveWaarnemingToRoom(record)
-                }
-
-                // Archive the JSON to counts folder (historical reference)
+                // A) Archive JSON to SAF and Internal
                 if (prettyJson != null) {
-                    envelopePersistence?.saveFinalEnvelopeToCountsDir(currentTellingId, archiveOnlineId, prettyJson)
+                    val onlineIdForFilename = effectiveOnlineId?.ifBlank { "unknown" } ?: "unknown"
+                    backupManager.writePrettyEnvelopeToSaf(onlineIdForFilename, prettyJson)
+                        ?: backupManager.writePrettyEnvelopeInternal(onlineIdForFilename, prettyJson)
+                    
+                    envelopePersistence?.saveFinalEnvelopeToCountsDir(finalEnv.tellingid, onlineIdForFilename, prettyJson)
                 }
-                
-            } catch (ex: Exception) {
-                Log.w(TAG, "Hybride cleanup actions failed: ${ex.message}", ex)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Cleanup after successful Afronden failed: ${e.message}", e)
-        }
 
-        return@withContext AfrondResult.Success(
-            savedPrettyPath = savedPrettyPath,
-            auditPath = auditPath
-        )
+                // B) Write audit log
+                if (prettyJson != null) {
+                    backupManager.writeEnvelopeResponseToSaf(finalEnv.tellingid, prettyJson, uploadResult.responseText)
+                        ?: backupManager.writeEnvelopeResponseInternal(finalEnv.tellingid, prettyJson, uploadResult.responseText)
+                }
+
+                // C) Cleanup temp backups and prefs
+                pendingBackupDocs.forEach { try { it.delete() } catch (_: Exception) {} }
+                pendingBackupInternalPaths.forEach { try { java.io.File(it).delete() } catch (_: Exception) {} }
+                prefs.edit {
+                    remove(PREF_ONLINE_ID)
+                    remove(PREF_TELLING_ID)
+                    remove(PREF_SAVED_ENVELOPE_JSON)
+                }
+
+                // D) Batch update Room (shadow update)
+                hybridRepository.saveHeaderToRoom(uploadResult.preparedEnvelope, status = "geupload")
+                
+                // For records, we ensure consistency.
+                finalRecords.forEach { hybridRepository.saveWaarnemingToRoom(it) }
+
+                Log.i(TAG, "Background cleanup completed for telling ${finalEnv.tellingid}")
+            } catch (ex: Exception) {
+                Log.w(TAG, "Background cleanup failed: ${ex.message}", ex)
+            }
+        }
     }
 
 
