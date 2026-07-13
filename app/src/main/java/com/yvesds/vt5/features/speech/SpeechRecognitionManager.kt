@@ -9,6 +9,7 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import com.yvesds.vt5.features.alias.AliasRepository
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.utils.LevenshteinUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.asCoroutineDispatcher
 import java.util.Locale
@@ -594,9 +595,7 @@ class SpeechRecognitionManager(private val activity: Activity) {
     private fun calculateSimilarity(s1: String, s2: String): Double {
         val s1Norm = normalizeSpeciesName(s1)
         val s2Norm = normalizeSpeciesName(s2)
-        val levDistance = levenshteinDistance(s1Norm, s2Norm)
-        val maxLen = kotlin.math.max(s1Norm.length, s2Norm.length)
-        val levSimilarity = if (maxLen > 0) 1.0 - (levDistance.toDouble() / maxLen.toDouble()) else 0.0
+        val levSimilarity = LevenshteinUtils.normalizedRatio(s1Norm, s2Norm)
         val phoneticSimilarity = ColognePhonetic.similarity(s1Norm, s2Norm)
         return (0.7 * phoneticSimilarity + 0.3 * levSimilarity).coerceIn(0.0, 1.0)
     }
@@ -605,23 +604,6 @@ class SpeechRecognitionManager(private val activity: Activity) {
     // Helper functions (normalization, tokenization, levenshtein, etc.)
     // These are the same implementations as in your original file.
     // ------------------------
-
-    private fun levenshteinDistance(s1: String, s2: String): Int {
-        if (s1 == s2) return 0
-        if (s1.isEmpty()) return s2.length
-        if (s2.isEmpty()) return s1.length
-        val dp = Array(s1.length + 1) { IntArray(s2.length + 1) }
-        for (i in 0..s1.length) dp[i][0] = i
-        for (j in 0..s2.length) dp[0][j] = j
-        for (i in 1..s1.length) {
-            for (j in 1..s2.length) {
-                dp[i][j] = if (s1[i - 1] == s2[j - 1]) dp[i - 1][j - 1] else {
-                    1 + minOf(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
-                }
-            }
-        }
-        return dp[s1.length][s2.length]
-    }
 
     private fun normalize(text: String): String {
         normalizeStringBuilder.setLength(0)

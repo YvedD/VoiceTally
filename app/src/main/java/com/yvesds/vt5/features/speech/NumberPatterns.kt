@@ -1,6 +1,7 @@
 package com.yvesds.vt5.features.speech
 
 import com.yvesds.vt5.features.alias.AliasRecord
+import com.yvesds.vt5.utils.LevenshteinUtils
 import com.yvesds.vt5.utils.TextUtils
 
 /**
@@ -186,7 +187,7 @@ object NumberPatterns {
         for (p in numberPhonemePatterns) {
             if (norm.contains(p)) return true
             // tolerant match: allow small edit distance
-            if (levenshteinDistance(norm, p) <= 1) return true
+            if (LevenshteinUtils.distance(norm, p) <= 1) return true
         }
         return false
     }
@@ -211,25 +212,6 @@ object NumberPatterns {
      */
     fun filterNumberCandidates(candidates: List<AliasRecord>): List<AliasRecord> {
         return candidates.filter { rec -> !isNumberCandidate(rec) }
-    }
-
-    // Utility: Levenshtein (simple implementation)
-    private fun levenshteinDistance(a: String, b: String): Int {
-        val la = a.length
-        val lb = b.length
-        if (la == 0) return lb
-        if (lb == 0) return la
-        val prev = IntArray(lb + 1) { it }
-        val cur = IntArray(lb + 1)
-        for (i in 1..la) {
-            cur[0] = i
-            for (j in 1..lb) {
-                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
-                cur[j] = minOf(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
-            }
-            System.arraycopy(cur, 0, prev, 0, lb + 1)
-        }
-        return prev[lb]
     }
 
     private fun parseCompactNumber(compactInput: String): Int? {

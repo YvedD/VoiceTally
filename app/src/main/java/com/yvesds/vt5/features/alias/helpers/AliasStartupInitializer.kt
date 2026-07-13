@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.core.content.edit
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.alias.AliasManager
-import com.yvesds.vt5.features.alias.AliasRepository
 import com.yvesds.vt5.features.speech.AliasMatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -88,18 +87,8 @@ object AliasStartupInitializer {
                 putString(PREF_ALIAS_CBOR_SOURCE, source)
             }
 
-            runCatching {
-                AliasMatcher.reloadIndex(appContext, saf)
-            }.onFailure {
-                Log.w(TAG, "AliasMatcher.reloadIndex failed after startup rebuild: ${it.message}", it)
-            }
-
-            runCatching {
-                AliasRepository.getInstance(appContext).reloadAliasData()
-            }.onFailure {
-                Log.w(TAG, "AliasRepository.reloadAliasData failed after startup rebuild: ${it.message}", it)
-            }
-
+            // Centralized loading via AliasManager. Other components (Repository, Matcher)
+            // will update automatically via indexFlow.
             runCatching {
                 AliasManager.ensureIndexLoadedSuspend(appContext, saf)
             }.onFailure {

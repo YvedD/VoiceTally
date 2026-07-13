@@ -5,10 +5,12 @@ import android.util.Log
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.alias.AliasIndex as RepoAliasIndex
 import com.yvesds.vt5.features.alias.AliasRecord
+import com.yvesds.vt5.features.alias.AliasManager
+import com.yvesds.vt5.utils.LevenshteinUtils
 import com.yvesds.vt5.utils.TextUtils
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
 import java.io.ByteArrayOutputStream
@@ -33,8 +35,6 @@ import kotlin.math.max
  */
 internal object AliasMatcher {
     private const val TAG = "AliasMatcher"
-    private const val ALIASES_CBOR_GZ = "aliases_optimized.cbor.gz"
-    private const val BINARIES = "binaries"
 
     // In-memory structures (volatile for quick visibility)
     @Volatile private var loadedIndex: RepoAliasIndex? = null
@@ -44,135 +44,46 @@ internal object AliasMatcher {
     @Volatile private var bloomFilter: Set<Long>? = null
 
     // Synchronization and loader state
-    private val loadMutex = Mutex()
     private val cborMissingWarned = AtomicBoolean(false)
     private val loaderScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    @Volatile private var loadingDeferred: Deferred<Unit>? = null
+
+    init {
+        // Observe AliasManager's indexFlow to keep matcher maps in sync
+        loaderScope.launch {
+            AliasManager.indexFlow.collectLatest { index ->
+                if (index != null) {
+                    val maps = withContext(Dispatchers.Default) { buildIndexMaps(index) }
+                    // Atomic swap
+                    aliasMap = maps.map
+                    phoneticCache = maps.phonCache
+                    firstCharBuckets = maps.buckets
+                    bloomFilter = maps.bloom
+                    loadedIndex = index
+                    Log.i(TAG, "Matcher structures updated from AliasManager flow")
+                }
+            }
+        }
+    }
 
     // Reusable regex for tokenization
     private val WHITESPACE = Regex("\\s+")
 
     /**
-     * Ensure internal in-memory alias index is loaded and ready for matching.
-     * Multiple concurrent callers will await the same background load.
+     * Ensure internal in-memory alias index is loaded.
+     * Now primarily ensures AliasManager has loaded the index.
      */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun ensureLoaded(context: Context, saf: SaFStorageHelper) {
         // Fast path
         if (aliasMap != null && phoneticCache != null) return
-
-        // Ensure single loader is created
-        val job = synchronized(this) {
-            loadingDeferred ?: loaderScope.async {
-                loadIndexInternal(context, saf)
-            }.also { loadingDeferred = it }
-        }
-
-        try {
-            job.await()
-        } finally {
-            synchronized(this) {
-                if (loadingDeferred === job) loadingDeferred = null
-            }
-        }
+        AliasManager.ensureIndexLoadedSuspend(context, saf)
     }
 
     /**
-     * Internal loader: reads CBOR (IO) and builds maps (Default) then swaps them in atomically.
-     */
-    @OptIn(ExperimentalSerializationApi::class)
-    private suspend fun loadIndexInternal(context: Context, saf: SaFStorageHelper) = withContext(Dispatchers.IO) {
-        if (aliasMap != null && phoneticCache != null) return@withContext
-
-        loadMutex.withLock {
-            if (aliasMap != null && phoneticCache != null) return@withLock
-
-            // 1) Try internal cache first (app-private)
-            try {
-                val internalFile = File(context.filesDir, ALIASES_CBOR_GZ)
-                if (internalFile.exists() && internalFile.length() > 0L) {
-                    runCatching {
-                        internalFile.inputStream().use { fis ->
-                            GZIPInputStream(fis).use { gis ->
-                                val bytes = gis.readBytes()
-                                if (bytes.isNotEmpty()) {
-                                    val idx: RepoAliasIndex = Cbor.decodeFromByteArray(RepoAliasIndex.serializer(), bytes)
-                                    val maps = withContext(Dispatchers.Default) { buildIndexMaps(idx) }
-                                    // Atomic swap
-                                    aliasMap = maps.map
-                                    phoneticCache = maps.phonCache
-                                    firstCharBuckets = maps.buckets
-                                    bloomFilter = maps.bloom
-                                    loadedIndex = idx
-                                    Log.i(TAG, "Loaded AliasIndex from internal cache (records=${idx.json.size})")
-                                    return@withLock
-                                }
-                            }
-                        }
-                    }.onFailure {
-                        Log.w(TAG, "ensureLoaded: failed loading internal cache: ${it.message}", it)
-                    }
-                }
-            } catch (ex: Exception) {
-                Log.w(TAG, "ensureLoaded (internal) exception: ${ex.message}", ex)
-            }
-
-            // 2) Fallback: read SAF binaries/CBOR once.
-            val vt5 = saf.getVt5DirIfExists()
-            if (vt5 == null) {
-                if (cborMissingWarned.compareAndSet(false, true)) {
-                    Log.w(TAG, "SAF VT5 root not set; cannot load aliases")
-                }
-                return@withLock
-            }
-
-            val binaries = vt5.findFile(BINARIES)?.takeIf { it.isDirectory }
-            val cborDoc = binaries?.findFile(ALIASES_CBOR_GZ)
-            if (cborDoc == null) {
-                if (cborMissingWarned.compareAndSet(false, true)) {
-                    Log.w(TAG, "aliases cbor not found in SAF binaries")
-                }
-                return@withLock
-            }
-
-            val bytes = runCatching {
-                context.contentResolver.openInputStream(cborDoc.uri)?.use { it.readBytes() }
-            }.getOrNull()
-
-            if (bytes == null || bytes.isEmpty()) {
-                if (cborMissingWarned.compareAndSet(false, true)) {
-                    Log.w(TAG, "Failed to read aliases cbor bytes from SAF")
-                }
-                return@withLock
-            }
-
-            val ungz = gunzip(bytes)
-            if (ungz.isEmpty()) {
-                Log.w(TAG, "ensureLoaded: ungzipped cbor is empty")
-                return@withLock
-            }
-
-            val idxFromCbor: RepoAliasIndex = Cbor.decodeFromByteArray(RepoAliasIndex.serializer(), ungz)
-            val maps = withContext(Dispatchers.Default) { buildIndexMaps(idxFromCbor) }
-
-            aliasMap = maps.map
-            phoneticCache = maps.phonCache
-            firstCharBuckets = maps.buckets
-            bloomFilter = maps.bloom
-            loadedIndex = idxFromCbor
-            Log.i(TAG, "Loaded AliasIndex from SAF CBOR (records=${idxFromCbor.json.size}, keys=${aliasMap?.size ?: 0})")
-        }
-    }
-
-    /**
-     * Force reload: cancel any in-progress loader and reload immediately.
+     * Force reload: delegatesto AliasManager.
      */
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun reloadIndex(context: Context, saf: SaFStorageHelper) {
-        val current = synchronized(this) { loadingDeferred }
-        current?.cancelAndJoinSafe()
-        synchronized(this) { loadingDeferred = null }
-
         loadedIndex = null
         aliasMap = null
         phoneticCache = null
@@ -180,7 +91,7 @@ internal object AliasMatcher {
         bloomFilter = null
         cborMissingWarned.set(false)
 
-        ensureLoaded(context, saf)
+        AliasManager.ensureIndexLoadedSuspend(context, saf)
     }
 
     /**
@@ -193,11 +104,7 @@ internal object AliasMatcher {
     suspend fun findExact(aliasPhrase: String, context: Context, saf: SaFStorageHelper): List<AliasRecord> = withContext(Dispatchers.Default) {
         val mapSnapshot = aliasMap
         if (mapSnapshot == null) {
-            synchronized(this@AliasMatcher) {
-                if (loadingDeferred == null) {
-                    loadingDeferred = loaderScope.async { loadIndexInternal(context, saf) }
-                }
-            }
+            AliasManager.ensureIndexLoadedSuspend(context, saf)
             return@withContext emptyList()
         }
 
@@ -225,11 +132,7 @@ internal object AliasMatcher {
         val buckets = firstCharBuckets
         val bloom = bloomFilter
         if (map == null || buckets == null || bloom == null) {
-            synchronized(this@AliasMatcher) {
-                if (loadingDeferred == null) {
-                    loadingDeferred = loaderScope.async { loadIndexInternal(context, saf) }
-                }
-            }
+            AliasManager.ensureIndexLoadedSuspend(context, saf)
             return@withContext emptyList()
         }
 
@@ -271,7 +174,7 @@ internal object AliasMatcher {
         var qPhComputed = false
 
         for (k in shortlistList) {
-            val lev = normalizedLevenshteinRatio(q, k)
+            val lev = LevenshteinUtils.normalizedRatio(q, k)
             val colSim = runCatching { ColognePhonetic.similarity(q, k) }.getOrDefault(0.0)
             val recs = map[k] ?: continue
             for (r in recs) {
@@ -397,53 +300,5 @@ internal object AliasMatcher {
             buckets = buckets.mapValues { it.value.toList() },
             bloom = bloomSet.toSet()
         )
-    }
-
-    private fun gunzip(input: ByteArray): ByteArray {
-        return try {
-            GZIPInputStream(input.inputStream()).use { gis ->
-                val baos = ByteArrayOutputStream()
-                val buf = ByteArray(8 * 1024)
-                var n: Int
-                while (gis.read(buf).also { n = it } >= 0) baos.write(buf, 0, n)
-                baos.toByteArray()
-            }
-        } catch (ex: Exception) {
-            Log.w(TAG, "gunzip failed: ${ex.message}", ex)
-            ByteArray(0)
-        }
-    }
-
-    private fun normalizedLevenshteinRatio(s1: String, s2: String): Double {
-        val d = levenshteinDistance(s1, s2)
-        val maxLen = max(s1.length, s2.length)
-        if (maxLen == 0) return 1.0
-        return 1.0 - (d.toDouble() / maxLen.toDouble())
-    }
-
-    private fun levenshteinDistance(a: String, b: String): Int {
-        val la = a.length; val lb = b.length
-        if (la == 0) return lb
-        if (lb == 0) return la
-        val prev = IntArray(lb + 1) { it }
-        val cur = IntArray(lb + 1)
-        for (i in 1..la) {
-            cur[0] = i
-            val ai = a[i - 1]
-            for (j in 1..lb) {
-                val cost = if (ai == b[j - 1]) 0 else 1
-                cur[j] = minOf(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
-            }
-            System.arraycopy(cur, 0, prev, 0, lb + 1)
-        }
-        return prev[lb]
-    }
-
-    // ---- small utility ----
-    private fun Deferred<Unit>.cancelAndJoinSafe() {
-        try {
-            this.cancel()
-            runCatching { runBlocking { this@cancelAndJoinSafe.join() } }
-        } catch (_: Throwable) { /* ignore */ }
     }
 }

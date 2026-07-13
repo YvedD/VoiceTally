@@ -2,6 +2,7 @@ package com.yvesds.vt5.features.speech
 
 import android.content.Context
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.utils.LevenshteinUtils
 import com.yvesds.vt5.utils.TextUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -331,7 +332,7 @@ object AliasPriorityMatcher {
             val recNorm = if (rec.norm.isNotBlank()) rec.norm else rec.alias.ifBlank { rec.canonical }
             if (recNorm.isBlank()) continue
 
-            val textSim = normalizedLevenshteinRatio(normalized, recNorm)
+            val textSim = LevenshteinUtils.normalizedRatio(normalized, recNorm)
             val cologneSim = runCatching { ColognePhonetic.similarity(normalized, recNorm) }.getOrDefault(0.0)
             val phonemeSim = if (!rec.phonemes.isNullOrBlank() && qPh != null) {
                 runCatching { DutchPhonemizer.phonemeSimilarity(qPh, rec.phonemes) }.getOrDefault(0.0)
@@ -457,31 +458,5 @@ object AliasPriorityMatcher {
         if (speciesId in ctx.tilesSpeciesIds) prior += PRIOR_TILES
         if (speciesId in ctx.siteAllowedIds) prior += PRIOR_SITE
         return prior.coerceAtMost(PRIOR_MAX)
-    }
-
-    private fun normalizedLevenshteinRatio(s1: String, s2: String): Double {
-        val d = levenshteinDistance(s1, s2)
-        val maxLen = max(s1.length, s2.length)
-        if (maxLen == 0) return 1.0
-        return 1.0 - (d.toDouble() / maxLen.toDouble())
-    }
-
-    private fun levenshteinDistance(a: String, b: String): Int {
-        val la = a.length
-        val lb = b.length
-        if (la == 0) return lb
-        if (lb == 0) return la
-        val prev = IntArray(lb + 1) { it }
-        val cur = IntArray(lb + 1)
-        for (i in 1..la) {
-            cur[0] = i
-            val ai = a[i - 1]
-            for (j in 1..lb) {
-                val cost = if (ai == b[j - 1]) 0 else 1
-                cur[j] = minOf(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
-            }
-            System.arraycopy(cur, 0, prev, 0, lb + 1)
-        }
-        return prev[lb]
     }
 }

@@ -10,6 +10,8 @@ import com.yvesds.vt5.features.speech.ColognePhonetic
 import com.yvesds.vt5.features.speech.DutchPhonemizer
 import com.yvesds.vt5.utils.TextUtils
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -67,7 +69,8 @@ object AliasManager {
     /* INDEX LOAD SYNCHRONIZATION */
     private val indexLoadMutex = Mutex()
     @Volatile private var indexLoaded = false
-    @Volatile private var loadedIndex: AliasIndex? = null
+    private val _indexFlow = MutableStateFlow<AliasIndex?>(null)
+    val indexFlow: StateFlow<AliasIndex?> = _indexFlow
 
     /* MASTER WRITE SYNCHRONIZATION */
     private val masterWriteMutex = Mutex()
@@ -148,28 +151,24 @@ object AliasManager {
      * - AliasSafWriter: safeWriteToDocument, safeWriteTextToDocument
      */
 
-    /**
-     * Ensure the in-memory AliasIndex is loaded - REFACTORED with AliasIndexLoader helper.
-     * This function is suspend and idempotent.
-     */
     suspend fun ensureIndexLoadedSuspend(context: Context, saf: SaFStorageHelper) = withContext(Dispatchers.IO) {
-        if (indexLoaded && loadedIndex != null) {
+        if (indexLoaded && _indexFlow.value != null) {
             return@withContext
         }
 
         indexLoadMutex.withLock {
-            if (indexLoaded && loadedIndex != null) {
+            if (indexLoaded && _indexFlow.value != null) {
                 return@withLock
             }
 
             // Delegate to AliasIndexLoader helper for priority-based loading
             val index = AliasIndexLoader.loadIndex(context, saf)
             if (index != null) {
-                loadedIndex = index
+                _indexFlow.value = index
                 indexLoaded = true
                 Log.i(TAG, "AliasIndex loaded via helper")
             } else {
-                loadedIndex = null
+                _indexFlow.value = null
                 indexLoaded = false
                 Log.w(TAG, "AliasIndex: no index available")
             }
@@ -180,7 +179,7 @@ object AliasManager {
     fun isIndexLoaded(): Boolean = indexLoaded
 
     /** Optional getter for the loaded index (null if not loaded) */
-    fun getLoadedIndex(): AliasIndex? = loadedIndex
+    fun getLoadedIndex(): AliasIndex? = _indexFlow.value
 
     /**
      * Get all unique species from the loaded alias index.
@@ -195,7 +194,7 @@ object AliasManager {
             // Ensure index is loaded
             ensureIndexLoadedSuspend(context, saf)
             
-            val index = loadedIndex
+            val index = _indexFlow.value
             if (index == null) {
                 Log.w(TAG, "getAllSpeciesFromIndex: index not loaded")
                 return@withContext emptyMap()
@@ -270,7 +269,7 @@ object AliasManager {
                         if (masterObj != null) {
                             val writeResult = AliasMasterIO.writeMasterAndCbor(context, masterObj, vt5Local, saf)
                             val refreshedIndex = masterObj.toAliasIndex()
-                            loadedIndex = refreshedIndex
+                            _indexFlow.value = refreshedIndex
                             indexLoaded = true
 
                             if (writeResult == null || !writeResult.wroteCborSaf) {
