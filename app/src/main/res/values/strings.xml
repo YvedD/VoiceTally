@@ -59,7 +59,6 @@
     <string name="annotatie_annuleren">Annuleren</string>
 
     <string name="msg_loading_annotations">Annotaties laden…</string>
-    <string name="msg_annotations_not_available">Annotaties niet beschikbaar. Controleer Documents/VT5/assets/annotations.json of voer "Serverdata ophalen" uit.</string>
     <string name="annotatie_none">(geen opties)</string>
     <string name="annotatie_opmerkingen_label">Opmerkingen</string>
     <string name="annotatie_opmerkingen_hint">Vrije tekst (optioneel)</string>
@@ -138,7 +137,6 @@
     <string name="instellingen_lettergrootte_finals_label">Lettergrootte finals:</string>
     <string name="instellingen_lettergrootte_tegels_label">Lettergrootte tegels (soortnaam + aantallen):</string>
     <string name="instellingen_sp_eenheid">sp</string>
-    <string name="instellingen_placeholder3">Placeholder 3 (later in te vullen)</string>
     <string name="instellingen_colors_title">Kleuren</string>
     <string name="instellingen_bg_color_label">Achtergrondkleur</string>
     <string name="instellingen_text_color_label">Tekstkleur</string>
@@ -148,11 +146,6 @@
     <string name="instellingen_log_text_color_label">Tekstkleur logregels</string>
     <string name="instellingen_back_arrow">←</string>
     <string name="instellingen_permissions_title">Toestemmingen (info)</string>
-    <string name="instellingen_opslag_titel">Opslagmethode</string>
-    <string name="instellingen_opslag_json">Alleen JSON</string>
-    <string name="instellingen_opslag_room">Alleen ROOM</string>
-    <string name="instellingen_opslag_parallel">Parallel (JSON + ROOM)</string>
-    <string name="instellingen_opslag_omschrijving">Kies hoe waarnemingen moeten worden opgeslagen. Parallel wordt aanbevolen tijdens de migratie.</string>
     <string name="instellingen_double_tap_title">Double-tap verhoging op soorttegel</string>
     <string name="instellingen_double_tap_5">+5</string>
     <string name="instellingen_double_tap_10">+10</string>
@@ -204,7 +197,6 @@
     <string name="beheer_opslaan_fout">Kon wijzigingen niet opslaan</string>
     <string name="beheer_telling_info">%1$d records • %2$d soorten</string>
     <string name="beheer_actieve_telling">Actieve telling</string>
-    <string name="beheer_gearchiveerd">Gearchiveerd</string>
     <string name="beheer_terug">Terug naar lijst</string>
     <string name="beheer_soort_id">Soort ID</string>
     <string name="beheer_soort">Soort</string>

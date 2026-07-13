@@ -103,6 +103,20 @@ class TegelBeheer(private val ui: TegelUi) {
         }
     }
 
+    fun voegSoortToeIndienNodigReturn(soortId: String, naam: String, initialCount: Int = 0): Boolean {
+        synchronized(lock) {
+            val exists = tiles.any { it.soortId == soortId }
+            if (exists) return false
+            
+            val new = SoortTile(soortId = soortId, naam = naam, countMain = 0, countReturn = initialCount)
+            
+            tiles.add(new)
+            sortTilesLocked()
+            ui.submitTiles(tiles.map { it.copy() })
+            return true
+        }
+    }
+
     fun voegSoortToe(soortId: String, naam: String, initialCount: Int = 0, mergeIfExists: Boolean = false) {
         synchronized(lock) {
             val idx = tiles.indexOfFirst { it.soortId == soortId }
@@ -118,6 +132,28 @@ class TegelBeheer(private val ui: TegelUi) {
             }
             
             val new = SoortTile(soortId = soortId, naam = naam, countMain = initialCount, countReturn = 0)
+            
+            tiles.add(new)
+            sortTilesLocked()
+            ui.submitTiles(tiles.map { it.copy() })
+        }
+    }
+
+    fun voegSoortToeReturn(soortId: String, naam: String, initialCount: Int = 0, mergeIfExists: Boolean = false) {
+        synchronized(lock) {
+            val idx = tiles.indexOfFirst { it.soortId == soortId }
+            if (idx >= 0) {
+                if (mergeIfExists) {
+                    val current = tiles[idx]
+                    val updated = current.copy(countReturn = current.countReturn + initialCount)
+                    tiles[idx] = updated
+                    ui.onTileCountUpdated(soortId, updated.count)
+                    ui.submitTiles(tiles.map { it.copy() })
+                }
+                return
+            }
+            
+            val new = SoortTile(soortId = soortId, naam = naam, countMain = 0, countReturn = initialCount)
             
             tiles.add(new)
             sortTilesLocked()
@@ -203,12 +239,6 @@ class TegelBeheer(private val ui: TegelUi) {
     fun findNaamBySoortId(soortId: String): String? {
         synchronized(lock) {
             return tiles.firstOrNull { it.soortId == soortId }?.naam
-        }
-    }
-
-    fun logTilesState(prefix: String = "tiles") {
-        synchronized(lock) {
-            val summary = tiles.joinToString(", ") { "${it.soortId}:${it.naam}:main=${it.countMain}+return=${it.countReturn}" }
         }
     }
     

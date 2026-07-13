@@ -91,23 +91,25 @@ class TellingDialogHelper(
 
     /**
      * Show Add Alias dialog for partial/raw entries.
+     * Updated to support multiple alias candidates from a single phrase.
      */
     fun showAddAliasDialog(
-        nameText: String,
+        aliasCandidates: List<String>,
         count: Int,
         availableSpecies: List<String>,
         onAliasAdded: (String, String, Int) -> Unit,
         fragmentManager: androidx.fragment.app.FragmentManager
     ) {
-        val dialog = AddAliasDialog.newInstance(listOf(nameText), availableSpecies)
+        val dialog = AddAliasDialog.newInstance(aliasCandidates, availableSpecies)
         
         dialog.listener = object : AddAliasDialog.AddAliasListener {
             override fun onAliasAssigned(speciesId: String, aliasText: String) {
                 lifecycleOwner.lifecycleScope.launch {
                     try {
+<                        val isDirection = speciesId == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN
                         val snapshot = ServerDataCache.getOrLoad(activity)
-                        val canonical = snapshot.speciesById[speciesId]?.soortnaam ?: aliasText
-                        val tilename = snapshot.speciesById[speciesId]?.soortkey
+                        val canonical = if (isDirection) com.yvesds.vt5.features.alias.SPECIES_NAME_DIR_RETURN else snapshot.speciesById[speciesId]?.soortnaam ?: aliasText
+                        val tilename = if (isDirection) "Terug" else snapshot.speciesById[speciesId]?.soortkey
 
                         val added = AliasManager.addAlias(
                             context = activity,

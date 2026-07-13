@@ -71,6 +71,13 @@ object AliasStartupInitializer {
                 return@withLock null
             }
 
+            // Migration for existing installations: ensure direction species is present
+            val updatedMaster = AliasManager.ensureDirectionSpecies(master)
+            if (updatedMaster !== master) {
+                Log.i(TAG, "Migrating master during startup: added direction species")
+                master = updatedMaster
+            }
+
             val writeResult = AliasMasterIO.writeMasterAndCbor(appContext, master, vt5Root, saf) ?: run {
                 Log.w(TAG, "Startup alias rebuild failed while writing master/CBOR")
                 return@withLock null

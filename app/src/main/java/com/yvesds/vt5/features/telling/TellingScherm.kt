@@ -387,6 +387,9 @@ class TellingScherm : AppCompatActivity() {
         // Preload tiles (if preselected) then initialize ASR
         initializer.loadPreselection()
 
+        // Check if direction aliases need training
+        checkDirectionAliases()
+
         // Ask user if a pending, non-uploaded telling should be restored
         lifecycleScope.launch {
             if (intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true) {
@@ -479,15 +482,15 @@ class TellingScherm : AppCompatActivity() {
         }
 
         // Match result handler callbacks
-        matchResultHandler.onAutoAccept = { utteranceId, candidate, amount ->
-            handleRecognizedCandidate(utteranceId, candidate, amount)
+        matchResultHandler.onAutoAccept = { utteranceId, candidate, amount, isReturn ->
+            handleRecognizedCandidate(utteranceId, candidate, amount, isReturn)
         }
-        matchResultHandler.onAutoAcceptWithPopup = { utteranceId, candidate, amount ->
-            handleRecognizedCandidate(utteranceId, candidate, amount)
+        matchResultHandler.onAutoAcceptWithPopup = { utteranceId, candidate, amount, isReturn ->
+            handleRecognizedCandidate(utteranceId, candidate, amount, isReturn)
         }
         matchResultHandler.onMultiMatch = { utteranceId, matches, unmatchedFragments ->
             matches.forEach { match ->
-                handleRecognizedCandidate(utteranceId, match.candidate, match.amount)
+                handleRecognizedCandidate(utteranceId, match.candidate, match.amount, match.isReturn)
             }
             unmatchedFragments
                 .map(String::trim)
@@ -882,6 +885,26 @@ class TellingScherm : AppCompatActivity() {
         }
     }
 
+    private fun checkDirectionAliases() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            // Wait for startup rebuild to complete to ensure we have the latest index
+            com.yvesds.vt5.VT5App.awaitStartupAliasRefresh()
+
+            val repo = com.yvesds.vt5.features.alias.AliasRepository.getInstance(this@TellingScherm)
+            if (!repo.isDataLoaded) {
+                repo.loadAliasData()
+            }
+            val aliases = repo.getAliasesForSpecies(com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN)
+            // Show tip if no user-trained aliases are present for direction
+            val hasUserTrained = aliases.any { it.source == "user_field_training" }
+            if (!hasUserTrained) {
+                withContext(Dispatchers.Main) {
+                    addLog("Tip: Train richtings-woorden door een richting in te spreken na het aantal (bijv. 'Buizerd 5 NOORD') en tik op de tekst om 'NOORD' als richting aan te leren (koppel aan 'Richting: Terug').", "systeem")
+                }
+            }
+        }
+    }
+
     private fun syncDailyTotalsRecord(item: ServerTellingDataItem) {
         DailyDirectionTotalsStore.upsertRecord(
             context = this,
@@ -919,10 +942,24 @@ class TellingScherm : AppCompatActivity() {
         when (row.bron) {
             "partial", "raw" -> {
                 val (nameOnly, cnt) = parseNameAndCountFromDisplay(row.tekst)
+                
+                // Provide the full phrase and individual tokens as alias candidates
+                val rawText = row.tekst.replace("(?i)^asr:\\s*".toRegex(), "").trim()
+                val tokens = rawText.split("\\s+".toRegex())
+                val aliasCandidates = mutableListOf<String>()
+                if (nameOnly.isNotBlank()) aliasCandidates.add(nameOnly)
+                tokens.forEach { t ->
+                    val norm = com.yvesds.vt5.utils.TextUtils.normalizeLowerNoDiacritics(t)
+                    if (norm.isNotBlank() && !com.yvesds.vt5.features.speech.NumberPatterns.isNumberWord(norm) && t.toIntOrNull() == null) {
+                        if (!aliasCandidates.contains(t)) aliasCandidates.add(t)
+                    }
+                }
+
                 ensureAvailableSpeciesFlat { flat ->
-                    dialogHelper.showAddAliasDialog(nameOnly, cnt, flat, 
+                    dialogHelper.showAddAliasDialog(aliasCandidates, cnt, flat, 
                         onAliasAdded = { speciesId, canonical, count ->
-                            addLog("Alias toegevoegd: '$nameOnly' → $canonical", "alias")
+                            val trainedAlias = aliasCandidates.firstOrNull() ?: nameOnly // Approximate
+                            addLog("Alias toegevoegd: '$canonical'", "alias")
                             Toast.makeText(this, getString(R.string.telling_alias_saved_buffer), Toast.LENGTH_SHORT).show()
                             
                             lifecycleScope.launch {
@@ -946,7 +983,7 @@ class TellingScherm : AppCompatActivity() {
                                 }
                             }
                             
-                            if (count > 0) {
+                            if (count > 0 && speciesId != com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN) {
                                 lifecycleScope.launch {
                                     // Add species to tiles (creates tile if not present, or increases count)
                                     speciesManager.addSpeciesToTilesIfNeeded(speciesId, canonical, count)
@@ -1503,29 +1540,38 @@ class TellingScherm : AppCompatActivity() {
     /**
      * Record a species count (update count, collect record).
      */
-    private fun recordSpeciesCount(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
+    private fun recordSpeciesCount(utteranceId: String?, speciesId: String, displayName: String, count: Int, isReturn: Boolean = false) {
         lifecycleScope.launch {
             tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
-            speciesManager.updateSoortCountInternal(speciesId, count)
-            speciesManager.collectFinalAsRecord(speciesId, count)
+            if (isReturn) {
+                speciesManager.updateSoortCountReturnInternal(speciesId, count)
+                speciesManager.collectFinalAsRecord(speciesId, 0, count)
+            } else {
+                speciesManager.updateSoortCountInternal(speciesId, count)
+                speciesManager.collectFinalAsRecord(speciesId, count)
+            }
         }
         RecentSpeciesStore.recordUse(this, speciesId, maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
     }
 
-    private fun handleRecognizedCandidate(utteranceId: String?, candidate: Candidate, count: Int) {
+    private fun handleRecognizedCandidate(utteranceId: String?, candidate: Candidate, count: Int, isReturn: Boolean = false) {
         clearSpeechPartialLog(utteranceId)
         when {
-            candidate.isInTiles -> recordSpeciesCount(utteranceId, candidate.speciesId, candidate.displayName, count)
-            candidate.autoAddToTiles -> autoAddRecognizedSpecies(utteranceId, candidate.speciesId, candidate.displayName, count)
-            else -> showAddSpeciesConfirmationDialog(utteranceId, candidate.speciesId, candidate.displayName, count)
+            candidate.isInTiles -> recordSpeciesCount(utteranceId, candidate.speciesId, candidate.displayName, count, isReturn)
+            candidate.autoAddToTiles -> autoAddRecognizedSpecies(utteranceId, candidate.speciesId, candidate.displayName, count, isReturn)
+            else -> showAddSpeciesConfirmationDialog(utteranceId, candidate.speciesId, candidate.displayName, count, isReturn)
         }
     }
 
-    private fun autoAddRecognizedSpecies(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
+    private fun autoAddRecognizedSpecies(utteranceId: String?, speciesId: String, displayName: String, count: Int, isReturn: Boolean = false) {
         lifecycleScope.launch {
             tileTapAggregationManager.flushSpeciesAndAwait(speciesId)
-            speciesManager.addSpeciesToTiles(speciesId, displayName, count)
-            speciesManager.collectFinalAsRecord(speciesId, count)
+            speciesManager.addSpeciesToTiles(speciesId, displayName, count, isReturn)
+            if (isReturn) {
+                speciesManager.collectFinalAsRecord(speciesId, 0, count)
+            } else {
+                speciesManager.collectFinalAsRecord(speciesId, count)
+            }
         }
         RecentSpeciesStore.recordUse(this, speciesId, maxEntries = InstellingenScherm.getMaxFavorieten(this).let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) SpeciesUsageScoreStore.MAX_ALL_CAP else it })
     }
@@ -1533,15 +1579,19 @@ class TellingScherm : AppCompatActivity() {
     /**
      * Show confirmation dialog for adding a new species to tiles.
      */
-    private fun showAddSpeciesConfirmationDialog(utteranceId: String?, speciesId: String, displayName: String, count: Int) {
-        val msg = "Soort \"$displayName\" herkend met aantal $count.\n\nToevoegen?"
+    private fun showAddSpeciesConfirmationDialog(utteranceId: String?, speciesId: String, displayName: String, count: Int, isReturn: Boolean = false) {
+        val msg = "Soort \"$displayName\" herkend met aantal $count${if (isReturn) " (terug)" else ""}.\n\nToevoegen?"
         val dlg = AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_add_species))
             .setMessage(msg)
             .setPositiveButton("Ja") { _, _ ->
                 lifecycleScope.launch {
-                    speciesManager.addSpeciesToTiles(speciesId, displayName, count)
-                    speciesManager.collectFinalAsRecord(speciesId, count)
+                    speciesManager.addSpeciesToTiles(speciesId, displayName, count, isReturn)
+                    if (isReturn) {
+                        speciesManager.collectFinalAsRecord(speciesId, 0, count)
+                    } else {
+                        speciesManager.collectFinalAsRecord(speciesId, count)
+                    }
                 }
             }
             .setNegativeButton("Nee", null)

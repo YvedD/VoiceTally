@@ -57,42 +57,4 @@ object AliasSafWriter {
     fun safeWriteTextToDocument(context: Context, doc: DocumentFile?, text: String): Boolean {
         return safeWriteToDocument(context, doc, text.toByteArray(Charsets.UTF_8))
     }
-    
-    /**
-     * Write a copy of data to Documents/VT5/exports for user accessibility.
-     * This is best-effort and never fails the operation.
-     */
-    fun writeCopyToExports(
-        context: Context,
-        vt5RootDir: DocumentFile,
-        name: String,
-        data: ByteArray,
-        mimeType: String
-    ) {
-        try {
-            val exports = vt5RootDir.findFile("exports")?.takeIf { it.isDirectory } 
-                ?: vt5RootDir.createDirectory("exports")
-            
-            if (exports == null) {
-                Log.w(TAG, "writeCopyToExports: cannot create/find exports dir")
-                return
-            }
-            
-            // Replace existing to keep single accessible copy
-            exports.findFile(name)?.delete()
-            
-            val doc = exports.createFile(mimeType, name) ?: run {
-                Log.w(TAG, "writeCopyToExports: failed creating $name in exports")
-                return
-            }
-            
-            if (!safeWriteToDocument(context, doc, data)) {
-                Log.w(TAG, "writeCopyToExports: safe write failed for $name")
-            } else {
-                Log.i(TAG, "writeCopyToExports: wrote $name to exports for user access")
-            }
-        } catch (ex: Exception) {
-            Log.w(TAG, "writeCopyToExports failed: ${ex.message}")
-        }
-    }
 }

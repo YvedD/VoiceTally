@@ -2,39 +2,42 @@
 
 This report documents the findings of a thorough audit of the VoiceTally codebase, focusing on redundancy, performance, and APK size optimization.
 
-## Status: IN PROGRESS
-**Last Updated:** 2024-05-23 (Simulated)
-**Git Restore Point:** `v1.2-pre-perf-opt` (Savepoint before implementing performance optimizations)
+## Status: COMPLETED
+**Last Updated:** 2024-05-24 (Simulated)
+
+---
+
+## 0. Git Restore Points (Log)
+
+| Tag | Phase | Description (Before / After) |
+| :--- | :--- | :--- |
+| **`v1.0-pre-optimization`** | **Initial State** | **Voor:** Alle ongebruikte libraries en niet-geminificeerde build settings aanwezig.<br>**Na:** Basis gelegd voor opschoning. |
+| **`v1.0-post-optimization`** | **APK & Libs** | **Voor:** `kotlin-reflect`, `commons-codec`, `commons-text` in build.gradle.kts.<br>**Na:** Libraries verwijderd. R8 Minificatie en Resource Shrinking ingeschakeld. |
+| **`v1.1-pre-afrond-opt`** | **Afronden flow** | **Voor:** Trage "Afronden" flow met blokkerende dialogen en seriële I/O.<br>**Na:** Startpunt voor asynchrone verbeteringen. |
+| **`v1.2-pre-perf-opt`** | **Performance** | **Voor:** Quadruple Levenshtein implementaties en triple-redundant Alias loading.<br>**Na:** `LevenshteinUtils` aangemaakt. Alias loading gecentraliseerd in `AliasManager.indexFlow`. |
+| **`v1.3-pre-cleanup`** | **Final Cleanup** | **Voor:** Alle redundante bestanden (`.backup`, unused layouts) en functies nog aanwezig.<br>**Na:** **Codebase volledig opgeschoond.** Verwijderd: `PrecomputeAliasIndex.kt`, ongebruikte XML's en dode methoden. |
 
 ---
 
 ## 1. Redundant Files & Unused Code
 
-### Redundant Files (Safe to Delete)
-- `app/src/main/java/com/yvesds/vt5/features/serverdata/model/ServerDataRepository.kt.backup`: Redundant backup file.
-- `app/src/main/java/com/yvesds/vt5/features/alias/PrecomputeAliasIndex.kt`: Logic is already duplicated in `AliasManager` and `AliasCborRebuilder`.
-- `app/src/main/res/layout/dialog_pairing_client.xml`: Unused layout.
-- `app/src/main/res/layout/item_speech_log_secondary.xml`: Unused layout.
+### Redundant Files (Fixed)
+The following files have been removed:
+- `app/src/main/java/com/yvesds/vt5/features/serverdata/model/ServerDataRepository.kt.backup`
+- `app/src/main/java/com/yvesds/vt5/features/alias/PrecomputeAliasIndex.kt`
+- `app/src/main/res/layout/dialog_pairing_client.xml`
+- `app/src/main/res/layout/item_speech_log_secondary.xml`
+- `app/src/main/res/drawable/ic_vertical_align_foreground.xml`
 
-### Unused Resources (Safe to Delete)
-- **Strings**:
-    - `beheer_gearchiveerd`: Not used.
-    - `msg_annotations_not_available`: Not used.
-    - `instellingen_opslag_titel` (+ options and description): Choice UI removed, logic hardcoded to "Parallel".
-    - `instellingen_placeholder3`: Placeholder.
-- **Drawables**:
-    - `ic_vertical_align_foreground.xml`: Likely a project template leftover.
+### Unused Resources (Fixed)
+- **Strings**: Removed `beheer_gearchiveerd`, `msg_annotations_not_available`, `instellingen_opslag_titel` (+ options), `instellingen_placeholder3`.
+- **Drawables**: Removed `ic_vertical_align_foreground.xml`.
 
-### Unused Functions/Functionaliteit
-- **Alias System**:
-    - `AliasSafWriter.writeCopyToExports`: Never called.
-    - `AliasRepository.addAliasInMemory`, `getAliasesForSpecies`, `getAllAliases`: No callers.
-    - `AliasManager.getLoadedIndex`, `isIndexLoaded`, `forceFlush`, `mergeUserAliasesIntoMaster`: No callers.
-- **Telling System**:
-    - `TellingBeheerToolset.updateRecordOpmerkingen`, `updateRecordAantal`, `deleteRecords`: Remnants of older editor logic.
-    - `AfrondManager.getWorkInfoLiveData`, `getWorkInfo`: Unused helpers.
-    - `TellingViewModel.clearTiles`, `clearPartials`, `clearFinals`, `addPendingRecord`: Unused methods.
-    - `TegelBeheer.logTilesState`: Unused debug method.
+### Unused Functions/Functionaliteit (Fixed)
+- **Alias System**: Cleaned up `AliasRepository` and `AliasManager`. Removed redundant loaders and legacy merging logic.
+- **Telling System**: Removed unused editor methods from `TellingBeheerToolset` and `TegelBeheer`.
+- **WorkManager Helpers**: Removed unused status observers from `AfrondManager`.
+- **ViewModel**: Removed unused `clear` and `add` methods from `TellingViewModel`.
 
 ### Unused Dependencies (Fixed)
 The following libraries have been removed from `build.gradle.kts`:

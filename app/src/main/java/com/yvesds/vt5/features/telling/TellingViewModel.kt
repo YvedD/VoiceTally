@@ -94,15 +94,12 @@ class TellingViewModel : ViewModel() {
 
     fun setTiles(list: List<SoortRow>) { _tiles.value = list }
     fun updateTiles(list: List<SoortRow>) { _tiles.value = list }
-    fun clearTiles() { _tiles.value = emptyList() }
 
     fun setPartials(list: List<TellingScherm.SpeechLogRow>) { _partials.value = list }
     fun appendPartial(row: TellingScherm.SpeechLogRow) { _partials.value = (_partials.value ?: emptyList()) + row }
-    fun clearPartials() { _partials.value = emptyList() }
 
     fun setFinals(list: List<TellingScherm.SpeechLogRow>) { _finals.value = list }
     fun appendFinal(row: TellingScherm.SpeechLogRow) { _finals.value = (_finals.value ?: emptyList()) + row }
-    fun clearFinals() { _finals.value = emptyList() }
 
     /**
      * Collect a final via the repository. The ViewModel orchestrates the call and updates LiveData.
@@ -128,11 +125,6 @@ class TellingViewModel : ViewModel() {
                 }
             }
         }
-    }
-
-    // allow Activity to directly append a pending record (compat)
-    fun addPendingRecord(item: ServerTellingDataItem) {
-        _pendingRecords.value = (_pendingRecords.value ?: emptyList()) + item
     }
 
     fun setPendingRecords(list: List<ServerTellingDataItem>) { 

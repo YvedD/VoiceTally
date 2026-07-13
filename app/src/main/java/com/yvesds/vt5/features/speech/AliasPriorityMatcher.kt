@@ -84,17 +84,31 @@ object AliasPriorityMatcher {
                     val nextIndex = i + w
                     var consumedEndExclusive = nextIndex
                     var amount = 1
+                    var isReturn = false
+                    
                     if (nextIndex < tokens.size) {
                         NumberPatterns.parseNumberTokens(tokens, nextIndex)?.let { parsed ->
                             amount = parsed.value
                             consumedEndExclusive = nextIndex + parsed.consumedTokenCount
-                            i = nextIndex + parsed.consumedTokenCount
-                        } ?: run { i = nextIndex }
-                    } else i = nextIndex
+                            
+                            // Check for direction after amount
+                            tryMatchDirection(tokens, consumedEndExclusive, context, saf)?.let { dirLen ->
+                                isReturn = true
+                                consumedEndExclusive += dirLen
+                            }
+                        } ?: run {
+                            // Check for direction directly after species (amount default 1)
+                            tryMatchDirection(tokens, nextIndex, context, saf)?.let { dirLen ->
+                                isReturn = true
+                                consumedEndExclusive += dirLen
+                            }
+                        }
+                    }
 
+                    i = consumedEndExclusive
                     markConsumed(consumed, matchStart, consumedEndExclusive)
 
-                    matches += MatchResult.MatchWithAmount(exact.first, amount, exact.second)
+                    matches += MatchResult.MatchWithAmount(exact.first, amount, exact.second, isReturn)
                     matched = true; break
                 }
             }
@@ -113,17 +127,31 @@ object AliasPriorityMatcher {
                         val nextIndex = i + w
                         var consumedEndExclusive = nextIndex
                         var amount = 1
+                        var isReturn = false
+                        
                         if (nextIndex < tokens.size) {
                             NumberPatterns.parseNumberTokens(tokens, nextIndex)?.let { parsed ->
                                 amount = parsed.value
                                 consumedEndExclusive = nextIndex + parsed.consumedTokenCount
-                                i = nextIndex + parsed.consumedTokenCount
-                            } ?: run { i = nextIndex }
-                        } else i = nextIndex
+                                
+                                // Check for direction after amount
+                                tryMatchDirection(tokens, consumedEndExclusive, context, saf)?.let { dirLen ->
+                                    isReturn = true
+                                    consumedEndExclusive += dirLen
+                                }
+                            } ?: run {
+                                // Check for direction directly after species (amount default 1)
+                                tryMatchDirection(tokens, nextIndex, context, saf)?.let { dirLen ->
+                                    isReturn = true
+                                    consumedEndExclusive += dirLen
+                                }
+                            }
+                        }
 
+                        i = consumedEndExclusive
                         markConsumed(consumed, matchStart, consumedEndExclusive)
 
-                        matches += MatchResult.MatchWithAmount(fuzzy.first, amount, fuzzy.second)
+                        matches += MatchResult.MatchWithAmount(fuzzy.first, amount, fuzzy.second, isReturn)
                         matched = true; break
                     }
                 }
@@ -140,7 +168,7 @@ object AliasPriorityMatcher {
         }
 
         val match = matches.first()
-        return@withContext toDirectMatchResult(match.candidate, hyp, match.amount)
+        return@withContext toDirectMatchResult(match.candidate, hyp, match.amount, match.isReturn)
     }
 
     private suspend fun tryExactMatch(
@@ -154,6 +182,35 @@ object AliasPriorityMatcher {
         return best to best.source
     }
 
+    private suspend fun tryMatchDirection(
+        tokens: List<String>,
+        startIndex: Int,
+        appContext: Context,
+        saf: SaFStorageHelper
+    ): Int? {
+        if (startIndex < 0 || startIndex >= tokens.size) return null
+
+        val maxWindow = minOf(3, tokens.size - startIndex)
+        for (w in maxWindow downTo 1) {
+            val window = tokens.subList(startIndex, startIndex + w)
+            val phrase = window.joinToString(" ")
+            val normalized = TextUtils.normalizeLowerNoDiacritics(phrase)
+
+            // Check for exact match with _DIR_RETURN_ aliases
+            val records = AliasMatcher.findExact(normalized, appContext, saf)
+            if (records.any { it.speciesid == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN }) {
+                return w
+            }
+
+            // Fallback to fuzzy match for direction (high threshold to avoid false positives)
+            val fuzzy = AliasMatcher.findFuzzyCandidates(normalized, appContext, saf, topN = 3, threshold = 0.85)
+            if (fuzzy.any { it.first.speciesid == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN }) {
+                return w
+            }
+        }
+        return null
+    }
+
     private suspend fun tryResolveWholePhraseMatch(
         tokens: List<String>,
         rawHypothesis: String,
@@ -161,14 +218,32 @@ object AliasPriorityMatcher {
         appContext: Context,
         saf: SaFStorageHelper
     ): MatchResult? {
-        val trailingAmount = NumberPatterns.parseTrailingNumberTokens(tokens)
-            ?.takeIf { it.consumedTokenCount < tokens.size }
+        var currentTokens = tokens
+        var isReturn = false
+
+        // 1. Try match direction at the very end (up to 3 tokens window)
+        var dirConsumed: Int? = null
+        for (offset in 0..2) {
+            val start = currentTokens.size - 1 - offset
+            if (start < 0) break
+            val consumed = tryMatchDirection(currentTokens, start, appContext, saf)
+            if (consumed != null && start + consumed == currentTokens.size) {
+                dirConsumed = consumed
+                isReturn = true
+                currentTokens = currentTokens.dropLast(consumed)
+                break
+            }
+        }
+
+        // 2. Try match number
+        val trailingAmount = NumberPatterns.parseTrailingNumberTokens(currentTokens)
+            ?.takeIf { it.consumedTokenCount < currentTokens.size }
 
         val amount = trailingAmount?.value ?: 1
         val phraseTokens = if (trailingAmount != null) {
-            tokens.dropLast(trailingAmount.consumedTokenCount)
+            currentTokens.dropLast(trailingAmount.consumedTokenCount)
         } else {
-            tokens
+            currentTokens
         }
         if (phraseTokens.any { isNumberToken(it) }) return null
         val phrase = phraseTokens.joinToString(" ").trim()
@@ -182,7 +257,7 @@ object AliasPriorityMatcher {
                     rawHypothesis,
                     "exact_ambiguous"
                 )
-                else -> toDirectMatchResult(exactCandidates.first(), rawHypothesis, amount)
+                else -> toDirectMatchResult(exactCandidates.first(), rawHypothesis, amount, isReturn)
             }
         }
 
@@ -199,15 +274,15 @@ object AliasPriorityMatcher {
                 "fuzzy_ambiguous"
             )
         } else {
-            toDirectMatchResult(top, rawHypothesis, amount)
+            toDirectMatchResult(top, rawHypothesis, amount, isReturn)
         }
     }
 
-    private fun toDirectMatchResult(candidate: Candidate, hypothesis: String, amount: Int): MatchResult {
+    private fun toDirectMatchResult(candidate: Candidate, hypothesis: String, amount: Int, isReturn: Boolean = false): MatchResult {
         return if (candidate.isInTiles) {
-            MatchResult.AutoAccept(candidate, hypothesis, candidate.source, amount)
+            MatchResult.AutoAccept(candidate, hypothesis, candidate.source, amount, isReturn)
         } else {
-            MatchResult.AutoAcceptAddPopup(candidate, hypothesis, candidate.source, amount)
+            MatchResult.AutoAcceptAddPopup(candidate, hypothesis, candidate.source, amount, isReturn)
         }
     }
 

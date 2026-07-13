@@ -19,8 +19,8 @@ class TellingMatchResultHandler(
     private val activity: Activity
 ) {
     // Callbacks for different match types
-    var onAutoAccept: ((String?, Candidate, Int) -> Unit)? = null
-    var onAutoAcceptWithPopup: ((String?, Candidate, Int) -> Unit)? = null
+    var onAutoAccept: ((String?, Candidate, Int, Boolean) -> Unit)? = null
+    var onAutoAcceptWithPopup: ((String?, Candidate, Int, Boolean) -> Unit)? = null
     var onMultiMatch: ((String?, List<MatchResult.MatchWithAmount>, List<String>) -> Unit)? = null
     var onSuggestionList: ((String?, String, List<Candidate>, Int) -> Unit)? = null
     var onNoMatch: ((String?, String) -> Unit)? = null
@@ -52,14 +52,14 @@ class TellingMatchResultHandler(
      * Handle auto-accept match (species recognized and in tiles).
      */
     private fun handleAutoAcceptMatch(utteranceId: String?, result: MatchResult.AutoAccept) {
-        onAutoAccept?.invoke(utteranceId, result.candidate, result.amount)
+        onAutoAccept?.invoke(utteranceId, result.candidate, result.amount, result.isReturn)
     }
 
     /**
      * Handle auto-accept with popup (species recognized but not in tiles).
      */
     private fun handleAutoAcceptAddPopup(utteranceId: String?, result: MatchResult.AutoAcceptAddPopup) {
-        onAutoAcceptWithPopup?.invoke(utteranceId, result.candidate, result.amount)
+        onAutoAcceptWithPopup?.invoke(utteranceId, result.candidate, result.amount, result.isReturn)
     }
 
     /**

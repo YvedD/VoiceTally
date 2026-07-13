@@ -64,7 +64,8 @@ class AliasRepository(private val context: Context) {
     // Reverse map: normalized alias -> speciesId
     private val aliasToSpeciesIdMap = ConcurrentHashMap<String, String>()
 
-    private var isDataLoaded = false
+    var isDataLoaded = false
+        private set
 
     // Structured scope for repository background tasks (not tied to UI lifecycle).
     // Uses SupervisorJob so failures in one child do not cancel others.
@@ -113,20 +114,10 @@ class AliasRepository(private val context: Context) {
     }
 
     /**
-     * Return SpeciesEntry for species id, or null
+     * Get all aliases for a specific species.
      */
-    @Suppress("unused") // Public repository API — may be used by callers outside static analysis scope
-    fun getAliasesForSpecies(soortId: String): SpeciesEntry? {
-        if (!isDataLoaded) return null
-        return aliasCache[soortId]
-    }
-
-    /**
-     * Return snapshot copy of all species entries
-     */
-    @Suppress("unused") // Public repository API — may be used by callers outside static analysis scope
-    fun getAllAliases(): Map<String, SpeciesEntry> {
-        return aliasCache.toMap()
+    fun getAliasesForSpecies(speciesId: String): List<AliasData> {
+        return aliasCache[speciesId]?.aliases ?: emptyList()
     }
 
     // ---------- Loaders ----------
@@ -190,89 +181,6 @@ class AliasRepository(private val context: Context) {
         aliasToSpeciesIdMap.putAll(localMap)
     }
 
-    /**
-     * addAliasInMemory: add alias to in-memory structures (hot-reload)
-     *
-     * Replaces deprecated GlobalScope usage with a structured repoScope.
-     * Background persistence uses AliasManager.addAlias(...) (best-effort).
-     */
-    fun addAliasInMemory(soortId: String, aliasRaw: String): Boolean {
-        try {
-            var alias = aliasRaw.trim()
-            alias = alias.replace(Regex("(?i)^\\s*asr:\\s*"), "")
-            alias = alias.replace("/", " of ")
-            alias = alias.replace(";", " ")
-            alias = alias.replace(Regex("(?:\\s+\\d+)+\\s*$"), "")
-            alias = alias.replace(Regex("\\s+"), " ").trim()
-            alias = alias.lowercase(Locale.getDefault())
-            if (alias.isBlank()) return false
-
-            synchronized(aliasCache) {
-                val existing = aliasCache[soortId]
-                val currentAliases = existing?.aliases?.toMutableList() ?: mutableListOf()
-
-                // Prevent duplicates (by normalized text)
-                if (currentAliases.any { it.text.equals(alias, ignoreCase = true) }) return false
-
-                // Build AliasData for in-memory cache
-                val newAlias = AliasData(
-                    text = alias,
-                    norm = normalizeForKey(alias),
-                    cologne = runCatching { com.yvesds.vt5.features.speech.ColognePhonetic.encode(normalizeForKey(alias)) }.getOrNull() ?: "",
-                    phonemes = runCatching { com.yvesds.vt5.features.speech.DutchPhonemizer.phonemize(normalizeForKey(alias)) }.getOrNull() ?: "",
-                    source = "user_field_training",
-                    timestamp = Instant.now().toString()
-                )
-
-                val newList = currentAliases.toMutableList()
-                newList.add(newAlias)
-                val canonical = existing?.canonical ?: soortId
-                val tilename = existing?.tilename
-
-                aliasCache[soortId] = SpeciesEntry(
-                    speciesId = soortId,
-                    canonical = canonical,
-                    tilename = tilename,
-                    aliases = newList
-                )
-
-                // Update reverse map synchronously
-                aliasToSpeciesIdMap[normalizeForKey(alias)] = soortId
-
-                // Hotpatch AliasMatcher so the new alias is immediately matchable
-                try {
-                    com.yvesds.vt5.features.speech.AliasMatcher.addAliasHotpatch(
-                        speciesId = soortId,
-                        aliasRaw = alias,
-                        canonical = canonical,
-                        tilename = tilename
-                    )
-                } catch (ex: Exception) {
-                    Log.w(TAG, "AliasMatcher.hotpatch failed: ${ex.message}", ex)
-                }
-
-                // Schedule background persistence using AliasManager (non-blocking, structured)
-                try {
-                    val bgContext = appContext
-                    val saf = SaFStorageHelper(bgContext)
-                    repoScope.launch {
-                        try {
-                            AliasManager.addAlias(bgContext, saf, soortId, alias, canonical, tilename)
-                        } catch (ex: Exception) {
-                            Log.w(TAG, "Background AliasManager.addAlias failed: ${ex.message}", ex)
-                        }
-                    }
-                } catch (ex: Exception) {
-                    Log.w(TAG, "Failed to schedule background persist: ${ex.message}", ex)
-                }
-            }
-
-            return true
-        } catch (ex: Exception) {
-            Log.w(TAG, "addAliasInMemory failed: ${ex.message}", ex)
-            return false
-        }
-    }
     private fun normalizeForKey(input: String): String {
         val lower = input.lowercase(Locale.getDefault())
         val decomposed = java.text.Normalizer.normalize(lower, java.text.Normalizer.Form.NFD)

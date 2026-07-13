@@ -384,26 +384,6 @@ class TellingBeheerToolset(
         )
     }
     
-    /**
-     * Verwijder meerdere records uit de envelope (in volgorde van hoog naar laag om index issues te voorkomen).
-     * 
-     * @param envelope De huidige envelope
-     * @param indices Indices van records om te verwijderen
-     * @return Nieuwe envelope zonder de verwijderde records
-     */
-    fun deleteRecords(envelope: ServerTellingEnvelope, indices: List<Int>): ServerTellingEnvelope {
-        // Sorteer van hoog naar laag om index-verschuiving te voorkomen
-        val sortedIndices = indices.distinct().sortedDescending()
-        
-        var result = envelope
-        for (index in sortedIndices) {
-            if (index >= 0 && index < result.data.size) {
-                result = deleteRecord(result, index)
-            }
-        }
-        return result
-    }
-    
     // ========================================================================
     // METADATA OPERATIES
     // ========================================================================
@@ -455,52 +435,6 @@ class TellingBeheerToolset(
             onlineid = onlineId,
             data = updatedData
         )
-    }
-    
-    /**
-     * Update de opmerkingen van een specifiek record.
-     * 
-     * @param envelope De huidige envelope
-     * @param index Index van het record
-     * @param opmerkingen De nieuwe opmerkingen
-     * @return Nieuwe envelope met bijgewerkte record opmerkingen
-     */
-    fun updateRecordOpmerkingen(
-        envelope: ServerTellingEnvelope,
-        index: Int,
-        opmerkingen: String
-    ): ServerTellingEnvelope {
-        require(index >= 0 && index < envelope.data.size) {
-            "Index $index is out of bounds (0..${envelope.data.size - 1})"
-        }
-        
-        val updatedRecord = envelope.data[index].copy(opmerkingen = opmerkingen)
-        return updateRecord(envelope, index, updatedRecord)
-    }
-    
-    /**
-     * Update het aantal van een specifiek record.
-     * 
-     * @param envelope De huidige envelope
-     * @param index Index van het record
-     * @param aantal Het nieuwe aantal
-     * @return Nieuwe envelope met bijgewerkt aantal
-     */
-    fun updateRecordAantal(
-        envelope: ServerTellingEnvelope,
-        index: Int,
-        aantal: Int
-    ): ServerTellingEnvelope {
-        require(index >= 0 && index < envelope.data.size) {
-            "Index $index is out of bounds (0..${envelope.data.size - 1})"
-        }
-        require(aantal >= 0) { "Aantal moet 0 of groter zijn" }
-        
-        val updatedRecord = envelope.data[index].copy(
-            aantal = aantal.toString(),
-            totaalaantal = aantal.toString()
-        )
-        return updateRecord(envelope, index, updatedRecord)
     }
     
     // ========================================================================

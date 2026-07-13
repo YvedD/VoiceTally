@@ -18,14 +18,16 @@ sealed class MatchResult {
         val candidate: Candidate,
         override val hypothesis: String,
         override val source: String? = null,
-        val amount: Int = 1  // NEW: extracted amount from query
+        val amount: Int = 1,
+        val isReturn: Boolean = false
     ) : MatchResult()
 
     data class AutoAcceptAddPopup(
         val candidate: Candidate,
         override val hypothesis: String,
         override val source: String? = null,
-        val amount: Int = 1  // NEW: extracted amount from query
+        val amount: Int = 1,
+        val isReturn: Boolean = false
     ) : MatchResult()
 
     data class SuggestionList(
@@ -56,6 +58,7 @@ sealed class MatchResult {
     data class MatchWithAmount(
         val candidate: Candidate,
         val amount: Int,
-        val source: String
+        val source: String,
+        val isReturn: Boolean = false
     )
 }

@@ -37,10 +37,10 @@ class TellingLogManager(
         val msg = msgIn.trim()
         if (msg.isBlank()) return null
 
-        // Filter system messages: only "Luisteren..." goes to partials
+        // Filter system messages: "Luisteren..." and "Tip:" are allowed
         if (bron == "systeem") {
             val lowerMsg = msg.lowercase(Locale.getDefault())
-            if (lowerMsg.contains("luisteren")) {
+            if (lowerMsg.contains("luisteren") || lowerMsg.contains("tip:")) {
                 return addToPartials(msg, bron)
             }
             // Other system messages are ignored

@@ -181,19 +181,27 @@ class TellingSpeciesManager(
     /**
      * Add species to tiles if needed.
      */
-    suspend fun addSpeciesToTilesIfNeeded(speciesId: String, canonical: String, extractedCount: Int) {
+    suspend fun addSpeciesToTilesIfNeeded(speciesId: String, canonical: String, extractedCount: Int, isReturn: Boolean = false) {
         withContext(Dispatchers.Main) {
-            val added = tegelBeheer.voegSoortToeIndienNodig(speciesId, canonical, extractedCount)
+            val added = if (isReturn) {
+                tegelBeheer.voegSoortToeIndienNodigReturn(speciesId, canonical, extractedCount)
+            } else {
+                tegelBeheer.voegSoortToeIndienNodig(speciesId, canonical, extractedCount)
+            }
             if (!added) {
                 // Species already exists, just increase count
-                tegelBeheer.verhoogSoortAantal(speciesId, extractedCount)
+                if (isReturn) {
+                    tegelBeheer.verhoogSoortAantalReturn(speciesId, extractedCount)
+                } else {
+                    tegelBeheer.verhoogSoortAantal(speciesId, extractedCount)
+                }
             }
             onTilesUpdated?.invoke()
             val maxRecents = InstellingenScherm.getMaxFavorieten(activity)
                 .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
             RecentSpeciesStore.recordUse(activity, speciesId, maxEntries = maxRecents)
             onLogMessage?.invoke(
-                "Soort ${if (added) "toegevoegd" else "bijgewerkt"}: $canonical ($extractedCount)",
+                "Soort ${if (added) "toegevoegd" else "bijgewerkt"}: $canonical ($extractedCount${if (isReturn) " terug" else ""})",
                 "systeem"
             )
         }
@@ -202,18 +210,22 @@ class TellingSpeciesManager(
     /**
      * Add species to tiles with specified count.
      */
-    suspend fun addSpeciesToTiles(soortId: String, naam: String, initialCount: Int) {
+    suspend fun addSpeciesToTiles(soortId: String, naam: String, initialCount: Int, isReturn: Boolean = false) {
         try {
             val snapshot = withContext(Dispatchers.IO) { ServerDataCache.getOrLoad(activity) }
             val canonical = snapshot.speciesById[soortId]?.soortnaam ?: naam
 
-            tegelBeheer.voegSoortToe(soortId, canonical, initialCount, mergeIfExists = true)
+            if (isReturn) {
+                tegelBeheer.voegSoortToeReturn(soortId, canonical, initialCount, mergeIfExists = true)
+            } else {
+                tegelBeheer.voegSoortToe(soortId, canonical, initialCount, mergeIfExists = true)
+            }
             onSpeciesTilesAdded?.invoke(listOf(AddedTileInfo(soortId, canonical, initialCount)))
             onTilesUpdated?.invoke()
             val maxRecents2 = InstellingenScherm.getMaxFavorieten(activity)
                 .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
             RecentSpeciesStore.recordUse(activity, soortId, maxEntries = maxRecents2)
-            onLogMessage?.invoke("Soort toegevoegd: $canonical ($initialCount)", "systeem")
+            onLogMessage?.invoke("Soort toegevoegd: $canonical ($initialCount${if (isReturn) " terug" else ""})", "systeem")
         } catch (ex: Exception) {
             Log.w(TAG, "addSpeciesToTiles failed: ${ex.message}", ex)
             onLogMessage?.invoke("Fout bij toevoegen soort $naam", "systeem")
@@ -225,6 +237,17 @@ class TellingSpeciesManager(
      */
     fun updateSoortCountInternal(soortId: String, count: Int) {
         tegelBeheer.verhoogSoortAantal(soortId, count)
+        val maxRecents3 = InstellingenScherm.getMaxFavorieten(activity)
+            .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
+        RecentSpeciesStore.recordUse(activity, soortId, maxEntries = maxRecents3)
+        onTilesUpdated?.invoke()
+    }
+
+    /**
+     * Update species return count internally (no log message).
+     */
+    fun updateSoortCountReturnInternal(soortId: String, count: Int) {
+        tegelBeheer.verhoogSoortAantalReturn(soortId, count)
         val maxRecents3 = InstellingenScherm.getMaxFavorieten(activity)
             .let { if (it == InstellingenScherm.MAX_FAVORIETEN_ALL) com.yvesds.vt5.features.recent.SpeciesUsageScoreStore.MAX_ALL_CAP else it }
         RecentSpeciesStore.recordUse(activity, soortId, maxEntries = maxRecents3)
@@ -348,7 +371,11 @@ class TellingSpeciesManager(
         lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val snapshot = ServerDataCache.getOrLoad(activity)
-                val flat = snapshot.speciesById.map { (id, s) -> "$id||${s.soortnaam}" }.toList()
+                val flat = snapshot.speciesById.map { (id, s) -> "$id||${s.soortnaam}" }.toMutableList()
+                
+                // Add direction pseudo-species
+                flat.add(0, "${com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN}||${com.yvesds.vt5.features.alias.SPECIES_NAME_DIR_RETURN}")
+
                 withContext(Dispatchers.Main) {
                     availableSpeciesFlat = flat
                     onReady(flat)

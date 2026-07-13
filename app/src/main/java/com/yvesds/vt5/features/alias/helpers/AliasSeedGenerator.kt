@@ -106,7 +106,20 @@ object AliasSeedGenerator {
             val speciesMap = loadSpeciesMap(context, serverDir)
             
             // Build species list
-            val speciesList = buildSpeciesList(siteSpeciesIds, speciesMap)
+            val speciesList = buildSpeciesList(siteSpeciesIds, speciesMap).toMutableList()
+            
+            // Add reserved direction species
+            val seedAliases = listOf("terug", "omgekeerd", "back", "reverse")
+            val aliases = seedAliases.map { generateAliasData(text = it, source = "seed_canonical") }
+            
+            speciesList.add(
+                SpeciesEntry(
+                    speciesId = com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN,
+                    canonical = com.yvesds.vt5.features.alias.SPECIES_NAME_DIR_RETURN,
+                    tilename = "Terug",
+                    aliases = aliases
+                )
+            )
             
             // Create master
             val newMaster = AliasMaster(

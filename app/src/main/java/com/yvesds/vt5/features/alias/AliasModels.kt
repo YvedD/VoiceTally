@@ -38,6 +38,9 @@ import kotlinx.serialization.Serializable
  * VERSION: 2.1
  */
 
+const val SPECIES_ID_DIR_RETURN = "_DIR_RETURN_"
+const val SPECIES_NAME_DIR_RETURN = "Richting: Terug"
+
 /*═══════════════════════════════════════════════════════════════════════
  * PERSISTENT STORAGE MODELS (aliases_master.json)
  *═══════════════════════════════════════════════════════════════════════*/
