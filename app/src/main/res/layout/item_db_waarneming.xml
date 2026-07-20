@@ -59,5 +59,15 @@
             android:textStyle="bold"
             android:paddingStart="4dp" />
 
+        <TextView
+            android:id="@+id/tvAantalTerug"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/vt5_orange"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:visibility="visible" />
+
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

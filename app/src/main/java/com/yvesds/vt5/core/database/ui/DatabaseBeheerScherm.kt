@@ -58,6 +58,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     // Kleuren komen uit colors.xml sectie "grafiekkleuren".
     // Aanpassen: verander de resource-naam hieronder als je een andere kleur wil.
     private val chartLineColor   get() = ContextCompat.getColor(this, R.color.grafiek_lijnkleur)
+    private val chartReturnLineColor get() = ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug)
     private val chartBgColor     get() = ContextCompat.getColor(this, R.color.grafiek_achtergrondkleur)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -291,7 +292,8 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     private fun initChart() {
         val view = chartView ?: return
         try {
-            val lineLayer = VicoLineChartHelper.createLineLayer(chartLineColor)
+            // Create a two-series line layer: sessions (main) + return counts
+            val lineLayer = VicoLineChartHelper.createLineLayer(chartLineColor, chartReturnLineColor)
             val bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
             val topAxis = VicoLineChartHelper.createWeeklyTickAxis()
 
@@ -312,12 +314,16 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         val view = chartView ?: return
         lifecycleScope.launch {
             try {
-                val allHeaders = withContext(Dispatchers.IO) {
-                    database.tellingDao().getAllHeaders()
+                // Fetch both headers (for session counts) and waarnemingen aantalterug rows
+                val (allHeaders, returnRows) = withContext(Dispatchers.IO) {
+                    val headers = database.tellingDao().getAllHeaders()
+                    val returns = database.tellingDao().getAllReturnRows()
+                    Pair(headers, returns)
                 }
 
                 if (allHeaders.isNotEmpty()) {
                     val weeklySessionCounts = MutableList(52) { 0 }
+                    val weeklyReturnCounts = MutableList(52) { 0 }
 
                     for (header in allHeaders) {
                         val weekIndex = getWeekOfYear(header) - 1
@@ -327,11 +333,18 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                         }
                     }
 
+                    // Aggregate return counts by header week using begintijd/timezone from the return rows
+                    for (r in returnRows) {
+                        val weekIndex = getWeekIndexFromEpoch(r.begintijd, r.timezoneid)
+                        if (weekIndex in 0..51) {
+                            weeklyReturnCounts[weekIndex] += r.aantalterug
+                        }
+                    }
+
                     withContext(Dispatchers.Main) {
                         modelProducer.runTransaction {
-                            lineSeries {
-                                series(weeklySessionCounts.map { it.toFloat() })
-                            }
+                            lineSeries { series(weeklySessionCounts.map { it.toFloat() }) }
+                            lineSeries { series(weeklyReturnCounts.map { it.toFloat() }) }
                         }
                         view.invalidate()
                     }
@@ -342,6 +355,19 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                 Log.e("DatabaseBeheer", "setupChart failed: ${e.message}", e)
             }
         }
+    }
+
+    private fun getWeekIndexFromEpoch(epochValue: String, timezoneId: String): Int {
+        val epoch = epochValue.trim().toLongOrNull() ?: return -1
+        val epochSeconds = if (epoch > 9_999_999_999L) epoch / 1000 else epoch
+        val zone = runCatching {
+            val zoneId = timezoneId.ifBlank { "Europe/Brussels" }
+            ZoneId.of(zoneId)
+        }.getOrDefault(ZoneId.of("Europe/Brussels"))
+
+        val localDate = Instant.ofEpochSecond(epochSeconds).atZone(zone).toLocalDate()
+        val week = localDate.get(WeekFields.of(Locale.getDefault()).weekOfYear())
+        return week.coerceIn(1, 52) - 1
     }
 
     private fun getWeekOfYear(header: TellingHeader): Int {

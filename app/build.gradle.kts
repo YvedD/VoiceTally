@@ -80,6 +80,7 @@ dependencies {
     val roomVersion = "2.8.4"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
+    implementation("androidx.room:room-paging:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
     // Voor Kotlin: gebruik ksp of kapt (VT5 gebruikt kapt of standaard annotationProcessor)
     // Gezien de huidige configuratie voegen we kapt toe als plugin indien nodig, 
@@ -90,6 +91,8 @@ dependencies {
     // Vico Charts
     implementation("com.patrykandpatrick.vico:core:2.0.0-beta.3")
     implementation("com.patrykandpatrick.vico:views:2.0.0-beta.3")
+    // Paging 3 for incremental lists
+    implementation("androidx.paging:paging-runtime-ktx:3.2.1")
 }
 // Tests uit
 tasks.matching {

@@ -55,8 +55,11 @@ object VicoLineChartHelper {
     }
 
     /** Create a dedicated LineCartesianLayer for beaufort values, fixed to 0..maxBeaufort on the Y axis */
-    fun createBeaufortLineLayer(maxBeaufort: Double, beaufortColor: Int): LineCartesianLayer {
-        val fill = Fill(beaufortColor)
+    fun createBeaufortLineLayer(maxBeaufort: Double, beaufortColor: Int, alpha: Int = 140, pointSpacingDp: Float = 2f): LineCartesianLayer {
+        // Apply requested alpha to the provided color so the beaufort line can be semi-transparent
+        val a = alpha.coerceIn(0, 255)
+        val withAlpha = Color.argb(a, Color.red(beaufortColor), Color.green(beaufortColor), Color.blue(beaufortColor))
+        val fill = Fill(withAlpha)
         val line = LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(fill))
 
         // Use a fixed range provider for Y (0..maxBeaufort). X range will remain automatic.
@@ -71,6 +74,7 @@ object VicoLineChartHelper {
             LineCartesianLayer.LineProvider.series(line),
             rangeProvider = rangeProvider,
             verticalAxisPosition = Axis.Position.Vertical.End,
+            pointSpacingDp = pointSpacingDp,
         )
     }
 

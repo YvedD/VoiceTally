@@ -14,14 +14,43 @@
         android:orientation="vertical"
         android:padding="8dp">
 
-        <TextView
-            android:id="@+id/tvDirectionHeader"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
-            android:textColor="@color/popup_bg_wit"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:id="@+id/tvDirectionHeader"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/popup_bg_wit"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/cbShowTrek"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chart_show_trek"
+                android:textColor="@color/popup_bg_wit"
+                android:checked="true"
+                android:paddingStart="8dp"
+                android:paddingEnd="0dp" />
+
+            <CheckBox
+                android:id="@+id/cbShowReturn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chart_show_return"
+                android:textColor="@color/popup_bg_wit"
+                android:checked="true"
+                android:paddingStart="8dp"
+                android:paddingEnd="0dp" />
+
+        </LinearLayout>
 
         <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
             android:id="@+id/chartDirection"

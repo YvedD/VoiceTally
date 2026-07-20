@@ -91,6 +91,16 @@
                 android:layout_height="wrap_content"
                 android:indeterminate="true" />
 
+            <ProgressBar
+                android:id="@+id/pbOverviewProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:indeterminate="false"
+                android:visibility="gone"
+                android:max="100" />
+
         </LinearLayout>
     </LinearLayout>
 

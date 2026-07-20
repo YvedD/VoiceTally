@@ -8,12 +8,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TextView
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.Spinner
+import android.widget.ToggleButton
+import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.room.withTransaction
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.AdapterView
 import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
@@ -28,6 +36,15 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var btnDeleteSelected: MaterialButton
     private lateinit var tellingenAdapter: TellingAdapter
+    private lateinit var spinnerSortField: Spinner
+    private lateinit var toggleSortDirection: ToggleButton
+    private lateinit var etFilterTellingId: EditText
+    private lateinit var btnClearFilter: ImageButton
+
+    private var allTellingen: List<TellingHeader> = emptyList()
+    private var currentFilter: String = ""
+    private var sortField: SortField = SortField.TELLINGID
+    private var sortAsc: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,15 +75,80 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
         )
         recyclerView.adapter = tellingenAdapter
 
+        // sort/filter controls
+        spinnerSortField = findViewById(R.id.spinnerSortField)
+        toggleSortDirection = findViewById(R.id.toggleSortDirection)
+        etFilterTellingId = findViewById(R.id.etFilterTellingId)
+        btnClearFilter = findViewById(R.id.btnClearFilter)
+
+        val choices = resources.getStringArray(R.array.db_telling_sort_fields)
+        spinnerSortField.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, choices.toList())
+        spinnerSortField.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                sortField = when (position) {
+                    0 -> SortField.TELLINGID
+                    1 -> SortField.ONLINEID
+                    else -> SortField.DATUM
+                }
+                applySortAndFilter()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        toggleSortDirection.setOnCheckedChangeListener { _, isChecked ->
+            // checked = ascending (↑), unchecked = descending (↓)
+            sortAsc = isChecked
+            applySortAndFilter()
+        }
+
+        etFilterTellingId.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                currentFilter = s?.toString() ?: ""
+                applySortAndFilter()
+            }
+        })
+
+        btnClearFilter.setOnClickListener {
+            etFilterTellingId.setText("")
+        }
+
         loadTellingen()
     }
 
     private fun loadTellingen() {
         lifecycleScope.launch {
             val tellingen = withContext(Dispatchers.IO) { database.tellingDao().getAllHeaders() }
-            tellingenAdapter.submitList(tellingen)
+            allTellingen = tellingen
+            applySortAndFilter()
         }
     }
+
+    private fun applySortAndFilter() {
+        // copy to mutable list
+        var list = allTellingen
+
+        // filter by tellingid prefix (case-insensitive)
+        if (currentFilter.isNotBlank()) {
+            val cf = currentFilter.trim()
+            list = list.filter { it.tellingid.startsWith(cf, ignoreCase = true) }
+        }
+
+        // sort
+        list = when (sortField) {
+            SortField.TELLINGID -> list.sortedWith(compareBy { it.tellingid })
+            SortField.ONLINEID -> list.sortedWith(compareBy { it.onlineid })
+            SortField.DATUM -> list.sortedWith(compareBy { it.begintijd })
+        }
+        if (!sortAsc) list = list.reversed()
+
+        tellingenAdapter.submitList(list)
+        updateDeleteButtonState()
+    }
+
+    private enum class SortField { TELLINGID, ONLINEID, DATUM }
 
     private fun updateDeleteButtonState() {
         val selectedCount = tellingenAdapter.getSelectedTellingIds().size

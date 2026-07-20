@@ -19,7 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
+// ...existing imports...
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import com.patrykandpatrick.vico.core.cartesian.CartesianChart
@@ -43,13 +43,18 @@ import androidx.appcompat.app.AlertDialog
 import android.widget.ProgressBar
 import android.widget.LinearLayout.LayoutParams
 import android.view.Gravity
+import android.widget.CheckBox
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
-import androidx.documentfile.provider.DocumentFile
+
 import com.yvesds.vt5.VT5App
 import java.time.format.DateTimeFormatter
+import androidx.paging.PagingDataAdapter
+// ...existing imports...
+import androidx.paging.LoadState
+import kotlinx.coroutines.flow.collectLatest
 
 class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
@@ -68,7 +73,10 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private var currentWindDataset: List<SpeciesWindDatasetRow> = emptyList()
     // Job used to cancel any in-flight load when a new species search starts
     private var loadJob: Job? = null
-    private lateinit var waarnemingAdapter: WaarnemingAdapter
+    private lateinit var pagingAdapter: WaarnemingPagingAdapter
+    private lateinit var pagingViewModel: DatabaseSoortOverzichtViewModel
+    private lateinit var pbOverviewProgressView: ProgressBar
+    private var loadStateJob: Job? = null
     private val WAARNEMING_DIFF = object : DiffUtil.ItemCallback<Waarneming>() {
         override fun areItemsTheSame(oldItem: Waarneming, newItem: Waarneming): Boolean {
             return oldItem.idLocal == newItem.idLocal && oldItem.tellingid == newItem.tellingid
@@ -85,6 +93,8 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     )
 
     private val chartBindings = linkedMapOf<String, WindChartBinding>()
+    // Cache per-direction aggregated series so toggling visibility doesn't require recomputing the dataset
+    private val cachedChartData = mutableMapOf<String, Triple<IntArray, IntArray, DoubleArray>>()
 
     // allow up to 53 ISO-weeks per year to avoid misplacing weeks in edge cases
     private val WEEKS_PER_YEAR = 53
@@ -92,6 +102,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private var loadingDialog: AlertDialog? = null
 
     private val chartLineColor by lazy { ContextCompat.getColor(this, R.color.grafiek_lijnkleur) }
+    private val chartReturnLineColor by lazy { ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug) }
     private val chartBgColor by lazy { ContextCompat.getColor(this, R.color.grafiek_achtergrondkleur) }
     private val beaufortLineColor by lazy { ContextCompat.getColor(this, R.color.grafiek_beaufort) }
 
@@ -103,8 +114,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         fileLogger = FileLogger(this)
         recyclerView = findViewById(R.id.rvWaarnemingen)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        waarnemingAdapter = WaarnemingAdapter()
-        recyclerView.adapter = waarnemingAdapter
+        // initialize paging adapter and viewmodel
+        pagingAdapter = WaarnemingPagingAdapter()
+        recyclerView.adapter = pagingAdapter
+        // progress view reference (determinate)
+        pbOverviewProgressView = findViewById(R.id.pbOverviewProgress)
+        // ViewModel (simple instantiation with DB)
+        pagingViewModel = DatabaseSoortOverzichtViewModel(VoiceTallyDatabase.getDatabase(this))
         tvSoortInfo = findViewById(R.id.tvSoortInfo)
         spinnerYears = findViewById(R.id.spinnerYears)
         pbOverviewContainer = findViewById(R.id.pbOverviewContainer)
@@ -174,17 +190,17 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 val headers = withContext(Dispatchers.IO) { database.tellingDao().getAllHeaders() }
                 val years = headers.mapNotNull { getLocalYearFromEpoch(it.begintijd, it.timezoneid) }
                     .toSortedSet(compareByDescending<String> { it })
-                val items = mutableListOf("Alle jaren")
+                val items = mutableListOf(getString(R.string.spinner_all_years))
                 items.addAll(years)
                 val adapter = ArrayAdapter(this@DatabaseSoortOverzichtActiviteit, android.R.layout.simple_spinner_item, items)
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 spinnerYears.adapter = adapter
 
                 spinnerYears.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                         // If a species is already selected, reload with the new year selection
                         val speciesId = (findViewById<AutoCompleteTextView>(R.id.atvSoortZoeken).tag as? String)
-                        val speciesName = (findViewById<AutoCompleteTextView>(R.id.atvSoortZoeken).text?.toString() ?: "")
+                                        val speciesName = (findViewById<AutoCompleteTextView>(R.id.atvSoortZoeken).text?.toString() ?: "")
                         if (!speciesId.isNullOrBlank()) {
                             loadWaarnemingen(speciesId, speciesName)
                         }
@@ -208,59 +224,108 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private fun loadWaarnemingen(soortId: String, soortNaam: String) {
         // Cancel any previous load to avoid overlapping heavy UI work which could lead to ANR
         loadJob?.cancel()
+        loadStateJob?.cancel()
 
         // Clear cached datasets quickly so the UI can release resources before loading
         currentWaarnemingen = emptyList()
         currentWindDataset = emptyList()
         try {
-            // clear adapter data using ListAdapter submitList (async diff)
-            waarnemingAdapter.submitList(emptyList())
-        } catch (e: Exception) {
+            // clear paging adapter data
+            lifecycleScope.launch(Dispatchers.Main) { pagingAdapter.refresh() }
+        } catch (_: Exception) {
             // ignore
         }
 
         // show in-layout progress indicator for overview and ensure overview tab active
         pbOverviewContainer.visibility = View.VISIBLE
         tabLayout.getTabAt(0)?.select()
+        // Also show the same modal loading dialog used by the Grafieken tab so users
+        // clearly see that a potentially long background load is in progress.
+        showLoading(getString(R.string.loading_overview))
 
+        val year = getSelectedYear()
+
+        // try to get totals (sum) for determinate progress and final info
+        lifecycleScope.launch(Dispatchers.IO) {
+            val totals = try {
+                database.tellingDao().getWaarnemingTotalsForSpecies(soortId, year)
+            } catch (e: Exception) {
+                fileLogger.warn("Kon totals niet ophalen: ${e.message}")
+                null
+            }
+
+            withContext(Dispatchers.Main) {
+                if (totals != null) {
+                    val totalCount = totals.totaal ?: 0
+                    pbOverviewProgressView.max = if (totalCount > 0) totalCount else 100
+                    // show determinate if we have a real total
+                    if (totalCount > 0) {
+                        findViewById<ProgressBar>(R.id.pbOverviewLoading).visibility = View.GONE
+                        pbOverviewProgressView.visibility = View.VISIBLE
+                    } else {
+                        findViewById<ProgressBar>(R.id.pbOverviewLoading).visibility = View.VISIBLE
+                        pbOverviewProgressView.visibility = View.GONE
+                    }
+                    tvSoortInfo.text = "Totaal verwacht: Aantal: ${totals.totaal ?: 0} / Terug: ${totals.totaalterug ?: 0}"
+                } else {
+                    findViewById<ProgressBar>(R.id.pbOverviewLoading).visibility = View.VISIBLE
+                    pbOverviewProgressView.visibility = View.GONE
+                }
+            }
+        }
+
+        // collect paging flow and submit to adapter
         loadJob = lifecycleScope.launch {
             try {
-                val year = getSelectedYear()
-                // fetch heavy data off-main
-                val items = withContext(Dispatchers.IO) { database.tellingDao().getWaarnemingenBySoortAndYear(soortId, year) }
-
-                // assign cached results (lightweight) on main thread and submit list via adapter
-                currentWaarnemingen = items
-                val totaalEx = items.sumOf { it.aantal.toIntOrNull() ?: 0 }
-
-                withContext(Dispatchers.Main) {
-                    tvSoortInfo.text = "Totaal: $totaalEx exemplaren in ${items.size} waarnemingen."
-                    // update adapter's soortNaam so each item shows correct species name
-                    waarnemingAdapter.soortNaam = soortNaam
-                    waarnemingAdapter.submitList(items)
-                    // after the overview has been updated and RecyclerView had a chance to layout,
-                    // initialize charts. Posting to the RecyclerView message queue lets the UI
-                    // render the overview first which reduces perceived jank.
-                    recyclerView.post {
-                        try {
-                            prepareAndShowCharts()
-                        } catch (e: Exception) {
-                            lifecycleScope.launch { fileLogger.warn("Fout bij starten grafieken: ${e.message}") }
-                        }
-                    }
+                pagingViewModel.getWaarnemingenPager(soortId, getSelectedYear()).collectLatest { pagingData ->
+                    pagingAdapter.soortNaam = soortNaam
+                    pagingAdapter.submitData(pagingData)
                 }
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) {
-                    // expected when a newer search started; don't log as an error
-                    fileLogger.info("Ophalen waarnemingen gecancelled voor soort $soortId")
+                    fileLogger.info("Paging load cancelled for $soortId")
                 } else {
-                    fileLogger.warn("Fout bij ophalen waarnemingen: ${e.message}")
+                    fileLogger.warn("Fout bij paged ophalen waarnemingen: ${e.message}")
                 }
             } finally {
-                try {
-                    pbOverviewContainer.visibility = View.GONE
-                } catch (_: Exception) { }
-                loadJob = null
+                // nothing here; loadState listener will hide progress when loading finished
+            }
+        }
+
+        // observe adapter load state to update determinate progress and hide loading when done
+        loadStateJob = lifecycleScope.launch {
+            pagingAdapter.loadStateFlow.collect { loadStates ->
+                // update progress using number of loaded items
+                val loaded = pagingAdapter.snapshot().items.size
+                withContext(Dispatchers.Main) {
+                    try {
+                        if (pbOverviewProgressView.visibility == View.VISIBLE) {
+                            pbOverviewProgressView.progress = loaded
+                        }
+                        // Show container while loading. Only hide when refresh finished AND we have items loaded.
+                        val refresh = loadStates.refresh
+                        when (refresh) {
+                            is LoadState.Loading -> {
+                                pbOverviewContainer.visibility = View.VISIBLE
+                                // ensure modal dialog visible as well (keeps behaviour identical to Grafieken)
+                                showLoading("Ophalen overzicht...")
+                            }
+                            is LoadState.NotLoading -> {
+                                if (loaded > 0) {
+                                    pbOverviewContainer.visibility = View.GONE
+                                    hideLoading()
+                                } else {
+                                    pbOverviewContainer.visibility = View.VISIBLE
+                                }
+                            }
+                            is LoadState.Error -> {
+                                pbOverviewContainer.visibility = View.VISIBLE
+                                // stop modal spinner on error so user can interact with retry UI
+                                hideLoading()
+                            }
+                        }
+                    } catch (_: Exception) { }
+                }
             }
         }
     }
@@ -273,9 +338,14 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             val itemView = LayoutInflater.from(this).inflate(R.layout.item_wind_chart_card, gridWindCharts, false)
             val headerView = itemView.findViewById<TextView>(R.id.tvDirectionHeader)
             val chartView = itemView.findViewById<CartesianChartView>(R.id.chartDirection)
+            val cbShowReturn = itemView.findViewById<CheckBox>(R.id.cbShowReturn)
+            val cbShowTrek = itemView.findViewById<CheckBox>(R.id.cbShowTrek)
             val producer = CartesianChartModelProducer()
 
-            headerView.text = "$direction - Totaal: 0"
+            headerView.text = "$direction - Aantal: 0 / Terug: 0"
+            // default: show return line
+            cbShowReturn.isChecked = true
+            cbShowTrek.isChecked = true
             setupSingleChart(chartView, producer)
 
             val rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
@@ -287,7 +357,29 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             }
 
             gridWindCharts.addView(itemView)
-            chartBindings[direction] = WindChartBinding(headerView, chartView, producer)
+            chartBindings[direction] = WindChartBinding(headerView, chartView, producer, cbShowReturn, cbShowTrek)
+
+            // Toggle listeners: update chart when either Trek or Terug checkbox changes
+            val toggleListener = { _: android.widget.CompoundButton, _: Boolean ->
+                val cached = cachedChartData[direction]
+                if (cached != null) {
+                    val (countData, returnData, beaufortData) = cached
+                    val showTrek = cbShowTrek.isChecked
+                    val showReturn = cbShowReturn.isChecked
+                    val effectiveCount = if (showTrek) countData else IntArray(countData.size) { 0 }
+                    val effectiveReturn = if (showReturn) returnData else IntArray(returnData.size) { 0 }
+                    lifecycleScope.launch {
+                        try {
+                            updateChart(chartView, producer, effectiveCount, effectiveReturn, beaufortData)
+                        } catch (e: Exception) {
+                            fileLogger.warn("Kon chart niet updaten voor richting $direction: ${e.message}")
+                        }
+                    }
+                }
+            }
+
+            cbShowReturn.setOnCheckedChangeListener(toggleListener)
+            cbShowTrek.setOnCheckedChangeListener(toggleListener)
         }
     }
 
@@ -302,74 +394,99 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             ?: currentWaarnemingen.firstOrNull()?.soortid
             ?: return
 
-        showLoading("Ophalen grafiekdata...")
+        showLoading(getString(R.string.loading_chart))
             lifecycleScope.launch(Dispatchers.Default) {
             fileLogger.info("GRAFIEK16: Start ophalen data voor soort $speciesId")
-            val dataset = withContext(Dispatchers.IO) {
-                    val year = getSelectedYear()
-                    val all = database.tellingDao().getWindDatasetForSpecies(speciesId)
-                    // client-side year filtering using header timezone
-                    val filtered = if (year == null) all else all.filter { row ->
-                        getLocalYearFromEpoch(row.begintijd, row.timezoneid) == year
-                    }
+            // fetch wind dataset in pages to avoid long blocking queries and allow progress updates
+            val pageSize = 2000
+            var offset = 0
+            val year = getSelectedYear()
 
-                    // If wind debug logging is enabled, also write a detailed trace file with ids and metadata
-                    if (VT5App.ENABLE_WIND_DEBUG_LOGGING) {
-                        try {
-                            val debugRows = database.tellingDao().getWindDebugRowsForSpecies(speciesId)
-                            // filter debugRows by selected year as well
-                            val debugFiltered = if (year == null) debugRows else debugRows.filter { r ->
-                                getLocalYearFromEpoch(r.begintijd, r.timezoneid) == year
-                            }
-                            // write file (best-effort) on IO
-                            writeWindDebugFile(speciesId, debugFiltered)
-                        } catch (e: Exception) {
-                            fileLogger.warn("Kon wind debug rows niet schrijven: ${e.message}")
+            // If wind debug logging is enabled, schedule writing debug rows (keeps previous behavior)
+            if (VT5App.ENABLE_WIND_DEBUG_LOGGING) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val debugRows = database.tellingDao().getWindDebugRowsForSpecies(speciesId)
+                        val debugFiltered = if (year == null) debugRows else debugRows.filter { r ->
+                            getLocalYearFromEpoch(r.begintijd, r.timezoneid) == year
                         }
-                    }
-
-                    filtered
-            }
-            currentWindDataset = dataset
-
-            val weeklyTotalsByDirection = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
-            val weeklyBeaufortWeightedSumByDirection = windDirections.associateWith { DoubleArray(WEEKS_PER_YEAR) }.toMutableMap()
-            val weeklyBeaufortWeightByDirection = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
-
-            dataset.forEach { row ->
-                val direction = normalizeWindDirection(row.windrichting) ?: return@forEach
-                val weekIndex = getWeekIndex(row.begintijd, row.timezoneid)
-                if (weekIndex in 0 until WEEKS_PER_YEAR) {
-                    weeklyTotalsByDirection[direction]?.let { weekArray ->
-                        weekArray[weekIndex] += row.aantal
-                    }
-
-                    val beaufort = parseBeaufort(row.windkracht)
-                    if (beaufort != null) {
-                        val weight = row.aantal.coerceAtLeast(1)
-                        weeklyBeaufortWeightedSumByDirection[direction]?.let { sums ->
-                            sums[weekIndex] += beaufort * weight
-                        }
-                        weeklyBeaufortWeightByDirection[direction]?.let { weights ->
-                            weights[weekIndex] += weight
-                        }
+                        writeWindDebugFile(speciesId, debugFiltered)
+                    } catch (e: Exception) {
+                        fileLogger.warn("Kon wind debug rows niet schrijven: ${e.message}")
                     }
                 }
             }
 
+            // Aggregation buffers
+            val weeklyTotalsByDirection = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
+            val weeklyTotalsByDirectionReturn = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
+            val weeklyBeaufortWeightedSumByDirection = windDirections.associateWith { DoubleArray(WEEKS_PER_YEAR) }.toMutableMap()
+            val weeklyBeaufortWeightByDirection = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
+
+            var processed = 0
+                while (true) {
+                val page = try {
+                    withContext(Dispatchers.IO) { database.tellingDao().getWindDatasetForSpeciesPaged(speciesId, pageSize, offset) }
+                } catch (e: Exception) {
+                    fileLogger.warn("Fout bij paged ophalen wind dataset: ${e.message}")
+                    emptyList<com.yvesds.vt5.core.database.dao.SpeciesWindDatasetRow>()
+                }
+                if (page.isEmpty()) break
+
+                // apply client-side year filtering and aggregate
+                page.forEach { row ->
+                    if (year != null && getLocalYearFromEpoch(row.begintijd, row.timezoneid) != year) return@forEach
+                    val direction = normalizeWindDirection(row.windrichting) ?: return@forEach
+                    val weekIndex = getWeekIndex(row.begintijd, row.timezoneid)
+                    if (weekIndex in 0 until WEEKS_PER_YEAR) {
+                        weeklyTotalsByDirection[direction]?.let { it[weekIndex] += row.aantal }
+                        weeklyTotalsByDirectionReturn[direction]?.let { it[weekIndex] += row.aantalterug }
+
+                        val beaufort = parseBeaufort(row.windkracht)
+                        if (beaufort != null) {
+                            val weight = row.aantal.coerceAtLeast(1)
+                            weeklyBeaufortWeightedSumByDirection[direction]?.let { sums -> sums[weekIndex] += beaufort * weight }
+                            weeklyBeaufortWeightByDirection[direction]?.let { weights -> weights[weekIndex] += weight }
+                        }
+                    }
+                }
+
+                processed += page.size
+                offset += pageSize
+                if (coroutineContext[kotlinx.coroutines.Job]?.isActive != true) break
+
+                // update loading dialog to show progress (gives system a 'heartbeat')
+                withContext(Dispatchers.Main) {
+                    try {
+                        loadingDialog?.setTitle(getString(R.string.loading_chart_progress, processed))
+                    } catch (_: Exception) { }
+                }
+            }
+
+            // store into local variable for subsequent chart building
+            currentWindDataset = emptyList()
+
+
             withContext(Dispatchers.Main) {
                 windDirections.forEach { direction ->
                     val binding = chartBindings[direction] ?: return@forEach
-                    val countData = weeklyTotalsByDirection[direction] ?: IntArray(52)
-                    val beaufortSums = weeklyBeaufortWeightedSumByDirection[direction] ?: DoubleArray(52)
-                    val beaufortWeights = weeklyBeaufortWeightByDirection[direction] ?: IntArray(52)
+                    val countData = weeklyTotalsByDirection[direction] ?: IntArray(WEEKS_PER_YEAR)
+                    val returnData = weeklyTotalsByDirectionReturn[direction] ?: IntArray(WEEKS_PER_YEAR)
+                    val beaufortSums = weeklyBeaufortWeightedSumByDirection[direction] ?: DoubleArray(WEEKS_PER_YEAR)
+                    val beaufortWeights = weeklyBeaufortWeightByDirection[direction] ?: IntArray(WEEKS_PER_YEAR)
                     val beaufortData = DoubleArray(52) { index ->
                         val weight = beaufortWeights[index]
                         if (weight > 0) beaufortSums[index] / weight else 0.0
                     }
 
-                    binding.headerView.text = "$direction - Totaal: ${countData.sum()}"
-                    updateChart(binding.chartView, binding.producer, countData, beaufortData)
+                    binding.headerView.text = "$direction - Aantal: ${countData.sum()} / Terug: ${returnData.sum()}"
+                    // cache per-direction series so checkbox toggles don't require full recompute
+                    cachedChartData[direction] = Triple(countData, returnData, beaufortData)
+                    val showTrek = binding.cbShowTrek.isChecked
+                    val showReturn = binding.cbShowReturn.isChecked
+                    val effectiveCount = if (showTrek) countData else IntArray(countData.size) { 0 }
+                    val effectiveReturn = if (showReturn) returnData else IntArray(returnData.size) { 0 }
+                    updateChart(binding.chartView, binding.producer, effectiveCount, effectiveReturn, beaufortData)
                 }
                 hideLoading()
             }
@@ -411,13 +528,16 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     }
 
     private fun setupSingleChart(chartView: CartesianChartView, producer: CartesianChartModelProducer) {
-        // Use the generic createLineLayer helper for count data (single color)
+        // Create separate layers: beaufort (right axis), main count (left axis) and return overlay (left axis)
         val countLayer = VicoLineChartHelper.createLineLayer(chartLineColor)
-        val beaufortLayer = VicoLineChartHelper.createBeaufortLineLayer(maxBeaufort = 7.0, beaufortColor = beaufortLineColor)
+        val returnLayer = VicoLineChartHelper.createLineLayer(chartReturnLineColor)
+        val beaufortLayer = VicoLineChartHelper.createBeaufortLineLayer(maxBeaufort = 7.0, beaufortColor = beaufortLineColor, pointSpacingDp = 8f)
 
+        // Layer drawing order: beaufort (background/right axis) -> countLayer (green) -> returnLayer (red on top)
         chartView.chart = CartesianChart(
-            countLayer,
             beaufortLayer,
+            countLayer,
+            returnLayer,
             bottomAxis = VicoLineChartHelper.createMonthLabelAxis(),
             topAxis = VicoLineChartHelper.createWeeklyTickAxis(),
             startAxis = VicoLineChartHelper.createCountAxis(),
@@ -433,16 +553,25 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         chartView: CartesianChartView,
         producer: CartesianChartModelProducer,
         countData: IntArray,
+        returnData: IntArray,
         beaufortData: DoubleArray,
     ) {
         // Clamp beaufort values to a maximum of 7 (Beaufort scale limit for our data)
         val maxBeaufort = 7.0
         val clampedBeaufort = beaufortData.map { v -> (v.coerceAtMost(maxBeaufort)).toFloat() }
 
+        // Log aggregated sums before entering the non-suspending runTransaction lambda
+        val countsSum = countData.sum()
+        val returnSum = returnData.sum()
+        val beaufortSum = beaufortData.sum()
+        fileLogger.info("UpdateChart: counts=$countsSum return=$returnSum beaufortAvg=$beaufortSum")
+
         producer.runTransaction {
-            // Two separate line models: one per layer (count-left axis, beaufort-right axis).
-            lineSeries { series(countData.map { it.toFloat() }) }
+            // Layer order: beaufortLayer (background, right axis) then countLayer (foreground, left axis)
+            // Produce series in the same order as the layers: first beaufort, then main count, then return count.
             lineSeries { series(clampedBeaufort) }
+            lineSeries { series(countData.map { it.toFloat() }) }
+            lineSeries { series(returnData.map { it.toFloat() }) }
         }
 
         withContext(Dispatchers.Main) {
@@ -496,13 +625,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 val sb = StringBuilder()
                 sb.append("Wind debug log for speciesId=$speciesId\n")
                 sb.append("Generated: $ts\n")
-                sb.append("Columns: idLocal, tellingid, waarnemingOnlineId, headerOnlineId, begintijd, timezoneid, windrichting, windkracht, aantal, localYear, weekIndex, normalizedDirection\n")
+                sb.append("Columns: idLocal, tellingid, waarnemingOnlineId, headerOnlineId, begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug, localYear, weekIndex, normalizedDirection\n")
 
                 rows.forEach { r ->
                     val localYear = getLocalYearFromEpoch(r.begintijd, r.timezoneid) ?: "-"
                     val weekIdx = getWeekIndex(r.begintijd, r.timezoneid)
                     val directionNorm = normalizeWindDirection(r.windrichting) ?: r.windrichting
-                    sb.append("${r.idLocal},${r.tellingid},${r.waarnemingOnlineId},${r.headerOnlineId},${r.begintijd},${r.timezoneid},${r.windrichting},${r.windkracht},${r.aantal},${localYear},${weekIdx},${directionNorm}\n")
+                    sb.append("${r.idLocal},${r.tellingid},${r.waarnemingOnlineId},${r.headerOnlineId},${r.begintijd},${r.timezoneid},${r.windrichting},${r.windkracht},${r.aantal},${r.aantalterug},${localYear},${weekIdx},${directionNorm}\n")
                 }
 
                 // write content
@@ -525,9 +654,11 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val headerView: TextView,
         val chartView: CartesianChartView,
         val producer: CartesianChartModelProducer,
+        val cbShowReturn: CheckBox,
+        val cbShowTrek: CheckBox,
     )
 
-    inner class WaarnemingAdapter : ListAdapter<Waarneming, WaarnemingAdapter.ViewHolder>(WAARNEMING_DIFF) {
+    inner class WaarnemingPagingAdapter : PagingDataAdapter<Waarneming, WaarnemingPagingAdapter.ViewHolder>(WAARNEMING_DIFF) {
         var soortNaam: String = ""
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -535,6 +666,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             val tvSoortNaam: TextView = view.findViewById(R.id.tvSoortNaam)
             val tvDetails: TextView = view.findViewById(R.id.tvDetails)
             val tvAantal: TextView = view.findViewById(R.id.tvAantal)
+            val tvAantalTerug: TextView? = view.findViewById(R.id.tvAantalTerug)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -548,18 +680,23 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             holder.tvIndex.text = (position + 1).toString()
             holder.tvSoortNaam.text = soortNaam
 
-            val readableTime = SpeciesNameResolver.formatTimestamp(item.tijdstip)
-            holder.tvDetails.text = "Sessie: ${item.tellingid} | Tijd: $readableTime"
-            holder.tvAantal.text = item.aantal
-
-            holder.itemView.setOnClickListener {
-                val intent = Intent(this@DatabaseSoortOverzichtActiviteit, DatabaseRecordDetailActiviteit::class.java)
-                intent.putExtra("recordid", item.idLocal)
-                intent.putExtra("tellingid", item.tellingid)
-                startActivity(intent)
+            if (item != null) {
+                val readableTime = SpeciesNameResolver.formatTimestamp(item.tijdstip)
+                holder.tvDetails.text = "Sessie: ${item.tellingid} | Tijd: $readableTime"
+                holder.tvAantal.text = item.aantal
+                holder.tvAantalTerug?.text = item.aantalterug
+                holder.itemView.setOnClickListener {
+                    val intent = Intent(this@DatabaseSoortOverzichtActiviteit, DatabaseRecordDetailActiviteit::class.java)
+                    intent.putExtra("recordid", item.idLocal)
+                    intent.putExtra("tellingid", item.tellingid)
+                    startActivity(intent)
+                }
+            } else {
+                holder.tvDetails.text = ""
+                holder.tvAantal.text = ""
+                holder.tvAantalTerug?.text = ""
+                holder.itemView.setOnClickListener(null)
             }
         }
-
-        // Diff handled by WAARNEMING_DIFF declared on the activity
     }
 }

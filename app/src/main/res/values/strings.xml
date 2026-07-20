@@ -366,6 +366,20 @@
     <string name="annuleer">Annuleren</string>
     <string name="verder">Verder</string>
 
+    <!-- Sort/filter strings for scherm_db_telling_lijst -->
+    <string name="db_telling_sort_field_tellingid">Telling ID</string>
+    <string name="db_telling_sort_field_onlineid">Online ID</string>
+    <string name="db_telling_sort_field_datum">Datum</string>
+    <string-array name="db_telling_sort_fields">
+        <item>@string/db_telling_sort_field_tellingid</item>
+        <item>@string/db_telling_sort_field_onlineid</item>
+        <item>@string/db_telling_sort_field_datum</item>
+    </string-array>
+    <string name="db_telling_sort_asc_symbol">↑</string>
+    <string name="db_telling_sort_desc_symbol">↓</string>
+    <string name="db_telling_filter_hint">Filter tellingid...</string>
+    <string name="db_telling_clear_filter">Filter wissen</string>
+
     <!-- TellingBeheerScherm aanvullingen -->
     <string name="beheer_laden_fout">Fout bij laden: %1$s</string>
     <string name="beheer_detail_telpost_tellers">Telpost: %1$s • Tellers: %2$s</string>
@@ -411,4 +425,10 @@
     <string name="perm_disable_message_saf">Zonder toegang tot Documents kan de app geen tellingen opslaan of bestanden lezen/schrijven.</string>
     <string name="perm_disable_message_location">Zonder locatie kan de knop "Auto" geen weergegevens ophalen.</string>
     <string name="prompt_year">Jaar</string>
+    <string name="spinner_all_years">Alle jaren</string>
+    <string name="chart_show_trek">Trek</string>
+    <string name="chart_show_return">Terug</string>
+    <string name="loading_overview">Ophalen overzicht...</string>
+    <string name="loading_chart">Ophalen grafiekdata...</string>
+    <string name="loading_chart_progress">Ophalen grafiekdata... (%1$d)</string>
 </resources>

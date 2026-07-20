@@ -30,6 +30,7 @@
 
     <!-- grafiekkleuren -->
     <color name="grafiek_lijnkleur">#02F83C</color>
+    <color name="grafiek_lijnkleur_terug">#FF0000</color>
     <color name="grafiek_achtergrondkleur">#739B9B</color>
     <color name="grafiek_beaufort">#1133ED</color>
 
