@@ -168,6 +168,11 @@ class VT5App : Application() {
         fun prefs(): SharedPreferences =
             instance.run { getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
 
+        // Toggle voor ontwikkelings/debug logging van wind-grafiekdata.
+        // Kan tijdelijk ingeschakeld worden tijdens debugging sessions.
+        @Volatile
+        var ENABLE_WIND_DEBUG_LOGGING: Boolean = false
+
         suspend fun awaitStartupAliasRefresh(): AliasStartupInitializer.StartupRefreshResult? {
             return startupAliasRefreshDeferred?.await()
         }

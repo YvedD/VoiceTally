@@ -5,6 +5,28 @@ import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import kotlinx.coroutines.flow.Flow
 
+// lightweight projection used for chart aggregation
+data class SpeciesWindDatasetRow(
+    val begintijd: String,
+    val timezoneid: String,
+    val windrichting: String,
+    val windkracht: String,
+    val aantal: Int,
+)
+
+// Extended debug row including ids from both waarnemingen and telling_headers for troubleshooting
+data class SpeciesWindDebugRow(
+    val idLocal: String,
+    val tellingid: String,
+    val waarnemingOnlineId: String,
+    val headerOnlineId: String,
+    val begintijd: String,
+    val timezoneid: String,
+    val windrichting: String,
+    val windkracht: String,
+    val aantal: Int,
+)
+
 @Dao
 interface TellingDao {
     // TellingHeader operations
@@ -115,12 +137,29 @@ interface TellingDao {
           AND telling_headers.begintijd != ''
           AND telling_headers.windrichting IS NOT NULL
           AND telling_headers.windrichting != ''
-          AND (:year IS NULL OR strftime('%Y', datetime(
-                CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
-            , 'unixepoch')) = :year)
         ORDER BY CAST(telling_headers.begintijd AS INTEGER) ASC
     """)
-    suspend fun getWindDatasetForSpecies(soortId: String, year: String?): List<SpeciesWindDatasetRow>
+    suspend fun getWindDatasetForSpecies(soortId: String): List<SpeciesWindDatasetRow>
+
+    @Query("""
+        SELECT
+            waarnemingen.idLocal AS idLocal,
+            waarnemingen.tellingid AS tellingid,
+            waarnemingen.onlineid AS waarnemingOnlineId,
+            telling_headers.onlineid AS headerOnlineId,
+            telling_headers.begintijd AS begintijd,
+            telling_headers.timezoneid AS timezoneid,
+            telling_headers.windrichting AS windrichting,
+            telling_headers.windkracht AS windkracht,
+            CAST(COALESCE(NULLIF(waarnemingen.aantal, ''), '0') AS INTEGER) AS aantal
+        FROM waarnemingen
+        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
+        WHERE waarnemingen.soortid = :soortId
+          AND telling_headers.begintijd IS NOT NULL
+          AND telling_headers.begintijd != ''
+        ORDER BY CAST(telling_headers.begintijd AS INTEGER) ASC
+    """)
+    suspend fun getWindDebugRowsForSpecies(soortId: String): List<SpeciesWindDebugRow>
 
     // Retrieve distinct years available from telling_headers (derived from begintijd)
     @Query("""
@@ -133,11 +172,3 @@ interface TellingDao {
     """)
     suspend fun getAvailableYears(): List<String>
 }
-
-data class SpeciesWindDatasetRow(
-    val begintijd: String,
-    val timezoneid: String,
-    val windrichting: String,
-    val windkracht: String,
-    val aantal: Int,
-)

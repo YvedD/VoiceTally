@@ -47,6 +47,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.WeekFields
 import java.util.Locale
+import androidx.documentfile.provider.DocumentFile
+import com.yvesds.vt5.VT5App
+import java.time.format.DateTimeFormatter
 
 class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
@@ -82,6 +85,9 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     )
 
     private val chartBindings = linkedMapOf<String, WindChartBinding>()
+
+    // allow up to 53 ISO-weeks per year to avoid misplacing weeks in edge cases
+    private val WEEKS_PER_YEAR = 53
 
     private var loadingDialog: AlertDialog? = null
 
@@ -164,7 +170,10 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private fun setupYearSelector() {
         lifecycleScope.launch {
             try {
-                val years = withContext(Dispatchers.IO) { database.tellingDao().getAvailableYears() }
+                // Retrieve headers and compute available years using the header timezone
+                val headers = withContext(Dispatchers.IO) { database.tellingDao().getAllHeaders() }
+                val years = headers.mapNotNull { getLocalYearFromEpoch(it.begintijd, it.timezoneid) }
+                    .toSortedSet(compareByDescending<String> { it })
                 val items = mutableListOf("Alle jaren")
                 items.addAll(years)
                 val adapter = ArrayAdapter(this@DatabaseSoortOverzichtActiviteit, android.R.layout.simple_spinner_item, items)
@@ -294,22 +303,43 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             ?: return
 
         showLoading("Ophalen grafiekdata...")
-        lifecycleScope.launch(Dispatchers.Default) {
+            lifecycleScope.launch(Dispatchers.Default) {
             fileLogger.info("GRAFIEK16: Start ophalen data voor soort $speciesId")
             val dataset = withContext(Dispatchers.IO) {
-                val year = getSelectedYear()
-                database.tellingDao().getWindDatasetForSpecies(speciesId, year)
+                    val year = getSelectedYear()
+                    val all = database.tellingDao().getWindDatasetForSpecies(speciesId)
+                    // client-side year filtering using header timezone
+                    val filtered = if (year == null) all else all.filter { row ->
+                        getLocalYearFromEpoch(row.begintijd, row.timezoneid) == year
+                    }
+
+                    // If wind debug logging is enabled, also write a detailed trace file with ids and metadata
+                    if (VT5App.ENABLE_WIND_DEBUG_LOGGING) {
+                        try {
+                            val debugRows = database.tellingDao().getWindDebugRowsForSpecies(speciesId)
+                            // filter debugRows by selected year as well
+                            val debugFiltered = if (year == null) debugRows else debugRows.filter { r ->
+                                getLocalYearFromEpoch(r.begintijd, r.timezoneid) == year
+                            }
+                            // write file (best-effort) on IO
+                            writeWindDebugFile(speciesId, debugFiltered)
+                        } catch (e: Exception) {
+                            fileLogger.warn("Kon wind debug rows niet schrijven: ${e.message}")
+                        }
+                    }
+
+                    filtered
             }
             currentWindDataset = dataset
 
-            val weeklyTotalsByDirection = windDirections.associateWith { IntArray(52) }.toMutableMap()
-            val weeklyBeaufortWeightedSumByDirection = windDirections.associateWith { DoubleArray(52) }.toMutableMap()
-            val weeklyBeaufortWeightByDirection = windDirections.associateWith { IntArray(52) }.toMutableMap()
+            val weeklyTotalsByDirection = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
+            val weeklyBeaufortWeightedSumByDirection = windDirections.associateWith { DoubleArray(WEEKS_PER_YEAR) }.toMutableMap()
+            val weeklyBeaufortWeightByDirection = windDirections.associateWith { IntArray(WEEKS_PER_YEAR) }.toMutableMap()
 
             dataset.forEach { row ->
                 val direction = normalizeWindDirection(row.windrichting) ?: return@forEach
                 val weekIndex = getWeekIndex(row.begintijd, row.timezoneid)
-                if (weekIndex in 0..51) {
+                if (weekIndex in 0 until WEEKS_PER_YEAR) {
                     weeklyTotalsByDirection[direction]?.let { weekArray ->
                         weekArray[weekIndex] += row.aantal
                     }
@@ -433,7 +463,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     }
 
     private fun getWeekIndex(epochValue: String, timezoneId: String): Int {
-        val epoch = epochValue.trim().toLongOrNull() ?: return 0
+        val epoch = epochValue.trim().toLongOrNull() ?: return -1
         val epochSeconds = if (epoch > 9_999_999_999L) epoch / 1000 else epoch
         val zone = runCatching {
             ZoneId.of(timezoneId.ifBlank { "Europe/Brussels" })
@@ -441,7 +471,54 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
         val localDate = Instant.ofEpochSecond(epochSeconds).atZone(zone).toLocalDate()
         val weekNumber = localDate.get(WeekFields.of(Locale.getDefault()).weekOfYear())
-        return (weekNumber - 1).coerceIn(0, 51)
+        return (weekNumber - 1).coerceIn(0, WEEKS_PER_YEAR - 1)
+    }
+
+    private fun getLocalYearFromEpoch(epochValue: String, timezoneId: String): String? {
+        val epoch = epochValue.trim().toLongOrNull() ?: return null
+        val epochSeconds = if (epoch > 9_999_999_999L) epoch / 1000 else epoch
+        val zone = runCatching { ZoneId.of(timezoneId.ifBlank { "Europe/Brussels" }) }
+            .getOrDefault(ZoneId.of("Europe/Brussels"))
+        val localDate = Instant.ofEpochSecond(epochSeconds).atZone(zone).toLocalDate()
+        return localDate.year.toString()
+    }
+
+    private suspend fun writeWindDebugFile(speciesId: String, rows: List<com.yvesds.vt5.core.database.dao.SpeciesWindDebugRow>) {
+        withContext(Dispatchers.IO) {
+            try {
+                val saf = SaFStorageHelper(this@DatabaseSoortOverzichtActiviteit)
+                val vt5Dir = saf.getVt5DirIfExists() ?: return@withContext
+
+                val ts = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").format(Instant.now().atZone(ZoneId.systemDefault()))
+                val filename = "wind_debug_${speciesId}_$ts.txt"
+                val file = vt5Dir.createFile("text/plain", filename) ?: return@withContext
+
+                val sb = StringBuilder()
+                sb.append("Wind debug log for speciesId=$speciesId\n")
+                sb.append("Generated: $ts\n")
+                sb.append("Columns: idLocal, tellingid, waarnemingOnlineId, headerOnlineId, begintijd, timezoneid, windrichting, windkracht, aantal, localYear, weekIndex, normalizedDirection\n")
+
+                rows.forEach { r ->
+                    val localYear = getLocalYearFromEpoch(r.begintijd, r.timezoneid) ?: "-"
+                    val weekIdx = getWeekIndex(r.begintijd, r.timezoneid)
+                    val directionNorm = normalizeWindDirection(r.windrichting) ?: r.windrichting
+                    sb.append("${r.idLocal},${r.tellingid},${r.waarnemingOnlineId},${r.headerOnlineId},${r.begintijd},${r.timezoneid},${r.windrichting},${r.windkracht},${r.aantal},${localYear},${weekIdx},${directionNorm}\n")
+                }
+
+                // write content
+                try {
+                    contentResolver.openOutputStream(file.uri)?.use { out ->
+                        out.write(sb.toString().toByteArray(Charsets.UTF_8))
+                    }
+                    fileLogger.info("Wind debug file written: $filename")
+                } catch (e: Exception) {
+                    try { file.delete() } catch (_: Exception) {}
+                    fileLogger.warn("Kon wind debug file niet wegschrijven: ${e.message}")
+                }
+            } catch (e: Exception) {
+                fileLogger.warn("Fout bij schrijven wind debug file: ${e.message}")
+            }
+        }
     }
 
     private data class WindChartBinding(

@@ -106,7 +106,7 @@ class TellingDialogHelper(
             override fun onAliasAssigned(speciesId: String, aliasText: String) {
                 lifecycleOwner.lifecycleScope.launch {
                     try {
-<                        val isDirection = speciesId == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN
+                        val isDirection = speciesId == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN
                         val snapshot = ServerDataCache.getOrLoad(activity)
                         val canonical = if (isDirection) com.yvesds.vt5.features.alias.SPECIES_NAME_DIR_RETURN else snapshot.speciesById[speciesId]?.soortnaam ?: aliasText
                         val tilename = if (isDirection) "Terug" else snapshot.speciesById[speciesId]?.soortkey

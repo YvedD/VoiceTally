@@ -38,7 +38,10 @@ class CsvImportManager(
     private val context: Context,
     private val tellingDao: TellingDao
 ) {
-    private val safHelper: SaFStorageHelper = SaFStorageHelper(context)
+    // De SaF helper kan soms trage IO doen bij gebruik. Maak deze lazy zodat
+    // de constructor van CsvImportManager geen onnodige synchrone IO triggert
+    // wanneer de manager alleen wordt geïnstantieerd (bijv. in onCreate van een Activity).
+    private val safHelper: SaFStorageHelper by lazy { SaFStorageHelper(context) }
     private companion object {
         private const val TAG = "CsvImportManager"
         private const val DEFAULT_TIMEZONE = "Europe/Brussels"
@@ -46,8 +49,24 @@ class CsvImportManager(
     }
 
     private val defaultZoneId: ZoneId = ZoneId.of(DEFAULT_TIMEZONE)
-    private val headerDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    private val dataDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yy")
+    // Strict header parsing: headers will be provided in the exact format "yyyy-dd-MM HH:mm:ss" (year-day-month)
+    // and optionally date-only "yyyy-dd-MM". We do NOT accept other textual header datetime formats.
+    private val headerDateTimeFormatters: List<DateTimeFormatter> = listOf(
+        DateTimeFormatter.ofPattern("yyyy-dd-MM HH:mm:ss")
+    )
+
+    // Only the exact date-only pattern is accepted for headers
+    private val headerDateOnlyFormatters: List<DateTimeFormatter> = listOf(
+        DateTimeFormatter.ofPattern("yyyy-dd-MM")
+    )
+
+    // Data CSV date format historically was 'dd/MM/yy'. Accept that and the new 'yyyy-dd-MM' format as requested.
+    private val dataDateFormatters: List<DateTimeFormatter> = listOf(
+        DateTimeFormatter.ofPattern("dd/MM/yy"),
+        DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+        DateTimeFormatter.ofPattern("yyyy-dd-MM"),
+    )
+
     private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     private data class ValidationSets(
@@ -72,6 +91,9 @@ class CsvImportManager(
 
                 val startIdx = headerIndex(headers, "start")
                 val stopIdx = headerIndex(headers, "stop")
+                val dayIdx = headerIndex(headers, "day")
+                val monthIdx = headerIndex(headers, "month")
+                val yearIdx = headerIndex(headers, "year")
                 val weatherIdx = headerIndex(headers, "weather")
                 val windDirIdx = headerIndex(headers, "winddirection")
                 val windForceIdx = headerIndex(headers, "windspeed_bfr")
@@ -124,8 +146,18 @@ class CsvImportManager(
                             bron = CsvImportPolicy.IMPORT_SOURCE,
                             timezoneid = DEFAULT_TIMEZONE,
                             telpostid = siteId,
-                            begintijd = normalizeHeaderDateTime(columnValue(columns, startIdx)),
-                            eindtijd = normalizeHeaderDateTime(columnValue(columns, stopIdx)),
+                            begintijd = normalizeHeaderDateTime(
+                                value = columnValue(columns, startIdx),
+                                dayStr = columnValue(columns, dayIdx),
+                                monthStr = columnValue(columns, monthIdx),
+                                yearStr = columnValue(columns, yearIdx)
+                            ),
+                            eindtijd = normalizeHeaderDateTime(
+                                value = columnValue(columns, stopIdx),
+                                dayStr = columnValue(columns, dayIdx),
+                                monthStr = columnValue(columns, monthIdx),
+                                yearStr = columnValue(columns, yearIdx)
+                            ),
                             tellers = columnValue(columns, observersIdx),
                             tellersactief = columnValue(columns, observersActiveIdx),
                             tellersaanwezig = columnValue(columns, observersPresentIdx),
@@ -438,6 +470,9 @@ class CsvImportManager(
             // other header column indices (optional)
             val startIdx = headerIndex(headerCols, "start")
             val stopIdx = headerIndex(headerCols, "stop")
+            val dayIdx = headerIndex(headerCols, "day")
+            val monthIdx = headerIndex(headerCols, "month")
+            val yearIdx = headerIndex(headerCols, "year")
             val siteIdx = headerIndex(headerCols, "siteid")
             val observersIdx = headerIndex(headerCols, "observers")
             val weatherIdx = headerIndex(headerCols, "weather")
@@ -478,14 +513,24 @@ class CsvImportManager(
                     ?.filter { it.isNotBlank() }?.toSet()?.size ?: 0
 
                 // compose TellingHeader with nrec and nsoort
-                val headerEntity = TellingHeader(
+                    val headerEntity = TellingHeader(
                     tellingid = localTellingId,
                     onlineid = onlineId,
                     bron = CsvImportPolicy.IMPORT_SOURCE,
                     timezoneid = DEFAULT_TIMEZONE,
                     telpostid = columnValue(headerValues, siteIdx),
-                    begintijd = normalizeHeaderDateTime(columnValue(headerValues, startIdx)),
-                    eindtijd = normalizeHeaderDateTime(columnValue(headerValues, stopIdx)),
+                    begintijd = normalizeHeaderDateTime(
+                        value = columnValue(headerValues, startIdx),
+                        dayStr = columnValue(headerValues, dayIdx),
+                        monthStr = columnValue(headerValues, monthIdx),
+                        yearStr = columnValue(headerValues, yearIdx)
+                    ),
+                    eindtijd = normalizeHeaderDateTime(
+                        value = columnValue(headerValues, stopIdx),
+                        dayStr = columnValue(headerValues, dayIdx),
+                        monthStr = columnValue(headerValues, monthIdx),
+                        yearStr = columnValue(headerValues, yearIdx)
+                    ),
                     tellers = columnValue(headerValues, observersIdx),
                     tellersactief = columnValue(headerValues, observersActiveIdx),
                     tellersaanwezig = columnValue(headerValues, observersPresentIdx),
@@ -645,26 +690,68 @@ class CsvImportManager(
         }
     }
 
-    private fun normalizeHeaderDateTime(value: String): String {
+    private fun normalizeHeaderDateTime(value: String, dayStr: String = "", monthStr: String = "", yearStr: String = ""): String {
         if (value.isBlank()) return ""
-        normalizeEpoch(value)?.let { return it }
-        return runCatching {
-            LocalDateTime.parse(value, headerDateTimeFormatter)
-                .atZone(defaultZoneId)
-                .toEpochSecond()
-                .toString()
-        }.getOrElse { value }
+
+        // Strict policy for headers: ALWAYS parse the textual header 'start'/'stop' value
+        // using the exact known pattern(s). Do NOT treat a numeric epoch string as priority
+        // here even if an 'Epoch_start' column exists later in the CSV — the textual value
+        // is authoritative for header timestamps.
+
+        // Only accept the exact header datetime pattern(s). If parsing fails we return an empty string
+        // If day/month/year columns are provided, construct LocalDateTime from them and the time portion
+        if (dayStr.isNotBlank() && monthStr.isNotBlank() && yearStr.isNotBlank()) {
+            val day = dayStr.trim().toIntOrNull()
+            val month = monthStr.trim().toIntOrNull()
+            val year = yearStr.trim().toIntOrNull()
+            if (day != null && month != null && year != null) {
+                // extract time from value (expecting 'YYYY-XX-XX HH:mm:ss' or similar), prefer the part after space
+                val timePart = value.trim().split(' ').getOrNull(1) ?: "00:00:00"
+                val parsedTime = runCatching { LocalTime.parse(timePart, timeFormatter) }.getOrNull()
+                val time = parsedTime ?: LocalTime.MIDNIGHT
+                try {
+                    return LocalDateTime.of(year, month, day, time.hour, time.minute, time.second)
+                        .atZone(defaultZoneId).toEpochSecond().toString()
+                } catch (_: Exception) {
+                    // invalid date numbers -> fall through to strict textual parsing below
+                }
+            }
+        }
+
+        for (fmt in headerDateTimeFormatters) {
+            val parsed = runCatching { LocalDateTime.parse(value, fmt) }.getOrNull()
+            if (parsed != null) {
+                return parsed.atZone(defaultZoneId).toEpochSecond().toString()
+            }
+        }
+
+        // Accept exact date-only header pattern and interpret as start of day
+        for (fmt in headerDateOnlyFormatters) {
+            val parsedDate = runCatching { LocalDate.parse(value, fmt) }.getOrNull()
+            if (parsedDate != null) {
+                val dt = parsedDate.atStartOfDay()
+                return dt.atZone(defaultZoneId).toEpochSecond().toString()
+            }
+        }
+
+        // Strict policy: do not accept other formats or numeric epoch here; return empty so caller can detect missing/invalid header time
+        return ""
     }
 
     private fun normalizeDataTimestamp(dateValue: String, timeValue: String): String {
         normalizeEpoch(timeValue)?.let { return it }
         if (dateValue.isBlank() || timeValue.isBlank()) return timeValue.trim()
+        // Try multiple date formats (historic and new). If none match, fall back to original timeValue.
+        for (df in dataDateFormatters) {
+            val date = runCatching { LocalDate.parse(dateValue, df) }.getOrNull()
+            if (date != null) {
+                val time = runCatching { LocalTime.parse(timeValue, timeFormatter) }.getOrNull()
+                    ?: return timeValue.trim()
+                return date.atTime(time).atZone(defaultZoneId).toEpochSecond().toString()
+            }
+        }
 
-        return runCatching {
-            val date = LocalDate.parse(dateValue, dataDateFormatter)
-            val time = LocalTime.parse(timeValue, timeFormatter)
-            date.atTime(time).atZone(defaultZoneId).toEpochSecond().toString()
-        }.getOrElse { timeValue.trim() }
+        return timeValue.trim()
     }
 
 
