@@ -1,0 +1,6 @@
+
+# TensorFlow is optional and can be installed separately (see tools/requirements_tf.txt)
+pandas
+numpy
+scikit-learn
+

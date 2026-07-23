@@ -1,0 +1,9 @@
+# Install tensorflow separately. On Windows it's often easiest to use conda:
+# conda create -n vt5 python=3.10
+# conda activate vt5
+# conda install -c conda-forge tensorflow
+# or with pip if you have a compatible Python:
+# pip install tensorflow>=2.12.0
+
+tensorflow>=2.12.0
+
