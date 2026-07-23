@@ -21,7 +21,7 @@ import java.nio.channels.FileChannel
 class Trainer(private val context: Context, private val modelStore: ModelStore) {
     private val TAG = "Trainer"
     private val BASE_MODEL_ASSET = "base_model.tflite"
-    private val PERSONAL_MODEL_NAME = "training_model.tflite"
+    private val PERSONAL_MODEL_NAME = "personal_migration_model.tflite"
 
     /**
      * Run the on-device training process.
@@ -136,16 +136,31 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                             
                             if (labelIndex != -1) {
                                 // Extract features (indexes based on TrainingDataPreparer.headerLine)
-                                val features = FloatArray(20)
-                                features[0] = parts[4].toFloatOrNull() ?: 0f // temp_numeric
-                                features[1] = parts[6].toFloatOrNull() ?: 0f // wind_ms_numeric
-                                features[2] = parts[8].toFloatOrNull() ?: 0f // wind_dir_sin
-                                features[3] = parts[9].toFloatOrNull() ?: 0f // wind_dir_cos
-                                features[4] = parts[15].toFloatOrNull() ?: 0f // day_sin
-                                features[5] = parts[16].toFloatOrNull() ?: 0f // day_cos
-                                features[6] = parts[17].toFloatOrNull() ?: 0f // hour_sin
-                                features[7] = parts[18].toFloatOrNull() ?: 0f // hour_cos
-                                // Note: additional features can be mapped here as the model evolves
+                                // ORDER: temp_numeric(4), wind_ms_numeric(6), wind_dir_sin(8), wind_dir_cos(9),
+                                // cloud_pct(10), visibility(11), precip(12), ref_avg_wind_ms(13), ref_avg_pressure(14),
+                                // day_sin(15), day_cos(16), hour_sin(17), hour_cos(18), moon_phase(19), 
+                                // wind_chill(20), pressure_trend(21), yesterday_count(22), is_rare(23), label_count(26)
+                                
+                                val features = FloatArray(19)
+                                features[0] = parts.getOrNull(4)?.toFloatOrNull() ?: 0f 
+                                features[1] = parts.getOrNull(6)?.toFloatOrNull() ?: 0f
+                                features[2] = parts.getOrNull(8)?.toFloatOrNull() ?: 0f
+                                features[3] = parts.getOrNull(9)?.toFloatOrNull() ?: 0f
+                                features[4] = parts.getOrNull(10)?.toFloatOrNull() ?: 0f
+                                features[5] = parts.getOrNull(11)?.toFloatOrNull() ?: 0f
+                                features[6] = parts.getOrNull(12)?.toFloatOrNull() ?: 0f
+                                features[7] = parts.getOrNull(13)?.toFloatOrNull() ?: 0f
+                                features[8] = parts.getOrNull(14)?.toFloatOrNull() ?: 0f
+                                features[9] = parts.getOrNull(15)?.toFloatOrNull() ?: 0f
+                                features[10] = parts.getOrNull(16)?.toFloatOrNull() ?: 0f
+                                features[11] = parts.getOrNull(17)?.toFloatOrNull() ?: 0f
+                                features[12] = parts.getOrNull(18)?.toFloatOrNull() ?: 0f
+                                features[13] = parts.getOrNull(19)?.toFloatOrNull() ?: 0f
+                                features[14] = parts.getOrNull(20)?.toFloatOrNull() ?: 0f
+                                features[15] = parts.getOrNull(21)?.toFloatOrNull() ?: 0f
+                                features[16] = parts.getOrNull(22)?.toFloatOrNull() ?: 0f
+                                features[17] = parts.getOrNull(23)?.toFloatOrNull() ?: 0f
+                                features[18] = parts.getOrNull(26)?.toFloatOrNull() ?: 1f // label_count
                                 
                                 samples.add(TrainingSample(features, labelIndex))
                             }

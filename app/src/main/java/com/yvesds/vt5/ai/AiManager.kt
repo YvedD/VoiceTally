@@ -44,8 +44,7 @@ object AiManager {
             Log.d(TAG, "Requesting manual AI update (initial=$isInitial)")
 
             val constraints = Constraints.Builder()
-                .setRequiresCharging(!isInitial)
-                .setRequiredNetworkType(NetworkType.UNMETERED)
+                .setRequiredNetworkType(NetworkType.UNMETERED) // Explicit Wi-Fi requirement
                 .build()
 
             val req = OneTimeWorkRequestBuilder<AiUpdateWorker>()
@@ -75,9 +74,7 @@ object AiManager {
 
     fun scheduleNightlyUpdate(context: Context) {
         val constraints = Constraints.Builder()
-            .setRequiresCharging(true)
             .setRequiredNetworkType(NetworkType.UNMETERED)
-            .setRequiresDeviceIdle(true)
             .build()
 
         val periodic = PeriodicWorkRequest.Builder(AiUpdateWorker::class.java, 24, TimeUnit.HOURS)

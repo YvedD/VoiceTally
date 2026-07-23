@@ -27,14 +27,13 @@ object AiInferenceEngine {
     suspend fun getSuggesties(context: Context, cur: Current): AiInformatieDialoog.AiSuggesties = withContext(Dispatchers.IO) {
         ensureModelLoaded(context)
 
-        val calendar = Calendar.getInstance()
-        
         if (interpreter != null && loadedLabels.isNotEmpty()) {
-            return@withContext getTflitePredicties(cur, calendar)
+            return@withContext getTflitePredicties(context, cur)
         }
 
         // Fallback: Real Database Statistics
         val db = VoiceTallyDatabase.getDatabase(context)
+        val calendar = Calendar.getInstance()
         val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
         val currentMonth = calendar.get(Calendar.MONTH) + 1
         
@@ -89,8 +88,8 @@ object AiInferenceEngine {
         try {
             val modelStore = ModelStore(context)
             val modelDir = modelStore.getModelDir() ?: return
-            val modelFile = modelDir.findFile("training_model.tflite") ?: return
-            val labelsFile = modelDir.findFile("training_model.labels.json") ?: return
+            val modelFile = modelDir.findFile("personal_migration_model.tflite") ?: modelDir.findFile("training_model.tflite") ?: return
+            val labelsFile = modelDir.findFile("personal_migration_model.labels.json") ?: modelDir.findFile("training_model.labels.json") ?: return
 
             context.contentResolver.openFileDescriptor(modelFile.uri, "r")?.use { pfd ->
                 val fileChannel = FileInputStream(pfd.fileDescriptor).channel
@@ -111,11 +110,74 @@ object AiInferenceEngine {
         } catch (_: Exception) {}
     }
 
-    private fun getTflitePredicties(cur: Current, cal: Calendar): AiInformatieDialoog.AiSuggesties {
+    private suspend fun getTflitePredicties(context: Context, cur: Current): AiInformatieDialoog.AiSuggesties {
         val inter = interpreter ?: return getEmptySuggesties(cur)
-        val inputBuffer = ByteBuffer.allocateDirect(1 * 20 * 4).order(ByteOrder.nativeOrder())
-        inputBuffer.putFloat(cur.temperature2m?.toFloat() ?: 15f)
-        inputBuffer.putFloat(cur.windSpeed10m?.toFloat() ?: 5f)
+        
+        // 1. Calculate all 19 features in exact same order as training
+        val cal = Calendar.getInstance()
+        val dayOfYear = cal.get(Calendar.DAY_OF_YEAR).toDouble()
+        val hourOfDay = cal.get(Calendar.HOUR_OF_DAY).toDouble()
+        val month = cal.get(Calendar.MONTH) + 1
+        
+        val daySin = Math.sin(2.0 * Math.PI * dayOfYear / 365.25)
+        val dayCos = Math.cos(2.0 * Math.PI * dayOfYear / 365.25)
+        val hourSin = Math.sin(2.0 * Math.PI * hourOfDay / 24.0)
+        val hourCos = Math.cos(2.0 * Math.PI * hourOfDay / 24.0)
+        
+        val moonPhase = calculateMoonPhase(System.currentTimeMillis() / 1000L)
+        val windChill = calculateWindChill(cur.temperature2m ?: 15.0, cur.windSpeed10m ?: 5.0)
+        
+        // Fetch ref weather (same as training)
+        val refs = if (month <= 6) AiConfig.SPRING_SOUTH_REFS else AiConfig.AUTUMN_NORTH_REFS
+        var refAvgWind = 5.0
+        var refAvgPressure = 1013.0
+        var pressureTrend = 0.0
+        try {
+            val refWeathers = refs.mapNotNull { pair ->
+                runCatching { AiWeatherService.fetchContextualWeather(context, pair.first, pair.second) }.getOrNull()
+            }
+            if (refWeathers.isNotEmpty()) {
+                refAvgWind = refWeathers.mapNotNull { it.windSpeed }.average()
+                refAvgPressure = refWeathers.mapNotNull { it.pressure }.average()
+                pressureTrend = refWeathers.mapNotNull { it.pressureTrend }.average()
+            }
+        } catch (_: Exception) {}
+
+        // Yesterday's count
+        val db = VoiceTallyDatabase.getDatabase(context)
+        val nowEpoch = System.currentTimeMillis() / 1000L
+        val yesterdayCount = db.tellingDao().sumCountsInPeriod((nowEpoch - 86400).toString(), nowEpoch.toString()) ?: 0
+
+        // Wind vectors
+        val windRad = cur.windDirection10m?.let { Math.toRadians(it) }
+        val windDirSin = windRad?.let { Math.sin(it) } ?: 0.0
+        val windDirCos = windRad?.let { Math.cos(it) } ?: 0.0
+
+        // Features list (Order MUST match train_model.py)
+        val features = floatArrayOf(
+            (cur.temperature2m ?: 15.0).toFloat(),
+            (cur.windSpeed10m ?: 5.0).toFloat(),
+            windDirSin.toFloat(),
+            windDirCos.toFloat(),
+            (cur.cloudCover ?: 50.0).toFloat(),
+            (cur.visibility ?: 10000.0).toFloat(),
+            (cur.precipitation ?: 0.0).toFloat(),
+            refAvgWind.toFloat(),
+            refAvgPressure.toFloat(),
+            daySin.toFloat(),
+            dayCos.toFloat(),
+            hourSin.toFloat(),
+            hourCos.toFloat(),
+            moonPhase.toFloat(),
+            windChill.toFloat(),
+            pressureTrend.toFloat(),
+            yesterdayCount.toFloat(),
+            0.0f, // is_rare (default 0 during inference as we don't know yet)
+            1.0f  // label_count (default 1)
+        )
+
+        val inputBuffer = ByteBuffer.allocateDirect(1 * features.size * 4).order(ByteOrder.nativeOrder())
+        features.forEach { inputBuffer.putFloat(it) }
         
         val outputBuffer = ByteBuffer.allocateDirect(1 * loadedLabels.size * 4).order(ByteOrder.nativeOrder())
         inter.run(inputBuffer, outputBuffer)
@@ -126,7 +188,7 @@ object AiInferenceEngine {
         
         val sortedIndices = results.indices.sortedByDescending { results[it] }
         val topSuggesties = sortedIndices.take(5).map { index ->
-            AiInformatieDialoog.Suggestie(loadedLabels.getOrNull(index) ?: "Unknown", (results[index] * 100).toInt())
+            AiInformatieDialoog.Suggestie(SpeciesNameResolver.getName(context, loadedLabels.getOrNull(index) ?: "Unknown"), (results[index] * 100).toInt())
         }
 
         val windLabel = com.yvesds.vt5.utils.weather.WeatherManager.degTo16WindLabel(cur.windDirection10m)
@@ -138,6 +200,20 @@ object AiInferenceEngine {
             weerSuggesties = topSuggesties.drop(3).take(2),
             periodeSuggesties = topSuggesties.take(2)
         )
+    }
+
+    private fun calculateMoonPhase(epoch: Long): Double {
+        val knownNewMoonEpoch = 1704974760L
+        val synodicMonthSeconds = 29.530588 * 24 * 3600
+        val delta = epoch - knownNewMoonEpoch
+        val phase = (delta % synodicMonthSeconds) / synodicMonthSeconds
+        return if (phase < 0) phase + 1.0 else phase
+    }
+
+    private fun calculateWindChill(temp: Double, windMs: Double): Double {
+        val windKmh = windMs * 3.6
+        if (temp > 10.0 || windKmh < 4.8) return temp
+        return 13.12 + 0.6215 * temp - 11.37 * Math.pow(windKmh, 0.16) + 0.3965 * temp * Math.pow(windKmh, 0.16)
     }
 
     private fun getEmptySuggesties(cur: Current): AiInformatieDialoog.AiSuggesties {

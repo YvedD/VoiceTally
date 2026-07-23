@@ -18,10 +18,11 @@ class AiUpdateWorker(appContext: Context, params: WorkerParameters) : CoroutineW
             val modelStore = com.yvesds.vt5.ai.ModelStore(applicationContext)
             val preparer = com.yvesds.vt5.ai.TrainingDataPreparer(applicationContext)
 
-            // ensure AI-models dir exists
+            // CALLER (UI) already exported CSV to ensure it's there. 
+            // We just ensure AI-models dir exists.
             modelStore.ensureModelDir()
 
-            // export training CSV (Room -> features)
+            // export training CSV (Room -> features) - Run again in background to ensure latest state
             val exported = preparer.exportTrainingCsv(modelStore.getTrainingExportDir())
             if (exported.isEmpty()) {
                 Log.w(TAG, "No data to export, AI update skipped")

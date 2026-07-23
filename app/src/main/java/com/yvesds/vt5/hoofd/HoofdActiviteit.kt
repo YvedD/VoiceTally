@@ -37,6 +37,7 @@ import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm.Companion.PREF_BATCH_IMPORT_ACTIVE
 import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -153,15 +154,7 @@ class HoofdActiviteit : AppCompatActivity() {
                 }
                 if (pendingAiUpdateAfterSaF) {
                     pendingAiUpdateAfterSaF = false
-                    lifecycleScope.launch {
-                        try {
-                            com.yvesds.vt5.ai.AiManager.requestManualUpdate(this@HoofdActiviteit)
-                            Toast.makeText(this@HoofdActiviteit, "AI update gestart (achtergrond)", Toast.LENGTH_SHORT).show()
-                        } catch (e: Exception) {
-                            Log.w(TAG, "AI update request failed after SAF selection: ${e.message}")
-                            Toast.makeText(this@HoofdActiviteit, "AI update kon niet gestart worden: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                    }
+                    runFullAiUpdateFlow()
                 }
             }
         }
@@ -270,42 +263,8 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
 
-        btnAiUpdate.setOnClickListener {
-            it.isEnabled = false
-            lifecycleScope.launch {
-                try {
-                    val modelStore = ModelStore(this@HoofdActiviteit)
-                    val ok = modelStore.ensureModelDir()
-                    if (!ok) {
-                        // request SAF root selection and mark pending
-                        pendingAiUpdateAfterSaF = true
-                        Toast.makeText(this@HoofdActiviteit, "Selecteer VT5 root om AI modelmap aan te maken", Toast.LENGTH_LONG).show()
-                        openTreeLauncher.launch(null)
-                    } else {
-                        com.yvesds.vt5.ai.AiManager.requestManualUpdate(this@HoofdActiviteit)
-                        Toast.makeText(this@HoofdActiviteit, "AI optimalisatie gestart (achtergrond). Laat de app open.", Toast.LENGTH_SHORT).show()
-                        
-                        // Observe the work state to show a final dialog
-                        androidx.work.WorkManager.getInstance(this@HoofdActiviteit)
-                            .getWorkInfosByTagLiveData("manual_update")
-                            .observe(this@HoofdActiviteit) { infoList ->
-                                val info = infoList.firstOrNull { it.state.isFinished }
-                                if (info != null && info.state == androidx.work.WorkInfo.State.SUCCEEDED) {
-                                    AlertDialog.Builder(this@HoofdActiviteit)
-                                        .setTitle("AI Optimalisatie Klaar")
-                                        .setMessage("Het AI-model is succesvol bijgewerkt en opgeslagen in:\n\nVT5/AI-models/models/training_model.tflite")
-                                        .setPositiveButton("OK", null)
-                                        .show()
-                                }
-                            }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "AI update request failed: ${e.message}")
-                    Toast.makeText(this@HoofdActiviteit, "AI optimalisatie kon niet gestart worden: ${e.message}", Toast.LENGTH_LONG).show()
-                } finally {
-                    it.postDelayed({ it.isEnabled = true }, 500)
-                }
-            }
+        findViewById<MaterialButton>(R.id.btnAiUpdate).setOnClickListener {
+            runFullAiUpdateFlow()
         }
 
         btnAiForecast?.setOnClickListener {
@@ -313,6 +272,91 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         maybeShowPendingUploadsDialog()
+    }
+
+    /**
+     * Voert de volledige AI update flow uit: mappen controleren, database export,
+     * labels genereren en tenslotte de achtergrond-training starten.
+     */
+    private fun runFullAiUpdateFlow() {
+        val btn = findViewById<MaterialButton>(R.id.btnAiUpdate)
+        btn.isEnabled = false
+        
+        lifecycleScope.launch {
+            val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "AI Update: Mappen controleren...")
+            try {
+                val modelStore = ModelStore(this@HoofdActiviteit)
+                val ok = modelStore.ensureModelDir()
+                if (!ok) {
+                    progress.dismiss()
+                    pendingAiUpdateAfterSaF = true
+                    
+                    val msg = "De AI-mappen konden niet automatisch worden aangemaakt.\n\n" +
+                             "Mogelijke oorzaak: De eerder geselecteerde map is verplaatst of de app heeft geen toegang meer.\n\n" +
+                             "Selecteer nu de hoofdmap (waarin de map 'VT5' staat of moet komen)."
+                    
+                    AlertDialog.Builder(this@HoofdActiviteit)
+                        .setTitle("SAF Toegang Vereist")
+                        .setMessage(msg)
+                        .setPositiveButton("Map Kiezen") { _, _ -> openTreeLauncher.launch(null) }
+                        .setNegativeButton("Annuleren", null)
+                        .show()
+                } else {
+                    // 1. Database export (Sync/Foreground)
+                    ProgressDialogHelper.updateMessage(progress, "AI Update: Database exporteren naar CSV...\n(Dit kan even duren bij 160k+ records)")
+                    val preparer = TrainingDataPreparer(this@HoofdActiviteit)
+                    val exportedFile = preparer.exportTrainingCsv(modelStore.getTrainingExportDir())
+                    
+                    if (exportedFile.isEmpty()) {
+                        progress.dismiss()
+                        AlertDialog.Builder(this@HoofdActiviteit)
+                            .setTitle("Export Mislukt")
+                            .setMessage("Het CSV-bestand 'training_data_current.csv' kon niet worden aangemaakt.\n\nControleer of de VT5 map schrijfbaar is.")
+                            .setPositiveButton("OK", null)
+                            .show()
+                        return@launch
+                    }
+
+                    // 2. Labels
+                    ProgressDialogHelper.updateMessage(progress, "AI Update: Labels genereren...")
+                    preparer.generateLabelsJson(modelStore.getTrainingExportDir())
+
+                    // 3. Start background training
+                    ProgressDialogHelper.updateMessage(progress, "AI Update: Training starten op de achtergrond...\nJe kunt de app blijven gebruiken.")
+                    com.yvesds.vt5.ai.AiManager.requestManualUpdate(this@HoofdActiviteit)
+                    
+                    // Korte vertraging om de laatste boodschap te laten zien
+                    kotlinx.coroutines.delay(2000)
+                    progress.dismiss()
+                    
+                    Toast.makeText(this@HoofdActiviteit, "Data geëxporteerd naar $exportedFile. De AI traint nu verder op de achtergrond.", Toast.LENGTH_LONG).show()
+                    
+                    // Observe background worker
+                    androidx.work.WorkManager.getInstance(this@HoofdActiviteit)
+                        .getWorkInfosByTagLiveData("manual_update")
+                        .observe(this@HoofdActiviteit) { infoList ->
+                            val info = infoList.firstOrNull { it.state.isFinished }
+                            if (info != null && info.state == androidx.work.WorkInfo.State.SUCCEEDED) {
+                                AlertDialog.Builder(this@HoofdActiviteit)
+                                    .setTitle("AI Optimalisatie Klaar")
+                                    .setMessage("Het nieuwe AI-model is succesvol berekend en opgeslagen in:\n\nVT5/AI-models/models/personal_migration_model.tflite")
+                                    .setPositiveButton("OK", null)
+                                    .show()
+                            }
+                        }
+                }
+            } catch (e: Exception) {
+                progress.dismiss()
+                Log.e(TAG, "AI update flow failed", e)
+                AlertDialog.Builder(this@HoofdActiviteit)
+                    .setTitle("Fout bij AI Update")
+                    .setMessage("Er is een fout opgetreden: ${e.message}")
+                    .setPositiveButton("OK", null)
+                    .show()
+            } finally {
+                btn.postDelayed({ btn.isEnabled = true }, 500)
+            }
+        }
     }
 
     private fun maybeShowPendingTellingDialog() {

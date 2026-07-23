@@ -348,4 +348,21 @@ interface TellingDao {
         ORDER BY year DESC
     """)
     suspend fun getAvailableYears(): List<String>
+
+    @Query("SELECT COUNT(*) FROM waarnemingen WHERE soortid = :speciesId")
+    suspend fun countObservationsForSpecies(speciesId: String): Int
+
+    @Query("SELECT SUM(CAST(totaalaantal AS INTEGER)) FROM waarnemingen WHERE tijdstip >= :startTime AND tijdstip <= :endTime")
+    suspend fun sumCountsInPeriod(startTime: String, endTime: String): Int?
+
+    @Query("SELECT soortid, SUM(CAST(totaalaantal AS INTEGER)) as count FROM waarnemingen WHERE tijdstip >= :startTime AND tijdstip <= :endTime GROUP BY soortid")
+    suspend fun getSpeciesCountsInPeriod(startTime: String, endTime: String): List<SpeciesCountRow>
+
+    @Query("SELECT DISTINCT soortid FROM waarnemingen")
+    suspend fun getAllSpeciesIds(): List<String>
 }
+
+data class SpeciesCountRow(
+    val soortid: String,
+    val count: Int
+)

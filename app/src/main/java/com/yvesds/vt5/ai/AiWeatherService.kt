@@ -5,6 +5,8 @@ import android.util.Log
 import com.yvesds.vt5.utils.weather.WeatherManager
 import com.yvesds.vt5.utils.weather.WeatherResponse
 import com.yvesds.vt5.ai.YrProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class WeatherContext(
     val lat: Double,
@@ -14,7 +16,8 @@ data class WeatherContext(
     val windDeg: Double?,
     val cloudPercent: Double?,
     val pressure: Double?,
-    val visibility: Int?
+    val visibility: Int?,
+    val pressureTrend: Double? = null // Difference with 6h ago
 )
 
 object AiWeatherService {
@@ -23,6 +26,7 @@ object AiWeatherService {
     suspend fun fetchContextualWeather(ctx: Context, lat: Double, lon: Double): WeatherContext? {
         try {
             val current = WeatherManager.fetchCurrent(lat, lon) ?: return null
+            val trend = fetchPressureTrend(lat, lon)
             return WeatherContext(
                 lat = lat,
                 lon = lon,
@@ -31,11 +35,38 @@ object AiWeatherService {
                 windDeg = current.windDirection10m,
                 cloudPercent = current.cloudCover,
                 pressure = current.pressureMsl,
-                visibility = WeatherManager.toVisibilityMeters(current.visibility)
+                visibility = WeatherManager.toVisibilityMeters(current.visibility),
+                pressureTrend = trend
             )
         } catch (e: Exception) {
             Log.w(TAG, "fetchContextualWeather failed: ${e.message}")
             return null
+        }
+    }
+
+    /** Returns current_pressure - pressure_6h_ago */
+    private suspend fun fetchPressureTrend(lat: Double, lon: Double): Double? {
+        return try {
+            val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&hourly=pressure_msl&past_days=1&forecast_days=1"
+            val req = okhttp3.Request.Builder().url(url).get().build()
+            val client = okhttp3.OkHttpClient()
+            val body = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                client.newCall(req).execute().use { it.body?.string() }
+            } ?: return null
+            
+            val pMatches = Regex(""""pressure_msl":\s*\[([^\]]+)\]""").find(body)?.groups?.get(1)?.value
+            val values = pMatches?.split(',')?.mapNotNull { it.trim().toDoubleOrNull() } ?: return null
+            
+            if (values.size < 24) return null
+            
+            // Assume the last element is approx 'now' (since past_days=1, forecast_days=1)
+            // Or better, find the index for 'now' if we had timestamps. 
+            // For simplicity, let's take the current value from the list and the one 6 indices back.
+            val currentVal = values.last()
+            val previousVal = values.getOrNull(values.size - 7) ?: values.first()
+            currentVal - previousVal
+        } catch (e: Exception) {
+            null
         }
     }
 

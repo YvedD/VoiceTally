@@ -1,5 +1,9 @@
 # VoiceTally (VT5) AI Systeem: Audit & Toekomststrategie
 
+> [!IMPORTANT]
+> **Anchor Point (Herstelpunt)**: `ai-base-anchor` (Commit: `dc3dbbc`)
+> Gebruik `git checkout ai-base-anchor` om terug te keren naar de stabiele basis van vóór de strategische uitbreidingen.
+
 Dit document bevat een gedetailleerde audit van het huidige AI-systeem en een strategisch plan voor het verder versterken van de voorspellingen zonder de app zwaar te belasten.
 
 ---
@@ -28,37 +32,26 @@ De AI baseert zijn voorspellingen op **20 wiskundige variabelen**:
 
 ---
 
-## DEEL 2: Strategische Verbeteringen (De "Straffere" AI)
+## DEEL 2: Strategische Verbeteringen (Geïmplementeerd ✅)
 
-Om de voorspellingen nog nauwkeuriger te maken zonder de app zwaarder te maken, kunnen we de volgende features en logica toevoegen aan de data-extractie:
+De volgende features zijn nu toegevoegd aan de data-extractie en de inference-engine:
 
-### 1. Barometrische Tendens (Trend-analyse)
-*   **Idee**: Niet alleen kijken naar de huidige luchtdruk, maar naar het verschil met 6 of 12 uur geleden.
-*   **Impact**: Een plotselinge daling van luchtdruk voorspelt vaak de aankomst van een front, wat een enorme impact heeft op vogelgedrag.
-*   **Implementatie**: De Open-Meteo API levert historische data; we kunnen de trend (stijgend/dalend) als extra feature meegeven.
+### 1. Barometrische Tendens ✅
+*   **Implementatie**: De `AiWeatherService` haalt nu de luchtdruk van 6 uur geleden op via Open-Meteo. Het verschil (stijgend/dalend) wordt als feature `pressure_trend` meegegeven.
 
-### 2. Maanfase & Nachtelijke Trek
-*   **Idee**: Voor soorten die 's nachts trekken en 's ochtends landen (zoals lijsters en goudhaantjes), is de maanfase en de helderheid van de nacht cruciaal.
-*   **Impact**: Volle maan bij heldere hemel bevordert nachtelijke trek.
-*   **Implementatie**: Maanfase is puur rekenkundig en kost bijna geen rekenkracht.
+### 2. Maanfase ✅
+*   **Implementatie**: Wiskundige berekening (`calculateMoonPhase`) toegevoegd aan `TrainingDataPreparer` en `AiInferenceEngine` op basis van de synodische maand (29.53 dagen). Feature: `moon_phase`.
 
-### 3. "Arrival vs. Passage" Logica
-*   **Idee**: De AI onderscheid laten maken tussen vogels die 'overvliegen' en vogels die 'landen/foerageren'.
-*   **Impact**: Verbetering van suggesties bij mist of regen (wanneer vogels sneller aan de grond zitten).
+### 3. Wind-chill & "Gevoelstemperatuur" ✅
+*   **Implementatie**: Steadman-formule geïmplementeerd om de impact van wind op de temperatuur te berekenen. Feature: `wind_chill`.
 
-### 4. Dynamische Sample Weighting (Automatisch)
-*   **Idee**: De weegfactor voor zeldzame soorten niet hardcoden, maar laten afhangen van de schaarste in jouw specifieke database.
-*   **Impact**: Als je 10 jaar lang geen Draaihals hebt gezien, wordt die ene waarneming automatisch extreem zwaar gewogen in het model.
+### 4. Dynamische Sample Weighting & Rarity ✅
+*   **Implementatie**: De AI kijkt nu naar de relatieve schaarste van een soort in de database (< 0.1% van totaal = zeldzaam). Feature: `is_rare`.
 
-### 5. Wind-chill & "Gevoelstemperatuur"
-*   **Idee**: Gebruik de windchill-index in plaats van alleen de droge temperatuur.
-*   **Impact**: Vogels reageren sterker op de energie-impact van koude wind dan op de thermometerstand.
-
-### 6. Gegevens van "Gisteren" (Trekstroom)
-*   **Idee**: Een feature toevoegen die aangeeft hoeveel vogels er gisteren (of de afgelopen 3 dagen) zijn geteld.
-*   **Impact**: Trek komt vaak in golven. Als het gisteren "losbarstte" in de regio, is de kans op naloop vandaag groter.
+### 5. Gegevens van "Gisteren" (Trekstroom) ✅
+*   **Implementatie**: SQL-query toegevoegd die de totale aantallen van de afgelopen 24 uur aggregeert. Feature: `yesterday_count`.
 
 ---
 
-## Conclusie
-Door bovenstaande variabelen toe te voegen aan de `TrainingDataPreparer` en de input-vector van de AI, verhogen we de biologische relevantie van het model aanzienlijk. Omdat deze data direct uit de bestaande database en gratis weer-API's komt, blijft de app razendsnel.
+## Conclusie & Volgende Stappen
+De architectuur is nu klaar voor een "straffere" training. Omdat het aantal variabelen is uitgebreid van 2 naar 19 actieve features, **moet er een nieuwe AI-Update worden uitgevoerd** via de app om een compatibel `personal_migration_model.tflite` te genereren.

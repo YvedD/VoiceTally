@@ -61,7 +61,8 @@ def choose_feature_columns(df: pd.DataFrame):
     preferred = [
         'temp_numeric', 'wind_ms_numeric', 'wind_dir_sin', 'wind_dir_cos',
         'cloud_pct', 'visibility', 'precip', 'ref_avg_wind_ms', 'ref_avg_pressure',
-        'day_sin', 'day_cos', 'hour_sin', 'hour_cos', 'label_count'
+        'day_sin', 'day_cos', 'hour_sin', 'hour_cos', 'moon_phase', 
+        'wind_chill', 'pressure_trend', 'yesterday_count', 'is_rare', 'label_count'
     ]
     cols = [c for c in preferred if c in df.columns]
     if not cols:
