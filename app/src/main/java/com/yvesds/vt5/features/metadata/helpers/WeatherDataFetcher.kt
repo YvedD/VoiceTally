@@ -11,7 +11,11 @@ import com.yvesds.vt5.databinding.SchermMetadataBinding
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
 import com.yvesds.vt5.utils.weather.WeatherManager
 import com.yvesds.vt5.utils.weather.Current
+import com.yvesds.vt5.core.opslag.AppDataStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -54,6 +58,8 @@ class WeatherDataFetcher(
         return fine || coarse
     }
     
+    private val fetcherScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
     /**
      * Fetch weather data and populate form fields.
      * Returns true if successful, false otherwise.
@@ -77,6 +83,18 @@ class WeatherDataFetcher(
             // 3) Map to UI fields
             withContext(Dispatchers.Main) {
                 applyWeatherToForm(cur, snapshot)
+            }
+            
+            // 4) Check AI suggestions after weather applied
+            // Run on a separate scope to ensure it's completely non-blocking for the weather flow
+            fetcherScope.launch {
+                try {
+                    if (AppDataStore.isAiEnabled(context)) {
+                        showAiSuggestions(cur, snapshot)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "AI suggestions trigger failed: ${e.message}")
+                }
             }
             
             return@withContext true
@@ -145,5 +163,9 @@ class WeatherDataFetcher(
         // Only change color to indicate weather was fetched, but keep button enabled
         // so user can always fetch fresh weather data (especially for vervolgtelling)
         binding.btnWeerAuto.backgroundTintList = ColorStateList.valueOf("#117CAF".toColorInt())
+    }
+
+    private suspend fun showAiSuggestions(cur: Current, snapshot: DataSnapshot) {
+        com.yvesds.vt5.ai.AiSuggestieFetcher.fetchAndShow(context, cur)
     }
 }

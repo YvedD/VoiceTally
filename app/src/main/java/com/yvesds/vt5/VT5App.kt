@@ -10,6 +10,7 @@ import com.yvesds.vt5.features.speech.AliasMatcher
 import com.yvesds.vt5.features.alias.AliasManager
 import com.yvesds.vt5.features.alias.helpers.AliasStartupInitializer
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.ai.AiManager
 import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -64,6 +65,13 @@ class VT5App : Application() {
 
         // Preload data in de achtergrond - verhoogt app responsiviteit
         preloadDataAsync()
+
+        // Initialize AI subsystem (schedules nightly update worker)
+        try {
+            AiManager.init(applicationContext)
+        } catch (ex: Exception) {
+            Log.w(TAG, "AiManager.init failed: ${ex.message}")
+        }
 
         startupAliasRefreshJob = appScope.async {
             try {

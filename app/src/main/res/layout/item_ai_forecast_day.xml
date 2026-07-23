@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/vt5_dark_gray"
+    app:cardCornerRadius="8dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/vt5_outline">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvDayTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:text="Maandag 22 Juli" />
+
+        <TextView
+            android:id="@+id/tvWeatherSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/vt5_on_surface"
+            android:alpha="0.7"
+            android:textSize="13sp"
+            android:paddingTop="4dp"
+            android:text="Wind: ZO 4bft | Temp: 22°C" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:alpha="0.2"
+            android:background="@color/vt5_on_surface" />
+
+        <TextView
+            android:id="@+id/tvSpeciesList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="14sp"
+            android:lineSpacingExtra="4dp"
+            android:text="• Soort A (80% kans)\n• Soort B (45% kans)" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

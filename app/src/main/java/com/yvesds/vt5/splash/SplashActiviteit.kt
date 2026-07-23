@@ -65,7 +65,11 @@ class SplashActiviteit : AppCompatActivity() {
                 aliasJob.await()
                 dataJob.await()
             }
-            
+
+            // AI model preload temporarily disabled to avoid heavy startup IO.
+            // We postpone AI integration to a later release per request.
+            val aiError: String? = null
+
             // Data is geladen: verberg progressbar
             pb?.visibility = android.view.View.INVISIBLE
             
@@ -74,7 +78,7 @@ class SplashActiviteit : AppCompatActivity() {
             if (remaining > 0L) {
                 delay(remaining)
             }
-            navigateToMain()
+            navigateToMain(aiError)
         }
     }
     
@@ -83,20 +87,20 @@ class SplashActiviteit : AppCompatActivity() {
         super.onDestroy()
     }
     
-    private fun navigateToMain() {
+    private fun navigateToMain(aiError: String? = null) {
         if (!isFinishing && !isDestroyed) {
-            startActivity(Intent(this, HoofdActiviteit::class.java))
-            finish()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                overrideActivityTransition(
-                    OVERRIDE_TRANSITION_CLOSE,
-                    android.R.anim.fade_in,
-                    android.R.anim.fade_out
-                )
+            val intent = Intent(this, HoofdActiviteit::class.java)
+            if (aiError != null) {
+                intent.putExtra("ai_model_loaded", false)
+                intent.putExtra("ai_model_error", aiError)
             } else {
-                @Suppress("DEPRECATION")
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                // only communicate success flag if model was actually loaded
+                if (com.yvesds.vt5.ai.ModelManager.getLoadedModel() != null) {
+                    intent.putExtra("ai_model_loaded", true)
+                }
             }
+            startActivity(intent)
+            finish()
         }
     }
 }

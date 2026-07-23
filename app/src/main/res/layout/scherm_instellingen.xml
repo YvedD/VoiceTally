@@ -641,6 +641,54 @@
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="13sp" />
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <!-- AI-instellingen -->
+            <TextView
+                android:id="@+id/tvAiTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_ai_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbAiEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_ai_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvAiDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.82"
+                android:text="@string/instellingen_ai_description"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectAiModel"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/instellingen_ai_select_model_btn"
+                android:textSize="14sp" />
+
         </LinearLayout>
 
     </ScrollView>

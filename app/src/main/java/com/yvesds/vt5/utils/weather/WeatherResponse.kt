@@ -1,5 +1,3 @@
-@file:OptIn(kotlinx.serialization.InternalSerializationApi::class)
-
 package com.yvesds.vt5.utils.weather
 
 import kotlinx.serialization.SerialName
@@ -11,7 +9,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class WeatherResponse(
-    @SerialName("current") val current: Current? = null
+    @SerialName("current") val current: Current? = null,
+    @SerialName("hourly") val hourly: Hourly? = null
 )
 
 @Serializable
@@ -19,24 +18,32 @@ data class Current(
     // temperatuur in °C
     @SerialName("temperature_2m") val temperature2m: Double? = null,
 
-    // windrichting in graden (0..360) of windrichting-code; afhankelijk van API
+    // windrichting in graden (0..360)
     @SerialName("wind_direction_10m") val windDirection10m: Double? = null,
 
-    // windsnelheid in m/s of km/h afhankelijk van API-instelling
+    // windsnelheid in m/s
     @SerialName("wind_speed_10m") val windSpeed10m: Double? = null,
 
     // windstoten
     @SerialName("wind_gusts_10m") val windGusts10m: Double? = null,
 
-    // bewolking in % (0..100) of in 1/8…8/8 afhankelijk van API; we mappen in UI
+    // bewolking in % (0..100)
     @SerialName("cloud_cover") val cloudCover: Double? = null,
 
     // luchtdruk op zeeniveau (hPa)
     @SerialName("pressure_msl") val pressureMsl: Double? = null,
 
-    // zicht (kan als meters of kilometers met decimalen komen)
+    // zicht (meters)
     @SerialName("visibility") val visibility: Double? = null,
 
     // neerslag (mm)
     @SerialName("precipitation") val precipitation: Double? = null
+)
+
+@Serializable
+data class Hourly(
+    @SerialName("time") val time: List<String>? = null,
+    @SerialName("temperature_2m") val temperature2m: List<Double?>? = null,
+    @SerialName("wind_speed_10m") val windSpeed10m: List<Double?>? = null,
+    @SerialName("wind_direction_10m") val windDirection10m: List<Double?>? = null
 )

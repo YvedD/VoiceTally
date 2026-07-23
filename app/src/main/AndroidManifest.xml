@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Permission to read user-placed model files on external storage. If you prefer
+         not to request this permission, the app can use the Storage Access Framework
+         (file picker) to obtain access to the files instead. -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -140,6 +144,18 @@
 
         <activity
             android:name=".core.database.ui.DatabaseSoortOverzichtActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".ai.AiLogActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
+            android:name=".ai.AiForecastScherm"
             android:exported="false"
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />

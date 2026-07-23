@@ -34,13 +34,17 @@ import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
-import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
+import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm.Companion.PREF_BATCH_IMPORT_ACTIVE
 import com.yvesds.vt5.core.ui.DialogStyler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
+import androidx.activity.result.ActivityResultLauncher
+import android.net.Uri
+import com.yvesds.vt5.ai.ModelStore
+import com.yvesds.vt5.ai.TrainingDataPreparer
 
 /**
  * HoofdActiviteit - Hoofdscherm van VT5 app
@@ -70,6 +74,9 @@ class HoofdActiviteit : AppCompatActivity() {
     private lateinit var safHelper: SaFStorageHelper
     private lateinit var fileLogger: FileLogger
     private var pendingTellingDialogShown = false
+    private var pendingExportAfterSaF: Boolean = false
+    private var pendingAiUpdateAfterSaF: Boolean = false
+    private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
 
     private val clientQrScanLauncher = registerForActivityResult(ScanContract()) { result ->
         val raw = result.contents?.trim().orEmpty()
@@ -123,6 +130,41 @@ class HoofdActiviteit : AppCompatActivity() {
         
         safHelper = SaFStorageHelper(this)
         fileLogger = FileLogger(this)
+        
+        // Check for active batch import to redirect
+        val batchPrefs = getSharedPreferences("batch_import", MODE_PRIVATE)
+        if (batchPrefs.getBoolean(PREF_BATCH_IMPORT_ACTIVE, false)) {
+            Log.i(TAG, "Active batch import detected, redirecting to DatabaseBeheerScherm")
+            startActivity(Intent(this, DatabaseBeheerScherm::class.java))
+            finish()
+            return
+        }
+
+        openTreeLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+            if (uri != null) {
+                try {
+                    safHelper.takePersistablePermission(uri)
+                    safHelper.saveRootUri(uri)
+                } catch (_: Exception) {}
+                // If there was a pending export or ai update, run them now
+                if (pendingExportAfterSaF) {
+                    pendingExportAfterSaF = false
+                    lifecycleScope.launch { startTrainingExport() }
+                }
+                if (pendingAiUpdateAfterSaF) {
+                    pendingAiUpdateAfterSaF = false
+                    lifecycleScope.launch {
+                        try {
+                            com.yvesds.vt5.ai.AiManager.requestManualUpdate(this@HoofdActiviteit)
+                            Toast.makeText(this@HoofdActiviteit, "AI update gestart (achtergrond)", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "AI update request failed after SAF selection: ${e.message}")
+                            Toast.makeText(this@HoofdActiviteit, "AI update kon niet gestart worden: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        }
         requestStartupPermissionsIfNeeded()
 
         lifecycleScope.launch {
@@ -130,6 +172,22 @@ class HoofdActiviteit : AppCompatActivity() {
             fileLogger.info("HoofdActiviteit gestart - VT5 App actief")
             fileLogger.info("Geselecteerde opslagmodus: $storageMode")
         }
+
+        // Check if the splash screen passed AI-load status and inform the user.
+        try {
+            val aiLoaded = intent.getBooleanExtra("ai_model_loaded", false)
+            val aiError = intent.getStringExtra("ai_model_error")
+            if (aiLoaded) {
+                Toast.makeText(this, "AI-model geladen", Toast.LENGTH_SHORT).show()
+            } else if (!aiError.isNullOrBlank()) {
+                val dlg = AlertDialog.Builder(this)
+                    .setTitle("AI-model fout")
+                    .setMessage(aiError)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+                DialogStyler.apply(dlg)
+            }
+        } catch (_: Exception) {}
 
         val btnInstall   = findViewById<MaterialButton>(R.id.btnInstall)
         val btnVerder    = findViewById<MaterialButton>(R.id.btnVerder)
@@ -139,6 +197,8 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
         val btnInstellingen = findViewById<MaterialButton>(R.id.btnInstellingen)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
+        val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
+        val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
 
         // Alarm sectie - altijd zichtbaar
         setupAlarmSection()
@@ -210,6 +270,48 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
 
+        btnAiUpdate.setOnClickListener {
+            it.isEnabled = false
+            lifecycleScope.launch {
+                try {
+                    val modelStore = ModelStore(this@HoofdActiviteit)
+                    val ok = modelStore.ensureModelDir()
+                    if (!ok) {
+                        // request SAF root selection and mark pending
+                        pendingAiUpdateAfterSaF = true
+                        Toast.makeText(this@HoofdActiviteit, "Selecteer VT5 root om AI modelmap aan te maken", Toast.LENGTH_LONG).show()
+                        openTreeLauncher.launch(null)
+                    } else {
+                        com.yvesds.vt5.ai.AiManager.requestManualUpdate(this@HoofdActiviteit)
+                        Toast.makeText(this@HoofdActiviteit, "AI optimalisatie gestart (achtergrond). Laat de app open.", Toast.LENGTH_SHORT).show()
+                        
+                        // Observe the work state to show a final dialog
+                        androidx.work.WorkManager.getInstance(this@HoofdActiviteit)
+                            .getWorkInfosByTagLiveData("manual_update")
+                            .observe(this@HoofdActiviteit) { infoList ->
+                                val info = infoList.firstOrNull { it.state.isFinished }
+                                if (info != null && info.state == androidx.work.WorkInfo.State.SUCCEEDED) {
+                                    AlertDialog.Builder(this@HoofdActiviteit)
+                                        .setTitle("AI Optimalisatie Klaar")
+                                        .setMessage("Het AI-model is succesvol bijgewerkt en opgeslagen in:\n\nVT5/AI-models/models/training_model.tflite")
+                                        .setPositiveButton("OK", null)
+                                        .show()
+                                }
+                            }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "AI update request failed: ${e.message}")
+                    Toast.makeText(this@HoofdActiviteit, "AI optimalisatie kon niet gestart worden: ${e.message}", Toast.LENGTH_LONG).show()
+                } finally {
+                    it.postDelayed({ it.isEnabled = true }, 500)
+                }
+            }
+        }
+
+        btnAiForecast?.setOnClickListener {
+            startActivity(Intent(this, com.yvesds.vt5.ai.AiForecastScherm::class.java))
+        }
+
         maybeShowPendingUploadsDialog()
     }
 
@@ -232,8 +334,7 @@ class HoofdActiviteit : AppCompatActivity() {
                     if (tellingId.isBlank()) {
                         hasPending = false
                     } else {
-                        val hybridRepo = HybridTellingRepository(this@HoofdActiviteit)
-                        val header = withContext(Dispatchers.IO) { 
+                        val header = withContext(Dispatchers.IO) {
                             VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao().getHeader(tellingId) 
                         }
                         // Sessie is pending als status 'actief' is en er records zijn
@@ -283,6 +384,43 @@ class HoofdActiviteit : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "maybeShowPendingTellingDialog failed: ${e.message}", e)
+            }
+        }
+    }
+
+    /**
+     * Start a training CSV export. If SAF VT5 root or training_exports dir is missing,
+     * request the user to select the VT5 root and retry after selection.
+     */
+    private suspend fun startTrainingExport() {
+        try {
+            val modelStore = ModelStore(this@HoofdActiviteit)
+            val exportDir = modelStore.getTrainingExportDir()
+            if (exportDir == null) {
+                // need to prompt for SAF VT5 root
+                pendingExportAfterSaF = true
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@HoofdActiviteit, "Selecteer VT5 root om CSV op te slaan", Toast.LENGTH_LONG).show()
+                    openTreeLauncher.launch(null)
+                }
+                return
+            }
+
+            // perform export on IO
+            withContext(Dispatchers.IO) {
+                val exported = TrainingDataPreparer(this@HoofdActiviteit).exportTrainingCsv(exportDir)
+                withContext(Dispatchers.Main) {
+                    if (exported.isNotBlank()) {
+                        Toast.makeText(this@HoofdActiviteit, "CSV geëxporteerd: $exported", Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this@HoofdActiviteit, "CSV export mislukt", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "startTrainingExport failed: ${e.message}", e)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@HoofdActiviteit, "Export fout: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

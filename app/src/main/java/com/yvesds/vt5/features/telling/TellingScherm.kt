@@ -1847,6 +1847,21 @@ class TellingScherm : AppCompatActivity() {
      * @param eindtijdEpoch The eindtijd to use as begintijd for the follow-up telling
      */
     private fun showVervolgtellingDialog(eindtijdEpoch: String) {
+        val tellingId = prefs.getString("pref_telling_id", "") ?: ""
+        
+        lifecycleScope.launch {
+            // Show AI Feedback dialog first if AI is enabled
+            if (com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@TellingScherm)) {
+                com.yvesds.vt5.ai.AiFeedbackDialoog.show(this@TellingScherm, tellingId) {
+                    showActualVervolgtellingDialog(eindtijdEpoch)
+                }
+            } else {
+                showActualVervolgtellingDialog(eindtijdEpoch)
+            }
+        }
+    }
+
+    private fun showActualVervolgtellingDialog(eindtijdEpoch: String) {
         val dlg = AlertDialog.Builder(this@TellingScherm)
             .setTitle(getString(R.string.afrond_vervolgtelling_titel))
             .setMessage(getString(R.string.afrond_vervolgtelling_msg))

@@ -22,6 +22,13 @@
     <string name="perm_audio_checkbox">Microfoon (spraakherkenning) - nodig om soorten via spraak in te geven.</string>
     <string name="perm_saf_checkbox">Bestanden in Documents (SAF) - nodig om tellingen en serverdata op te slaan.</string>
     <string name="perm_location_checkbox">Locatie (weer Auto) - nodig om weergegevens automatisch op te halen.</string>
+    <string name="instellingen_ai_title">AI-functionaliteit</string>
+    <string name="instellingen_ai_checkbox">AI-meldingen inschakelen</string>
+    <string name="instellingen_ai_description">Indien ingeschakeld worden AI-modellen lokaal op het toestel aangemaakt en gebruikt voor waarnemingssuggesties.</string>
+    <string name="instellingen_ai_select_model_btn">Selecteer AI-model map</string>
+    <string name="instellingen_ai_model_folder_prefix">AI-model map: %1$s</string>
+    <string name="instellingen_ai_model_saved">AI-model map opgeslagen</string>
+    <string name="instellingen_ai_model_save_error">Kon AI-model map niet opslaan: %1$s</string>
     <string name="install_unknown_sources_title">Installatiehulp</string>
     <string name="install_unknown_sources_desc">Als het toestel installatie van onbekende apps blokkeert, open de instellingen en sta installatie toe voor de gebruikte install-app (bv. Bestanden of je browser).</string>
     <string name="install_unknown_sources_button">Open installatie-instellingen</string>
@@ -106,6 +113,15 @@
     <string name="hoofd_opkuis_laden">Exports laden…</string>
     <string name="hoofd_instellingen">Instellingen</string>
     <string name="hoofd_database_beheer">Database Beheer (+ analyse)</string>
+    <string name="hoofd_ai_update">AI-Update </string>
+    <string name="hoofd_ai_forecast_3days">AI +3 dagen</string>
+    <string name="ai_log_title">AI Historiek &amp; Evaluatie</string>
+    <string name="ai_eval_btn">AI-Evaluatie</string>
+    <string name="ai_feedback_rating_title">Beoordeel de AI-prognose</string>
+    <string name="ai_feedback_accuracy_question">Hoe accuraat waren de suggesties van vandaag?</string>
+    <string name="ai_feedback_comment_hint">Algemene opmerkingen over de prognose</string>
+    <string name="ai_feedback_send">Versturen</string>
+    <string name="ai_feedback_skip">Overslaan</string>
 
     <!-- Database Beheer Scherm -->
     <string name="db_beheer_titel">Database Beheer (+ analyse)</string>

@@ -136,6 +136,12 @@ class MetadataScherm : AppCompatActivity() {
         // 1. Eerst de essentiële codes (snel)
         // 2. Later, terwijl de gebruiker bezig is, de rest van de data
         loadEssentialData()
+
+        // 3. Automatisch weer ophalen (zoals gevraagd)
+        uiScope.launch {
+            delay(800) // Wacht even tot de UI en data geladen zijn
+            ensureLocationPermissionThenFetch()
+        }
     }
     
     /**

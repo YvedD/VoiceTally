@@ -57,7 +57,7 @@ class SaFStorageHelper(private val context: Context) {
         val rootTree = getRootUri() ?: return false
         val rootDoc = DocumentFile.fromTreeUri(context, rootTree) ?: return false
         val vt5 = rootDoc.findFile("VT5")?.takeIf { it.isDirectory } ?: return false
-        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports")
+        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports", "AI-models")
         val present = vt5.listFiles().filter { it.isDirectory }.mapNotNull { it.name }.toSet()
         return expected.all { it in present }
     }
@@ -79,11 +79,21 @@ class SaFStorageHelper(private val context: Context) {
 
         val vt5Folder = findOrCreateDirectory(rootDoc, "VT5") ?: return false
 
-        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports")
+        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports", "AI-models")
         for (name in subfolders) {
-            if (findOrCreateDirectory(vt5Folder, name) == null) return false
+            val dir = findOrCreateDirectory(vt5Folder, name) ?: return false
+            if (name == "AI-models") {
+                ensureAiSubfolders(dir)
+            }
         }
         return true
+    }
+
+    private fun ensureAiSubfolders(aiDir: DocumentFile) {
+        val subfolders = listOf("training_exports", "models", "feedback")
+        for (name in subfolders) {
+            findOrCreateDirectory(aiDir, name)
+        }
     }
 
     /**

@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/vt5_black"
-    android:orientation="vertical"
-    android:paddingLeft="20dp"
-    android:paddingRight="20dp"
-    android:paddingTop="50dp"
-    android:paddingBottom="60dp">
+    android:fillViewport="true"
+    android:background="@color/vt5_black">
+
+    <LinearLayout
+        android:id="@+id/root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="45dp"
+        android:orientation="vertical"
+        android:paddingLeft="20dp"
+        android:paddingTop="50dp"
+        android:paddingRight="20dp"
+        android:paddingBottom="60dp">
 
     <TextView
         android:id="@+id/tvTitel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingBottom="16dp"
         android:text="@string/titel_hoofd"
         android:textColor="@color/vt5_on_surface"
-        android:textSize="22sp"
-        android:paddingBottom="16dp" />
+        android:textSize="22sp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnInstall"
@@ -62,17 +68,17 @@
         android:layout_height="1dp"
         android:layout_marginTop="24dp"
         android:layout_marginBottom="12dp"
-        android:background="@color/vt5_on_surface"
-        android:alpha="0.3" />
+        android:alpha="0.3"
+        android:background="@color/vt5_on_surface" />
 
     <TextView
         android:id="@+id/tvAlarmStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingBottom="12dp"
         android:text=""
         android:textColor="@color/vt5_on_surface"
-        android:textSize="14sp"
-        android:paddingBottom="12dp" />
+        android:textSize="14sp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnToggleAlarm"
@@ -113,6 +119,33 @@
         android:textSize="14sp" />
 
     <!-- Database Beheer sectie -->
+    <!-- AI sectie met twee knoppen op één regel -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAiUpdate"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/hoofd_ai_update"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAiForecast3Days"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/hoofd_ai_forecast_3days"
+            android:textSize="13sp" />
+    </LinearLayout>
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDatabaseBeheer"
         style="@style/Widget.VT5.Button.Outlined"
@@ -122,4 +155,7 @@
         android:text="@string/hoofd_database_beheer"
         android:textSize="14sp" />
 
-</LinearLayout>
+    </LinearLayout>
+
+</ScrollView>
+

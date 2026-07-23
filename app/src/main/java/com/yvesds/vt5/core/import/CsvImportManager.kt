@@ -651,6 +651,69 @@ class CsvImportManager(
         }
     }
 
+    /**
+     * Scant de imports folder en geeft een lijst van alle herkende (header + data) paren terug.
+     */
+    suspend fun getPendingImportPairs(): List<Pair<BatchFileInfo, BatchFileInfo>> = withContext(Dispatchers.IO) {
+        try {
+            val importsDir = safHelper.getImportsDirSuspend() ?: return@withContext emptyList()
+            val files = importsDir.listFiles()
+            val recognized = mutableListOf<BatchFileInfo>()
+
+            for (file in files) {
+                val name = file.name ?: continue
+                if (!name.lowercase().endsWith(".csv")) continue
+                
+                val pattern = Regex("^Trektellen_(headerdata|data)_(\\d+)_(\\d{4})\\.csv$", RegexOption.IGNORE_CASE)
+                val match = pattern.matchEntire(name) ?: continue
+                
+                val type = if (match.groupValues[1].lowercase() == "headerdata") CsvFileType.HEADER else CsvFileType.DATA
+                recognized.add(BatchFileInfo(file, name, type, match.groupValues[2], match.groupValues[3]))
+            }
+
+            val headers = recognized.filter { it.type == CsvFileType.HEADER }
+            val dataFiles = recognized.filter { it.type == CsvFileType.DATA }
+            
+            val pairs = mutableListOf<Pair<BatchFileInfo, BatchFileInfo>>()
+            for (h in headers) {
+                val d = dataFiles.find { it.telpostId == h.telpostId && it.year == h.year }
+                if (d != null) {
+                    pairs.add(h to d)
+                }
+            }
+            // Sorteren voor consistente verwerking over herstarts heen
+            pairs.sortBy { "${it.first.telpostId}_${it.first.year}" }
+            pairs
+        } catch (e: Exception) {
+            Log.e(TAG, "Error listing pending pairs", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Importeert één specifiek paar bestanden.
+     */
+    suspend fun importSinglePair(header: BatchFileInfo, data: BatchFileInfo): Result<CsvImportResult> = withContext(Dispatchers.IO) {
+        try {
+            context.contentResolver.openInputStream(header.file.uri)?.use { hs ->
+                context.contentResolver.openInputStream(data.file.uri)?.use { ds ->
+                    importHeadersAndData(hs, ds)
+                }
+            } ?: Result.failure(Exception("Kon header bestand niet openen"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    enum class CsvFileType { HEADER, DATA }
+    data class BatchFileInfo(
+        val file: androidx.documentfile.provider.DocumentFile,
+        val name: String,
+        val type: CsvFileType,
+        val telpostId: String,
+        val year: String
+    )
+
     private suspend fun loadValidationSets(): ValidationSets {
         return runCatching {
             val snapshot = ServerDataCache.getOrLoad(context)

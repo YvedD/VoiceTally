@@ -1,6 +1,7 @@
 package com.yvesds.vt5.core.database.dao
 
 import androidx.room.*
+import com.yvesds.vt5.core.database.entities.AiLog
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import kotlinx.coroutines.flow.Flow
@@ -163,7 +164,7 @@ interface TellingDao {
     @Query("DELETE FROM waarnemingen")
     suspend fun clearAllWaarnemingen()
 
-    @Query("DELETE FROM sync_logs")
+    @Query("DELETE FROM ai_logs")
     suspend fun clearAllSyncLogs()
 
     @Query("SELECT COUNT(*) FROM telling_headers")
@@ -175,7 +176,18 @@ interface TellingDao {
     @Query("SELECT COUNT(*) FROM waarnemingen")
     suspend fun countWaarnemingen(): Int
 
-    // Lookup helpers by server online id
+    // AiLog operations
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAiLog(log: AiLog)
+
+    @Update
+    suspend fun updateAiLog(log: AiLog)
+
+    @Query("SELECT * FROM ai_logs ORDER BY timestamp DESC")
+    fun getAllAiLogsFlow(): Flow<List<AiLog>>
+
+    @Query("SELECT * FROM ai_logs WHERE id = :id")
+    suspend fun getAiLogById(id: Int): AiLog?
     @Query("SELECT tellingid FROM telling_headers WHERE onlineid = :onlineid LIMIT 1")
     suspend fun getLocalTellingIdForOnlineId(onlineid: String): String?
 
@@ -185,8 +197,61 @@ interface TellingDao {
     @Query("SELECT * FROM waarnemingen WHERE onlineid = :onlineid")
     suspend fun getWaarnemingenByOnlineId(onlineid: String): List<Waarneming>
 
-    @Query("SELECT COUNT(*) FROM sync_logs")
+    @Query("SELECT COUNT(*) FROM ai_logs")
     suspend fun countSyncLogs(): Int
+
+    @Query("SELECT DISTINCT soortid FROM waarnemingen ORDER BY soortid")
+    suspend fun getAllUniqueSpeciesIds(): List<String>
+
+    /**
+     * Get top species based on hour of the day, filtered by current month for seasonal context.
+     */
+    @Query("""
+        SELECT waarnemingen.soortid, COUNT(*) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek
+        FROM waarnemingen
+        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
+        WHERE strftime('%H', datetime(CAST(waarnemingen.tijdstip AS INTEGER), 'unixepoch')) = printf('%02d', :hour)
+          AND strftime('%m', datetime(
+                CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
+            , 'unixepoch')) = printf('%02d', :month)
+        GROUP BY waarnemingen.soortid
+        ORDER BY count DESC
+        LIMIT 3
+    """)
+    suspend fun getTopSpeciesByHour(hour: Int, month: Int): List<AiStatsRow>
+
+    /**
+     * Get top species based on wind direction, filtered by current month for seasonal context.
+     */
+    @Query("""
+        SELECT waarnemingen.soortid, COUNT(*) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek
+        FROM waarnemingen
+        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
+        WHERE telling_headers.windrichting = :wind
+          AND strftime('%m', datetime(
+                CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
+            , 'unixepoch')) = printf('%02d', :month)
+        GROUP BY waarnemingen.soortid
+        ORDER BY count DESC
+        LIMIT 3
+    """)
+    suspend fun getTopSpeciesByWind(wind: String, month: Int): List<AiStatsRow>
+
+    /**
+     * Get top species based on month.
+     */
+    @Query("""
+        SELECT waarnemingen.soortid, COUNT(*) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek
+        FROM waarnemingen
+        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
+        WHERE strftime('%m', datetime(
+            CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
+        , 'unixepoch')) = printf('%02d', :month)
+        GROUP BY waarnemingen.soortid
+        ORDER BY count DESC
+        LIMIT 3
+    """)
+    suspend fun getTopSpeciesByMonth(month: Int): List<AiStatsRow>
 
     @Query("""
         SELECT

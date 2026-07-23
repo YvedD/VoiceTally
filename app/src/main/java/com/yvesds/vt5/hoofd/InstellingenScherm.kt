@@ -19,8 +19,15 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.core.opslag.AppDataStore
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.UiColorPrefs
+import kotlinx.coroutines.launch
 
 /**
  * InstellingenScherm - Scherm voor app-instellingen
@@ -32,6 +39,7 @@ import com.yvesds.vt5.core.ui.UiColorPrefs
  * Instellingen worden opgeslagen via SharedPreferences voor gebruik doorheen de app.
  */
 class InstellingenScherm : AppCompatActivity() {
+    private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
     
     companion object {
         private const val PREFS_NAME = "vt5_prefs"
@@ -175,6 +183,32 @@ class InstellingenScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_instellingen)
 
+        // Register SAF picker for selecting VT5 root / AI model folder
+        openTreeLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+            if (uri != null) {
+                try {
+                    SaFStorageHelper(this).takePersistablePermission(uri)
+                    SaFStorageHelper(this).saveRootUri(uri)
+                } catch (_: Exception) {}
+
+                // Persist the selected URI into DataStore so other components (Model loading) can read it
+                lifecycleScope.launch {
+                    try {
+                        AppDataStore.setAiModelDirUri(this@InstellingenScherm, uri.toString())
+                        Toast.makeText(this@InstellingenScherm, getString(R.string.instellingen_ai_model_saved), Toast.LENGTH_SHORT).show()
+                        // update button label to show selected folder name
+                        try {
+                            val btn = findViewById<MaterialButton>(R.id.btnSelectAiModel)
+                            val name = uri.path?.substringAfterLast('/') ?: uri.toString()
+                            btn.text = getString(R.string.instellingen_ai_model_folder_prefix, name)
+                        } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        Toast.makeText(this@InstellingenScherm, getString(R.string.instellingen_ai_model_save_error, e.message ?: ""), Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+
         try {
             ensureLogTextColorDefaults()
             setupTerugKnop()
@@ -189,6 +223,25 @@ class InstellingenScherm : AppCompatActivity() {
             setupFinalsTextColorSpinner()
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
+            setupAiSettings()
+            // Hook up AI model folder picker button
+            try {
+                val btn = findViewById<MaterialButton>(R.id.btnSelectAiModel)
+                btn.setOnClickListener {
+                    openTreeLauncher.launch(null)
+                }
+
+                // Show currently stored URI (if any)
+                lifecycleScope.launch {
+                    try {
+                        val stored = AppDataStore.getAiModelDirUri(this@InstellingenScherm)
+                        if (!stored.isNullOrBlank()) {
+                            val name = Uri.parse(stored).path?.substringAfterLast('/') ?: stored
+                            btn.text = getString(R.string.instellingen_ai_model_folder_prefix, name)
+                        }
+                    } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
         } catch (t: Throwable) {
             // Fail-safe: avoid hard crash to background when a view/id mismatch occurs.
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
@@ -597,6 +650,19 @@ class InstellingenScherm : AppCompatActivity() {
                 }
             } else {
                 prefs.edit { putBoolean(key, true) }
+            }
+        }
+    }
+
+    private fun setupAiSettings() {
+        val cbAiEnabled = findViewById<MaterialCheckBox>(R.id.cbAiEnabled)
+        lifecycleScope.launch {
+            val enabled = AppDataStore.isAiEnabled(this@InstellingenScherm)
+            cbAiEnabled.isChecked = enabled
+            cbAiEnabled.setOnCheckedChangeListener { _, isChecked ->
+                lifecycleScope.launch {
+                    AppDataStore.setAiEnabled(this@InstellingenScherm, isChecked)
+                }
             }
         }
     }

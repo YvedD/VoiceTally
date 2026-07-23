@@ -5,13 +5,13 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.yvesds.vt5.core.database.dao.TellingDao
-import com.yvesds.vt5.core.database.entities.SyncLog
+import com.yvesds.vt5.core.database.entities.AiLog
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import java.io.File
 
 @Database(
-    entities = [TellingHeader::class, Waarneming::class, SyncLog::class],
+    entities = [TellingHeader::class, Waarneming::class, AiLog::class],
     version = 1,
     exportSchema = false
 )
@@ -35,6 +35,13 @@ abstract class VoiceTallyDatabase : RoomDatabase() {
                     override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                         super.onOpen(db)
                         db.execSQL("PRAGMA foreign_keys = ON")
+                        // Ensure helpful indexes exist to speed up large queries (no schema migration needed)
+                        try {
+                            db.execSQL("CREATE INDEX IF NOT EXISTS idx_waarnemingen_soortid_tijdstip ON waarnemingen(soortid, tijdstip)")
+                            db.execSQL("CREATE INDEX IF NOT EXISTS idx_telling_headers_begintijd ON telling_headers(begintijd)")
+                        } catch (_: Exception) {
+                            // best-effort: do not fail database open if index creation fails
+                        }
                     }
                 })
                 .fallbackToDestructiveMigration() // Voor ontwikkeling, later wijzigen naar echte migraties

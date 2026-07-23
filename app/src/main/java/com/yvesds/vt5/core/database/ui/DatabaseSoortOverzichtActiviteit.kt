@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.DiffUtil
 // ...existing imports...
@@ -55,6 +56,7 @@ import androidx.paging.PagingDataAdapter
 // ...existing imports...
 import androidx.paging.LoadState
 import kotlinx.coroutines.flow.collectLatest
+import androidx.paging.PagingData
 
 class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
@@ -74,9 +76,12 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     // Job used to cancel any in-flight load when a new species search starts
     private var loadJob: Job? = null
     private lateinit var pagingAdapter: WaarnemingPagingAdapter
+    private lateinit var placeholderAdapter: PlaceholderAdapter
     private lateinit var pagingViewModel: DatabaseSoortOverzichtViewModel
     private lateinit var pbOverviewProgressView: ProgressBar
     private var loadStateJob: Job? = null
+    private var overviewTotalCount: Int? = null
+    private var overviewTotalBlocks: Int = 0
     private val WAARNEMING_DIFF = object : DiffUtil.ItemCallback<Waarneming>() {
         override fun areItemsTheSame(oldItem: Waarneming, newItem: Waarneming): Boolean {
             return oldItem.idLocal == newItem.idLocal && oldItem.tellingid == newItem.tellingid
@@ -114,9 +119,10 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         fileLogger = FileLogger(this)
         recyclerView = findViewById(R.id.rvWaarnemingen)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        // initialize paging adapter and viewmodel
+        // initialize paging adapter and placeholder adapter and viewmodel
         pagingAdapter = WaarnemingPagingAdapter()
-        recyclerView.adapter = pagingAdapter
+        placeholderAdapter = PlaceholderAdapter()
+        recyclerView.adapter = ConcatAdapter(pagingAdapter, placeholderAdapter)
         // progress view reference (determinate)
         pbOverviewProgressView = findViewById(R.id.pbOverviewProgress)
         // ViewModel (simple instantiation with DB)
@@ -236,12 +242,17 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             // ignore
         }
 
+        // clear adapter immediately so the previous species' items are not visible
+        try {
+            lifecycleScope.launch(Dispatchers.Main) { pagingAdapter.submitData(PagingData.empty()) }
+        } catch (_: Exception) { }
+
+        // show an initial block of placeholders immediately so the user sees that loading will occur
+        try { placeholderAdapter.setCount(PagingConstants.DEFAULT_PAGE_SIZE) } catch (_: Exception) { }
+
         // show in-layout progress indicator for overview and ensure overview tab active
         pbOverviewContainer.visibility = View.VISIBLE
         tabLayout.getTabAt(0)?.select()
-        // Also show the same modal loading dialog used by the Grafieken tab so users
-        // clearly see that a potentially long background load is in progress.
-        showLoading(getString(R.string.loading_overview))
 
         val year = getSelectedYear()
 
@@ -257,6 +268,11 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 if (totals != null) {
                     val totalCount = totals.totaal ?: 0
+                    overviewTotalCount = totalCount
+                    // Use centralized page size constant (keep in sync with ViewModel)
+                    val pageSize = PagingConstants.DEFAULT_PAGE_SIZE
+                    overviewTotalBlocks = if (totalCount > 0) ((totalCount + pageSize - 1) / pageSize) else 0
+
                     pbOverviewProgressView.max = if (totalCount > 0) totalCount else 100
                     // show determinate if we have a real total
                     if (totalCount > 0) {
@@ -266,7 +282,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                         findViewById<ProgressBar>(R.id.pbOverviewLoading).visibility = View.VISIBLE
                         pbOverviewProgressView.visibility = View.GONE
                     }
-                    tvSoortInfo.text = "Totaal verwacht: Aantal: ${totals.totaal ?: 0} / Terug: ${totals.totaalterug ?: 0}"
+                    tvSoortInfo.text = "Totaal verwacht aantal '${totals.totaal ?: 0}', aantal datablokken '${overviewTotalBlocks}'"
+
+                    // Show placeholders for the first upcoming block so the user sees that data will follow.
+                    try {
+                        val initialPlaceholders = if (totalCount > 0) minOf(totalCount, pageSize) else pageSize
+                        placeholderAdapter.setCount(initialPlaceholders)
+                    } catch (_: Exception) { }
                 } else {
                     findViewById<ProgressBar>(R.id.pbOverviewLoading).visibility = View.VISIBLE
                     pbOverviewProgressView.visibility = View.GONE
@@ -275,20 +297,26 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         }
 
         // collect paging flow and submit to adapter
-        loadJob = lifecycleScope.launch {
-            try {
-                pagingViewModel.getWaarnemingenPager(soortId, getSelectedYear()).collectLatest { pagingData ->
-                    pagingAdapter.soortNaam = soortNaam
-                    pagingAdapter.submitData(pagingData)
+        // Post the start of the heavy paging collection to the UI message queue so the
+        // modal loading dialog has a chance to be rendered immediately. Starting the
+        // paging collect/submit directly sometimes blocks the main thread rendering
+        // before the dialog becomes visible.
+        recyclerView.post {
+            loadJob = lifecycleScope.launch {
+                try {
+                    pagingViewModel.getWaarnemingenPager(soortId, getSelectedYear()).collectLatest { pagingData ->
+                        pagingAdapter.soortNaam = soortNaam
+                        pagingAdapter.submitData(pagingData)
+                    }
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) {
+                        fileLogger.info("Paging load cancelled for $soortId")
+                    } else {
+                        fileLogger.warn("Fout bij paged ophalen waarnemingen: ${e.message}")
+                    }
+                } finally {
+                    // nothing here; loadState listener will hide progress when loading finished
                 }
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) {
-                    fileLogger.info("Paging load cancelled for $soortId")
-                } else {
-                    fileLogger.warn("Fout bij paged ophalen waarnemingen: ${e.message}")
-                }
-            } finally {
-                // nothing here; loadState listener will hide progress when loading finished
             }
         }
 
@@ -302,26 +330,43 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                         if (pbOverviewProgressView.visibility == View.VISIBLE) {
                             pbOverviewProgressView.progress = loaded
                         }
-                        // Show container while loading. Only hide when refresh finished AND we have items loaded.
-                        val refresh = loadStates.refresh
-                        when (refresh) {
-                            is LoadState.Loading -> {
-                                pbOverviewContainer.visibility = View.VISIBLE
-                                // ensure modal dialog visible as well (keeps behaviour identical to Grafieken)
-                                showLoading("Ophalen overzicht...")
-                            }
-                            is LoadState.NotLoading -> {
-                                if (loaded > 0) {
-                                    pbOverviewContainer.visibility = View.GONE
-                                    hideLoading()
-                                } else {
+
+                        // Decide whether to keep showing the modal dialog between pages.
+                            val pageSize = PagingConstants.DEFAULT_PAGE_SIZE
+                        if (overviewTotalBlocks > 0) {
+                            val loadedBlocks = ((loaded + pageSize - 1) / pageSize).coerceAtLeast(0)
+                                    if (loadedBlocks < overviewTotalBlocks) {
+                                        // still more blocks to load: show placeholder block for the next page
+                                        pbOverviewContainer.visibility = View.VISIBLE
+                                        val remaining = (overviewTotalCount ?: 0) - loaded
+                                        val nextPlaceholders = minOf(maxOf(remaining, 0), pageSize)
+                                        try { placeholderAdapter.setCount(nextPlaceholders) } catch (_: Exception) { }
+                                    } else {
+                                        // finished
+                                        pbOverviewContainer.visibility = if (loaded > 0) View.GONE else View.VISIBLE
+                                        try { placeholderAdapter.setCount(0) } catch (_: Exception) { }
+                                    }
+                        } else {
+                            // fallback to previous behavior when totals unknown
+                            val refresh = loadStates.refresh
+                            when (refresh) {
+                                is LoadState.Loading -> {
                                     pbOverviewContainer.visibility = View.VISIBLE
+                                    // show a single block of placeholders when we don't know totals
+                                    try { placeholderAdapter.setCount(pageSize) } catch (_: Exception) { }
                                 }
-                            }
-                            is LoadState.Error -> {
-                                pbOverviewContainer.visibility = View.VISIBLE
-                                // stop modal spinner on error so user can interact with retry UI
-                                hideLoading()
+                                is LoadState.NotLoading -> {
+                                    if (loaded > 0) {
+                                        pbOverviewContainer.visibility = View.GONE
+                                        try { placeholderAdapter.setCount(0) } catch (_: Exception) { }
+                                    } else {
+                                        pbOverviewContainer.visibility = View.VISIBLE
+                                    }
+                                }
+                                is LoadState.Error -> {
+                                    pbOverviewContainer.visibility = View.VISIBLE
+                                    try { placeholderAdapter.setCount(0) } catch (_: Exception) { }
+                                }
                             }
                         }
                     } catch (_: Exception) { }
@@ -398,7 +443,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             lifecycleScope.launch(Dispatchers.Default) {
             fileLogger.info("GRAFIEK16: Start ophalen data voor soort $speciesId")
             // fetch wind dataset in pages to avoid long blocking queries and allow progress updates
-            val pageSize = 2000
+            val pageSize = PagingConstants.DEFAULT_PAGE_SIZE
             var offset = 0
             val year = getSelectedYear()
 
@@ -495,7 +540,11 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
     private fun showLoading(message: String) {
         try {
-            if (loadingDialog?.isShowing == true) return
+            // If dialog already showing, update its title so progress is visible
+            if (loadingDialog?.isShowing == true) {
+                try { loadingDialog?.setTitle(message) } catch (_: Exception) { }
+                return
+            }
             val pb = ProgressBar(this).apply { isIndeterminate = true }
             val container = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -697,6 +746,29 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 holder.tvAantalTerug?.text = ""
                 holder.itemView.setOnClickListener(null)
             }
+        }
+    }
+
+    inner class PlaceholderAdapter : RecyclerView.Adapter<PlaceholderAdapter.PlaceholderViewHolder>() {
+        private var count: Int = 0
+
+        inner class PlaceholderViewHolder(view: View) : RecyclerView.ViewHolder(view)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlaceholderViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_db_waarneming_placeholder, parent, false)
+            return PlaceholderViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: PlaceholderViewHolder, position: Int) {
+            // nothing to bind; static placeholder UI
+        }
+
+        override fun getItemCount(): Int = count
+
+        fun setCount(newCount: Int) {
+            if (newCount == count) return
+            count = newCount
+            notifyDataSetChanged()
         }
     }
 }

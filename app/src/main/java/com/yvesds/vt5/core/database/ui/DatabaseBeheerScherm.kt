@@ -32,6 +32,8 @@ import java.util.Locale
 import kotlin.system.exitProcess
 
 import com.yvesds.vt5.core.import.CsvImportManager
+import com.yvesds.vt5.core.import.CsvImportResult
+import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.OpenableColumns
@@ -61,6 +63,11 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     private val chartReturnLineColor get() = ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug)
     private val chartBgColor     get() = ContextCompat.getColor(this, R.color.grafiek_achtergrondkleur)
 
+    companion object {
+        const val PREF_BATCH_IMPORT_ACTIVE = "pref_batch_import_active"
+        const val PREF_BATCH_IMPORT_PROCESSED = "pref_batch_import_processed"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_database_beheer)
@@ -81,8 +88,16 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             startActivity(android.content.Intent(this, DatabaseSoortOverzichtActiviteit::class.java))
         }
 
+        findViewById<MaterialButton>(R.id.btnAiEvaluation).setOnClickListener {
+            startActivity(android.content.Intent(this, com.yvesds.vt5.ai.AiLogActiviteit::class.java))
+        }
+
         findViewById<MaterialButton>(R.id.btnImportCsv).setOnClickListener {
             selectCsvFiles.launch(arrayOf("text/comma-separated-values", "text/csv"))
+        }
+
+        findViewById<MaterialButton>(R.id.btnBatchImport).setOnClickListener {
+            handleBatchImport()
         }
 
         findViewById<MaterialButton>(R.id.btnResetDatabase).setOnClickListener {
@@ -92,6 +107,103 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         initChart()
         setupChart()
         refreshTableList()
+
+        // Automatisch hervatten na herstart
+        checkPendingBatchImport()
+    }
+
+    private fun checkPendingBatchImport() {
+        val prefs = getSharedPreferences("batch_import", MODE_PRIVATE)
+        if (prefs.getBoolean(PREF_BATCH_IMPORT_ACTIVE, false)) {
+            handleBatchImport(isAutoResume = true)
+        }
+    }
+
+    private fun handleBatchImport(isAutoResume: Boolean = false) {
+        lifecycleScope.launch {
+            val progressDlg = ProgressDialogHelper.show(this@DatabaseBeheerScherm, "Batch Import initialiseren...")
+
+            val pairs = importManager.getPendingImportPairs()
+            if (pairs.isEmpty()) {
+                progressDlg.dismiss()
+                clearBatchPrefs()
+                if (!isAutoResume) {
+                    Toast.makeText(this@DatabaseBeheerScherm, "Geen import-bestanden gevonden in VT5/imports", Toast.LENGTH_LONG).show()
+                }
+                return@launch
+            }
+
+            val prefs = getSharedPreferences("batch_import", MODE_PRIVATE)
+            val processedCount = prefs.getInt(PREF_BATCH_IMPORT_PROCESSED, 0)
+            
+            Log.i("BatchImport", "Starting import session. Processed so far: $processedCount / ${pairs.size}")
+
+            if (processedCount >= pairs.size) {
+                progressDlg.dismiss()
+                clearBatchPrefs()
+                val finishMsg = "Batch import volledig voltooid! ${pairs.size} jaar-sets verwerkt."
+                AlertDialog.Builder(this@DatabaseBeheerScherm)
+                    .setTitle("Import Klaar")
+                    .setMessage(finishMsg)
+                    .setPositiveButton("OK", null)
+                    .show()
+                refreshTableList()
+                return@launch
+            }
+
+            // Start de actieve status als dit de eerste keer is
+            if (!isAutoResume) {
+                prefs.edit().putBoolean(PREF_BATCH_IMPORT_ACTIVE, true).apply()
+            }
+
+            // Pak het VOLGENDE paar
+            val pair = pairs[processedCount]
+            val (h, d) = pair
+            val displayInfo = "${h.telpostId} (${h.year})"
+            
+            ProgressDialogHelper.updateMessage(progressDlg, "Verwerken ${processedCount + 1} van ${pairs.size}:\n$displayInfo\n\nApp herstart hierna automatisch.")
+
+            // OPTIMIZATION: Wait a bit so the user can actually read the message before it disappears on restart
+            kotlinx.coroutines.delay(1500)
+
+            val result = importManager.importSinglePair(h, d)
+            
+            progressDlg.dismiss()
+
+            result.onSuccess {
+                val nextCount = processedCount + 1
+                Log.i("BatchImport", "Import of $displayInfo successful. Updating count to $nextCount")
+                
+                // CRITICAL: Use commit() instead of apply() to ensure data is written before process exit
+                prefs.edit().putInt(PREF_BATCH_IMPORT_PROCESSED, nextCount).commit()
+                
+                // Controleer of we klaar zijn of moeten herstarten
+                if (nextCount >= pairs.size) {
+                    clearBatchPrefs()
+                    AlertDialog.Builder(this@DatabaseBeheerScherm)
+                        .setTitle("Batch Import Voltooid")
+                        .setMessage("Alle ${pairs.size} bestanden zijn verwerkt.")
+                        .setPositiveButton("OK") { _, _ -> refreshTableList() }
+                        .show()
+                } else {
+                    Log.i("BatchImport", "Triggering auto-restart for next pair...")
+                    // Forceer herstart
+                    restartAppProcess()
+                }
+            }.onFailure {
+                clearBatchPrefs()
+                val dlg = AlertDialog.Builder(this@DatabaseBeheerScherm)
+                    .setTitle("Batch Import Fout bij $displayInfo")
+                    .setMessage(it.message)
+                    .setPositiveButton("OK", null)
+                    .show()
+                DialogStyler.apply(dlg)
+            }
+        }
+    }
+
+    private fun clearBatchPrefs() {
+        getSharedPreferences("batch_import", MODE_PRIVATE).edit().clear().apply()
     }
 
     private fun handleCsvImport(uris: List<Uri>) {
@@ -450,7 +562,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             val tables = listOf(
                 TableInfo("telling_headers", "Headers"),
                 TableInfo("waarnemingen", "Waarnemingen"),
-                TableInfo("sync_logs", "Sync Logs")
+                TableInfo("ai_logs", "AI Logs")
             )
 
             for (table in tables) {
@@ -465,7 +577,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             when (tableId) {
                 "telling_headers" -> database.tellingDao().countHeaders()
                 "waarnemingen" -> database.tellingDao().countWaarnemingen()
-                "sync_logs" -> database.tellingDao().countSyncLogs()
+                "ai_logs" -> database.tellingDao().countSyncLogs()
                 else -> 0
             }
         } catch (e: Exception) {
@@ -510,7 +622,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                 when (tableId) {
                     "telling_headers" -> database.tellingDao().clearAllHeaders()
                     "waarnemingen" -> database.tellingDao().clearAllWaarnemingen()
-                    "sync_logs" -> database.tellingDao().clearAllSyncLogs()
+                    "ai_logs" -> database.tellingDao().clearAllSyncLogs()
                 }
                 fileLogger.info(getString(R.string.db_beheer_log_records_gewist, tableName))
 

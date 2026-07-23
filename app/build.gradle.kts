@@ -18,6 +18,14 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Beperk ABIs tot ARM (64-bit en 32-bit). 
+        // Dit verwijdert x86 en x86_64 native libs (voor emulators), wat de APK grootte 
+        // aanzienlijk verkleint (zeker bij gebruik van TensorFlow Lite).
+        ndk {
+            abiFilters.add("armeabi-v7a")
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -29,7 +37,16 @@ android {
                 "proguard-rules.pro"
             )
         }
-        debug { isMinifyEnabled = false }
+        debug {
+            // Enable minification and resource shrinking for debug builds as well
+            // so that locally produced APKs are smaller when you need that.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     buildFeatures {
@@ -72,6 +89,9 @@ dependencies {
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
+
+    // TensorFlow Lite runtime for on-device inference (optional, used when loading .tflite models)
+    implementation("org.tensorflow:tensorflow-lite:2.12.0")
 
     // DataStore (toegevoegd voor moderne persistente opslag)
     implementation("androidx.datastore:datastore-preferences:1.1.1")

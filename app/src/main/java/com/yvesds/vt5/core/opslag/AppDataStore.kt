@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.first
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "vt5_settings")
 
@@ -13,6 +14,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 object AppDataStore {
     private val KEY_NEXT_TELLING_ID = longPreferencesKey("next_telling_id")
     private val KEY_PREFIX_RECORD_ID = "next_record_id_"
+    // Persisted URI to the AI model directory chosen by the user via SAF (OpenDocumentTree)
+    private val KEY_AI_MODEL_DIR_URI = stringPreferencesKey("ai_model_dir_uri")
+    private val KEY_AI_ENABLED = booleanPreferencesKey("ai_enabled")
 
     /**
      * Haalt het volgende unieke telling ID op en verhoogt de teller.
@@ -66,5 +70,42 @@ object AppDataStore {
             prefs[key] = current + 1L
         }
         return result.toString()
+    }
+
+    /**
+     * Save the user-selected AI model directory (SAF Uri string) into DataStore.
+     * Pass null to clear the stored value.
+     */
+    suspend fun setAiModelDirUri(context: Context, uriString: String?) {
+        context.dataStore.edit { prefs ->
+            if (uriString == null) {
+                prefs.remove(KEY_AI_MODEL_DIR_URI)
+            } else {
+                prefs[KEY_AI_MODEL_DIR_URI] = uriString
+            }
+        }
+    }
+
+    /**
+     * Retrieve the stored AI model directory Uri string (or null if not set).
+     */
+    suspend fun getAiModelDirUri(context: Context): String? {
+        return context.dataStore.data.first()[KEY_AI_MODEL_DIR_URI]
+    }
+
+    /**
+     * Set the AI enabled status.
+     */
+    suspend fun setAiEnabled(context: Context, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_AI_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Check if AI is enabled. Defaults to false.
+     */
+    suspend fun isAiEnabled(context: Context): Boolean {
+        return context.dataStore.data.first()[KEY_AI_ENABLED] ?: false
     }
 }

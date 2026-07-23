@@ -96,8 +96,17 @@
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="8dp"
                 android:text="@string/db_beheer_btn_soort_zoeken"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiEvaluation"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="AI-Evaluatie"
                 android:textSize="16sp" />
 
             <TextView
@@ -109,15 +118,34 @@
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnImportCsv"
-                style="@style/Widget.VT5.Button"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="Importeer CSV (SAF)"
-                android:textSize="16sp"
-                app:icon="@android:drawable/ic_menu_save" />
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnImportCsv"
+                    style="@style/Widget.VT5.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:text="Importeer Handmatig"
+                    android:textSize="8sp"
+                    app:icon="@android:drawable/ic_menu_save" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBatchImport"
+                    style="@style/Widget.VT5.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:text="Batch Import (VT5/imports)"
+                    android:textSize="8sp"
+                    app:icon="@android:drawable/ic_menu_rotate" />
+            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"
