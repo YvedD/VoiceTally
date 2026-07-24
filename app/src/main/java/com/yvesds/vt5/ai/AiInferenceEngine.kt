@@ -143,6 +143,20 @@ object AiInferenceEngine {
             }
         } catch (_: Exception) {}
 
+        // Fetch coast weather (same as training)
+        var coastAvgWind = 5.0
+        var coastAvgPressure = 1013.0
+        try {
+            val archiveManager = WeatherArchiveManager(context)
+            val coastWeathers = (0 until AiConfig.COAST_REFS.size).mapNotNull { idx ->
+                archiveManager.getWeatherFromDb(System.currentTimeMillis() / 1000L, "ref_coast_$idx")
+            }
+            if (coastWeathers.isNotEmpty()) {
+                coastAvgWind = coastWeathers.mapNotNull { it.windSpeed10m }.average()
+                coastAvgPressure = coastWeathers.mapNotNull { it.pressureMsl }.average()
+            }
+        } catch (_: Exception) {}
+
         // Yesterday's count
         val db = VoiceTallyDatabase.getDatabase(context)
         val nowEpoch = System.currentTimeMillis() / 1000L
@@ -153,31 +167,34 @@ object AiInferenceEngine {
         val windDirSin = windRad?.let { Math.sin(it) } ?: 0.0
         val windDirCos = windRad?.let { Math.cos(it) } ?: 0.0
 
-        // Features list (Order MUST match train_model.py)
-        val features = floatArrayOf(
-            (cur.temperature2m ?: 15.0).toFloat(),
-            (cur.windSpeed10m ?: 5.0).toFloat(),
-            windDirSin.toFloat(),
-            windDirCos.toFloat(),
-            (cur.cloudCover ?: 50.0).toFloat(),
-            (cur.visibility ?: 10000.0).toFloat(),
-            (cur.precipitation ?: 0.0).toFloat(),
-            refAvgWind.toFloat(),
-            refAvgPressure.toFloat(),
-            daySin.toFloat(),
-            dayCos.toFloat(),
-            hourSin.toFloat(),
-            hourCos.toFloat(),
-            moonPhase.toFloat(),
-            windChill.toFloat(),
-            pressureTrend.toFloat(),
-            yesterdayCount.toFloat(),
-            0.0f, // is_rare (default 0 during inference as we don't know yet)
-            1.0f  // label_count (default 1)
+        // 2. Normalisatie: Breng alle variabelen naar een schaal van 0.0 tot 1.0
+        // Belangrijk: De logica hier MOET exact hetzelfde zijn als bij de training.
+        val normalizedFeatures = floatArrayOf(
+            ((cur.temperature2m ?: 15.0).toFloat() + 20f) / 60f,   // -20..40C -> 0..1
+            (cur.windSpeed10m ?: 5.0).toFloat() / 35f,            // 0..35m/s
+            (windDirSin.toFloat() + 1f) / 2f,                      // -1..1 -> 0..1
+            (windDirCos.toFloat() + 1f) / 2f,
+            (cur.cloudCover ?: 50.0).toFloat() / 100f,            // 0..100%
+            (cur.visibility ?: 10000.0).toFloat() / 20000f,       // 0..20k meters
+            (cur.precipitation ?: 0.0).toFloat() / 50f,           // 0..50mm
+            refAvgWind.toFloat() / 35f,
+            (refAvgPressure.toFloat() - 950f) / 80f,              // 950..1030 -> 0..1
+            coastAvgWind.toFloat() / 35f,
+            (coastAvgPressure.toFloat() - 950f) / 80f,
+            (daySin.toFloat() + 1f) / 2f,
+            (dayCos.toFloat() + 1f) / 2f,
+            (hourSin.toFloat() + 1f) / 2f,
+            (hourCos.toFloat() + 1f) / 2f,
+            moonPhase.toFloat(),                                  // Reeds 0..1
+            (windChill.toFloat() + 20f) / 60f,
+            (pressureTrend.toFloat() + 20f) / 40f,                // -20..20 -> 0..1
+            (yesterdayCount.toFloat() / 10000f).coerceIn(0f, 1f), // Max 10k vogels
+            0.0f,                                                 // is_rare
+            1.0f                                                  // label_count
         )
 
-        val inputBuffer = ByteBuffer.allocateDirect(1 * features.size * 4).order(ByteOrder.nativeOrder())
-        features.forEach { inputBuffer.putFloat(it) }
+        val inputBuffer = ByteBuffer.allocateDirect(1 * normalizedFeatures.size * 4).order(ByteOrder.nativeOrder())
+        normalizedFeatures.forEach { inputBuffer.putFloat(it) }
         
         val outputBuffer = ByteBuffer.allocateDirect(1 * loadedLabels.size * 4).order(ByteOrder.nativeOrder())
         inter.run(inputBuffer, outputBuffer)

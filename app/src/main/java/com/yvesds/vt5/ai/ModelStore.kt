@@ -24,17 +24,40 @@ class ModelStore(private val context: Context) {
             val aiDir = saf.findOrCreateDirectory(vt5, "AI-models") ?: return false
 
             // 3. Zorg dat alle submappen bestaan
-            val subfolders = listOf("training_exports", "models", "feedback")
+            val subfolders = listOf("training_exports", "models", "feedback", "weather_archive")
             for (name in subfolders) {
                 if (saf.findOrCreateDirectory(aiDir, name) == null) {
                     Log.e(TAG, "Kon submap $name niet aanmaken in AI-models")
                     return false
                 }
             }
+
+            // 4. Kopieer base_model.tflite als er nog niets in 'models' staat
+            val modelsDir = saf.findOrCreateDirectory(aiDir, "models")
+            if (modelsDir != null && modelsDir.findFile("base_model.tflite") == null) {
+                copyBaseModelToModelsDir(modelsDir)
+            }
+
             return true
         } catch (e: Exception) {
             Log.e(TAG, "ensureModelDir gefaald: ${e.message}")
             return false
+        }
+    }
+
+    private fun copyBaseModelToModelsDir(modelsDir: DocumentFile) {
+        try {
+            context.assets.open("ai/base_model.tflite").use { input ->
+                val file = modelsDir.createFile("application/octet-stream", "base_model.tflite")
+                if (file != null) {
+                    context.contentResolver.openOutputStream(file.uri)?.use { output ->
+                        input.copyTo(output)
+                    }
+                    Log.i(TAG, "base_model.tflite gekopieerd naar SAF models map")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Kon base_model.tflite niet naar SAF kopiëren: ${e.message}")
         }
     }
 

@@ -90,7 +90,7 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     private fun ensureAiSubfolders(aiDir: DocumentFile) {
-        val subfolders = listOf("training_exports", "models", "feedback")
+        val subfolders = listOf("training_exports", "models", "feedback", "weather_archive")
         for (name in subfolders) {
             findOrCreateDirectory(aiDir, name)
         }

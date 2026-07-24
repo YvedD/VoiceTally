@@ -54,26 +54,14 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             Log.i(TAG, "Parsed ${trainingData.size} samples. Beginning weight updates...")
 
             // 4. Training Loop (Simplified for current TFLite support)
-            // Note: Real on-device training uses interpreter.runSignature()
-            // Here we prepare a batch of data and run the training op.
+            // Real on-device training uses interpreter.runSignature()
+            // Here we simulate the update by "re-saving" the model buffer to trigger file creation
+            // if it's a first-time run.
             
-            var processedCount = 0
-            trainingData.forEach { sample ->
-                // Example of a training step (signature based)
-                // val inputs = mapOf("x" to sample.featuresBuffer, "y" to sample.labelBuffer)
-                // val outputs = mutableMapOf<String, Any>()
-                // interpreter.runSignature(inputs, outputs, "train")
-                processedCount++
-                if (processedCount % 1000 == 0) Log.d(TAG, "Processed $processedCount samples...")
-            }
-
-            Log.i(TAG, "Training cycle complete. Saving personal model...")
-            
-            // 5. Save the updated weights into the personal model file
             saveModelToSaf(modelBuffer)
 
             interpreter.close()
-            Log.i(TAG, "Model '$PERSONAL_MODEL_NAME' updated and saved successfully")
+            Log.i(TAG, "Model '$PERSONAL_MODEL_NAME' created and saved successfully")
             
         } catch (e: Exception) {
             Log.e(TAG, "Training failed: ${e.message}", e)
@@ -138,10 +126,11 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                                 // Extract features (indexes based on TrainingDataPreparer.headerLine)
                                 // ORDER: temp_numeric(4), wind_ms_numeric(6), wind_dir_sin(8), wind_dir_cos(9),
                                 // cloud_pct(10), visibility(11), precip(12), ref_avg_wind_ms(13), ref_avg_pressure(14),
-                                // day_sin(15), day_cos(16), hour_sin(17), hour_cos(18), moon_phase(19), 
-                                // wind_chill(20), pressure_trend(21), yesterday_count(22), is_rare(23), label_count(26)
+                                // ref_coast_wind_ms(15), ref_coast_pressure(16),
+                                // day_sin(17), day_cos(18), hour_sin(19), hour_cos(20), moon_phase(21), 
+                                // wind_chill(22), pressure_trend(23), yesterday_count(24), is_rare(25), label_count(28)
                                 
-                                val features = FloatArray(19)
+                                val features = FloatArray(21)
                                 features[0] = parts.getOrNull(4)?.toFloatOrNull() ?: 0f 
                                 features[1] = parts.getOrNull(6)?.toFloatOrNull() ?: 0f
                                 features[2] = parts.getOrNull(8)?.toFloatOrNull() ?: 0f
@@ -160,7 +149,9 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                                 features[15] = parts.getOrNull(21)?.toFloatOrNull() ?: 0f
                                 features[16] = parts.getOrNull(22)?.toFloatOrNull() ?: 0f
                                 features[17] = parts.getOrNull(23)?.toFloatOrNull() ?: 0f
-                                features[18] = parts.getOrNull(26)?.toFloatOrNull() ?: 1f // label_count
+                                features[18] = parts.getOrNull(24)?.toFloatOrNull() ?: 0f
+                                features[19] = parts.getOrNull(25)?.toFloatOrNull() ?: 0f
+                                features[20] = parts.getOrNull(28)?.toFloatOrNull() ?: 1f // label_count
                                 
                                 samples.add(TrainingSample(features, labelIndex))
                             }

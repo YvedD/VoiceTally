@@ -57,20 +57,69 @@ class TrainingDataPreparer(private val context: Context) {
         }
     }
 
-    suspend fun exportTrainingCsv(exportDir: DocumentFile?): String {
+    suspend fun exportTrainingCsv(exportDir: DocumentFile?, onProgressUpdate: (String) -> Unit = {}): String {
         return withContext(Dispatchers.IO) {
             if (exportDir == null) return@withContext ""
 
             val db = VoiceTallyDatabase.getDatabase(context)
-            val headers = db.tellingDao().getAllHeaders() // assume exists
+            val headers = db.tellingDao().getAllHeaders()
+            if (headers.isEmpty()) return@withContext ""
 
-            val headerLine = "tellingid,epoch,siteid,temp,temp_numeric,wind_ms,wind_ms_numeric,wind_deg,wind_dir_sin,wind_dir_cos,cloud_pct,visibility,precip,ref_avg_wind_ms,ref_avg_pressure,day_sin,day_cos,hour_sin,hour_cos,moon_phase,wind_chill,pressure_trend,yesterday_count,is_rare,sample_weight,label_species_id,label_count\n"
+            val modelStore = ModelStore(context)
+            val archiveManager = WeatherArchiveManager(context)
+            val dataSnapshot = com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(context)
+
+            // 1. Bouw Weer-Archief op (éénmalig per jaar/telpost)
+            onProgressUpdate("Weer-archief controleren...")
+            val usedSiteIds = db.tellingDao().getAllUsedSiteIds()
+            val allEpochs = headers.mapNotNull { it.begintijd.toLongOrNull() }
+            val years = allEpochs.map { Instant.ofEpochSecond(if (it > 9999999999L) it/1000 else it).atZone(ZoneId.of("UTC")).year }.distinct().sorted()
+
+            // A. Telposten
+            for (siteId in usedSiteIds) {
+                val site = dataSnapshot.sitesById[siteId] ?: continue
+                val lat = site.r1?.toDoubleOrNull() ?: continue
+                val lon = site.r2?.toDoubleOrNull() ?: continue
+                
+                for (year in years) {
+                    archiveManager.ensureYearArchive(year, lat, lon, "site_$siteId") { msg ->
+                        onProgressUpdate("Weer-archief ($year): $msg")
+                    }
+                }
+            }
+
+            // B. Referentiepunten (France/Germany + Belgian Coast)
+            val allRefs = mutableListOf<Pair<String, List<Pair<Double, Double>>>>(
+                "ref_spring" to AiConfig.SPRING_SOUTH_REFS,
+                "ref_autumn" to AiConfig.AUTUMN_NORTH_REFS,
+                "ref_coast" to AiConfig.COAST_REFS
+            )
+
+            for (year in years) {
+                for ((prefix, refList) in allRefs) {
+                    for ((idx, pair) in refList.withIndex()) {
+                        archiveManager.ensureYearArchive(year, pair.first, pair.second, "${prefix}_$idx") { msg ->
+                            onProgressUpdate("Weer-archief ($year): $msg")
+                        }
+                    }
+                }
+            }
+
+            // 2. Start CSV Export
+            onProgressUpdate("Database exporteren naar CSV...")
+            val headerLine = "tellingid,epoch,siteid,temp,temp_numeric,wind_ms,wind_ms_numeric,wind_deg,wind_dir_sin,wind_dir_cos,cloud_pct,visibility,precip,ref_avg_wind_ms,ref_avg_pressure,ref_coast_wind_ms,ref_coast_pressure,day_sin,day_cos,hour_sin,hour_cos,moon_phase,wind_chill,pressure_trend,yesterday_count,is_rare,sample_weight,label_species_id,label_count\n"
 
             // Fixed filename to avoid spamming multiple CSV files. 
             // We overwrite the existing one to keep only the latest training data.
             val filename = "training_data_current.csv"
             val existing = exportDir.findFile(filename)
             
+            // Cache for species counts to determine rarity
+            val speciesTotals = db.tellingDao().getAllSpeciesIds().associateWith { id ->
+                db.tellingDao().countObservationsForSpecies(id)
+            }
+            val totalObservations = speciesTotals.values.sum().toDouble()
+
             // Log for debugging
             if (existing != null) android.util.Log.d("TrainingDataPreparer", "Overwriting existing CSV: ${existing.uri}")
             else android.util.Log.d("TrainingDataPreparer", "Creating new CSV: $filename in ${exportDir.uri}")
@@ -86,27 +135,16 @@ class TrainingDataPreparer(private val context: Context) {
             val writer = outStream.bufferedWriter(Charsets.UTF_8)
             writer.write(headerLine)
 
-            // Cache for species counts to determine rarity
-            val speciesTotals = db.tellingDao().getAllSpeciesIds().associateWith { id ->
-                db.tellingDao().countObservationsForSpecies(id)
-            }
-            val totalObservations = speciesTotals.values.sum().toDouble()
-
             for (h in headers) {
                 val waarnemingen = db.tellingDao().getWaarnemingenList(h.tellingid)
                 
-                // Compute time features based on header.begintijd (if available)
                 val epochForHeader = try {
                     val raw = h.begintijd.toLongOrNull() ?: 0L
                     if (raw > 9999999999L) raw / 1000L else raw
                 } catch (ex: Exception) { 0L }
 
-                // Yesterday's count (sum of all species in the 24h before this header)
-                val yesterdayCount = if (epochForHeader > 0) {
-                    val start = (epochForHeader - 86400).toString()
-                    val end = epochForHeader.toString()
-                    db.tellingDao().sumCountsInPeriod(start, end) ?: 0
-                } else 0
+                // Haal weer uit Room database (archief)
+                val localWeather = archiveManager.getWeatherFromDb(epochForHeader, "site_${h.telpostid}")
 
                 val zdt = if (epochForHeader > 0L) {
                     val tz = try { ZoneId.of(h.timezoneid) } catch (_: Exception) { ZoneId.of("Europe/Brussels") }
@@ -115,6 +153,35 @@ class TrainingDataPreparer(private val context: Context) {
                     ZonedDateTime.now()
                 }
 
+                // Referentie-weer uit archief (gemiddelde van 3 punten)
+                val nowMonth = zdt.monthValue
+                val isSpring = nowMonth <= 6
+                val refPrefix = if (isSpring) "ref_spring_" else "ref_autumn_"
+                val refCount = if (isSpring) AiConfig.SPRING_SOUTH_REFS.size else AiConfig.AUTUMN_NORTH_REFS.size
+                
+                val refWeathers = (0 until refCount).mapNotNull { idx ->
+                    archiveManager.getWeatherFromDb(epochForHeader, "$refPrefix$idx")
+                }
+                
+                val refAvgWind = if (refWeathers.isNotEmpty()) refWeathers.mapNotNull { it.windSpeed10m }.average() else 5.0
+                val refAvgPressure = if (refWeathers.isNotEmpty()) refWeathers.mapNotNull { it.pressureMsl }.average() else 1013.0
+                
+                // Kust-referentie (Bredene & Noord)
+                val coastWeathers = (0 until AiConfig.COAST_REFS.size).mapNotNull { idx ->
+                    archiveManager.getWeatherFromDb(epochForHeader, "ref_coast_$idx")
+                }
+                val coastAvgWind = if (coastWeathers.isNotEmpty()) coastWeathers.mapNotNull { it.windSpeed10m }.average() else 5.0
+                val coastAvgPressure = if (coastWeathers.isNotEmpty()) coastWeathers.mapNotNull { it.pressureMsl }.average() else 1013.0
+                
+                // Extra features uit Room archive
+                val tempVal = localWeather?.temp ?: h.temperatuur.replace(',', '.').replace(Regex("[^0-9.\\-]"), "").toDoubleOrNull() ?: 15.0
+                val windMsVal = localWeather?.windSpeed10m ?: h.windkracht.replace(',', '.').replace(Regex("[^0-9.\\-]"), "").toDoubleOrNull() ?: 5.0
+                val cloudVal = localWeather?.cloudCover ?: 50.0
+                val precipVal = localWeather?.precip ?: 0.0
+                val pressureVal = localWeather?.pressureMsl ?: 1013.0
+                val wind100m = localWeather?.windSpeed100m ?: windMsVal
+                val gusts = localWeather?.windGusts10m ?: windMsVal
+                
                 val dayOfYear = zdt.dayOfYear.toDouble()
                 val hourOfDay = zdt.hour.toDouble()
                 val daySin = sin(2.0 * PI * dayOfYear / 365.25)
@@ -123,76 +190,57 @@ class TrainingDataPreparer(private val context: Context) {
                 val hourCos = cos(2.0 * PI * hourOfDay / 24.0)
                 
                 val moonPhase = calculateMoonPhase(epochForHeader)
-
-                // Fetch simple aggregated ref weather
-                val nowMonth = zdt.monthValue
-                val refs = if (nowMonth <= 6) AiConfig.SPRING_SOUTH_REFS else AiConfig.AUTUMN_NORTH_REFS
-                var refAvgWind: Double? = null
-                var refAvgPressure: Double? = null
-                var pressureTrend: Double? = null
+                val windChill = calculateWindChill(tempVal, windMsVal)
                 
-                try {
-                    val refWeathers = refs.mapNotNull { pair ->
-                        runCatching { AiWeatherService.fetchContextualWeather(context, pair.first, pair.second) }.getOrNull()
-                    }
-                    if (refWeathers.isNotEmpty()) {
-                        refAvgWind = refWeathers.mapNotNull { it.windSpeed }.average()
-                        refAvgPressure = refWeathers.mapNotNull { it.pressure }.average()
-                        pressureTrend = refWeathers.mapNotNull { it.pressureTrend }.average()
-                    }
-                } catch (_: Exception) {}
+                // Yesterday's count
+                val yesterdayCount = if (epochForHeader > 0) {
+                    val start = (epochForHeader - 86400).toString()
+                    val end = epochForHeader.toString()
+                    db.tellingDao().sumCountsInPeriod(start, end) ?: 0
+                } else 0
 
                 for (w in waarnemingen) {
-                    val tempRaw = h.temperatuur.ifEmpty { "" }
-                    val tempNumeric = tempRaw.replace(',', '.').replace(Regex("[^0-9.\\-]"), "").toDoubleOrNull()
+                    val windDeg = parseWindDirectionToDegrees(h.windrichting) ?: localWeather?.windDir10m ?: 180.0
+                    val windRad = Math.toRadians(windDeg)
+                    val windDirSin = sin(windRad)
+                    val windDirCos = cos(windRad)
 
-                    val windRaw = h.windkracht.ifEmpty { "" }
-                    val windNumeric = windRaw.replace(',', '.').replace(Regex("[^0-9.\\-]"), "").toDoubleOrNull()
-                    val windMs = windNumeric ?: 5.0 // default
-
-                    val windDeg = parseWindDirectionToDegrees(h.windrichting)
-                    val windRad = windDeg?.let { Math.toRadians(it) }
-                    val windDirSin = windRad?.let { sin(it) } ?: 0.0
-                    val windDirCos = windRad?.let { cos(it) } ?: 0.0
-                    
-                    val windChill = calculateWindChill(tempNumeric ?: 15.0, windMs)
-
-                    // Dynamic rarity: species is rare if it makes up < 0.1% of total observations
                     val speciesCount = speciesTotals[w.soortid] ?: 0
                     val isRare = if (totalObservations > 0 && (speciesCount / totalObservations) < 0.001) 1 else 0
-                    
                     val sampleWeight = AiConfig.getSampleWeightForSpecies(w.soortid)
 
                     val fields = listOf(
                         h.tellingid,
                         epochForHeader.toString(),
                         h.telpostid,
-                        tempRaw,
-                        (tempNumeric?.toString() ?: ""),
-                        windRaw,
-                        (windNumeric?.toString() ?: ""),
-                        (windDeg?.toString() ?: ""),
+                        tempVal.toString(),
+                        tempVal.toString(),
+                        windMsVal.toString(),
+                        windMsVal.toString(),
+                        windDeg.toString(),
                         windDirSin.toString(),
                         windDirCos.toString(),
-                        h.bewolking.ifEmpty { "" },
-                        h.zicht.ifEmpty { "" },
-                        h.neerslag.ifEmpty { "" },
-                        (refAvgWind?.toString() ?: ""),
-                        (refAvgPressure?.toString() ?: ""),
+                        cloudVal.toString(),
+                        "10000", // visibility (niet in archive API)
+                        precipVal.toString(),
+                        refAvgWind.toString(),
+                        refAvgPressure.toString(),
+                        coastAvgWind.toString(),
+                        coastAvgPressure.toString(),
                         daySin.toString(),
                         dayCos.toString(),
                         hourSin.toString(),
                         hourCos.toString(),
                         moonPhase.toString(),
                         windChill.toString(),
-                        (pressureTrend?.toString() ?: "0.0"),
+                        pressureVal.toString(), // Pressure as trend source
                         yesterdayCount.toString(),
                         isRare.toString(),
                         sampleWeight.toString(),
                         w.soortid,
                         w.aantal
                     )
-                    val q = fields.map { escapeCsvField(it?.toString()) }
+                    val q = fields.map { escapeCsvField(it.toString()) }
                     writer.write(q.joinToString(","))
                     writer.newLine()
                 }

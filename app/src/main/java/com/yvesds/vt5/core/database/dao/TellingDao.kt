@@ -360,6 +360,24 @@ interface TellingDao {
 
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllSpeciesIds(): List<String>
+
+    @Query("SELECT MIN(CAST(begintijd AS INTEGER)) FROM telling_headers WHERE begintijd IS NOT NULL AND begintijd != ''")
+    suspend fun getMinBegintijd(): Long?
+
+    @Query("SELECT MAX(CAST(begintijd AS INTEGER)) FROM telling_headers WHERE begintijd IS NOT NULL AND begintijd != ''")
+    suspend fun getMaxBegintijd(): Long?
+
+    @Query("SELECT DISTINCT telpostid FROM telling_headers WHERE telpostid IS NOT NULL AND telpostid != ''")
+    suspend fun getAllUsedSiteIds(): List<String>
+
+    @androidx.room.Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    suspend fun insertWeatherArchive(items: List<com.yvesds.vt5.core.database.entities.WeatherArchive>)
+
+    @Query("SELECT * FROM weather_archive WHERE locationId = :locationId AND timeEpoch = :timeEpoch")
+    suspend fun getWeather(locationId: String, timeEpoch: Long): com.yvesds.vt5.core.database.entities.WeatherArchive?
+
+    @Query("SELECT COUNT(*) FROM weather_archive WHERE locationId = :locationId")
+    suspend fun countWeatherForLocation(locationId: String): Int
 }
 
 data class SpeciesCountRow(

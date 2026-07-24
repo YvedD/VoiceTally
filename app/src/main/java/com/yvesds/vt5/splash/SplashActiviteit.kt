@@ -94,10 +94,8 @@ class SplashActiviteit : AppCompatActivity() {
                 intent.putExtra("ai_model_loaded", false)
                 intent.putExtra("ai_model_error", aiError)
             } else {
-                // only communicate success flag if model was actually loaded
-                if (com.yvesds.vt5.ai.ModelManager.getLoadedModel() != null) {
-                    intent.putExtra("ai_model_loaded", true)
-                }
+                // simple flag for main screen
+                intent.putExtra("ai_model_loaded", true)
             }
             startActivity(intent)
             finish()

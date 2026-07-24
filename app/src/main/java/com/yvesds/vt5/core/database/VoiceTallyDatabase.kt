@@ -8,11 +8,12 @@ import com.yvesds.vt5.core.database.dao.TellingDao
 import com.yvesds.vt5.core.database.entities.AiLog
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
+import com.yvesds.vt5.core.database.entities.WeatherArchive
 import java.io.File
 
 @Database(
-    entities = [TellingHeader::class, Waarneming::class, AiLog::class],
-    version = 1,
+    entities = [TellingHeader::class, Waarneming::class, AiLog::class, WeatherArchive::class],
+    version = 2,
     exportSchema = false
 )
 abstract class VoiceTallyDatabase : RoomDatabase() {

@@ -282,6 +282,9 @@ class HoofdActiviteit : AppCompatActivity() {
         val btn = findViewById<MaterialButton>(R.id.btnAiUpdate)
         btn.isEnabled = false
         
+        // Voorkom dat het scherm uitgaat tijdens de export (160k+ records)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         lifecycleScope.launch {
             val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "AI Update: Mappen controleren...")
             try {
@@ -305,7 +308,11 @@ class HoofdActiviteit : AppCompatActivity() {
                     // 1. Database export (Sync/Foreground)
                     ProgressDialogHelper.updateMessage(progress, "AI Update: Database exporteren naar CSV...\n(Dit kan even duren bij 160k+ records)")
                     val preparer = TrainingDataPreparer(this@HoofdActiviteit)
-                    val exportedFile = preparer.exportTrainingCsv(modelStore.getTrainingExportDir())
+                    val exportedFile = preparer.exportTrainingCsv(modelStore.getTrainingExportDir()) { newMsg ->
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            ProgressDialogHelper.updateMessage(progress, "AI Update: $newMsg")
+                        }
+                    }
                     
                     if (exportedFile.isEmpty()) {
                         progress.dismiss()
@@ -355,6 +362,8 @@ class HoofdActiviteit : AppCompatActivity() {
                     .show()
             } finally {
                 btn.postDelayed({ btn.isEnabled = true }, 500)
+                // Schermbeveiliging weer toestaan
+                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
         }
     }
