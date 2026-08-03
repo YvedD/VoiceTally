@@ -411,4 +411,9 @@
     <string name="perm_disable_message_saf">Zonder toegang tot Documents kan de app geen tellingen opslaan of bestanden lezen/schrijven.</string>
     <string name="perm_disable_message_location">Zonder locatie kan de knop "Auto" geen weergegevens ophalen.</string>
     <string name="prompt_year">Jaar</string>
+    <string name="db_beheer_btn_batch_import">Batch-import (VT5/imports)</string>
+    <string name="db_beheer_batch_import_titel">Batch CSV Import</string>
+    <string name="db_beheer_batch_import_no_files">Geen geldige bestands-koppeltjes gevonden in VT5/imports/</string>
+    <string name="db_beheer_batch_import_progress">Bezig met importeren: %1$d van %2$d koppeltjes...</string>
+    <string name="db_beheer_batch_import_success">Batch import voltooid! %1$d koppeltjes verwerkt.</string>
 </resources>

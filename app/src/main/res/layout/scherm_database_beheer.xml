@@ -3,8 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
@@ -114,10 +114,20 @@
                 style="@style/Widget.VT5.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="8dp"
                 android:text="Importeer CSV (SAF)"
                 android:textSize="16sp"
                 app:icon="@android:drawable/ic_menu_save" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBatchImport"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="@string/db_beheer_btn_batch_import"
+                android:textSize="16sp"
+                app:icon="@android:drawable/ic_menu_manage" />
 
             <View
                 android:layout_width="match_parent"

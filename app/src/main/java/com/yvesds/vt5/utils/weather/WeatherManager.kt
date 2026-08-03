@@ -41,7 +41,7 @@ object WeatherManager {
         val url = "https://api.open-meteo.com/v1/forecast" +
                 "?latitude=$lat&longitude=$lon" +
                 "&current=temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,pressure_msl,visibility,precipitation" +
-                "&windspeed_unit=ms" +              // 👈 m/s expliciet
+                "&windspeed_unit=ms" +
                 "&timezone=auto"
         val req = Request.Builder().url(url).get().build()
         client.newCall(req).execute().use { resp ->
@@ -49,6 +49,23 @@ object WeatherManager {
             val body = resp.body?.string() ?: return@use null
             val wr = json.decodeFromString(WeatherResponse.serializer(), body)
             wr.current
+        }
+    }
+
+    /** Haal hourly forecast op voor de komende uren. */
+    suspend fun fetchHourly(lat: Double, lon: Double, hours: Int = 24): Hourly? = withContext(Dispatchers.IO) {
+        val url = "https://api.open-meteo.com/v1/forecast" +
+                "?latitude=$lat&longitude=$lon" +
+                "&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,pressure_msl,visibility,precipitation" +
+                "&windspeed_unit=ms" +
+                "&forecast_days=2" +
+                "&timezone=auto"
+        val req = Request.Builder().url(url).get().build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) return@use null
+            val body = resp.body?.string() ?: return@use null
+            val wr = json.decodeFromString(WeatherResponse.serializer(), body)
+            wr.hourly
         }
     }
 

@@ -2,7 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/dialog_root"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 

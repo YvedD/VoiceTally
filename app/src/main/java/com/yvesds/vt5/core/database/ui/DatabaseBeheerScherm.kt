@@ -21,7 +21,9 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.opslag.FileLogger
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -82,6 +84,10 @@ class DatabaseBeheerScherm : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.btnImportCsv).setOnClickListener {
             selectCsvFiles.launch(arrayOf("text/comma-separated-values", "text/csv"))
+        }
+
+        findViewById<MaterialButton>(R.id.btnBatchImport).setOnClickListener {
+            handleBatchImport()
         }
 
         findViewById<MaterialButton>(R.id.btnResetDatabase).setOnClickListener {
@@ -210,6 +216,110 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                     }
                     .show()
             }
+        }
+    }
+
+    private fun handleBatchImport() {
+        lifecycleScope.launch {
+            val saf = SaFStorageHelper(this@DatabaseBeheerScherm)
+            val importsDir = saf.getImportsDirSuspend()
+            
+            if (importsDir == null) {
+                Toast.makeText(this@DatabaseBeheerScherm, getString(R.string.db_beheer_batch_import_no_files), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            val files = importsDir.listFiles().filter { it.isFile && it.name?.endsWith(".csv", true) == true }
+            val recognizedFiles = files.mapNotNull { docFile ->
+                val name = docFile.name ?: return@mapNotNull null
+                val parsed = parseTrektellenFileName(name) ?: return@mapNotNull null
+                CsvImportFile(docFile.uri, name, parsed.fileType, parsed.telpostId, parsed.year)
+            }
+
+            // Group by site + year
+            val pairs = recognizedFiles.groupBy { "${it.telpostId}_${it.year}" }
+                .mapValues { (_, group) ->
+                    val header = group.find { it.fileType == CsvFileType.HEADER }
+                    val data = group.find { it.fileType == CsvFileType.DATA }
+                    if (header != null && data != null) Pair(header, data) else null
+                }
+                .values.filterNotNull()
+
+            if (pairs.isEmpty()) {
+                Toast.makeText(this@DatabaseBeheerScherm, getString(R.string.db_beheer_batch_import_no_files), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            var totalHeaders = 0
+            var totalWaarnemingen = 0
+            val errors = mutableListOf<String>()
+
+            val progressDialog = ProgressDialogHelper.show(this@DatabaseBeheerScherm, 
+                getString(R.string.db_beheer_batch_import_progress, 0, pairs.size))
+
+            withContext(Dispatchers.IO) {
+                pairs.forEachIndexed { index, (headerFile, dataFile) ->
+                    withContext(Dispatchers.Main) {
+                        ProgressDialogHelper.updateMessage(progressDialog, 
+                            getString(R.string.db_beheer_batch_import_progress, index + 1, pairs.size) + 
+                            "\n(${headerFile.year} - Post ${headerFile.telpostId})")
+                    }
+
+                    try {
+                        val headerStream = contentResolver.openInputStream(headerFile.uri)
+                        val dataStream = contentResolver.openInputStream(dataFile.uri)
+                        
+                        if (headerStream != null && dataStream != null) {
+                            headerStream.use { hs ->
+                                dataStream.use { ds ->
+                                    val result = importManager.importHeadersAndData(hs, ds)
+                                    result.onSuccess { stats ->
+                                        totalHeaders += stats.insertedHeaders
+                                        totalWaarnemingen += stats.insertedWaarnemingen
+                                    }.onFailure {
+                                        errors.add("${headerFile.fileName}: ${it.message}")
+                                    }
+                                }
+                            }
+                        } else {
+                            errors.add("Kon bestanden niet openen voor ${headerFile.year}")
+                        }
+                    } catch (e: Exception) {
+                        errors.add("Fout bij ${headerFile.fileName}: ${e.message}")
+                    }
+                }
+            }
+
+            progressDialog.dismiss()
+
+            if (errors.isEmpty() && (totalHeaders > 0 || totalWaarnemingen > 0)) {
+                val successMessage = getString(R.string.db_beheer_batch_import_success, pairs.size) + 
+                    "\n\nTotaal: $totalHeaders sessies, $totalWaarnemingen waarnemingen."
+                showMandatoryRestartAfterImportDialog(successMessage)
+                return@launch
+            }
+
+            val finalMessage = if (errors.isEmpty()) {
+                if (totalHeaders == 0 && totalWaarnemingen == 0) {
+                    "Batch import voltooid, maar er zijn geen nieuwe gegevens toegevoegd (mogelijk waren alle records al aanwezig)."
+                } else {
+                    getString(R.string.db_beheer_batch_import_success, pairs.size) + 
+                    "\n\nTotaal: $totalHeaders sessies, $totalWaarnemingen waarnemingen."
+                }
+            } else {
+                "Batch import voltooid met ${errors.size} fouten.\n" +
+                "Totaal: $totalHeaders sessies, $totalWaarnemingen waarnemingen.\n\n" +
+                "Eerste fout: ${errors.first()}"
+            }
+
+            AlertDialog.Builder(this@DatabaseBeheerScherm)
+                .setTitle(R.string.db_beheer_batch_import_titel)
+                .setMessage(finalMessage)
+                .setPositiveButton("OK") { _, _ ->
+                    refreshTableList()
+                    setupChart()
+                }
+                .show()
         }
     }
 

@@ -37,6 +37,10 @@ android {
         compose = false
     }
 
+    androidResources {
+        noCompress += "tflite"
+    }
+
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     }
@@ -90,6 +94,11 @@ dependencies {
     // Vico Charts
     implementation("com.patrykandpatrick.vico:core:2.0.0-beta.3")
     implementation("com.patrykandpatrick.vico:views:2.0.0-beta.3")
+
+    // TensorFlow Lite / LiteRT (Updated to latest LiteRT as requested)
+    implementation("com.google.ai.edge.litert:litert:2.1.6")
+    implementation("com.google.ai.edge.litert:litert-support:1.4.2")
+    implementation("com.google.ai.edge.litert:litert-metadata:1.4.2")
 }
 // Tests uit
 tasks.matching {

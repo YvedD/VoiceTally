@@ -11,7 +11,20 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class WeatherResponse(
-    @SerialName("current") val current: Current? = null
+    @SerialName("current") val current: Current? = null,
+    @SerialName("hourly") val hourly: Hourly? = null
+)
+
+@Serializable
+data class Hourly(
+    @SerialName("time") val time: List<String>? = null,
+    @SerialName("temperature_2m") val temperature2m: List<Double>? = null,
+    @SerialName("wind_direction_10m") val windDirection10m: List<Double>? = null,
+    @SerialName("wind_speed_10m") val windSpeed10m: List<Double>? = null,
+    @SerialName("cloud_cover") val cloudCover: List<Double>? = null,
+    @SerialName("pressure_msl") val pressureMsl: List<Double>? = null,
+    @SerialName("visibility") val visibility: List<Double>? = null,
+    @SerialName("precipitation") val precipitation: List<Double>? = null
 )
 
 @Serializable

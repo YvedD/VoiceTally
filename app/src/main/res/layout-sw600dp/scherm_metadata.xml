@@ -5,8 +5,8 @@
     android:layout_height="match_parent"
     android:background="@color/vt5_black"
     android:orientation="vertical"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp">
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/rootCard"
@@ -391,6 +391,27 @@
                             android:text="@string/verder"
                             android:textSize="18sp" />
                     </LinearLayout>
+
+                    <!-- AI Voorspelling -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAiPrediction"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginTop="25dp"
+                        android:layout_marginBottom="25dp"
+                        android:text="AI-voorspelling vandaag"
+                        android:textAllCaps="false"
+                        android:textColor="@color/vt5_red"
+                        android:textSize="18sp"
+                        app:backgroundTint="@android:color/transparent"
+                        app:cornerRadius="8dp"
+                        app:icon="@android:drawable/ic_menu_help"
+                        app:iconPadding="12dp"
+                        app:iconSize="32dp"
+                        app:iconTint="@color/vt5_red"
+                        app:strokeColor="@color/vt5_red"
+                        app:strokeWidth="3dp" />
 
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>

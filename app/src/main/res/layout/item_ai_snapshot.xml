@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:layout_marginBottom="4dp"
+    android:background="@color/vt5_dark_gray">
+
+    <TextView
+        android:id="@+id/tvTime"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:text="08:00"
+        android:textColor="@color/vt5_light_blue"
+        android:textStyle="bold"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvSpeciesList"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Vink (80%), Spreeuw (70%), ..."
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="13sp"
+        android:layout_marginStart="8dp" />
+
+</LinearLayout>

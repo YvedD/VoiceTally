@@ -131,11 +131,17 @@ class MetadataScherm : AppCompatActivity() {
         binding.btnVerder.setOnClickListener { onVerderClicked() }
         binding.btnAnnuleer.setOnClickListener { finish() }
         binding.btnWeerAuto.setOnClickListener { ensureLocationPermissionThenFetch() }
+        binding.btnAiPrediction.setOnClickListener { showAiPredictionDialog() }
 
         // Start het laden in stappen:
         // 1. Eerst de essentiële codes (snel)
         // 2. Later, terwijl de gebruiker bezig is, de rest van de data
         loadEssentialData()
+    }
+
+    private fun showAiPredictionDialog() {
+        val dialog = com.yvesds.vt5.features.ai.PredictionDialog()
+        dialog.show(supportFragmentManager, "AiPredictionDialog")
     }
     
     /**
