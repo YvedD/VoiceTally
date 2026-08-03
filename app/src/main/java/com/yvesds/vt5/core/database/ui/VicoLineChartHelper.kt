@@ -54,22 +54,25 @@ object VicoLineChartHelper {
         )
     }
 
-    /** Create a dedicated LineCartesianLayer for beaufort values, fixed to 0..maxBeaufort on the Y axis */
+    /** Dedicated count layer bound to the left axis. */
+    fun createCountLineLayer(countColor: Int): LineCartesianLayer {
+        val fill = Fill(countColor)
+        val line = LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(fill))
+        return LineCartesianLayer(
+            LineCartesianLayer.LineProvider.series(line),
+            pointSpacingDp = 2f,
+            verticalAxisPosition = Axis.Position.Vertical.Start,
+        )
+    }
+
+    /** Dedicated beaufort layer bound to the right axis, fixed to 0..maxBeaufort. */
     fun createBeaufortLineLayer(maxBeaufort: Double, beaufortColor: Int): LineCartesianLayer {
         val fill = Fill(beaufortColor)
         val line = LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(fill))
-
-        // Use a fixed range provider for Y (0..maxBeaufort). X range will remain automatic.
-        val rangeProvider = CartesianLayerRangeProvider.fixed(
-            /* minX */ null,
-            /* maxX */ null,
-            /* minY */ 0.0,
-            /* maxY */ maxBeaufort,
-        )
-
         return LineCartesianLayer(
             LineCartesianLayer.LineProvider.series(line),
-            rangeProvider = rangeProvider,
+            pointSpacingDp = 2f,
+            rangeProvider = CartesianLayerRangeProvider.fixed(null, null, 0.0, maxBeaufort),
             verticalAxisPosition = Axis.Position.Vertical.End,
         )
     }
@@ -137,8 +140,8 @@ object VicoLineChartHelper {
             tick = axisTick,
             tickLengthDp = 4f,
             guideline = null,
-            // Prefer more ticks for the beaufort axis so integer steps are visible
-            itemPlacer = VerticalAxis.ItemPlacer.count(count = { 8 }),
+            // Beaufort axis should always use whole-number steps.
+            itemPlacer = VerticalAxis.ItemPlacer.step(step = { 1.0 }),
         )
     }
 }
