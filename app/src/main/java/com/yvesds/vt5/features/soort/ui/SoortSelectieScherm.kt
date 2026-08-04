@@ -93,12 +93,10 @@ class SoortSelectieScherm : AppCompatActivity() {
 
         telpostId = intent.getStringExtra(EXTRA_TELPOST_ID)
 
-        // Begin met de (eventuele) preselecties die door MetadataScherm zijn gezet.
-        // Zodat de gebruiker de voorgestelde soorten kan zien/wijzigen en bij OK
-        // de aangepaste selectie teruggezet wordt in TellingSessionManager.
+        // Begin altijd met een lege selectie: alle checkboxes zijn standaard unchecked.
+        // Dit voorkomt dat grote aantallen site-specific soorten automatisch zijn aangevinkt
+        // bij het openen van het scherm. De gebruiker kan zelf items aanvinken.
         selectedIds.clear()
-        // Default: geen vakjes aangevinkt tenzij expliciet preselected door MetadataScherm
-        selectedIds.addAll(TellingSessionManager.preselectState.value.selectedSoortIds)
 
         setupAdapters()
         setupListeners()
