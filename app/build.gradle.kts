@@ -113,6 +113,10 @@ dependencies {
     implementation("com.patrykandpatrick.vico:views:2.0.0-beta.3")
     // Paging 3 for incremental lists
     implementation("androidx.paging:paging-runtime-ktx:3.2.1")
+
+    // Excel support (.xlsx) - Lightweight streaming reader
+    implementation("org.dhatim:fastexcel-reader:0.18.0")
+    implementation("stax:stax-api:1.0.1")
 }
 // Tests uit
 tasks.matching {

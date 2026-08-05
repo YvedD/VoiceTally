@@ -54,20 +54,64 @@
             android:padding="10dp">
 
             <!-- Grafiek Sectie -->
-            <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Overzicht Tellingen"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/spinnerSiteFilter"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:backgroundTint="@color/vt5_white" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="Overzicht Tellingen"
-                android:textColor="@color/vt5_light_blue"
-                android:textSize="14sp"
-                android:textStyle="bold" />
+                android:gravity="end|center_vertical"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/cbShowAantallen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:buttonTint="#FF8A80"
+                    android:text="Aantallen"
+                    android:textColor="#FF8A80"
+                    android:textSize="10sp" />
+
+                <CheckBox
+                    android:id="@+id/cbShowTellingen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:checked="true"
+                    android:buttonTint="#4CAF50"
+                    android:text="Tellingen"
+                    android:textColor="#4CAF50"
+                    android:textSize="10sp" />
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardBackgroundColor="@color/grafiek_achtergrondkleur"
                 app:cardCornerRadius="8dp"
                 app:strokeColor="@color/vt5_light_blue"
                 app:strokeWidth="1dp">

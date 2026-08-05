@@ -54,20 +54,64 @@
             android:padding="20dp">
 
             <!-- Grafiek Sectie -->
-            <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Overzicht Tellingen"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/spinnerSiteFilter"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:backgroundTint="@color/vt5_white" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:text="Overzicht Tellingen"
-                android:textColor="@color/vt5_light_blue"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:gravity="end|center_vertical"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/cbShowAantallen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:buttonTint="#FF8A80"
+                    android:text="Aantallen"
+                    android:textColor="#FF8A80"
+                    android:textSize="12sp" />
+
+                <CheckBox
+                    android:id="@+id/cbShowTellingen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:checked="true"
+                    android:buttonTint="#4CAF50"
+                    android:text="Tellingen"
+                    android:textColor="#4CAF50"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
                 android:layout_marginBottom="32dp"
-                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardBackgroundColor="@color/grafiek_achtergrondkleur"
                 app:cardCornerRadius="12dp"
                 app:strokeColor="@color/vt5_light_blue"
                 app:strokeWidth="1dp">
@@ -96,8 +140,17 @@
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="12dp"
                 android:text="@string/db_beheer_btn_soort_zoeken"
+                android:textSize="18sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiEvaluation"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:text="AI-Evaluatie"
                 android:textSize="18sp" />
 
             <TextView
@@ -109,15 +162,34 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnImportCsv"
-                style="@style/Widget.VT5.Button"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:text="Importeer CSV (SAF)"
-                android:textSize="18sp"
-                app:icon="@android:drawable/ic_menu_save" />
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnImportCsv"
+                    style="@style/Widget.VT5.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="Importeer Handmatig"
+                    android:textSize="14sp"
+                    app:icon="@android:drawable/ic_menu_save" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBatchImport"
+                    style="@style/Widget.VT5.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="Batch Import"
+                    android:textSize="14sp"
+                    app:icon="@android:drawable/ic_menu_rotate" />
+            </LinearLayout>
 
             <View
                 android:layout_width="match_parent"

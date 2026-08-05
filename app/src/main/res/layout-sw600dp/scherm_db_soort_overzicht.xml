@@ -74,6 +74,14 @@
             android:textSize="16sp"
             android:textStyle="italic" />
 
+        <Spinner
+            android:id="@+id/spinnerSiteFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/vt5_white"
+            android:spinnerMode="dropdown" />
+
         <!-- In-layout progress indicator for overview loading -->
         <LinearLayout
             android:id="@+id/pbOverviewContainer"

@@ -29,10 +29,10 @@
     <color name="vt5_orange">#EF6929</color>
 
     <!-- grafiekkleuren -->
-    <color name="grafiek_lijnkleur">#02F83C</color>
-    <color name="grafiek_lijnkleur_terug">#FF0000</color>
-    <color name="grafiek_achtergrondkleur">#739B9B</color>
-    <color name="grafiek_beaufort">#1133ED</color>
+    <color name="grafiek_lijnkleur">#4CAF50</color>
+    <color name="grafiek_lijnkleur_terug">#FD2F01</color>
+    <color name="grafiek_achtergrondkleur">#6D6C6C</color>
+    <color name="grafiek_beaufort">#78B5F2</color>
 
 
     <!-- Waarschuwing / verwijderen -->

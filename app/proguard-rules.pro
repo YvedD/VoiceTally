@@ -1,21 +1,21 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# VoiceTally ProGuard/R8 Rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- FastExcel Reader Support ---
+# Lightweight and doesn't require complex rules, but we keep the package to be safe
+-keep class org.dhatim.fastexcel.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# FastExcel depends on StAX (javax.xml.stream) which is not fully present on Android.
+# We added 'stax-api' dependency, and we must keep these classes.
+-keep class javax.xml.stream.** { *; }
+-dontwarn javax.xml.stream.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Room Database ---
+-keep class * extends androidx.room.RoomDatabase
+-keep class com.yvesds.vt5.core.database.entities.** { *; }
+-keep interface com.yvesds.vt5.core.database.dao.** { *; }
+
+# --- Vico Charts ---
+-keep class com.patrykandpatrick.vico.** { *; }
+
+# General optimizations
+-keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod

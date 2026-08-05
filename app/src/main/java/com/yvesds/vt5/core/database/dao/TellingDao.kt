@@ -13,7 +13,8 @@ data class SpeciesWindDatasetRow(
     val windrichting: String,
     val windkracht: String,
     val aantal: Int,
-    val aantalterug: Int
+    val aantalterug: Int,
+    val telpostid: String = "" // Toegevoegd voor filtering op telpost
 )
 
 data class SpeciesWindDebugRow(
@@ -136,7 +137,16 @@ interface TellingDao {
     suspend fun clearAllWaarnemingen()
 
     @Query("DELETE FROM ai_logs")
-    suspend fun clearAllSyncLogs()
+    suspend fun clearAllAiLogs()
+
+    @Query("SELECT COUNT(*) FROM ai_logs")
+    suspend fun countAiLogs(): Int
+
+    @Query("SELECT COUNT(*) FROM weather_archive")
+    suspend fun countWeatherArchive(): Int
+
+    @Query("DELETE FROM weather_archive")
+    suspend fun clearWeatherArchive()
 
     @Query("SELECT COUNT(*) FROM telling_headers")
     suspend fun countHeaders(): Int
@@ -167,9 +177,6 @@ interface TellingDao {
 
     @Query("SELECT * FROM waarnemingen WHERE onlineid = :onlineid")
     suspend fun getWaarnemingenByOnlineId(onlineid: String): List<Waarneming>
-
-    @Query("SELECT COUNT(*) FROM ai_logs")
-    suspend fun countSyncLogs(): Int
 
     @Query("SELECT DISTINCT soortid FROM waarnemingen ORDER BY soortid")
     suspend fun getAllUniqueSpeciesIds(): List<String>
@@ -225,14 +232,14 @@ interface TellingDao {
     suspend fun getTopSpeciesByMonth(month: Int): List<com.yvesds.vt5.core.database.dao.AiStatsRow>
 
     @Query("""
-        SELECT begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug 
+        SELECT begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug, telpostid
         FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid 
         WHERE waarnemingen.soortid = :soortId ORDER BY begintijd DESC
     """)
     suspend fun getWindDatasetForSpecies(soortId: String): List<SpeciesWindDatasetRow>
 
     @Query("""
-        SELECT begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug 
+        SELECT begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug, telpostid
         FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid 
         WHERE waarnemingen.soortid = :soortId ORDER BY begintijd DESC LIMIT :limit OFFSET :offset
     """)
@@ -270,9 +277,6 @@ interface TellingDao {
 
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllSpeciesIds(): List<String>
-
-    @Query("DELETE FROM weather_archive")
-    suspend fun clearAllWeatherArchive()
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWeatherArchive(data: List<WeatherArchive>)

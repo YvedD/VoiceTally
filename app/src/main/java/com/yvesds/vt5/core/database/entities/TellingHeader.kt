@@ -6,21 +6,20 @@ import androidx.room.PrimaryKey
 
 /**
  * TellingHeader: Bevat de metadata van een telsessie.
- * Alle velden zijn Strings voor server-compatibiliteit.
+ * Bevat de gevraagde velden plus noodzakelijke velden voor app-functionaliteit.
  */
 @Entity(
     tableName = "telling_headers",
-    indices = [Index(value = ["windrichting"]), Index(value = ["begintijd"])]
+    indices = [Index(value = ["windrichting"]), Index(value = ["begintijd"]), Index(value = ["onlineid"])]
 )
 data class TellingHeader(
-    @PrimaryKey val tellingid: String,
-    val onlineid: String = "",
-    val externid: String = "",
-    val timezoneid: String = "Europe/Brussels",
+    @PrimaryKey val tellingid: String, // Numeriek volgnummer (1, 2, 3...)
+    val onlineid: String = "",        // id uit Excel / server
+    val externid: String = "VT5",
     val bron: String = "4",
     val telpostid: String = "",
-    val begintijd: String = "",
-    val eindtijd: String = "",
+    val begintijd: String = "",       // Epoch seconden
+    val eindtijd: String = "",         // Epoch seconden
     val tellers: String = "",
     val weer: String = "",
     val windrichting: String = "",
@@ -33,16 +32,18 @@ data class TellingHeader(
     val zicht: String = "",
     val tellersactief: String = "",
     val tellersaanwezig: String = "",
-    val typetelling: String = "",
+    val typetelling: String = "all",
     val metersnet: String = "",
     val geluid: String = "",
     val opmerkingen: String = "",
     val hydro: String = "",
     val hpa: String = "",
     val equipment: String = "",
-    val uuid: String = "",
+    val uuid: String = "",             // Voor server-synchronisatie
     val uploadtijdstip: String = "",
-    val nrec: String = "0",
-    val nsoort: String = "0",
-    val status: String = "actief" // actief, geupload, gearchiveerd
+    val nrec: String = "0",           // Berekend: som van records
+    val nsoort: String = "0",         // Berekend: totaal unieke soorten
+    
+    val timezoneid: String = "Europe/Brussels",
+    val status: String = "actief"     // actief, geupload, gearchiveerd
 )

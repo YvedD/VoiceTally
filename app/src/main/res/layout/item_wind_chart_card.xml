@@ -25,6 +25,7 @@
                 android:id="@+id/tvDirectionHeader"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="3dp"
                 android:layout_weight="1"
                 android:textColor="@color/popup_bg_wit"
                 android:textSize="12sp"
@@ -56,6 +57,8 @@
             android:id="@+id/chartDirection"
             android:layout_width="match_parent"
             android:layout_height="210dp"
+            android:background="#000000"
+            android:backgroundTint="#739B9B"
             android:padding="4dp" />
     </LinearLayout>
 

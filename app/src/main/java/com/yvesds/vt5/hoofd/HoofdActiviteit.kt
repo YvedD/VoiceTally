@@ -134,9 +134,11 @@ class HoofdActiviteit : AppCompatActivity() {
         
         // Check for active batch import to redirect
         val batchPrefs = getSharedPreferences("batch_import", MODE_PRIVATE)
-        if (batchPrefs.getBoolean(PREF_BATCH_IMPORT_ACTIVE, false)) {
+        if (batchPrefs.getBoolean(DatabaseBeheerScherm.PREF_BATCH_IMPORT_ACTIVE, false)) {
             Log.i(TAG, "Active batch import detected, redirecting to DatabaseBeheerScherm")
             startActivity(Intent(this, DatabaseBeheerScherm::class.java))
+            // We wissen het vlaggetje hier om een oneindige loop te voorkomen bij crashes
+            batchPrefs.edit { putBoolean(DatabaseBeheerScherm.PREF_BATCH_IMPORT_ACTIVE, false) }
             finish()
             return
         }

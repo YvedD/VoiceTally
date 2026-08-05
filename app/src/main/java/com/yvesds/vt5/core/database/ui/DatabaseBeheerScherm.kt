@@ -1,681 +1,413 @@
 package com.yvesds.vt5.core.database.ui
 
 import android.content.Intent
-import android.graphics.Color  // benodigd voor secondDlg kleur-parsing
+import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.view.View
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.patrykandpatrick.vico.core.cartesian.CartesianChart
+import com.patrykandpatrick.vico.core.cartesian.axis.Axis
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.core.cartesian.data.CartesianValueFormatter
 import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
+import com.patrykandpatrick.vico.core.common.Fill
+import com.patrykandpatrick.vico.core.common.component.TextComponent
 import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.database.SessionIdManager
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.batch.ExcelImportManager
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.opslag.FileLogger
-import com.yvesds.vt5.core.ui.DialogStyler
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.core.ui.ProgressDialogHelper
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields
-import java.util.Locale
-import kotlin.system.exitProcess
-
-import com.yvesds.vt5.core.import.CsvImportManager
-import com.yvesds.vt5.core.import.CsvImportResult
-import com.yvesds.vt5.core.ui.ProgressDialogHelper
-import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
-import android.provider.OpenableColumns
+import java.util.*
 
 /**
- * DatabaseBeheerScherm: Grafische interface voor het beheren van de Room database.
- * Mogelijkheden: Overzicht tabellen, records tellen, records wissen, tabellen droppen.
+ * DatabaseBeheerScherm - Beheert database imports, resets en overzichten.
+ * Nu met Site-filter en herstelde witte labels.
  */
 class DatabaseBeheerScherm : AppCompatActivity() {
+
+    companion object {
+        const val PREF_BATCH_IMPORT_ACTIVE = "pref_batch_import_active"
+    }
 
     private lateinit var database: VoiceTallyDatabase
     private lateinit var fileLogger: FileLogger
     private lateinit var container: LinearLayout
     private var chartView: CartesianChartView? = null
     private val modelProducer = CartesianChartModelProducer()
-    private lateinit var importManager: CsvImportManager
+    private lateinit var excelManager: ExcelImportManager
+    private lateinit var safHelper: SaFStorageHelper
+    private lateinit var idManager: SessionIdManager
+    private val debugDisplayFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")
 
-    private val selectCsvFiles = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        if (uris.isNotEmpty()) {
-            handleCsvImport(uris)
-        }
-    }
+    private lateinit var cbShowAantallen: CheckBox
+    private lateinit var cbShowTellingen: CheckBox
+    private lateinit var spinnerSiteFilter: Spinner
 
-    // Kleuren komen uit colors.xml sectie "grafiekkleuren".
-    // Aanpassen: verander de resource-naam hieronder als je een andere kleur wil.
-    private val chartLineColor   get() = ContextCompat.getColor(this, R.color.grafiek_lijnkleur)
-    private val chartReturnLineColor get() = ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug)
-    private val chartBgColor     get() = ContextCompat.getColor(this, R.color.grafiek_achtergrondkleur)
+    private val colorBirds = Color.parseColor("#FF8A80") // Lichtrood
+    private val colorSessions = Color.parseColor("#4CAF50") // Groen
 
-    companion object {
-        const val PREF_BATCH_IMPORT_ACTIVE = "pref_batch_import_active"
-        const val PREF_BATCH_IMPORT_PROCESSED = "pref_batch_import_processed"
-    }
+    private var availableSiteIds = mutableListOf<String?>() // null represents "All Sites"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_database_beheer)
 
         database = VoiceTallyDatabase.getDatabase(this)
-        importManager = CsvImportManager(this, database.tellingDao())
+        excelManager = ExcelImportManager(this)
+        safHelper = SaFStorageHelper(this)
+        idManager = SessionIdManager(this)
         fileLogger = FileLogger(this)
         container = findViewById(R.id.containerTabellen)
-        chartView = findViewById(R.id.chartActivity)
+        
+        cbShowAantallen = findViewById(R.id.cbShowAantallen)
+        cbShowTellingen = findViewById(R.id.cbShowTellingen)
+        spinnerSiteFilter = findViewById(R.id.spinnerSiteFilter)
+
+        setupChartView()
+        loadSitesForFilter()
+
+        val filterListener = { _: View -> setupChartData() }
+        cbShowAantallen.setOnClickListener(filterListener)
+        cbShowTellingen.setOnClickListener(filterListener)
+
+        spinnerSiteFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
+                setupChartData()
+            }
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
+        }
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
 
         findViewById<MaterialButton>(R.id.btnTellingenLijst).setOnClickListener {
-            startActivity(android.content.Intent(this, DatabaseTellingLijstActiviteit::class.java))
+            startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
         }
 
         findViewById<MaterialButton>(R.id.btnSoortZoeken).setOnClickListener {
-            startActivity(android.content.Intent(this, DatabaseSoortOverzichtActiviteit::class.java))
+            startActivity(Intent(this, DatabaseSoortOverzichtActiviteit::class.java))
         }
 
         findViewById<MaterialButton>(R.id.btnAiEvaluation).setOnClickListener {
-            startActivity(android.content.Intent(this, com.yvesds.vt5.ai.AiLogActiviteit::class.java))
-        }
-
-        findViewById<MaterialButton>(R.id.btnImportCsv).setOnClickListener {
-            selectCsvFiles.launch(arrayOf("text/comma-separated-values", "text/csv"))
+            startActivity(Intent(this, com.yvesds.vt5.ai.AiLogActiviteit::class.java))
         }
 
         findViewById<MaterialButton>(R.id.btnBatchImport).setOnClickListener {
-            handleBatchImport()
+            startExcelBatchImport()
         }
 
         findViewById<MaterialButton>(R.id.btnResetDatabase).setOnClickListener {
-            startDoubleResetConfirmation()
+            startDoubleResetConfirmation("DE VOLLEDIGE DATABASE", ::performFullDatabaseReset)
         }
 
-        initChart()
-        setupChart()
         refreshTableList()
-
-        // Automatisch hervatten na herstart
-        checkPendingBatchImport()
+        setupChartData()
     }
 
-    private fun checkPendingBatchImport() {
-        val prefs = getSharedPreferences("batch_import", MODE_PRIVATE)
-        if (prefs.getBoolean(PREF_BATCH_IMPORT_ACTIVE, false)) {
-            handleBatchImport(isAutoResume = true)
-        }
-    }
-
-    private fun handleBatchImport(isAutoResume: Boolean = false) {
-        lifecycleScope.launch {
-            val progressDlg = ProgressDialogHelper.show(this@DatabaseBeheerScherm, "Batch Import initialiseren...")
-
-            val pairs = importManager.getPendingImportPairs()
-            if (pairs.isEmpty()) {
-                progressDlg.dismiss()
-                clearBatchPrefs()
-                if (!isAutoResume) {
-                    Toast.makeText(this@DatabaseBeheerScherm, "Geen import-bestanden gevonden in VT5/imports", Toast.LENGTH_LONG).show()
-                }
-                return@launch
-            }
-
-            val prefs = getSharedPreferences("batch_import", MODE_PRIVATE)
-            val processedCount = prefs.getInt(PREF_BATCH_IMPORT_PROCESSED, 0)
-            
-            Log.i("BatchImport", "Starting import session. Processed so far: $processedCount / ${pairs.size}")
-
-            if (processedCount >= pairs.size) {
-                progressDlg.dismiss()
-                clearBatchPrefs()
-                val finishMsg = "Batch import volledig voltooid! ${pairs.size} jaar-sets verwerkt."
-                AlertDialog.Builder(this@DatabaseBeheerScherm)
-                    .setTitle("Import Klaar")
-                    .setMessage(finishMsg)
-                    .setPositiveButton("OK", null)
-                    .show()
-                refreshTableList()
-                return@launch
-            }
-
-            // Start de actieve status als dit de eerste keer is
-            if (!isAutoResume) {
-                prefs.edit().putBoolean(PREF_BATCH_IMPORT_ACTIVE, true).apply()
-            }
-
-            // Pak het VOLGENDE paar
-            val pair = pairs[processedCount]
-            val (h, d) = pair
-            val displayInfo = "${h.telpostId} (${h.year})"
-            
-            ProgressDialogHelper.updateMessage(progressDlg, "Verwerken ${processedCount + 1} van ${pairs.size}:\n$displayInfo\n\nApp herstart hierna automatisch.")
-
-            // OPTIMIZATION: Wait a bit so the user can actually read the message before it disappears on restart
-            kotlinx.coroutines.delay(1500)
-
-            val result = importManager.importSinglePair(h, d)
-            
-            progressDlg.dismiss()
-
-            result.onSuccess {
-                val nextCount = processedCount + 1
-                Log.i("BatchImport", "Import of $displayInfo successful. Updating count to $nextCount")
-                
-                // CRITICAL: Use commit() instead of apply() to ensure data is written before process exit
-                prefs.edit().putInt(PREF_BATCH_IMPORT_PROCESSED, nextCount).commit()
-                
-                // Controleer of we klaar zijn of moeten herstarten
-                if (nextCount >= pairs.size) {
-                    clearBatchPrefs()
-                    AlertDialog.Builder(this@DatabaseBeheerScherm)
-                        .setTitle("Batch Import Voltooid")
-                        .setMessage("Alle ${pairs.size} bestanden zijn verwerkt.")
-                        .setPositiveButton("OK") { _, _ -> refreshTableList() }
-                        .show()
-                } else {
-                    Log.i("BatchImport", "Triggering auto-restart for next pair...")
-                    // Forceer herstart
-                    restartAppProcess()
-                }
-            }.onFailure {
-                clearBatchPrefs()
-                val dlg = AlertDialog.Builder(this@DatabaseBeheerScherm)
-                    .setTitle("Batch Import Fout bij $displayInfo")
-                    .setMessage(it.message)
-                    .setPositiveButton("OK", null)
-                    .show()
-                DialogStyler.apply(dlg)
-            }
-        }
-    }
-
-    private fun clearBatchPrefs() {
-        getSharedPreferences("batch_import", MODE_PRIVATE).edit().clear().apply()
-    }
-
-    private fun handleCsvImport(uris: List<Uri>) {
-        lifecycleScope.launch {
-            var headerInserted = 0
-            var waarnemingInserted = 0
-            var skippedRows = 0
-            val warnings = mutableListOf<String>()
-            val errors = mutableListOf<String>()
-
-            withContext(Dispatchers.IO) {
-                val recognizedFiles = mutableListOf<CsvImportFile>()
-
-                for (uri in uris) {
-                    val fileName = getFileName(uri)
-                    val parsed = parseTrektellenFileName(fileName)
-                    if (parsed == null) {
-                        errors.add(
-                            "Bestand overgeslagen ($fileName): naam moet 'Trektellen_data_<telpostid>_<jaar>.csv' of 'Trektellen_headerdata_<telpostid>_<jaar>.csv' zijn"
-                        )
-                        continue
-                    }
-                    recognizedFiles.add(CsvImportFile(uri, fileName, parsed.fileType, parsed.telpostId, parsed.year))
-                }
-
-                val headerFiles = recognizedFiles.filter { it.fileType == CsvFileType.HEADER }
-                val dataFiles = recognizedFiles.filter { it.fileType == CsvFileType.DATA }
-
-                if (headerFiles.size != 1 || dataFiles.size != 1) {
-                    errors.add(
-                        "Import vereist exact 1 headerbestand en 1 databestand voor hetzelfde jaar/telpost (multi-jaar import is uitgeschakeld)."
-                    )
-                }
-
-                val headerFile = headerFiles.singleOrNull()
-                val dataFile = dataFiles.singleOrNull()
-
-                if (headerFile != null && dataFile != null) {
-                    if (headerFile.year != dataFile.year) {
-                        errors.add(
-                            "Bestanden horen niet bij elkaar: jaartal verschilt (${headerFile.fileName} -> ${headerFile.year}, ${dataFile.fileName} -> ${dataFile.year})."
-                        )
-                    }
-                    if (headerFile.telpostId != dataFile.telpostId) {
-                        errors.add(
-                            "Bestanden horen niet bij elkaar: telpostid verschilt (${headerFile.fileName} -> ${headerFile.telpostId}, ${dataFile.fileName} -> ${dataFile.telpostId})."
-                        )
-                    }
-                }
-
-                if (errors.isNotEmpty()) {
-                    return@withContext
-                }
-
-                // Use combined importer which reads headers sequentially and links matching data rows by online id (countid)
-                val headerStream = contentResolver.openInputStream(headerFile!!.uri)
-                val dataStream = contentResolver.openInputStream(dataFile!!.uri)
-                if (headerStream == null) {
-                    errors.add("Bestand niet leesbaar (${headerFile.fileName})")
-                } else if (dataStream == null) {
-                    errors.add("Bestand niet leesbaar (${dataFile.fileName})")
-                } else {
-                    headerStream.use { hs ->
-                        dataStream.use { ds ->
-                            val result = importManager.importHeadersAndData(hs, ds)
-                            result.onSuccess { stats ->
-                                headerInserted += stats.insertedHeaders
-                                waarnemingInserted += stats.insertedWaarnemingen
-                                skippedRows += stats.skipped
-                                warnings.addAll(stats.warnings.map { "${headerFile.fileName}/${dataFile.fileName}: $it" })
-                            }.onFailure {
-                                errors.add("Combined import fout (${headerFile.fileName}, ${dataFile.fileName}): ${it.message}")
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (errors.isEmpty()) {
-                val successMessage = buildString {
-                    append("Import geslaagd!\n")
-                    append("$headerInserted sessies en $waarnemingInserted waarnemingen toegevoegd.")
-                    if (skippedRows > 0) {
-                        append("\n$skippedRows rijen overgeslagen (onvolledig of zonder geldige koppeling).")
-                    }
-                    if (warnings.isNotEmpty()) {
-                        append("\n\nWaarschuwingen:\n")
-                        append(warnings.take(6).joinToString("\n"))
-                        if (warnings.size > 6) {
-                            append("\n... en nog ${warnings.size - 6} waarschuwingen")
-                        }
-                    }
-                }
-                showMandatoryRestartAfterImportDialog(successMessage)
-            } else {
-                val errorMessage = buildString {
-                    append("Import voltooid met fouten:\n")
-                    append(errors.joinToString("\n"))
-                    if (headerInserted > 0 || waarnemingInserted > 0) {
-                        append("\n\nReeds geimporteerd: $headerInserted sessies, $waarnemingInserted waarnemingen")
-                    }
-                    if (warnings.isNotEmpty()) {
-                        append("\n\nWaarschuwingen:\n")
-                        append(warnings.take(6).joinToString("\n"))
-                        if (warnings.size > 6) {
-                            append("\n... en nog ${warnings.size - 6} waarschuwingen")
-                        }
-                    }
-                }
-
-                AlertDialog.Builder(this@DatabaseBeheerScherm)
-                    .setTitle("CSV Import Resultaat")
-                    .setMessage(errorMessage)
-                    .setPositiveButton("OK") { _, _ ->
-                        refreshTableList()
-                        setupChart()
-                    }
-                    .show()
-            }
-        }
-    }
-
-    private fun parseTrektellenFileName(fileName: String): ParsedTrektellenFileName? {
-        val normalized = fileName.substringAfterLast('/')
-        val pattern = Regex("^Trektellen_(headerdata|data)_(\\d+)_(\\d{4})\\.csv$", RegexOption.IGNORE_CASE)
-        val match = pattern.matchEntire(normalized) ?: return null
-
-        val type = when (match.groupValues[1].lowercase(Locale.ROOT)) {
-            "headerdata" -> CsvFileType.HEADER
-            "data" -> CsvFileType.DATA
-            else -> return null
+    private fun setupChartView() {
+        chartView = findViewById(R.id.chartActivity)
+        chartView?.modelProducer = modelProducer
+        
+        val birdFormatter = CartesianValueFormatter { _, value, _ ->
+            if (value >= 1000) String.format(Locale.getDefault(), "%.0fk", value / 1000)
+            else String.format(Locale.getDefault(), "%.0f", value)
         }
 
-        return ParsedTrektellenFileName(
-            fileType = type,
-            telpostId = match.groupValues[2],
-            year = match.groupValues[3],
+        val birdLayer = LineCartesianLayer(
+            lineProvider = LineCartesianLayer.LineProvider.series(
+                LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(colorBirds)))
+            ),
+            verticalAxisPosition = Axis.Position.Vertical.Start
+        )
+
+        val sessionLayer = LineCartesianLayer(
+            lineProvider = LineCartesianLayer.LineProvider.series(
+                LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(colorSessions)))
+            ),
+            verticalAxisPosition = Axis.Position.Vertical.End
+        )
+
+        chartView?.chart = CartesianChart(
+            layers = arrayOf(birdLayer, sessionLayer),
+            startAxis = VerticalAxis.start(
+                label = TextComponent(color = Color.WHITE, textSizeSp = 9f),
+                valueFormatter = birdFormatter,
+                itemPlacer = VerticalAxis.ItemPlacer.count(count = { 6 })
+            ),
+            endAxis = VerticalAxis.end(
+                label = TextComponent(color = Color.WHITE, textSizeSp = 9f),
+                valueFormatter = CartesianValueFormatter { _, v, _ -> String.format(Locale.getDefault(), "%.0f", v) }
+            ),
+            bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
         )
     }
 
-    private fun showMandatoryRestartAfterImportDialog(importMessage: String) {
-        val finalMessage = buildString {
-            append(importMessage)
-            append("\n\nVT5 moet nu verplicht herstarten. De import heeft veel data verwerkt; een schone herstart reset geheugen en interne caches zodat de app niet vastloopt (ANR).")
-        }
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("CSV Import Resultaat")
-            .setMessage(finalMessage)
-            .setPositiveButton("Nu herstarten") { _, _ ->
-                restartAppProcess()
-            }
-            .setCancelable(false)
-            .show()
-        dialog.setCanceledOnTouchOutside(false)
-    }
-
-    private fun restartAppProcess() {
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-
-        if (launchIntent == null) {
-            Toast.makeText(
-                this,
-                "Automatische herstart mislukt. Sluit VT5 af en start opnieuw.",
-                Toast.LENGTH_LONG,
-            ).show()
-            finishAffinity()
-            return
-        }
-
-        val restartIntent = Intent.makeRestartActivityTask(launchIntent.component)
-        startActivity(restartIntent)
-
-        finishAffinity()
-        exitProcess(0)
-    }
-
-    private fun getFileName(uri: Uri): String {
-        var result: String? = null
-        if (uri.scheme == "content") {
-            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (index != -1) result = cursor.getString(index)
-                }
-            }
-        }
-        if (result == null) {
-            result = uri.path
-            val cut = result?.lastIndexOf('/') ?: -1
-            if (cut != -1) {
-                result = result?.substring(cut + 1)
-            }
-        }
-        return result ?: "unknown"
-    }
-
-    private fun initChart() {
-        val view = chartView ?: return
-        try {
-            // Create a two-series line layer: sessions (main) + return counts
-            val lineLayer = VicoLineChartHelper.createLineLayer(chartLineColor, chartReturnLineColor)
-            val bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
-            val topAxis = VicoLineChartHelper.createWeeklyTickAxis()
-
-            view.chart = CartesianChart(
-                lineLayer,
-                bottomAxis = bottomAxis,
-                topAxis = topAxis,
-                startAxis = VicoLineChartHelper.createCountAxis(),
-            )
-            view.setBackgroundColor(chartBgColor)
-            view.modelProducer = modelProducer
-        } catch (e: Exception) {
-            Log.e("DatabaseBeheer", "Vico initChart failed: ${e.message}", e)
-        }
-    }
-
-    private fun setupChart() {
-        val view = chartView ?: return
+    private fun loadSitesForFilter() {
         lifecycleScope.launch {
+            val snapshot = try {
+                withContext(Dispatchers.IO) { ServerDataCache.getOrLoad(this@DatabaseBeheerScherm) }
+            } catch (_: Exception) { null }
+
+            val siteList = mutableListOf<String>()
+            siteList.add("Alle Telposten")
+            availableSiteIds.clear()
+            availableSiteIds.add(null)
+
+            snapshot?.sitesById?.values?.sortedBy { it.telpostnaam }?.forEach { site ->
+                siteList.add("${site.telpostnaam} (${site.telpostid})")
+                availableSiteIds.add(site.telpostid)
+            }
+
+            val adapter = ArrayAdapter(this@DatabaseBeheerScherm, android.R.layout.simple_spinner_item, siteList)
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spinnerSiteFilter.adapter = adapter
+        }
+    }
+
+    private fun startExcelBatchImport() {
+        lifecycleScope.launch {
+            val progress = ProgressDialogHelper.show(this@DatabaseBeheerScherm, "Scannen VT5/imports...")
             try {
-                // Fetch both headers (for session counts) and waarnemingen aantalterug rows
-                val (allHeaders, returnRows) = withContext(Dispatchers.IO) {
-                    val headers = database.tellingDao().getAllHeaders()
-                    val returns = database.tellingDao().getAllReturnRows()
-                    Pair(headers, returns)
+                val importsDir = safHelper.getImportsDirSuspend()
+                if (importsDir == null) {
+                    progress.dismiss()
+                    Toast.makeText(this@DatabaseBeheerScherm, "Imports map niet gevonden.", Toast.LENGTH_LONG).show()
+                    return@launch
                 }
+                val files = importsDir.listFiles()
+                val pairs = findExcelPairs(files)
+                if (pairs.isEmpty()) {
+                    progress.dismiss()
+                    AlertDialog.Builder(this@DatabaseBeheerScherm)
+                        .setTitle("Geen imports gevonden")
+                        .setMessage("Geen Excel-paren gevonden.")
+                        .setPositiveButton("OK", null)
+                        .show()
+                    return@launch
+                }
+                progress.dismiss()
+                showPairsConfirmDialog(pairs)
+            } catch (e: Exception) {
+                progress.dismiss()
+                Toast.makeText(this@DatabaseBeheerScherm, "Fout: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
-                if (allHeaders.isNotEmpty()) {
-                    val weeklySessionCounts = MutableList(52) { 0 }
-                    val weeklyReturnCounts = MutableList(52) { 0 }
+    private fun findExcelPairs(files: Array<DocumentFile>): List<ExcelPair> {
+        val headers = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+        val dataFiles = files.filter { it.name?.startsWith("Trektellen_data_") == true && it.name?.endsWith(".xlsx") == true }
+        val pairs = mutableListOf<ExcelPair>()
+        headers.forEach { hFile ->
+            val name = hFile.name ?: return@forEach
+            val parts = name.replace("Trektellen_headerdata_", "").replace(".xlsx", "").split("_")
+            if (parts.size >= 2) {
+                val site = parts[0]
+                val year = parts[1]
+                val dFile = dataFiles.find { it.name == "Trektellen_data_${site}_${year}.xlsx" }
+                if (dFile != null) pairs.add(ExcelPair(hFile, dFile, site, year))
+            }
+        }
+        return pairs
+    }
 
-                    for (header in allHeaders) {
-                        val weekIndex = getWeekOfYear(header) - 1
-                        if (weekIndex in 0..51) {
-                            // Elke afzonderlijke sessie (header) telt als +1.
-                            weeklySessionCounts[weekIndex] += 1
+    private fun showPairsConfirmDialog(pairs: List<ExcelPair>) {
+        val msg = StringBuilder("Klaar voor import:\n\n")
+        pairs.forEach { msg.append("• Site ${it.site}, Jaar ${it.year}\n") }
+        AlertDialog.Builder(this)
+            .setTitle("Excel Batch Import")
+            .setMessage(msg.toString())
+            .setPositiveButton("Start Import") { _, _ -> executeBatchImport(pairs) }
+            .setNegativeButton("Annuleren", null)
+            .show()
+    }
+
+    private fun executeBatchImport(pairs: List<ExcelPair>) {
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        lifecycleScope.launch {
+            val progress = ProgressDialogHelper.show(this@DatabaseBeheerScherm, "Batch import starten...")
+            var successCount = 0
+            try {
+                pairs.forEachIndexed { index, pair ->
+                    val ok = excelManager.importPair(pair.header.uri, pair.data.uri) { msg, curr, total ->
+                        withContext(Dispatchers.Main) {
+                            ProgressDialogHelper.updateMessage(progress, "Site ${pair.site} ${pair.year}\n$msg ($curr)")
                         }
                     }
-
-                    // Aggregate return counts by header week using begintijd/timezone from the return rows
-                    for (r in returnRows) {
-                        val weekIndex = getWeekIndexFromEpoch(r.begintijd, r.timezoneid)
-                        if (weekIndex in 0..51) {
-                            weeklyReturnCounts[weekIndex] += r.aantalterug
-                        }
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        modelProducer.runTransaction {
-                            lineSeries { series(weeklySessionCounts.map { it.toFloat() }) }
-                            lineSeries { series(weeklyReturnCounts.map { it.toFloat() }) }
-                        }
-                        view.invalidate()
-                    }
-                } else {
-                    fileLogger.warn("ActivityChart: No headers found in database")
+                    if (ok) successCount++
                 }
             } catch (e: Exception) {
-                Log.e("DatabaseBeheer", "setupChart failed: ${e.message}", e)
+                Log.e("DatabaseBeheerScherm", "Fout: ${e.message}")
+            } finally {
+                progress.dismiss()
+                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+            AlertDialog.Builder(this@DatabaseBeheerScherm)
+                .setTitle("Import Voltooid")
+                .setMessage("$successCount jaren geimporteerd.")
+                .setPositiveButton("OK") { _, _ -> 
+                    refreshTableList()
+                    setupChartData()
+                    showDebugImportSummary()
+                }
+                .show()
+        }
+    }
+
+    private fun showDebugImportSummary() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val headers = database.tellingDao().getAllHeaders()
+            if (headers.isEmpty()) return@launch
+            val lastHeader = headers.first()
+            val waarnemingen = database.tellingDao().getWaarnemingenList(lastHeader.tellingid)
+            val startEpoch = lastHeader.begintijd.toLongOrNull() ?: 0L
+            val readableDate = if (startEpoch > 0) Instant.ofEpochSecond(startEpoch).atZone(ZoneId.systemDefault()).format(debugDisplayFormatter) else lastHeader.begintijd
+            val sb = StringBuilder().apply {
+                append("--- DATABASE VERIFICATIE ---\n\n")
+                append("HEADER DATA:\n")
+                append("• Telling ID (volgnummer): ${lastHeader.tellingid}\n")
+                append("• id: ${lastHeader.onlineid}\n")
+                append("• Site: ${lastHeader.telpostid}\n")
+                append("• Start: $readableDate\n")
+                append("• Week: ${getWeekIndex(lastHeader.begintijd)}\n")
+                append("• nRec (Aantal records): ${lastHeader.nrec}\n")
+                append("• nSoort (Aantal soorten): ${lastHeader.nsoort}\n\n")
+                append("WAARNEMINGEN (${waarnemingen.size}):\n")
+                waarnemingen.take(10).forEach { w ->
+                    append("[${w.soortid}] Aantal: ${w.aantal}\n")
+                }
+            }
+            withContext(Dispatchers.Main) {
+                val scroll = android.widget.ScrollView(this@DatabaseBeheerScherm).apply {
+                    addView(TextView(this@DatabaseBeheerScherm).apply {
+                        text = sb.toString()
+                        setPadding(32, 32, 32, 32)
+                        textSize = 12f
+                        typeface = android.graphics.Typeface.MONOSPACE
+                        setTextColor(Color.WHITE)
+                    })
+                }
+                AlertDialog.Builder(this@DatabaseBeheerScherm).setTitle("Debug Import").setView(scroll).setPositiveButton("OK", null).show()
             }
         }
     }
 
-    private fun getWeekIndexFromEpoch(epochValue: String, timezoneId: String): Int {
-        val epoch = epochValue.trim().toLongOrNull() ?: return -1
-        val epochSeconds = if (epoch > 9_999_999_999L) epoch / 1000 else epoch
-        val zone = runCatching {
-            val zoneId = timezoneId.ifBlank { "Europe/Brussels" }
-            ZoneId.of(zoneId)
-        }.getOrDefault(ZoneId.of("Europe/Brussels"))
+    private fun setupChartData() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val headers = database.tellingDao().getAllHeaders()
+            if (headers.isEmpty()) {
+                withContext(Dispatchers.Main) { modelProducer.runTransaction { lineSeries { series(listOf(0f)); series(listOf(0f)) } } }
+                return@launch
+            }
 
-        val localDate = Instant.ofEpochSecond(epochSeconds).atZone(zone).toLocalDate()
-        val week = localDate.get(WeekFields.of(Locale.getDefault()).weekOfYear())
-        return week.coerceIn(1, 52) - 1
-    }
+            val weekBirdTotals = FloatArray(54)
+            val weekSessionTotals = FloatArray(54)
+            val showBirds = cbShowAantallen.isChecked
+            val showSessions = cbShowTellingen.isChecked
+            
+            val selectedSiteIdx = spinnerSiteFilter.selectedItemPosition
+            val selectedSiteId = if (selectedSiteIdx >= 0 && selectedSiteIdx < availableSiteIds.size) availableSiteIds[selectedSiteIdx] else null
 
-    private fun getWeekOfYear(header: TellingHeader): Int {
-        val epoch = header.begintijd.trim().toLongOrNull()
-        if (epoch == null) {
-            Log.w("DatabaseBeheer", "ActivityChart: ongeldige begintijd '${header.begintijd}' voor telling ${header.tellingid}")
-            return 1
+            headers.forEach { h ->
+                if (selectedSiteId != null && h.telpostid != selectedSiteId) return@forEach
+                val week = getWeekIndex(h.begintijd)
+                if (week in 1..53) {
+                    if (showSessions) weekSessionTotals[week] += 1f
+                    if (showBirds) {
+                        database.tellingDao().getWaarnemingenList(h.tellingid).forEach { w ->
+                            weekBirdTotals[week] += (w.aantal.toFloatOrNull() ?: 0f) + (w.aantalterug.toFloatOrNull() ?: 0f)
+                        }
+                    }
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                modelProducer.runTransaction {
+                    lineSeries { series(weekBirdTotals.toList()) }
+                    lineSeries { series(weekSessionTotals.toList()) }
+                }
+            }
         }
-
-        val epochSeconds = if (epoch > 9_999_999_999L) epoch / 1000 else epoch
-        val zone = runCatching {
-            val zoneId = header.timezoneid.ifBlank { "Europe/Brussels" }
-            ZoneId.of(zoneId)
-        }.getOrDefault(ZoneId.of("Europe/Brussels"))
-
-        val localDate = Instant.ofEpochSecond(epochSeconds).atZone(zone).toLocalDate()
-        val week = localDate.get(WeekFields.of(Locale.getDefault()).weekOfYear())
-        return week.coerceIn(1, 52)
     }
 
-    private fun startDoubleResetConfirmation() {
-        val firstDlg = AlertDialog.Builder(this)
-            .setTitle("Database Resetten?")
-            .setMessage("Wil je echt alle gegevens uit de database verwijderen? Dit kan niet ongedaan worden gemaakt.")
-            .setPositiveButton("Verwijderen") { _, _ ->
-                showSecondResetConfirmation()
-            }
-            .setNegativeButton(R.string.annuleer, null)
-            .show()
-        DialogStyler.apply(firstDlg)
+    private fun getWeekIndex(begintijd: String): Int {
+        return try {
+            val epoch = begintijd.toLongOrNull() ?: return 0
+            val instant = if (epoch > 9999999999L) Instant.ofEpochMilli(epoch) else Instant.ofEpochSecond(epoch)
+            val date = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+            ((date.dayOfYear - 1) / 7) + 1
+        } catch (e: Exception) { 0 }
     }
 
-    private fun showSecondResetConfirmation() {
-        val secondDlg = AlertDialog.Builder(this)
-            .setTitle("Laatste waarschuwing")
-            .setMessage("Weet u het zeker?")
-            .setPositiveButton("JA, RESET ALLES") { _, _ ->
-                performFullDatabaseReset()
-            }
-            .setNegativeButton(R.string.annuleer, null)
-            .show()
-
-        DialogStyler.apply(secondDlg)
-
-        // Specifieke styling voor de tweede waarschuwing (oranje kleur)
-        secondDlg.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(android.graphics.Color.parseColor("#FF9800"))
-        secondDlg.findViewById<TextView>(android.R.id.message)?.setTextColor(android.graphics.Color.parseColor("#FF9800"))
+    private fun startDoubleResetConfirmation(targetName: String, onConfirm: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle("$targetName Leegmaken?")
+            .setPositiveButton("JA") { _, _ -> 
+                AlertDialog.Builder(this).setTitle("Zeker?").setPositiveButton("WISSEN") { _, _ -> onConfirm() }.show()
+            }.show()
     }
 
     private fun performFullDatabaseReset() {
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                // 1. Wis alle tabellen
-                database.tellingDao().clearAllHeaders()
-                database.tellingDao().clearAllWaarnemingen()
-                database.tellingDao().clearAllSyncLogs()
-
-                // 2. Reset de sessie-teller in DataStore
-                com.yvesds.vt5.core.opslag.AppDataStore.resetTellingId(this@DatabaseBeheerScherm)
-
-                // 3. Log de actie
-                fileLogger.warn("GEBRUIKER: Volledige database reset uitgevoerd (tabellen leeg + teller op 0)")
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@DatabaseBeheerScherm, "Database volledig gereset", Toast.LENGTH_LONG).show()
-                    refreshTableList()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@DatabaseBeheerScherm, "Fout bij reset: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
+            database.tellingDao().clearAllHeaders()
+            database.tellingDao().clearAllWaarnemingen()
+            database.tellingDao().clearAllAiLogs()
+            idManager.reset() // Reset ook de teller naar 1
+            withContext(Dispatchers.Main) { refreshTableList(); setupChartData() }
         }
     }
 
     private fun refreshTableList() {
-        container.removeAllViews()
-
-        lifecycleScope.launch {
-            val tables = listOf(
-                TableInfo("telling_headers", "Headers"),
-                TableInfo("waarnemingen", "Waarnemingen"),
-                TableInfo("ai_logs", "AI Logs")
-            )
-
-            for (table in tables) {
-                val count = getCountForTable(table.id)
-                addTableCard(table, count)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val hCount = database.tellingDao().countHeaders()
+            val wCount = database.tellingDao().countWaarnemingen()
+            val aCount = database.tellingDao().countAiLogs()
+            val weCount = database.tellingDao().countWeatherArchive()
+            withContext(Dispatchers.Main) {
+                container.removeAllViews()
+                addTableCard("Sessies", hCount) { 
+                    lifecycleScope.launch(Dispatchers.IO) { 
+                        database.tellingDao().clearAllHeaders()
+                        idManager.reset() // Ook resetten als alleen sessies worden gewist
+                        withContext(Dispatchers.Main) { refreshTableList(); setupChartData() } 
+                    } 
+                }
+                addTableCard("Waarnemingen", wCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearAllWaarnemingen(); withContext(Dispatchers.Main) { refreshTableList(); setupChartData() } } }
+                addTableCard("AI Logs", aCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearAllAiLogs(); withContext(Dispatchers.Main) { refreshTableList() } } }
+                addTableCard("Weer", weCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearWeatherArchive(); withContext(Dispatchers.Main) { refreshTableList() } } }
             }
         }
     }
 
-    private suspend fun getCountForTable(tableId: String): Int = withContext(Dispatchers.IO) {
-        try {
-            when (tableId) {
-                "telling_headers" -> database.tellingDao().countHeaders()
-                "waarnemingen" -> database.tellingDao().countWaarnemingen()
-                "ai_logs" -> database.tellingDao().countSyncLogs()
-                else -> 0
-            }
-        } catch (e: Exception) {
-            0
-        }
-    }
-
-    private fun addTableCard(table: TableInfo, count: Int) {
+    private fun addTableCard(name: String, count: Int, onReset: () -> Unit) {
         val view = LayoutInflater.from(this).inflate(R.layout.item_db_tabel, container, false)
-
-        view.findViewById<TextView>(R.id.tvTabelNaam).text = getString(R.string.db_beheer_tabel_naam, table.name)
-        view.findViewById<TextView>(R.id.tvRecordsCount).text = getString(R.string.db_beheer_records_count, count)
-
-        view.findViewById<MaterialButton>(R.id.btnWissenRecords).setOnClickListener {
-            showConfirmDialog(
-                getString(R.string.db_beheer_confirm_records_msg, table.name)
-            ) { clearTableRecords(table.id, table.name) }
-        }
-
-        view.findViewById<MaterialButton>(R.id.btnWissenTabel).setOnClickListener {
-            showConfirmDialog(
-                getString(R.string.db_beheer_confirm_tabel_msg, table.name)
-            ) { dropTable(table.id, table.name) }
-        }
-
+        view.findViewById<TextView>(R.id.tvTabelNaam).text = name
+        view.findViewById<TextView>(R.id.tvRecordsCount).text = "$count records"
+        view.findViewById<MaterialButton>(R.id.btnWissenRecords).setOnClickListener { startDoubleResetConfirmation(name, onReset) }
+        view.findViewById<View>(R.id.btnWissenTabel).visibility = View.GONE
         container.addView(view)
     }
 
-    private fun showConfirmDialog(message: String, onConfirm: () -> Unit) {
-        val dlg = AlertDialog.Builder(this)
-            .setTitle(R.string.db_beheer_confirm_titel)
-            .setMessage(message)
-            .setPositiveButton(R.string.dlg_ok) { _, _ -> onConfirm() }
-            .setNegativeButton(R.string.annuleer, null)
-            .show()
-        DialogStyler.apply(dlg)
-    }
-
-    private fun clearTableRecords(tableId: String, tableName: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                when (tableId) {
-                    "telling_headers" -> database.tellingDao().clearAllHeaders()
-                    "waarnemingen" -> database.tellingDao().clearAllWaarnemingen()
-                    "ai_logs" -> database.tellingDao().clearAllSyncLogs()
-                }
-                fileLogger.info(getString(R.string.db_beheer_log_records_gewist, tableName))
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@DatabaseBeheerScherm, R.string.db_beheer_actie_gelukt, Toast.LENGTH_SHORT).show()
-                    refreshTableList()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@DatabaseBeheerScherm, getString(R.string.db_beheer_actie_fout, e.message), Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    private fun dropTable(tableId: String, tableName: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                // Room supportSQLiteDatabase gebruiken voor ruwe SQL
-                database.openHelper.writableDatabase.execSQL("DROP TABLE IF EXISTS $tableId")
-
-                // Na een DROP moet de tabel meestal opnieuw aangemaakt worden.
-                // In Room is het veiliger om de app te herstarten of destructieve migratie te triggeren.
-                // Voor nu: we loggen het en waarschuwen dat dit een zware ingreep is.
-                fileLogger.warn(getString(R.string.db_beheer_log_tabel_dropped, tableName))
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@DatabaseBeheerScherm, "Tabel gedropt. Herstart app aanbevolen.", Toast.LENGTH_LONG).show()
-                    refreshTableList()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@DatabaseBeheerScherm, getString(R.string.db_beheer_actie_fout, e.message), Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    data class TableInfo(val id: String, val name: String)
-
-    private enum class CsvFileType { HEADER, DATA }
-
-    private data class ParsedTrektellenFileName(
-        val fileType: CsvFileType,
-        val telpostId: String,
-        val year: String,
-    )
-
-    private data class CsvImportFile(
-        val uri: Uri,
-        val fileName: String,
-        val fileType: CsvFileType,
-        val telpostId: String,
-        val year: String,
-    )
+    private data class ExcelPair(val header: DocumentFile, val data: DocumentFile, val site: String, val year: String)
 }
