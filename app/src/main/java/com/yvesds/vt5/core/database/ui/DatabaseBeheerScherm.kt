@@ -24,10 +24,10 @@ import com.patrykandpatrick.vico.core.common.Fill
 import com.patrykandpatrick.vico.core.common.component.TextComponent
 import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
 import com.yvesds.vt5.R
-import com.yvesds.vt5.core.database.SessionIdManager
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.batch.ExcelImportManager
 import com.yvesds.vt5.core.database.entities.TellingHeader
+import com.yvesds.vt5.core.opslag.AppDataStore
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
@@ -58,7 +58,6 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     private val modelProducer = CartesianChartModelProducer()
     private lateinit var excelManager: ExcelImportManager
     private lateinit var safHelper: SaFStorageHelper
-    private lateinit var idManager: SessionIdManager
     private val debugDisplayFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")
 
     private lateinit var cbShowAantallen: CheckBox
@@ -77,7 +76,6 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         database = VoiceTallyDatabase.getDatabase(this)
         excelManager = ExcelImportManager(this)
         safHelper = SaFStorageHelper(this)
-        idManager = SessionIdManager(this)
         fileLogger = FileLogger(this)
         container = findViewById(R.id.containerTabellen)
         
@@ -373,7 +371,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             database.tellingDao().clearAllHeaders()
             database.tellingDao().clearAllWaarnemingen()
             database.tellingDao().clearAllAiLogs()
-            idManager.reset() // Reset ook de teller naar 1
+            AppDataStore.resetTellingId(this@DatabaseBeheerScherm) // Reset teller in DataStore
             withContext(Dispatchers.Main) { refreshTableList(); setupChartData() }
         }
     }
@@ -389,7 +387,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                 addTableCard("Sessies", hCount) { 
                     lifecycleScope.launch(Dispatchers.IO) { 
                         database.tellingDao().clearAllHeaders()
-                        idManager.reset() // Ook resetten als alleen sessies worden gewist
+                        AppDataStore.resetTellingId(this@DatabaseBeheerScherm) // Ook hier resetten
                         withContext(Dispatchers.Main) { refreshTableList(); setupChartData() } 
                     } 
                 }

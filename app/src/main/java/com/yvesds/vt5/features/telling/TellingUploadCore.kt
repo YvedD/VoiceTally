@@ -141,7 +141,8 @@ class TellingUploadCore(
 
     suspend fun uploadPrepared(request: UploadRequest): UploadResult {
         // VEILIGHEIDSCHECK: Voorkom upload van gearchiveerde data
-        if (request.preparedEnvelope.tellingid.isNotBlank()) {
+        // Alleen van toepassing bij FINALIZE of handmatige UPLOAD, niet bij START van een nieuwe sessie.
+        if (request.mode != Mode.START && request.preparedEnvelope.tellingid.isNotBlank()) {
             val db = VoiceTallyDatabase.getDatabase(context)
             val header = db.tellingDao().getHeader(request.preparedEnvelope.tellingid)
             if (header != null && CsvImportPolicy.isUploadBlocked(header.status, header.bron)) {

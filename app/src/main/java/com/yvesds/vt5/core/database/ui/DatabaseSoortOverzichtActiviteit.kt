@@ -139,8 +139,8 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             
             val searchAdapter = ArrayAdapter(this@DatabaseSoortOverzichtActiviteit, android.R.layout.simple_dropdown_item_1line, names)
             atvSoortZoeken.setAdapter(searchAdapter)
-            atvSoortZoeken.setOnItemClickListener { _, _, _, _ ->
-                val selectedName = atvSoortZoeken.text.toString()
+            atvSoortZoeken.setOnItemClickListener { parent, _, position, _ ->
+                val selectedName = parent.getItemAtPosition(position) as String
                 val species = speciesList.find { it.soortnaam == selectedName }
                 if (species != null) {
                     selectedSoortId = species.soortid
@@ -332,18 +332,22 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private class SimpleWaarnemingAdapter : RecyclerView.Adapter<SimpleWaarnemingAdapter.VH>() {
         private var items = listOf<Waarneming>()
         fun submitList(newItems: List<Waarneming>) { items = newItems; notifyDataSetChanged() }
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(LayoutInflater.from(parent.context).inflate(android.R.layout.simple_list_item_2, parent, false))
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(LayoutInflater.from(parent.context).inflate(R.layout.item_db_waarneming, parent, false))
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
-            holder.t1.text = "Aantal: ${item.aantal} | Terug: ${item.aantalterug}"
-            holder.t1.setTextColor(Color.WHITE)
-            holder.t2.text = "Telling: ${item.tellingid} | ID: ${item.onlineid}"
-            holder.t2.setTextColor(Color.LTGRAY)
+            holder.tvIndex.text = (position + 1).toString()
+            holder.tvSoortNaam.text = "ID: ${item.onlineid}"
+            holder.tvDetails.text = "Telling: ${item.tellingid}"
+            holder.tvAantal.text = item.aantal
+            holder.tvAantalTerug.text = item.aantalterug
         }
         override fun getItemCount() = items.size
         class VH(v: View) : RecyclerView.ViewHolder(v) {
-            val t1 = v.findViewById<TextView>(android.R.id.text1)
-            val t2 = v.findViewById<TextView>(android.R.id.text2)
+            val tvIndex = v.findViewById<TextView>(R.id.tvIndex)
+            val tvSoortNaam = v.findViewById<TextView>(R.id.tvSoortNaam)
+            val tvDetails = v.findViewById<TextView>(R.id.tvDetails)
+            val tvAantal = v.findViewById<TextView>(R.id.tvAantal)
+            val tvAantalTerug = v.findViewById<TextView>(R.id.tvAantalTerug)
         }
     }
 

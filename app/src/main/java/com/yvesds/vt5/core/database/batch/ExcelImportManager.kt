@@ -3,10 +3,10 @@ package com.yvesds.vt5.core.database.batch
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.yvesds.vt5.core.database.SessionIdManager
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
+import com.yvesds.vt5.core.opslag.AppDataStore
 import org.dhatim.fastexcel.reader.ReadableWorkbook
 import org.dhatim.fastexcel.reader.Row
 import java.time.Instant
@@ -26,7 +26,6 @@ import java.util.stream.Stream
 class ExcelImportManager(private val context: Context) {
     private val TAG = "ExcelImportManager"
     private val db = VoiceTallyDatabase.getDatabase(context)
-    private val idManager = SessionIdManager(context)
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     suspend fun importPair(
@@ -97,7 +96,7 @@ class ExcelImportManager(private val context: Context) {
                                     } else {
                                         val stats = statsMap[onlineId] ?: SessionStats()
                                         val header = TellingHeader(
-                                            tellingid = idManager.getNextId(),
+                                            tellingid = AppDataStore.nextTellingId(context),
                                             onlineid = onlineId,
                                             telpostid = row.getCellText(colMap["siteid"] ?: -1).split(".")[0],
                                             begintijd = parseTrektellenDate(row, colMap, "start"),
