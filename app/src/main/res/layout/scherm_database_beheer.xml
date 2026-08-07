@@ -90,9 +90,9 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:buttonTint="#FF8A80"
+                    android:buttonTint="@color/grafiek_beheer_aantallen"
                     android:text="Aantallen"
-                    android:textColor="#FF8A80"
+                    android:textColor="@color/grafiek_beheer_aantallen"
                     android:textSize="10sp" />
 
                 <CheckBox
@@ -101,9 +101,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:checked="true"
-                    android:buttonTint="#4CAF50"
+                    android:buttonTint="@color/grafiek_beheer_tellingen"
                     android:text="Tellingen"
-                    android:textColor="#4CAF50"
+                    android:textColor="@color/grafiek_beheer_tellingen"
                     android:textSize="10sp" />
             </LinearLayout>
 

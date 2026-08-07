@@ -31,8 +31,12 @@
     <!-- grafiekkleuren -->
     <color name="grafiek_lijnkleur">#4CAF50</color>
     <color name="grafiek_lijnkleur_terug">#FD2F01</color>
-    <color name="grafiek_achtergrondkleur">#6D6C6C</color>
+    <color name="grafiek_achtergrondkleur">#E4CFCF</color>
     <color name="grafiek_beaufort">#78B5F2</color>
+
+    <!-- Kleuren voor DatabaseBeheerScherm -->
+    <color name="grafiek_beheer_aantallen">#F80313</color>
+    <color name="grafiek_beheer_tellingen">#4CAF50</color>
 
 
     <!-- Waarschuwing / verwijderen -->

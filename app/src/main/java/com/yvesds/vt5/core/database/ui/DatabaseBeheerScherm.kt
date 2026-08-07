@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -64,8 +65,8 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     private lateinit var cbShowTellingen: CheckBox
     private lateinit var spinnerSiteFilter: Spinner
 
-    private val colorBirds = Color.parseColor("#FF8A80") // Lichtrood
-    private val colorSessions = Color.parseColor("#4CAF50") // Groen
+    private val colorBirds by lazy { ContextCompat.getColor(this, R.color.grafiek_beheer_aantallen) }
+    private val colorSessions by lazy { ContextCompat.getColor(this, R.color.grafiek_beheer_tellingen) }
 
     private var availableSiteIds = mutableListOf<String?>() // null represents "All Sites"
 
@@ -149,12 +150,12 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         chartView?.chart = CartesianChart(
             layers = arrayOf(birdLayer, sessionLayer),
             startAxis = VerticalAxis.start(
-                label = TextComponent(color = Color.WHITE, textSizeSp = 9f),
+                label = TextComponent(color = colorBirds, textSizeSp = 9f),
                 valueFormatter = birdFormatter,
                 itemPlacer = VerticalAxis.ItemPlacer.count(count = { 6 })
             ),
             endAxis = VerticalAxis.end(
-                label = TextComponent(color = Color.WHITE, textSizeSp = 9f),
+                label = TextComponent(color = colorSessions, textSizeSp = 9f),
                 valueFormatter = CartesianValueFormatter { _, v, _ -> String.format(Locale.getDefault(), "%.0f", v) }
             ),
             bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
