@@ -157,8 +157,8 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                 view.findViewById<TextView>(R.id.tvIndex).text = (index + 1).toString()
                 view.findViewById<TextView>(R.id.tvSoortNaam).text = soortNaam
                 
-                val readableTime = SpeciesNameResolver.formatTimestamp(record.tijdstip)
-                view.findViewById<TextView>(R.id.tvDetails).text = "Tijd: $readableTime"
+                val readableTime = SpeciesNameResolver.formatTimestamp(currentHeader?.begintijd)
+                view.findViewById<TextView>(R.id.tvDetails).text = "${record.tellingid}  $readableTime"
                 view.findViewById<TextView>(R.id.tvAantal).text = record.aantal
                 
                 view.setOnClickListener {

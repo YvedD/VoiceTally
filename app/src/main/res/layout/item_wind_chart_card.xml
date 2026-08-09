@@ -37,6 +37,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/chart_show_trek"
                 android:textColor="@color/popup_bg_wit"
+                android:buttonTint="@color/grafiek_lijnkleur"
                 android:checked="true"
                 android:paddingStart="8dp"
                 android:paddingEnd="0dp" />
@@ -47,6 +48,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/chart_show_return"
                 android:textColor="@color/popup_bg_wit"
+                android:buttonTint="@color/grafiek_lijnkleur_terug"
                 android:checked="true"
                 android:paddingStart="8dp"
                 android:paddingEnd="0dp" />

@@ -21,6 +21,11 @@ object VicoLineChartHelper {
         textSizeSp = 8f,
     )
 
+    val blackAxisLabel = TextComponent(
+        color = Color.BLACK,
+        textSizeSp = 8f,
+    )
+
     private val axisLine = LineComponent(
         fill = Fill(Color.LTGRAY),
         thicknessDp = 1f,
@@ -68,14 +73,14 @@ object VicoLineChartHelper {
         )
     }
 
-    fun createMonthLabelAxis(): HorizontalAxis<Axis.Position.Horizontal.Bottom> {
+    fun createMonthLabelAxis(label: TextComponent = whiteAxisLabel): HorizontalAxis<Axis.Position.Horizontal.Bottom> {
         val monthFormatter = CartesianValueFormatter { _, value, _ ->
             monthLetterMap[value.toInt()] ?: " "
         }
 
         return HorizontalAxis.bottom(
             line = axisLine,
-            label = whiteAxisLabel,
+            label = label,
             valueFormatter = monthFormatter,
             tick = axisTick,
             tickLengthDp = 4f,

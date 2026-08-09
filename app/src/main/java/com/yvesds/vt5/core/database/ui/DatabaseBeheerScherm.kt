@@ -158,7 +158,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                 label = TextComponent(color = colorSessions, textSizeSp = 9f),
                 valueFormatter = CartesianValueFormatter { _, v, _ -> String.format(Locale.getDefault(), "%.0f", v) }
             ),
-            bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
+            bottomAxis = VicoLineChartHelper.createMonthLabelAxis(VicoLineChartHelper.blackAxisLabel)
         )
     }
 
@@ -320,8 +320,8 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                 return@launch
             }
 
-            val weekBirdTotals = FloatArray(54)
-            val weekSessionTotals = FloatArray(54)
+            val weekBirdTotals = FloatArray(53)
+            val weekSessionTotals = FloatArray(53)
             val showBirds = cbShowAantallen.isChecked
             val showSessions = cbShowTellingen.isChecked
             
@@ -331,7 +331,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             headers.forEach { h ->
                 if (selectedSiteId != null && h.telpostid != selectedSiteId) return@forEach
                 val week = getWeekIndex(h.begintijd)
-                if (week in 1..53) {
+                if (week in 1..52) {
                     if (showSessions) weekSessionTotals[week] += 1f
                     if (showBirds) {
                         database.tellingDao().getWaarnemingenList(h.tellingid).forEach { w ->
@@ -355,7 +355,8 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             val epoch = begintijd.toLongOrNull() ?: return 0
             val instant = if (epoch > 9999999999L) Instant.ofEpochMilli(epoch) else Instant.ofEpochSecond(epoch)
             val date = instant.atZone(ZoneId.systemDefault()).toLocalDate()
-            ((date.dayOfYear - 1) / 7) + 1
+            val week = ((date.dayOfYear - 1) / 7) + 1
+            if (week > 52) 52 else week
         } catch (e: Exception) { 0 }
     }
 

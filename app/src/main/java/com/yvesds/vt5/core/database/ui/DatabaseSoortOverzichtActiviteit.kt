@@ -28,6 +28,7 @@ import com.patrykandpatrick.vico.core.cartesian.Zoom
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.dao.SpeciesWindDatasetRow
+import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.ui.ChartExportHelper
@@ -182,7 +183,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             val filtered = if (siteId != null) {
                 raw.filter { database.tellingDao().getHeader(it.tellingid)?.telpostid == siteId }
             } else raw
-            withContext(Dispatchers.Main) { adapter.submitList(filtered) }
+
+            val name = SpeciesNameResolver.getName(this@DatabaseSoortOverzichtActiviteit, soortId)
+            val headers = database.tellingDao().getAllHeaders().associateBy { it.tellingid }
+
+            withContext(Dispatchers.Main) { 
+                adapter.submitList(filtered, name, headers) 
+            }
         }
     }
 
@@ -207,16 +214,16 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                         (filterYear == null || getYearFromEpoch(it.begintijd) == filterYear)
                     }
 
-                    val weekAantal = FloatArray(54)
-                    val weekTerug = FloatArray(54)
-                    val weekWindSum = FloatArray(54)
-                    val weekWindCount = IntArray(54)
+                    val weekAantal = FloatArray(53)
+                    val weekTerug = FloatArray(53)
+                    val weekWindSum = FloatArray(53)
+                    val weekWindCount = IntArray(53)
                     var sumAantal = 0
                     var sumTerug = 0
 
                     filtered.forEach { row ->
                         val week = getWeekIndex(row.begintijd)
-                        if (week in 1..53) {
+                        if (week in 1..52) {
                             weekAantal[week] += row.aantal.toFloat()
                             weekTerug[week] += row.aantalterug.toFloat()
                             sumAantal += row.aantal
@@ -230,7 +237,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                     // Update header met totalen: Richting (T: Trek, R: Retour)
                     binding.headerView.text = String.format(Locale.getDefault(), "%s (Trek: %d, Terug: %d)", dir, sumAantal, sumTerug)
 
-                    val weekWindAvg = FloatArray(54) { i ->
+                    val weekWindAvg = FloatArray(53) { i ->
                         if (weekWindCount[i] > 0) weekWindSum[i] / weekWindCount[i] else 0f
                     }
 
@@ -284,7 +291,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
         chartView.chart = CartesianChart(
             layers = arrayOf(
-                // 1. Windkracht (Achtergrondlaag) - Max 14.0 Beaufort
+                // 1. Windkracht (Achtergrondlaag)
                 VicoLineChartProducer.createBeaufortLayer(colorWind),
                 // 2. Vogel-aantallen (Voorgrondlaag)
                 LineCartesianLayer(
@@ -298,15 +305,16 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             startAxis = VerticalAxis.start(label = VicoLineChartHelper.whiteAxisLabel),
             endAxis = VerticalAxis.end(
                 label = VicoLineChartHelper.whiteAxisLabel,
-                itemPlacer = VerticalAxis.ItemPlacer.count(count = { 8 })
+                valueFormatter = { _, v, _ -> String.format(Locale.getDefault(), "%.0fbf", v) },
+                itemPlacer = VerticalAxis.ItemPlacer.step({ 1.0 })
             ),
             bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
         )
     }
 
     private fun updateChart(binding: WindChartBinding, aantal: FloatArray, terug: FloatArray, wind: FloatArray) {
-        val seriesAantal = if (binding.cbShowTrek.isChecked) aantal.toList() else List(54) { 0f }
-        val seriesTerug = if (binding.cbShowReturn.isChecked) terug.toList() else List(54) { 0f }
+        val seriesAantal = if (binding.cbShowTrek.isChecked) aantal.toList() else List(53) { 0f }
+        val seriesTerug = if (binding.cbShowReturn.isChecked) terug.toList() else List(53) { 0f }
         val seriesWind = wind.toList()
         
         lifecycleScope.launch {
@@ -326,18 +334,30 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val epoch = begintijd.toLongOrNull() ?: return 0
         val instant = if (epoch > 9999999999L) Instant.ofEpochMilli(epoch) else Instant.ofEpochSecond(epoch)
         val date = instant.atZone(ZoneId.systemDefault()).toLocalDate()
-        return ((date.dayOfYear - 1) / 7) + 1
+        val week = ((date.dayOfYear - 1) / 7) + 1
+        return if (week > 52) 52 else week
     }
 
     private class SimpleWaarnemingAdapter : RecyclerView.Adapter<SimpleWaarnemingAdapter.VH>() {
         private var items = listOf<Waarneming>()
-        fun submitList(newItems: List<Waarneming>) { items = newItems; notifyDataSetChanged() }
+        private var speciesName: String = ""
+        private var headerMap: Map<String, TellingHeader> = emptyMap()
+
+        fun submitList(newItems: List<Waarneming>, name: String, headers: Map<String, TellingHeader>) {
+            items = newItems
+            speciesName = name
+            headerMap = headers
+            notifyDataSetChanged()
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(LayoutInflater.from(parent.context).inflate(R.layout.item_db_waarneming, parent, false))
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
+            val header = headerMap[item.tellingid]
+            val readableTime = SpeciesNameResolver.formatTimestamp(header?.begintijd)
             holder.tvIndex.text = (position + 1).toString()
-            holder.tvSoortNaam.text = "ID: ${item.onlineid}"
-            holder.tvDetails.text = "Telling: ${item.tellingid}"
+            holder.tvSoortNaam.text = speciesName
+            holder.tvDetails.text = "${item.tellingid}  $readableTime"
             holder.tvAantal.text = item.aantal
             holder.tvAantalTerug.text = item.aantalterug
         }
@@ -367,7 +387,7 @@ object VicoLineChartProducer {
             lineProvider = LineCartesianLayer.LineProvider.series(
                 LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(color)))
             ),
-            rangeProvider = com.patrykandpatrick.vico.core.cartesian.data.CartesianLayerRangeProvider.fixed(0.0, 14.0),
+            rangeProvider = com.patrykandpatrick.vico.core.cartesian.data.CartesianLayerRangeProvider.fixed(minY = 0.0, maxY = 13.0),
             verticalAxisPosition = Axis.Position.Vertical.End
         )
     }
