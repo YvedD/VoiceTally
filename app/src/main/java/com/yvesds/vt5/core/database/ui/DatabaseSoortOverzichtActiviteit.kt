@@ -179,16 +179,14 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val siteId = if (siteIdx > 0) availableSiteIds[siteIdx] else null
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val raw = database.tellingDao().getWaarnemingenBySoortAndYear(soortId, year)
-            val filtered = if (siteId != null) {
-                raw.filter { database.tellingDao().getHeader(it.tellingid)?.telpostid == siteId }
-            } else raw
-
+            // Gebruik de nieuwe snelle query met JOIN.
+            // Voor nu laden we de eerste 500 records (genoeg voor overzicht).
+            // Paging kan later volledig geïmplementeerd worden indien nodig.
+            val data = database.tellingDao().getWaarnemingenWithHeaderInfo(soortId, siteId, year, 500, 0)
             val name = SpeciesNameResolver.getName(this@DatabaseSoortOverzichtActiviteit, soortId)
-            val headers = database.tellingDao().getAllHeaders().associateBy { it.tellingid }
 
             withContext(Dispatchers.Main) { 
-                adapter.submitList(filtered, name, headers) 
+                adapter.submitList(data, name) 
             }
         }
     }
@@ -200,7 +198,8 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val filterYear = if (spinnerYears.selectedItemPosition > 0) spinnerYears.selectedItem.toString() else null
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val rawData = database.tellingDao().getWindDatasetForSpecies(soortId)
+            // DE SUPER-QUERY: Alle data voor alle 16 grafieken in één keer geaggregeerd.
+            val stats = database.tellingDao().getSpeciesWindStats(soortId, filterSiteId, filterYear)
             
             withContext(Dispatchers.Main) {
                 ensureWindChartsCreated()
@@ -208,49 +207,29 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 windDirections.forEach { dir ->
                     val binding = chartBindings[dir] ?: return@forEach
                     
-                    val filtered = rawData.filter { 
-                        it.windrichting.trim().uppercase() == dir && 
-                        (filterSiteId == null || it.telpostid == filterSiteId) &&
-                        (filterYear == null || getYearFromEpoch(it.begintijd) == filterYear)
-                    }
+                    val filteredStats = stats.filter { it.windrichting == dir }
 
                     val weekAantal = FloatArray(53)
                     val weekTerug = FloatArray(53)
-                    val weekWindSum = FloatArray(53)
-                    val weekWindCount = IntArray(53)
-                    var sumAantal = 0
-                    var sumTerug = 0
+                    val weekWindAvg = FloatArray(53)
+                    var sumAantal = 0L
+                    var sumTerug = 0L
 
-                    filtered.forEach { row ->
-                        val week = getWeekIndex(row.begintijd)
-                        if (week in 1..52) {
-                            weekAantal[week] += row.aantal.toFloat()
-                            weekTerug[week] += row.aantalterug.toFloat()
-                            sumAantal += row.aantal
-                            sumTerug += row.aantalterug
-                            val bft = row.windkracht.split(".")[0].toFloatOrNull() ?: 0f
-                            weekWindSum[week] += bft
-                            weekWindCount[week]++
+                    filteredStats.forEach { row ->
+                        if (row.week in 1..52) {
+                            weekAantal[row.week] = row.totalAantal.toFloat()
+                            weekTerug[row.week] = row.totalTerug.toFloat()
+                            weekWindAvg[row.week] = row.avgWindForce
+                            sumAantal += row.totalAantal
+                            sumTerug += row.totalTerug
                         }
                     }
 
-                    // Update header met totalen: Richting (T: Trek, R: Retour)
                     binding.headerView.text = String.format(Locale.getDefault(), "%s (Trek: %d, Terug: %d)", dir, sumAantal, sumTerug)
-
-                    val weekWindAvg = FloatArray(53) { i ->
-                        if (weekWindCount[i] > 0) weekWindSum[i] / weekWindCount[i] else 0f
-                    }
-
                     updateChart(binding, weekAantal, weekTerug, weekWindAvg)
                 }
             }
         }
-    }
-
-    private fun getYearFromEpoch(epochStr: String): String {
-        val epoch = epochStr.toLongOrNull() ?: return ""
-        val instant = if (epoch > 9999999999L) Instant.ofEpochMilli(epoch) else Instant.ofEpochSecond(epoch)
-        return instant.atZone(ZoneId.systemDefault()).toLocalDate().year.toString()
     }
 
     private fun ensureWindChartsCreated() {
@@ -330,34 +309,23 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         }
     }
 
-    private fun getWeekIndex(begintijd: String): Int {
-        val epoch = begintijd.toLongOrNull() ?: return 0
-        val instant = if (epoch > 9999999999L) Instant.ofEpochMilli(epoch) else Instant.ofEpochSecond(epoch)
-        val date = instant.atZone(ZoneId.systemDefault()).toLocalDate()
-        val week = ((date.dayOfYear - 1) / 7) + 1
-        return if (week > 52) 52 else week
-    }
-
     private class SimpleWaarnemingAdapter : RecyclerView.Adapter<SimpleWaarnemingAdapter.VH>() {
-        private var items = listOf<Waarneming>()
+        private var items = listOf<com.yvesds.vt5.core.database.dao.WaarnemingWithHeaderInfo>()
         private var speciesName: String = ""
-        private var headerMap: Map<String, TellingHeader> = emptyMap()
 
-        fun submitList(newItems: List<Waarneming>, name: String, headers: Map<String, TellingHeader>) {
+        fun submitList(newItems: List<com.yvesds.vt5.core.database.dao.WaarnemingWithHeaderInfo>, name: String) {
             items = newItems
             speciesName = name
-            headerMap = headers
             notifyDataSetChanged()
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(LayoutInflater.from(parent.context).inflate(R.layout.item_db_waarneming, parent, false))
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
-            val header = headerMap[item.tellingid]
-            val readableTime = SpeciesNameResolver.formatTimestamp(header?.begintijd)
+            val readableTime = SpeciesNameResolver.formatTimestamp(item.begintijd)
             holder.tvIndex.text = (position + 1).toString()
             holder.tvSoortNaam.text = speciesName
-            holder.tvDetails.text = "${item.tellingid}  $readableTime"
+            holder.tvDetails.text = "${item.telpostid} | ${item.tellingid} | $readableTime"
             holder.tvAantal.text = item.aantal
             holder.tvAantalTerug.text = item.aantalterug
         }

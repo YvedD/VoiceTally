@@ -91,8 +91,10 @@ class ExcelImportManager(private val context: Context) {
                                 val onlineId = row.getCellText(colMap["id"] ?: -1).split(".")[0]
                                 if (onlineId.isNotEmpty() && onlineId != "null") {
                                     val existing = db.tellingDao().getHeaderByOnlineId(onlineId)
+                                    val startTimeStr = row.getCellText(colMap["start"] ?: -1).let { if (it.contains(" ")) it.split(" ")[1] else "00:00:00" }
+                                    
                                     if (existing != null) {
-                                        headersMap[onlineId] = HeaderInfo(existing.tellingid, extractTimeFromStop(existing.eindtijd))
+                                        headersMap[onlineId] = HeaderInfo(existing.tellingid, startTimeStr)
                                     } else {
                                         val stats = statsMap[onlineId] ?: SessionStats()
                                         val header = TellingHeader(
@@ -114,7 +116,7 @@ class ExcelImportManager(private val context: Context) {
                                             status = "gearchiveerd"
                                         )
                                         headersToInsert.add(header)
-                                        headersMap[onlineId] = HeaderInfo(header.tellingid, extractTimeFromStop(header.eindtijd))
+                                        headersMap[onlineId] = HeaderInfo(header.tellingid, startTimeStr)
                                     }
                                 }
                             }
@@ -159,7 +161,7 @@ class ExcelImportManager(private val context: Context) {
                                                 aantal = row.getCellText(colMap["direction1"] ?: -1).split(".")[0].ifEmpty { "0" },
                                                 richting = row.getCellText(colMap["direction1"] ?: -1),
                                                 aantalterug = row.getCellText(colMap["direction2"] ?: -1).split(".")[0].ifEmpty { "0" },
-                                                tijdstip = parseWaarnemingDate(row, colMap, headerInfo.stopTime),
+                                                tijdstip = parseWaarnemingFullDate(row, colMap, headerInfo.startTimeFallback),
                                                 opmerkingen = row.getCellText(colMap["remark"] ?: -1)
                                             )
                                             waarnemingenToInsert.add(waarneming)
@@ -200,17 +202,41 @@ class ExcelImportManager(private val context: Context) {
         return "0"
     }
 
-    private fun parseWaarnemingDate(row: Row, colMap: Map<String, Int>, fallbackTime: String): String {
-        val epochVal = row.getCellText(colMap["epoch_tijdstip"] ?: -1).split(".")[0]
-        if (epochVal.isNotEmpty() && epochVal != "null") return epochVal
-        return fallbackTime
-    }
+    private fun parseWaarnemingFullDate(row: Row, colMap: Map<String, Int>, startTimeFallback: String): String {
+        try {
+            // De datum staat in de tweede kolom (index 1 of "date")
+            val dateStr = row.getCellText(colMap["date"] ?: 1) 
+            // Probeer tijdstip uit "timestamp" kolom
+            var timeStr = row.getCellText(colMap["timestamp"] ?: -1).trim()
+            if (timeStr.isEmpty() || timeStr == "null") {
+                timeStr = startTimeFallback
+            }
 
-    private fun extractTimeFromStop(stopValue: String): String {
-        if (stopValue.isEmpty() || stopValue == "null") return "00:00:00"
-        val epoch = stopValue.toLongOrNull() ?: return "00:00:00"
-        val instant = if (epoch > 9999999999L) Instant.ofEpochMilli(epoch) else Instant.ofEpochSecond(epoch)
-        return instant.atZone(ZoneId.systemDefault()).format(timeFormatter)
+            // dateStr is meestal "yyyy-MM-dd" of "dd-MM-yyyy"
+            // We proberen het jaar, maand, dag te extraheren
+            val dParts = if (dateStr.contains("-")) dateStr.split("-") else if (dateStr.contains("/")) dateStr.split("/") else emptyList()
+            if (dParts.size < 3) return "0"
+
+            val y: Int
+            val m: Int
+            val d: Int
+            if (dParts[0].length == 4) { // yyyy-mm-dd
+                y = dParts[0].toInt(); m = dParts[1].toInt(); d = dParts[2].toInt()
+            } else if (dParts[2].length == 4) { // dd-mm-yyyy
+                d = dParts[0].toInt(); m = dParts[1].toInt(); y = dParts[2].toInt()
+            } else {
+                return "0"
+            }
+
+            val tParts = timeStr.split(":")
+            val hour = tParts.getOrNull(0)?.toIntOrNull() ?: 0
+            val min = tParts.getOrNull(1)?.toIntOrNull() ?: 0
+            val sec = tParts.getOrNull(2)?.toIntOrNull() ?: 0
+
+            return LocalDateTime.of(y, m, d, hour, min, sec).atZone(ZoneId.systemDefault()).toEpochSecond().toString()
+        } catch (e: Exception) {
+            return "0"
+        }
     }
 
     private class SessionStats {
@@ -218,5 +244,5 @@ class ExcelImportManager(private val context: Context) {
         val speciesIds = mutableSetOf<String>()
     }
 
-    private data class HeaderInfo(val tellingId: String, val stopTime: String)
+    private data class HeaderInfo(val tellingId: String, val startTimeFallback: String)
 }

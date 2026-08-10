@@ -129,8 +129,11 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         chartView?.modelProducer = modelProducer
         
         val birdFormatter = CartesianValueFormatter { _, value, _ ->
-            if (value >= 1000) String.format(Locale.getDefault(), "%.0fk", value / 1000)
-            else String.format(Locale.getDefault(), "%.0f", value)
+            when {
+                value >= 1_000_000 -> String.format(Locale.getDefault(), "%.1fM", value / 1_000_000)
+                value >= 1000 -> String.format(Locale.getDefault(), "%.0fk", value / 1000)
+                else -> String.format(Locale.getDefault(), "%.0f", value)
+            }
         }
 
         val birdLayer = LineCartesianLayer(
@@ -314,30 +317,36 @@ class DatabaseBeheerScherm : AppCompatActivity() {
 
     private fun setupChartData() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val headers = database.tellingDao().getAllHeaders()
-            if (headers.isEmpty()) {
-                withContext(Dispatchers.Main) { modelProducer.runTransaction { lineSeries { series(listOf(0f)); series(listOf(0f)) } } }
-                return@launch
-            }
-
             val weekBirdTotals = FloatArray(53)
             val weekSessionTotals = FloatArray(53)
+            
             val showBirds = cbShowAantallen.isChecked
             val showSessions = cbShowTellingen.isChecked
             
-            val selectedSiteIdx = spinnerSiteFilter.selectedItemPosition
+            val selectedSiteIdx = withContext(Dispatchers.Main) { spinnerSiteFilter.selectedItemPosition }
             val selectedSiteId = if (selectedSiteIdx >= 0 && selectedSiteIdx < availableSiteIds.size) availableSiteIds[selectedSiteIdx] else null
 
-            headers.forEach { h ->
-                if (selectedSiteId != null && h.telpostid != selectedSiteId) return@forEach
-                val week = getWeekIndex(h.begintijd)
-                if (week in 1..52) {
-                    if (showSessions) weekSessionTotals[week] += 1f
-                    if (showBirds) {
-                        database.tellingDao().getWaarnemingenList(h.tellingid).forEach { w ->
-                            weekBirdTotals[week] += (w.aantal.toFloatOrNull() ?: 0f) + (w.aantalterug.toFloatOrNull() ?: 0f)
-                        }
-                    }
+            // 1. Haal vogel-aantallen op via SQL Aggregatie
+            if (showBirds) {
+                val birdRows = if (selectedSiteId == null) {
+                    database.tellingDao().getBirdCountsByWeekGlobal()
+                } else {
+                    database.tellingDao().getBirdCountsByWeekForSite(selectedSiteId)
+                }
+                birdRows.forEach { row ->
+                    if (row.week in 1..52) weekBirdTotals[row.week] = row.count.toFloat()
+                }
+            }
+
+            // 2. Haal sessie-aantallen op via SQL Aggregatie
+            if (showSessions) {
+                val sessionRows = if (selectedSiteId == null) {
+                    database.tellingDao().getSessionCountsByWeekGlobal()
+                } else {
+                    database.tellingDao().getSessionCountsByWeekForSite(selectedSiteId)
+                }
+                sessionRows.forEach { row ->
+                    if (row.week in 1..52) weekSessionTotals[row.week] = row.count.toFloat()
                 }
             }
 

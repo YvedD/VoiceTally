@@ -312,8 +312,78 @@ interface TellingDao {
     @Query("SELECT DISTINCT locationId FROM weather_archive")
     suspend fun getWeatherAvailableLocations(): List<String>
 
-    @Query("SELECT * FROM weather_archive WHERE locationId = :locId AND timeEpoch >= :start AND timeEpoch <= :end ORDER BY timeEpoch ASC")
-    suspend fun getWeatherForDay(locId: String, start: Long, end: Long): List<WeatherArchive>
+    @Query("""
+        SELECT 
+            MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        GROUP BY week
+        ORDER BY week ASC
+    """)
+    suspend fun getBirdCountsByWeekGlobal(): List<WeekCountRow>
+
+    @Query("""
+        SELECT 
+            MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE h.telpostid = :siteId
+        GROUP BY week
+        ORDER BY week ASC
+    """)
+    suspend fun getBirdCountsByWeekForSite(siteId: String): List<WeekCountRow>
+
+    @Query("""
+        SELECT 
+            MIN(52, (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
+            COUNT(*) as count
+        FROM telling_headers
+        GROUP BY week
+        ORDER BY week ASC
+    """)
+    suspend fun getSessionCountsByWeekGlobal(): List<WeekCountRow>
+
+    @Query("""
+        SELECT 
+            MIN(52, (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
+            COUNT(*) as count
+        FROM telling_headers
+        WHERE telpostid = :siteId
+        GROUP BY week
+        ORDER BY week ASC
+    """)
+    suspend fun getSessionCountsByWeekForSite(siteId: String): List<WeekCountRow>
+
+    @Query("""
+        SELECT 
+            UPPER(TRIM(h.windrichting)) as windrichting,
+            MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
+            SUM(CAST(w.aantal AS INTEGER)) as totalAantal,
+            SUM(CAST(w.aantalterug AS INTEGER)) as totalTerug,
+            AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgWindForce
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE w.soortid = :speciesId
+        AND (:siteId IS NULL OR h.telpostid = :siteId)
+        AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year)
+        GROUP BY windrichting, week
+        ORDER BY windrichting, week ASC
+    """)
+    suspend fun getSpeciesWindStats(speciesId: String, siteId: String?, year: String?): List<SpeciesWindStatsRow>
+
+    @Query("""
+        SELECT w.tellingid, w.aantal, w.aantalterug, h.begintijd, h.telpostid
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE w.soortid = :speciesId
+        AND (:siteId IS NULL OR h.telpostid = :siteId)
+        AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year)
+        ORDER BY h.begintijd DESC
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getWaarnemingenWithHeaderInfo(speciesId: String, siteId: String?, year: String?, limit: Int, offset: Int): List<WaarnemingWithHeaderInfo>
 }
 
 data class SpeciesCountRow(
@@ -324,4 +394,25 @@ data class SpeciesCountRow(
 data class TelpostYear(
     val telpostid: String,
     val year: String
+)
+
+data class WeekCountRow(
+    val week: Int,
+    val count: Long
+)
+
+data class SpeciesWindStatsRow(
+    val windrichting: String,
+    val week: Int,
+    val totalAantal: Long,
+    val totalTerug: Long,
+    val avgWindForce: Float
+)
+
+data class WaarnemingWithHeaderInfo(
+    val tellingid: String,
+    val aantal: String,
+    val aantalterug: String,
+    val begintijd: String,
+    val telpostid: String
 )
