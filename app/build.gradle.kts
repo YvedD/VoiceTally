@@ -117,6 +117,9 @@ dependencies {
     // Excel support (.xlsx) - Lightweight streaming reader
     implementation("org.dhatim:fastexcel-reader:0.18.0")
     implementation("stax:stax-api:1.0.1")
+
+    // Kaart functionaliteit (OpenStreetMap)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 }
 // Tests uit
 tasks.matching {

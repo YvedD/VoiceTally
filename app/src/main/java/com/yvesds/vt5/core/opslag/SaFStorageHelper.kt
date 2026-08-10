@@ -135,6 +135,53 @@ class SaFStorageHelper(private val context: Context) {
         findOrCreateDirectory(parent, name)
     }
     
+    // =id ========================================================================
+    // SERVERDATA DIRECTORY HELPERS
+    // ========================================================================
+
+    /**
+     * Haal de serverdata-map op als die bestaat.
+     */
+    fun getServerDataDir(): DocumentFile? {
+        val vt5Dir = getVt5DirIfExists() ?: return null
+        return vt5Dir.findFile(SERVERDATA_DIR)?.takeIf { it.isDirectory }
+    }
+
+    /**
+     * Suspend variant van getServerDataDir().
+     */
+    suspend fun getServerDataDirSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
+        getServerDataDir()
+    }
+
+    /**
+     * Lees een bestand uit de serverdata-map.
+     */
+    fun readServerDataFile(filename: String): String? {
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) return null
+        val dir = getServerDataDir() ?: return null
+        val file = dir.findFile(filename) ?: return null
+        return try {
+            context.contentResolver.openInputStream(file.uri)?.use { it.bufferedReader().readText() }
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Schrijf een bestand naar de serverdata-map.
+     */
+    fun writeServerDataFile(filename: String, content: String): Boolean {
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) return false
+        val vt5Dir = getVt5DirIfExists() ?: return false
+        val dir = findOrCreateDirectory(vt5Dir, SERVERDATA_DIR) ?: return false
+        val mimeType = if (filename.endsWith(".json")) "application/json" else "text/plain"
+        val file = dir.findFile(filename) ?: dir.createFile(mimeType, filename) ?: return false
+        return try {
+            // "wt" zorgt ervoor dat het bestand wordt overschreven en niet verlengd (truncate)
+            context.contentResolver.openOutputStream(file.uri, "wt")?.use { it.write(content.toByteArray()) }
+            true
+        } catch (_: Exception) { false }
+    }
+
     // ========================================================================
     // COUNTS DIRECTORY HELPERS
     // ========================================================================
@@ -449,7 +496,8 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     companion object {
-        private const val COUNTS_DIR = "counts"
+        private const val SERVERDATA_DIR = "serverdata"
+    private const val COUNTS_DIR = "counts"
         private const val EXPORTS_DIR = "exports"
         private const val IMPORTS_DIR = "imports"
         private const val PREFS_NAME = "saf_storage_prefs"

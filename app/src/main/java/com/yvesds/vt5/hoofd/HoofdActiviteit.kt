@@ -191,6 +191,7 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
         val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
         val btnInstellingen = findViewById<MaterialButton>(R.id.btnInstellingen)
+        val btnTelpostBeheer = findViewById<MaterialButton>(R.id.btnTelpostBeheer)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
         val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
         val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
@@ -265,6 +266,13 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
 
+        // Telpost Beheer knop
+        btnTelpostBeheer.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, com.yvesds.vt5.core.database.ui.TelpostBeheerActiviteit::class.java))
+            it.isEnabled = true
+        }
+
         findViewById<MaterialButton>(R.id.btnAiUpdate).setOnClickListener {
             runFullAiUpdateFlow()
         }
@@ -277,81 +285,42 @@ class HoofdActiviteit : AppCompatActivity() {
     }
 
     /**
-     * Voert de volledige AI update flow uit: mappen controleren, database export,
-     * labels genereren en tenslotte de achtergrond-training starten.
+     * Voert de gegevensverrijking uit: ontbrekende weergegevens ophalen voor telposten/jaren
+     * en de database-headers aanvullen.
      */
     private fun runFullAiUpdateFlow() {
         val btn = findViewById<MaterialButton>(R.id.btnAiUpdate)
         btn.isEnabled = false
         
         lifecycleScope.launch {
-            val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "AI Update: Mappen controleren...")
+            val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "Gegevens verrijken: Analyse...")
             try {
-                val modelStore = ModelStore(this@HoofdActiviteit)
-                val ok = modelStore.ensureModelDir()
-                if (!ok) {
-                    progress.dismiss()
-                    pendingAiUpdateAfterSaF = true
-                    
-                    val msg = "De AI-mappen konden niet automatisch worden aangemaakt.\n\n" +
-                             "Mogelijke oorzaak: De eerder geselecteerde map is verplaatst of de app heeft geen toegang meer.\n\n" +
-                             "Selecteer nu de hoofdmap (waarin de map 'VT5' staat of moet komen)."
-                    
+                val enrichmentManager = com.yvesds.vt5.core.database.weather.WeatherEnrichmentManager(this@HoofdActiviteit)
+                
+                // Stap A & B: Weer ophalen en Headers aanvullen
+                val success = enrichmentManager.performEnrichment { msg, current, total ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        ProgressDialogHelper.updateMessage(progress, "$msg\n($current van $total)")
+                    }
+                }
+
+                progress.dismiss()
+
+                if (success) {
                     AlertDialog.Builder(this@HoofdActiviteit)
-                        .setTitle("SAF Toegang Vereist")
-                        .setMessage(msg)
-                        .setPositiveButton("Map Kiezen") { _, _ -> openTreeLauncher.launch(null) }
-                        .setNegativeButton("Annuleren", null)
+                        .setTitle("Verrijking Voltooid")
+                        .setMessage("Alle beschikbare weergegevens zijn opgehaald en ontbrekende velden in de database zijn aangevuld.")
+                        .setPositiveButton("OK", null)
                         .show()
                 } else {
-                    // 1. Database export (Sync/Foreground)
-                    ProgressDialogHelper.updateMessage(progress, "AI Update: Database exporteren naar CSV...\n(Dit kan even duren bij 160k+ records)")
-                    val preparer = TrainingDataPreparer(this@HoofdActiviteit)
-                    val exportedFile = preparer.exportTrainingCsv(modelStore.getTrainingExportDir())
-                    
-                    if (exportedFile.isEmpty()) {
-                        progress.dismiss()
-                        AlertDialog.Builder(this@HoofdActiviteit)
-                            .setTitle("Export Mislukt")
-                            .setMessage("Het CSV-bestand 'training_data_current.csv' kon niet worden aangemaakt.\n\nControleer of de VT5 map schrijfbaar is.")
-                            .setPositiveButton("OK", null)
-                            .show()
-                        return@launch
-                    }
-
-                    // 2. Labels
-                    ProgressDialogHelper.updateMessage(progress, "AI Update: Labels genereren...")
-                    preparer.generateLabelsJson(modelStore.getTrainingExportDir())
-
-                    // 3. Start background training
-                    ProgressDialogHelper.updateMessage(progress, "AI Update: Training starten op de achtergrond...\nJe kunt de app blijven gebruiken.")
-                    com.yvesds.vt5.ai.AiManager.requestManualUpdate(this@HoofdActiviteit)
-                    
-                    // Korte vertraging om de laatste boodschap te laten zien
-                    kotlinx.coroutines.delay(2000)
-                    progress.dismiss()
-                    
-                    Toast.makeText(this@HoofdActiviteit, "Data geëxporteerd naar $exportedFile. De AI traint nu verder op de achtergrond.", Toast.LENGTH_LONG).show()
-                    
-                    // Observe background worker
-                    androidx.work.WorkManager.getInstance(this@HoofdActiviteit)
-                        .getWorkInfosByTagLiveData("manual_update")
-                        .observe(this@HoofdActiviteit) { infoList ->
-                            val info = infoList.firstOrNull { it.state.isFinished }
-                            if (info != null && info.state == androidx.work.WorkInfo.State.SUCCEEDED) {
-                                AlertDialog.Builder(this@HoofdActiviteit)
-                                    .setTitle("AI Optimalisatie Klaar")
-                                    .setMessage("Het nieuwe AI-model is succesvol berekend en opgeslagen in:\n\nVT5/AI-models/models/personal_migration_model.tflite")
-                                    .setPositiveButton("OK", null)
-                                    .show()
-                            }
-                        }
+                    Toast.makeText(this@HoofdActiviteit, "Verrijking onvolledig. Controleer je internetverbinding.", Toast.LENGTH_LONG).show()
                 }
+
             } catch (e: Exception) {
                 progress.dismiss()
-                Log.e(TAG, "AI update flow failed", e)
+                Log.e(TAG, "Enrichment flow failed", e)
                 AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle("Fout bij AI Update")
+                    .setTitle("Fout bij verrijken")
                     .setMessage("Er is een fout opgetreden: ${e.message}")
                     .setPositiveButton("OK", null)
                     .show()

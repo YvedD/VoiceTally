@@ -126,6 +126,12 @@
             tools:ignore="LockedOrientationActivity" />
 
         <activity
+            android:name=".core.database.ui.TelpostBeheerActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
             android:name=".core.database.ui.DatabaseTellingLijstActiviteit"
             android:exported="false"
             android:screenOrientation="sensorPortrait"

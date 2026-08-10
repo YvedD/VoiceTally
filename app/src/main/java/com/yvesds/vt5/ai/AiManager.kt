@@ -22,14 +22,10 @@ object AiManager {
     /** Initialize AI (called from VT5App.onCreate) */
     fun init(context: Context) {
         aiScope.launch {
-            if (AppDataStore.isAiEnabled(context)) {
-                Log.i(TAG, "AI enabled, scheduling maintenance...")
-                scheduleNightlyUpdate(context)
-                checkInitialExport(context)
-            } else {
-                Log.i(TAG, "AI disabled, cancelling tasks...")
-                cancelNightlyUpdate(context)
-            }
+            // We schakelen automatische achtergrond-updates volledig uit.
+            // Verrijking mag enkel handmatig gebeuren via de knop in de UI.
+            Log.i(TAG, "AI/Enrichment initialized (manual mode only)")
+            cancelNightlyUpdate(context)
         }
     }
 
@@ -89,6 +85,9 @@ object AiManager {
     }
 
     fun cancelNightlyUpdate(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
+        val wm = WorkManager.getInstance(context)
+        wm.cancelUniqueWork(UNIQUE_WORK_NAME)
+        wm.cancelUniqueWork(UNIQUE_WORK_NAME + "_initial")
+        wm.cancelUniqueWork(UNIQUE_WORK_NAME + "_manual")
     }
 }

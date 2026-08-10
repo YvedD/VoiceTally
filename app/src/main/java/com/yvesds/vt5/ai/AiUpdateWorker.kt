@@ -13,37 +13,8 @@ class AiUpdateWorker(appContext: Context, params: WorkerParameters) : CoroutineW
     private val TAG = "AiUpdateWorker"
 
     override suspend fun doWork(): Result {
-        Log.i(TAG, "AI update worker started")
-        try {
-            val modelStore = com.yvesds.vt5.ai.ModelStore(applicationContext)
-            val preparer = com.yvesds.vt5.ai.TrainingDataPreparer(applicationContext)
-
-            // CALLER (UI) already exported CSV to ensure it's there. 
-            // We just ensure AI-models dir exists.
-            modelStore.ensureModelDir()
-
-            // export training CSV (Room -> features) - Run again in background to ensure latest state
-            val exported = preparer.exportTrainingCsv(modelStore.getTrainingExportDir())
-            if (exported.isEmpty()) {
-                Log.w(TAG, "No data to export, AI update skipped")
-                return Result.success()
-            }
-            Log.i(TAG, "Training export written: $exported")
-
-            // generate labels.json
-            val labels = preparer.generateLabelsJson(modelStore.getTrainingExportDir())
-            Log.i(TAG, "Labels generated: ${labels.size} species")
-
-            // call Trainer to perform on-device update
-            val trainer = com.yvesds.vt5.ai.Trainer(applicationContext, modelStore)
-            trainer.runOnDeviceTraining(exported, labels)
-
-            Log.i(TAG, "AI update worker finished successfully")
-            return Result.success()
-        } catch (e: Exception) {
-            Log.e(TAG, "AI update worker failed: ${e.message}", e)
-            return Result.failure()
-        }
+        Log.i(TAG, "AI background worker disabled (manual enrichment mode only)")
+        return Result.success()
     }
 }
 

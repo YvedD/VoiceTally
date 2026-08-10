@@ -278,8 +278,18 @@ interface TellingDao {
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllSpeciesIds(): List<String>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertWeatherArchive(data: List<WeatherArchive>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertWeatherArchiveIgnore(data: List<WeatherArchive>)
+
+    @Query("""
+        SELECT DISTINCT telpostid, strftime('%Y', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) as year 
+        FROM telling_headers 
+        WHERE windrichting = '' OR windkracht = '' OR temperatuur = '' OR bewolking = '' OR hpa = ''
+    """)
+    suspend fun getMissingWeatherTelpostYears(): List<TelpostYear>
+
+    @Query("SELECT * FROM telling_headers WHERE windrichting = '' OR windkracht = '' OR temperatuur = '' OR bewolking = '' OR hpa = ''")
+    suspend fun getHeadersWithMissingWeather(): List<TellingHeader>
 
     @Query("SELECT * FROM weather_archive WHERE locationId = :locId AND timeEpoch = :epoch LIMIT 1")
     suspend fun getWeather(locId: String, epoch: Long): WeatherArchive?
@@ -309,4 +319,9 @@ interface TellingDao {
 data class SpeciesCountRow(
     val soortid: String,
     val count: Int
+)
+
+data class TelpostYear(
+    val telpostid: String,
+    val year: String
 )
