@@ -5,22 +5,23 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
+// Extensie property voor DataStore
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "vt5_settings")
 
 /**
  * AppDataStore: Moderne vervanging voor SharedPreferences voor persistente instellingen en tellers.
+ * Gebruikt Jetpack DataStore Preferences.
  */
 object AppDataStore {
     private val KEY_NEXT_TELLING_ID = longPreferencesKey("next_telling_id")
-    private val KEY_PREFIX_RECORD_ID = "next_record_id_"
-    // Persisted URI to the AI model directory chosen by the user via SAF (OpenDocumentTree)
-    private val KEY_AI_MODEL_DIR_URI = stringPreferencesKey("ai_model_dir_uri")
     private val KEY_AI_ENABLED = booleanPreferencesKey("ai_enabled")
+    private val KEY_AI_MODEL_DIR_URI = stringPreferencesKey("ai_model_dir_uri")
+    private const val PREFIX_RECORD_ID = "next_record_id_"
 
     /**
      * Haalt het volgende unieke telling ID op en verhoogt de teller.
-     * Returned de waarde VOOR de verhoging.
      */
     suspend fun nextTellingId(context: Context): String {
         var result = 1L
@@ -33,23 +34,20 @@ object AppDataStore {
     }
 
     /**
-     * Reserveer in 1 DataStore-update een blok opeenvolgende telling IDs.
-     * Dit is sneller voor bulk-imports dan ID-per-ID ophalen.
+     * Reserveer een blok telling IDs voor bulk imports.
      */
     suspend fun reserveTellingIds(context: Context, amount: Int): LongRange {
-        require(amount > 0) { "amount must be > 0" }
-
         var start = 1L
         context.dataStore.edit { prefs ->
             val current = prefs[KEY_NEXT_TELLING_ID] ?: 1L
             start = current
-            prefs[KEY_NEXT_TELLING_ID] = current + amount
+            prefs[KEY_NEXT_TELLING_ID] = current + amount.toLong()
         }
-        return start..(start + amount - 1L)
+        return start until (start + amount)
     }
 
     /**
-     * Zet de telling ID teller terug op 1 (of 0 naar keuze).
+     * Zet de telling ID teller terug naar 1.
      */
     suspend fun resetTellingId(context: Context) {
         context.dataStore.edit { prefs ->
@@ -58,11 +56,10 @@ object AppDataStore {
     }
 
     /**
-     * Haalt het volgende record ID op voor een specifieke telling en verhoogt de teller.
-     * Returned de waarde VOOR de verhoging.
+     * Haalt het volgende record ID op voor een specifieke telling.
      */
     suspend fun nextRecordId(context: Context, tellingId: String): String {
-        val key = longPreferencesKey(KEY_PREFIX_RECORD_ID + tellingId)
+        val key = longPreferencesKey(PREFIX_RECORD_ID + tellingId)
         var result = 1L
         context.dataStore.edit { prefs ->
             val current = prefs[key] ?: 1L
@@ -73,28 +70,7 @@ object AppDataStore {
     }
 
     /**
-     * Save the user-selected AI model directory (SAF Uri string) into DataStore.
-     * Pass null to clear the stored value.
-     */
-    suspend fun setAiModelDirUri(context: Context, uriString: String?) {
-        context.dataStore.edit { prefs ->
-            if (uriString == null) {
-                prefs.remove(KEY_AI_MODEL_DIR_URI)
-            } else {
-                prefs[KEY_AI_MODEL_DIR_URI] = uriString
-            }
-        }
-    }
-
-    /**
-     * Retrieve the stored AI model directory Uri string (or null if not set).
-     */
-    suspend fun getAiModelDirUri(context: Context): String? {
-        return context.dataStore.data.first()[KEY_AI_MODEL_DIR_URI]
-    }
-
-    /**
-     * Set the AI enabled status.
+     * AI-gerelateerde instellingen.
      */
     suspend fun setAiEnabled(context: Context, enabled: Boolean) {
         context.dataStore.edit { prefs ->
@@ -102,10 +78,18 @@ object AppDataStore {
         }
     }
 
-    /**
-     * Check if AI is enabled. Defaults to false.
-     */
     suspend fun isAiEnabled(context: Context): Boolean {
-        return context.dataStore.data.first()[KEY_AI_ENABLED] ?: false
+        return context.dataStore.data.map { it[KEY_AI_ENABLED] ?: false }.first()
+    }
+
+    suspend fun setAiModelDirUri(context: Context, uri: String?) {
+        context.dataStore.edit { prefs ->
+            if (uri == null) prefs.remove(KEY_AI_MODEL_DIR_URI)
+            else prefs[KEY_AI_MODEL_DIR_URI] = uri
+        }
+    }
+
+    suspend fun getAiModelDirUri(context: Context): String? {
+        return context.dataStore.data.map { it[KEY_AI_MODEL_DIR_URI] }.first()
     }
 }

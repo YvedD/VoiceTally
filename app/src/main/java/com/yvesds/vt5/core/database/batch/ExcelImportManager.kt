@@ -15,18 +15,16 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.InputStream
 import java.time.LocalDateTime
 import java.util.stream.Stream
 
 /**
  * ExcelImportManager - Verwerkt batch-imports via FastExcel.
- * Berekent nrec/nsoort statistieken en gebruikt numerieke ID's.
+ * Geoptimaliseerd voor snelheid: bulk ID reservering en slimme duplicaat-checks.
  */
 class ExcelImportManager(private val context: Context) {
     private val TAG = "ExcelImportManager"
     private val db = VoiceTallyDatabase.getDatabase(context)
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
     suspend fun importPair(
         headerUri: Uri,
@@ -34,7 +32,8 @@ class ExcelImportManager(private val context: Context) {
         onProgress: suspend (String, Int, Int) -> Unit
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            // 1. Scan Data bestand voor statistieken
+            // 1. Scan Data bestand voor statistieken (nrec/nsoort)
+            onProgress("Data scannen voor statistieken...", 0, 0)
             val statsMap = mutableMapOf<String, SessionStats>()
             context.contentResolver.openInputStream(dataUri)?.use { dIn ->
                 val workbook = ReadableWorkbook(dIn)
@@ -67,57 +66,33 @@ class ExcelImportManager(private val context: Context) {
                 } finally { workbook.close() }
             }
 
-            // 2. Verwerk Headers met statistieken en numeriek ID
+            // 2. Verwerk Headers
+            onProgress("Sessies voorbereiden...", 0, 0)
             val headersMap = mutableMapOf<String, HeaderInfo>()
             val headersToInsert = mutableListOf<TellingHeader>()
             
+            // Haal alle bestaande onlineIds in één keer op om per-row DB hits te voorkomen
+            val existingOnlineIds = db.tellingDao().getAllHeaders().mapNotNull { it.onlineid.ifEmpty { null } }.toSet()
+            
+            // Verzamel sessies uit Excel
+            val sessionsInExcel = mutableListOf<Row>()
+            val headerColMap = mutableMapOf<String, Int>()
             context.contentResolver.openInputStream(headerUri)?.use { hIn ->
                 val workbook = ReadableWorkbook(hIn)
                 try {
                     val sheet = workbook.getSheets().findFirst().orElse(null) ?: return@use
-                    val colMap = mutableMapOf<String, Int>()
                     var rowIdx = 0
-                    val rowStream: Stream<Row> = sheet.openStream()
-                    rowStream.use { rows ->
-                        val it = rows.iterator()
-                        while (it.hasNext()) {
-                            val row = it.next()
+                    sheet.openStream().use { rows ->
+                        rows.forEach { row ->
                             if (rowIdx == 0) {
                                 for (i in 0 until row.cellCount) {
                                     val name = row.getCellText(i).trim().lowercase()
-                                    if (name.isNotEmpty()) colMap[name] = i
+                                    if (name.isNotEmpty()) headerColMap[name] = i
                                 }
                             } else {
-                                val onlineId = row.getCellText(colMap["id"] ?: -1).split(".")[0]
-                                if (onlineId.isNotEmpty() && onlineId != "null") {
-                                    val existing = db.tellingDao().getHeaderByOnlineId(onlineId)
-                                    val startTimeStr = row.getCellText(colMap["start"] ?: -1).let { if (it.contains(" ")) it.split(" ")[1] else "00:00:00" }
-                                    
-                                    if (existing != null) {
-                                        headersMap[onlineId] = HeaderInfo(existing.tellingid, startTimeStr)
-                                    } else {
-                                        val stats = statsMap[onlineId] ?: SessionStats()
-                                        val header = TellingHeader(
-                                            tellingid = AppDataStore.nextTellingId(context),
-                                            onlineid = onlineId,
-                                            telpostid = row.getCellText(colMap["siteid"] ?: -1).split(".")[0],
-                                            begintijd = parseTrektellenDate(row, colMap, "start"),
-                                            eindtijd = parseTrektellenDate(row, colMap, "stop"),
-                                            tellers = row.getCellText(colMap["observers"] ?: -1),
-                                            windrichting = row.getCellText(colMap["winddirection"] ?: -1).lowercase(),
-                                            windkracht = row.getCellText(colMap["windspeed_bfr"] ?: -1).split(".")[0],
-                                            temperatuur = row.getCellText(colMap["temperature"] ?: -1).split(".")[0],
-                                            bewolking = row.getCellText(colMap["cloudcover"] ?: -1).split(".")[0],
-                                            zicht = row.getCellText(colMap["visibility"] ?: -1).split(".")[0],
-                                            neerslag = row.getCellText(colMap["precipitation"] ?: -1),
-                                            opmerkingen = row.getCellText(colMap["remarks"] ?: -1),
-                                            nrec = stats.nrec.toString(),
-                                            nsoort = stats.speciesIds.size.toString(),
-                                            status = "gearchiveerd"
-                                        )
-                                        headersToInsert.add(header)
-                                        headersMap[onlineId] = HeaderInfo(header.tellingid, startTimeStr)
-                                    }
+                                val id = row.getCellText(headerColMap["id"] ?: -1).split(".")[0]
+                                if (id.isNotEmpty() && id != "null") {
+                                    sessionsInExcel.add(row)
                                 }
                             }
                             rowIdx++
@@ -126,9 +101,60 @@ class ExcelImportManager(private val context: Context) {
                 } finally { workbook.close() }
             }
 
-            if (headersToInsert.isNotEmpty()) db.tellingDao().insertHeaders(headersToInsert)
+            // Reserveer IDs in bulk voor de nieuwe sessies
+            val newSessionsCount = sessionsInExcel.count { row ->
+                val onlineId = row.getCellText(headerColMap["id"] ?: -1).split(".")[0]
+                !existingOnlineIds.contains(onlineId)
+            }
+            
+            val nextIdIterator = if (newSessionsCount > 0) {
+                AppDataStore.reserveTellingIds(context, newSessionsCount).iterator()
+            } else null
 
-            // 3. Waarnemingen met koppeling naar numeriek ID
+            sessionsInExcel.forEach { row ->
+                val onlineId = row.getCellText(headerColMap["id"] ?: -1).split(".")[0]
+                val startTimeStr = row.getCellText(headerColMap["start"] ?: -1).let { if (it.contains(" ")) it.split(" ")[1] else "00:00:00" }
+                
+                if (existingOnlineIds.contains(onlineId)) {
+                    // Reeds aanwezig: haal bestaande tellingid op
+                    val existing = db.tellingDao().getHeaderByOnlineId(onlineId)
+                    if (existing != null) {
+                        headersMap[onlineId] = HeaderInfo(existing.tellingid, startTimeStr, true)
+                    }
+                } else {
+                    // Nieuwe sessie: gebruik gereserveerd ID
+                    val tellingId = nextIdIterator?.next()?.toString() ?: UUID.randomUUID().toString()
+                    val stats = statsMap[onlineId] ?: SessionStats()
+                    val header = TellingHeader(
+                        tellingid = tellingId,
+                        onlineid = onlineId,
+                        telpostid = row.getCellText(headerColMap["siteid"] ?: -1).split(".")[0],
+                        begintijd = parseTrektellenDate(row, headerColMap, "start"),
+                        eindtijd = parseTrektellenDate(row, headerColMap, "stop"),
+                        tellers = row.getCellText(headerColMap["observers"] ?: -1),
+                        windrichting = row.getCellText(headerColMap["winddirection"] ?: -1).lowercase(),
+                        windkracht = row.getCellText(headerColMap["windspeed_bfr"] ?: -1).split(".")[0],
+                        temperatuur = row.getCellText(headerColMap["temperature"] ?: -1).split(".")[0],
+                        bewolking = row.getCellText(headerColMap["cloudcover"] ?: -1).split(".")[0],
+                        zicht = row.getCellText(headerColMap["visibility"] ?: -1).split(".")[0],
+                        neerslag = row.getCellText(headerColMap["precipitation"] ?: -1),
+                        hpa = (row.getCellText(headerColMap["hpa"] ?: -1).ifEmpty { row.getCellText(headerColMap["pressure"] ?: -1) }).split(".")[0],
+                        opmerkingen = row.getCellText(headerColMap["remarks"] ?: -1),
+                        nrec = stats.nrec.toString(),
+                        nsoort = stats.speciesIds.size.toString(),
+                        status = "gearchiveerd"
+                    )
+                    headersToInsert.add(header)
+                    headersMap[onlineId] = HeaderInfo(tellingId, startTimeStr, false)
+                }
+            }
+
+            if (headersToInsert.isNotEmpty()) {
+                onProgress("Sessies opslaan...", 0, 0)
+                db.tellingDao().insertHeaders(headersToInsert)
+            }
+
+            // 3. Waarnemingen
             val waarnemingenToInsert = mutableListOf<Waarneming>()
             context.contentResolver.openInputStream(dataUri)?.use { dIn ->
                 val workbook = ReadableWorkbook(dIn)
@@ -149,10 +175,16 @@ class ExcelImportManager(private val context: Context) {
                             } else {
                                 val dataId = row.getCellText(colMap["dataid"] ?: -1).split(".")[0]
                                 val countId = row.getCellText(colMap["countid"] ?: -1).split(".")[0]
+                                
                                 if (dataId.isNotEmpty() && countId.isNotEmpty() && dataId != "null") {
-                                    if (db.tellingDao().getWaarnemingenByOnlineId(dataId).isEmpty()) {
-                                        val headerInfo = headersMap[countId]
-                                        if (headerInfo != null) {
+                                    val headerInfo = headersMap[countId]
+                                    if (headerInfo != null) {
+                                        // SNELHEID-TRUC: Alleen controleren op dubbele waarnemingen als de sessie al bestond
+                                        val isDuplicate = if (headerInfo.wasAlreadyInDb) {
+                                            db.tellingDao().getWaarnemingenByOnlineId(dataId).isNotEmpty()
+                                        } else false
+
+                                        if (!isDuplicate) {
                                             val waarneming = Waarneming(
                                                 idLocal = UUID.randomUUID().toString(),
                                                 tellingid = headerInfo.tellingId,
@@ -165,10 +197,11 @@ class ExcelImportManager(private val context: Context) {
                                                 opmerkingen = row.getCellText(colMap["remark"] ?: -1)
                                             )
                                             waarnemingenToInsert.add(waarneming)
+                                            
                                             if (waarnemingenToInsert.size >= 1000) {
+                                                onProgress("Waarnemingen opslaan...", rowIdx, 0)
                                                 db.tellingDao().insertWaarnemingen(waarnemingenToInsert)
                                                 waarnemingenToInsert.clear()
-                                                onProgress("Gegevens opslaan...", rowIdx, 0)
                                             }
                                         }
                                     }
@@ -179,7 +212,10 @@ class ExcelImportManager(private val context: Context) {
                     }
                 } finally { workbook.close() }
             }
-            if (waarnemingenToInsert.isNotEmpty()) db.tellingDao().insertWaarnemingen(waarnemingenToInsert)
+            if (waarnemingenToInsert.isNotEmpty()) {
+                onProgress("Laatste waarnemingen opslaan...", 0, 0)
+                db.tellingDao().insertWaarnemingen(waarnemingenToInsert)
+            }
             true
         } catch (e: Exception) {
             Log.e(TAG, "Import fout: ${e.message}")
@@ -204,16 +240,12 @@ class ExcelImportManager(private val context: Context) {
 
     private fun parseWaarnemingFullDate(row: Row, colMap: Map<String, Int>, startTimeFallback: String): String {
         try {
-            // De datum staat in de tweede kolom (index 1 of "date")
             val dateStr = row.getCellText(colMap["date"] ?: 1) 
-            // Probeer tijdstip uit "timestamp" kolom
             var timeStr = row.getCellText(colMap["timestamp"] ?: -1).trim()
             if (timeStr.isEmpty() || timeStr == "null") {
                 timeStr = startTimeFallback
             }
 
-            // dateStr is meestal "yyyy-MM-dd" of "dd-MM-yyyy"
-            // We proberen het jaar, maand, dag te extraheren
             val dParts = if (dateStr.contains("-")) dateStr.split("-") else if (dateStr.contains("/")) dateStr.split("/") else emptyList()
             if (dParts.size < 3) return "0"
 
@@ -244,5 +276,5 @@ class ExcelImportManager(private val context: Context) {
         val speciesIds = mutableSetOf<String>()
     }
 
-    private data class HeaderInfo(val tellingId: String, val startTimeFallback: String)
+    private data class HeaderInfo(val tellingId: String, val startTimeFallback: String, val wasAlreadyInDb: Boolean)
 }

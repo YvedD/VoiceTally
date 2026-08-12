@@ -119,14 +119,33 @@
             android:contentDescription="@string/telpost_beheer_btn_my_location" />
     </FrameLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSave"
-        style="@style/Widget.VT5.Button"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="40dp"
-        android:text="@string/telpost_beheer_btn_save"
-        app:icon="@android:drawable/ic_menu_save" />
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReset"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="@string/telpost_beheer_btn_reset"
+            android:textColor="@color/vt5_red"
+            app:strokeColor="@color/vt5_red"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            style="@style/Widget.VT5.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:text="@string/telpost_beheer_btn_save"
+            app:icon="@android:drawable/ic_menu_save" />
+    </LinearLayout>
 
 </LinearLayout>

@@ -90,9 +90,6 @@ dependencies {
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
 
-    // TensorFlow Lite runtime for on-device inference (optional, used when loading .tflite models)
-    implementation("org.tensorflow:tensorflow-lite:2.12.0")
-
     // DataStore (toegevoegd voor moderne persistente opslag)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 

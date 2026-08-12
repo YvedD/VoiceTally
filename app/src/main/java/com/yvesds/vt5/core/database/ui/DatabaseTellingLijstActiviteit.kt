@@ -6,22 +6,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
-import android.widget.TextView
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.Spinner
-import android.widget.ToggleButton
-import android.widget.ArrayAdapter
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.room.withTransaction
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.text.Editable
-import android.text.TextWatcher
-import android.widget.AdapterView
 import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
@@ -37,12 +28,12 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
     private lateinit var btnDeleteSelected: MaterialButton
     private lateinit var tellingenAdapter: TellingAdapter
     private lateinit var spinnerSortField: Spinner
+    private lateinit var spinnerSiteFilter: Spinner
     private lateinit var toggleSortDirection: ToggleButton
-    private lateinit var etFilterTellingId: EditText
-    private lateinit var btnClearFilter: ImageButton
 
     private var allTellingen: List<TellingHeader> = emptyList()
-    private var currentFilter: String = ""
+    private var availableSites: List<String> = emptyList()
+    private var selectedSite: String? = null
     private var sortField: SortField = SortField.TELLINGID
     private var sortAsc: Boolean = true
 
@@ -77,9 +68,8 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
 
         // sort/filter controls
         spinnerSortField = findViewById(R.id.spinnerSortField)
+        spinnerSiteFilter = findViewById(R.id.spinnerSiteFilter)
         toggleSortDirection = findViewById(R.id.toggleSortDirection)
-        etFilterTellingId = findViewById(R.id.etFilterTellingId)
-        btnClearFilter = findViewById(R.id.btnClearFilter)
 
         val choices = resources.getStringArray(R.array.db_telling_sort_fields)
         spinnerSortField.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, choices.toList())
@@ -92,56 +82,68 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
                 }
                 applySortAndFilter()
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         toggleSortDirection.setOnCheckedChangeListener { _, isChecked ->
-            // checked = ascending (↑), unchecked = descending (↓)
             sortAsc = isChecked
             applySortAndFilter()
         }
 
-        etFilterTellingId.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                currentFilter = s?.toString() ?: ""
-                applySortAndFilter()
-            }
-        })
-
-        btnClearFilter.setOnClickListener {
-            etFilterTellingId.setText("")
-        }
-
-        loadTellingen()
+        loadSitesAndTellingen()
     }
 
-    private fun loadTellingen() {
+    private fun loadSitesAndTellingen() {
         lifecycleScope.launch {
-            val tellingen = withContext(Dispatchers.IO) { database.tellingDao().getAllHeaders() }
+            val (tellingen, sites) = withContext(Dispatchers.IO) {
+                val dao = database.tellingDao()
+                dao.getAllHeaders() to dao.getUniqueTelpostIds()
+            }
             allTellingen = tellingen
+            availableSites = sites
+            
+            setupSiteSpinner()
             applySortAndFilter()
         }
     }
 
+    private fun setupSiteSpinner() {
+        val siteOptions = mutableListOf(getString(R.string.db_telling_filter_site_all))
+        siteOptions.addAll(availableSites)
+        
+        spinnerSiteFilter.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, siteOptions)
+        spinnerSiteFilter.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedSite = if (position == 0) null else availableSites[position - 1]
+                applySortAndFilter()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
     private fun applySortAndFilter() {
-        // copy to mutable list
         var list = allTellingen
 
-        // filter by tellingid prefix (case-insensitive)
-        if (currentFilter.isNotBlank()) {
-            val cf = currentFilter.trim()
-            list = list.filter { it.tellingid.startsWith(cf, ignoreCase = true) }
+        // 1. Filter by site
+        if (selectedSite != null) {
+            list = list.filter { it.telpostid == selectedSite }
         }
 
-        // sort
+        // 2. Sort numerically for IDs, or by string for date (epoch seconds sort fine as strings too)
         list = when (sortField) {
-            SortField.TELLINGID -> list.sortedWith(compareBy { it.tellingid })
-            SortField.ONLINEID -> list.sortedWith(compareBy { it.onlineid })
-            SortField.DATUM -> list.sortedWith(compareBy { it.begintijd })
+            SortField.TELLINGID -> list.sortedWith { a, b ->
+                val idA = a.tellingid.toLongOrNull() ?: 0L
+                val idB = b.tellingid.toLongOrNull() ?: 0L
+                idA.compareTo(idB)
+            }
+            SortField.ONLINEID -> list.sortedWith { a, b ->
+                val idA = a.onlineid.toLongOrNull() ?: 0L
+                val idB = b.onlineid.toLongOrNull() ?: 0L
+                idA.compareTo(idB)
+            }
+            SortField.DATUM -> list.sortedBy { it.begintijd }
         }
+
         if (!sortAsc) list = list.reversed()
 
         tellingenAdapter.submitList(list)
@@ -184,12 +186,12 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
                     }
                 }
                 tellingenAdapter.clearSelection()
-                android.widget.Toast.makeText(
+                Toast.makeText(
                     this@DatabaseTellingLijstActiviteit,
                     getString(R.string.db_telling_delete_done),
-                    android.widget.Toast.LENGTH_SHORT
+                    Toast.LENGTH_SHORT
                 ).show()
-                loadTellingen()
+                loadSitesAndTellingen()
             } catch (e: Exception) {
                 AlertDialog.Builder(this@DatabaseTellingLijstActiviteit)
                     .setTitle(getString(R.string.db_telling_delete_confirm_title))

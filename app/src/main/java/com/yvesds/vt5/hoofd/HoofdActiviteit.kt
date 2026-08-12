@@ -75,7 +75,6 @@ class HoofdActiviteit : AppCompatActivity() {
     private lateinit var safHelper: SaFStorageHelper
     private lateinit var fileLogger: FileLogger
     private var pendingTellingDialogShown = false
-    private var pendingExportAfterSaF: Boolean = false
     private var pendingAiUpdateAfterSaF: Boolean = false
     private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
 
@@ -149,11 +148,7 @@ class HoofdActiviteit : AppCompatActivity() {
                     safHelper.takePersistablePermission(uri)
                     safHelper.saveRootUri(uri)
                 } catch (_: Exception) {}
-                // If there was a pending export or ai update, run them now
-                if (pendingExportAfterSaF) {
-                    pendingExportAfterSaF = false
-                    lifecycleScope.launch { startTrainingExport() }
-                }
+                // If there was a pending ai update, run it now
                 if (pendingAiUpdateAfterSaF) {
                     pendingAiUpdateAfterSaF = false
                     runFullAiUpdateFlow()
@@ -194,6 +189,7 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnTelpostBeheer = findViewById<MaterialButton>(R.id.btnTelpostBeheer)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
         val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
+        val btnAiTrain = findViewById<MaterialButton>(R.id.btnAiTrain)
         val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
 
         // Alarm sectie - altijd zichtbaar
@@ -273,8 +269,12 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
 
-        findViewById<MaterialButton>(R.id.btnAiUpdate).setOnClickListener {
+        btnAiUpdate.setOnClickListener {
             runFullAiUpdateFlow()
+        }
+
+        btnAiTrain.setOnClickListener {
+            runAiTrainingFlow()
         }
 
         btnAiForecast?.setOnClickListener {
@@ -282,6 +282,52 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         maybeShowPendingUploadsDialog()
+    }
+
+    /**
+     * Start het trainingsproces van de AI hersenen.
+     */
+    private fun runAiTrainingFlow() {
+        val btn = findViewById<MaterialButton>(R.id.btnAiTrain)
+        btn.isEnabled = false
+        
+        lifecycleScope.launch {
+            val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "AI Hersenen Trainen: Data voorbereiden...")
+            try {
+                val modelStore = com.yvesds.vt5.ai.ModelStore(this@HoofdActiviteit)
+                val preparer = com.yvesds.vt5.ai.TrainingDataPreparer(this@HoofdActiviteit)
+                
+                // 1. Genereer eerst de labels (zodat de trainer en inference op één lijn zitten)
+                val labels = preparer.generateLabelsJson(modelStore.getTrainingExportDir())
+                
+                // 2. Voer de On-Device Training uit (direct uit Room)
+                val trainer = com.yvesds.vt5.ai.Trainer(this@HoofdActiviteit, modelStore)
+                trainer.runOnDeviceTraining { msg, current, total ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        ProgressDialogHelper.updateMessage(progress, "$msg\n($current van $total)")
+                    }
+                }
+
+                progress.dismiss()
+
+                AlertDialog.Builder(this@HoofdActiviteit)
+                    .setTitle("Training Voltooid")
+                    .setMessage("De AI heeft geleerd van je database. Het persoonlijke model is bijgewerkt en klaar voor gebruik.")
+                    .setPositiveButton("OK", null)
+                    .show()
+
+            } catch (e: Exception) {
+                progress.dismiss()
+                Log.e(TAG, "Training flow failed", e)
+                AlertDialog.Builder(this@HoofdActiviteit)
+                    .setTitle("Fout bij trainen")
+                    .setMessage("Er is een fout opgetreden: ${e.message}")
+                    .setPositiveButton("OK", null)
+                    .show()
+            } finally {
+                btn.isEnabled = true
+            }
+        }
     }
 
     /**
@@ -399,43 +445,6 @@ class HoofdActiviteit : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "maybeShowPendingTellingDialog failed: ${e.message}", e)
-            }
-        }
-    }
-
-    /**
-     * Start a training CSV export. If SAF VT5 root or training_exports dir is missing,
-     * request the user to select the VT5 root and retry after selection.
-     */
-    private suspend fun startTrainingExport() {
-        try {
-            val modelStore = ModelStore(this@HoofdActiviteit)
-            val exportDir = modelStore.getTrainingExportDir()
-            if (exportDir == null) {
-                // need to prompt for SAF VT5 root
-                pendingExportAfterSaF = true
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@HoofdActiviteit, "Selecteer VT5 root om CSV op te slaan", Toast.LENGTH_LONG).show()
-                    openTreeLauncher.launch(null)
-                }
-                return
-            }
-
-            // perform export on IO
-            withContext(Dispatchers.IO) {
-                val exported = TrainingDataPreparer(this@HoofdActiviteit).exportTrainingCsv(exportDir)
-                withContext(Dispatchers.Main) {
-                    if (exported.isNotBlank()) {
-                        Toast.makeText(this@HoofdActiviteit, "CSV geëxporteerd: $exported", Toast.LENGTH_LONG).show()
-                    } else {
-                        Toast.makeText(this@HoofdActiviteit, "CSV export mislukt", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "startTrainingExport failed: ${e.message}", e)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@HoofdActiviteit, "Export fout: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

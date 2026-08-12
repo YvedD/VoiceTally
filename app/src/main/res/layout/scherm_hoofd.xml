@@ -157,6 +157,15 @@
     </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAiTrain"
+        style="@style/Widget.VT5.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="AI Hersenen Trainen"
+        android:textSize="14sp" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnDatabaseBeheer"
         style="@style/Widget.VT5.Button.Outlined"
         android:layout_width="match_parent"

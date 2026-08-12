@@ -31,7 +31,7 @@
     <!-- grafiekkleuren -->
     <color name="grafiek_lijnkleur">#4CAF50</color>
     <color name="grafiek_lijnkleur_terug">#FD2F01</color>
-    <color name="grafiek_achtergrondkleur">@color/vt5_white</color>
+    <color name="grafiek_achtergrondkleur">#739B9B</color>
     <color name="grafiek_beaufort">#D50011FF</color>
 
     <!-- Kleuren voor DatabaseBeheerScherm -->

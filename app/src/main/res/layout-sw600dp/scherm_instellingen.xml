@@ -616,6 +616,7 @@
                 android:id="@+id/cbPermAudio"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:text="@string/perm_audio_checkbox"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="13sp" />
@@ -637,6 +638,163 @@
                 android:text="@string/perm_location_checkbox"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="13sp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbPermCamera"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/perm_camera_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbPermBluetooth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/perm_bluetooth_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbPermAlarm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/perm_alarm_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <!-- AI-instellingen -->
+            <TextView
+                android:id="@+id/tvAiTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_ai_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbAiEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/instellingen_ai_checkbox"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tvAiDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.82"
+                android:text="@string/instellingen_ai_description"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="12dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <!-- Grafiek-instellingen -->
+            <TextView
+                android:id="@+id/tvChartTitel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="@string/instellingen_chart_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_chart_thickness"
+                    android:textColor="@color/vt5_on_surface" />
+                <NumberPicker
+                    android:id="@+id/npChartThickness"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_chart_color_wind"
+                    android:textColor="@color/vt5_on_surface" />
+                <Spinner
+                    android:id="@+id/spChartColorWind"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_chart_color_trek"
+                    android:textColor="@color/vt5_on_surface" />
+                <Spinner
+                    android:id="@+id/spChartColorTrek"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_chart_color_terug"
+                    android:textColor="@color/vt5_on_surface" />
+                <Spinner
+                    android:id="@+id/spChartColorTerug"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
 
         </LinearLayout>
 

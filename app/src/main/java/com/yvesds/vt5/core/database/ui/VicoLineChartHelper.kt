@@ -1,6 +1,8 @@
 package com.yvesds.vt5.core.database.ui
 
+import android.content.Context
 import android.graphics.Color
+import androidx.core.content.ContextCompat
 import com.patrykandpatrick.vico.core.cartesian.axis.Axis
 import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
 import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
@@ -10,6 +12,8 @@ import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.core.common.Fill
 import com.patrykandpatrick.vico.core.common.component.LineComponent
 import com.patrykandpatrick.vico.core.common.component.TextComponent
+import com.yvesds.vt5.R
+import com.yvesds.vt5.hoofd.InstellingenScherm
 
 /**
  * Helper voor Vico 2.0.0-beta.3 configuratie.
@@ -46,20 +50,48 @@ object VicoLineChartHelper {
         26 to "J", 31 to "A", 35 to "S", 40 to "O", 44 to "N", 48 to "D"
     )
 
-    fun createLineLayer(vararg lineColors: Int): LineCartesianLayer {
+    fun getLineThicknessDp(context: Context): Float {
+        val prefs = context.getSharedPreferences(InstellingenScherm.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(InstellingenScherm.PREF_CHART_LINE_THICKNESS, 1).toFloat()
+    }
+
+    fun getColorWind(context: Context): Int {
+        val prefs = context.getSharedPreferences(InstellingenScherm.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(InstellingenScherm.PREF_CHART_COLOR_WIND, ContextCompat.getColor(context, R.color.grafiek_beaufort))
+    }
+
+    fun getColorTrek(context: Context): Int {
+        val prefs = context.getSharedPreferences(InstellingenScherm.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(InstellingenScherm.PREF_CHART_COLOR_TREK, ContextCompat.getColor(context, R.color.grafiek_lijnkleur))
+    }
+
+    fun getColorTerug(context: Context): Int {
+        val prefs = context.getSharedPreferences(InstellingenScherm.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(InstellingenScherm.PREF_CHART_COLOR_TERUG, ContextCompat.getColor(context, R.color.grafiek_lijnkleur_terug))
+    }
+
+    fun createLineLayer(context: Context, vararg lineColors: Int): LineCartesianLayer {
+        val thickness = getLineThicknessDp(context)
         val lines = lineColors.map { color ->
-            LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(color)))
+            LineCartesianLayer.Line(
+                fill = LineCartesianLayer.LineFill.single(Fill(color)),
+                thicknessDp = thickness
+            )
         }
         return LineCartesianLayer(
             LineCartesianLayer.LineProvider.series(*lines.toTypedArray())
         )
     }
 
-    fun createBeaufortLineLayer(maxBeaufort: Double, beaufortColor: Int, alpha: Int = 140): LineCartesianLayer {
+    fun createBeaufortLineLayer(context: Context, maxBeaufort: Double, beaufortColor: Int, alpha: Int = 140): LineCartesianLayer {
+        val thickness = getLineThicknessDp(context)
         val a = alpha.coerceIn(0, 255)
         val withAlpha = Color.argb(a, Color.red(beaufortColor), Color.green(beaufortColor), Color.blue(beaufortColor))
         val fill = Fill(withAlpha)
-        val line = LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(fill))
+        val line = LineCartesianLayer.Line(
+            fill = LineCartesianLayer.LineFill.single(fill),
+            thicknessDp = thickness
+        )
 
         val rangeProvider = CartesianLayerRangeProvider.fixed(
             minY = 0.0,

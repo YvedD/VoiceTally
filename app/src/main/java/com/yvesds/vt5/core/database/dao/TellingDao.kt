@@ -14,7 +14,7 @@ data class SpeciesWindDatasetRow(
     val windkracht: String,
     val aantal: Int,
     val aantalterug: Int,
-    val telpostid: String = "" // Toegevoegd voor filtering op telpost
+    val telpostid: String = ""
 )
 
 data class SpeciesWindDebugRow(
@@ -40,6 +40,41 @@ data class WaarnemingTotalsRow(
     val totaal: Int?,
     val totaalterug: Int?
 )
+
+data class WeekCountRow(
+    val week: Int,
+    val count: Long
+)
+
+data class SpeciesWindStatsRow(
+    val windrichting: String,
+    val week: Int,
+    val totalAantal: Long,
+    val totalTerug: Long,
+    val avgWindForce: Float
+)
+
+data class WaarnemingWithHeaderInfo(
+    val tellingid: String,
+    val aantal: String,
+    val aantalterug: String,
+    val begintijd: String,
+    val telpostid: String
+)
+
+data class RawTrainingRow(
+    val soortid: String,
+    val sessionStart: String,
+    val observationTime: String,
+    val windrichting: String,
+    val windkracht: String,
+    val temperatuur: String,
+    val bewolking: String,
+    val hpa: String,
+    val neerslag: String,
+    val telpostid: String
+)
+
 
 @Dao
 interface TellingDao {
@@ -88,43 +123,19 @@ interface TellingDao {
     @Query("SELECT * FROM waarnemingen WHERE soortid = :soortId ORDER BY tijdstip DESC")
     suspend fun getWaarnemingenBySoort(soortId: String): List<Waarneming>
 
-    @Query("""
-        SELECT * FROM waarnemingen 
-        WHERE soortid = :soortId 
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)
-        ORDER BY tijdstip DESC
-    """)
+    @Query("SELECT * FROM waarnemingen WHERE soortid = :soortId AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year) ORDER BY tijdstip DESC")
     suspend fun getWaarnemingenBySoortAndYear(soortId: String, year: String?): List<Waarneming>
 
-    @Query("""
-        SELECT * FROM waarnemingen 
-        WHERE soortid = :soortId 
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)
-        ORDER BY tijdstip DESC LIMIT :limit OFFSET :offset
-    """)
+    @Query("SELECT * FROM waarnemingen WHERE soortid = :soortId AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year) ORDER BY tijdstip DESC LIMIT :limit OFFSET :offset")
     suspend fun getWaarnemingenBySoortAndYearPaged(soortId: String, year: String?, limit: Int, offset: Int): List<Waarneming>
 
-    @Query("""
-        SELECT COUNT(*) FROM waarnemingen 
-        WHERE soortid = :soortId 
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)
-    """)
+    @Query("SELECT COUNT(*) FROM waarnemingen WHERE soortid = :soortId AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)")
     suspend fun countWaarnemingenBySoortAndYear(soortId: String, year: String?): Int
 
-    @Query("""
-        SELECT * FROM waarnemingen 
-        WHERE soortid = :soortId 
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)
-        ORDER BY tijdstip DESC
-    """)
+    @Query("SELECT * FROM waarnemingen WHERE soortid = :soortId AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year) ORDER BY tijdstip DESC")
     fun getWaarnemingenPagingSource(soortId: String, year: String?): PagingSource<Int, Waarneming>
 
-    @Query("""
-        SELECT SUM(CAST(aantal AS INTEGER)) as totaal, SUM(CAST(aantalterug AS INTEGER)) as totaalterug 
-        FROM waarnemingen 
-        WHERE soortid = :soortId 
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)
-    """)
+    @Query("SELECT SUM(CAST(aantal AS INTEGER)) as totaal, SUM(CAST(aantalterug AS INTEGER)) as totaalterug FROM waarnemingen WHERE soortid = :soortId AND (:year IS NULL OR strftime('%Y', datetime(CAST(tijdstip AS INTEGER), 'unixepoch')) = :year)")
     suspend fun getWaarnemingTotalsForSpecies(soortId: String, year: String?): WaarnemingTotalsRow
 
     @Query("SELECT * FROM waarnemingen WHERE idLocal = :idLocal AND tellingid = :tellingId LIMIT 1")
@@ -157,123 +168,29 @@ interface TellingDao {
     @Query("SELECT COUNT(*) FROM waarnemingen")
     suspend fun countWaarnemingen(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert
     suspend fun insertAiLog(log: AiLog)
 
     @Update
     suspend fun updateAiLog(log: AiLog)
 
-    @Query("SELECT * FROM ai_logs ORDER BY id DESC")
+    @Query("SELECT * FROM ai_logs ORDER BY timestamp DESC")
     fun getAllAiLogsFlow(): Flow<List<AiLog>>
 
-    @Query("SELECT * FROM ai_logs WHERE id = :id")
+    @Query("SELECT * FROM ai_logs WHERE id = :id LIMIT 1")
     suspend fun getAiLogById(id: Int): AiLog?
 
-    @Query("SELECT tellingid FROM telling_headers WHERE onlineid = :onlineid LIMIT 1")
-    suspend fun getLocalTellingIdForOnlineId(onlineid: String): String?
+    @Query("SELECT tellingid FROM telling_headers WHERE onlineid = :onlineId LIMIT 1")
+    suspend fun getLocalTellingIdForOnlineId(onlineId: String): String?
 
-    @Query("SELECT * FROM telling_headers WHERE onlineid = :onlineid LIMIT 1")
-    suspend fun getHeaderByOnlineId(onlineid: String): TellingHeader?
+    @Query("SELECT * FROM telling_headers WHERE onlineid = :onlineId LIMIT 1")
+    suspend fun getHeaderByOnlineId(onlineId: String): TellingHeader?
 
-    @Query("SELECT * FROM waarnemingen WHERE onlineid = :onlineid")
-    suspend fun getWaarnemingenByOnlineId(onlineid: String): List<Waarneming>
+    @Query("SELECT * FROM waarnemingen WHERE onlineid = :onlineId")
+    suspend fun getWaarnemingenByOnlineId(onlineId: String): List<Waarneming>
 
-    @Query("SELECT DISTINCT soortid FROM waarnemingen ORDER BY soortid")
+    @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllUniqueSpeciesIds(): List<String>
-
-    /**
-     * Get top species based on hour of the day, filtered by current month for seasonal context.
-     */
-    @Query("""
-        SELECT waarnemingen.soortid, COUNT(*) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek
-        FROM waarnemingen
-        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
-        WHERE strftime('%H', datetime(CAST(waarnemingen.tijdstip AS INTEGER), 'unixepoch')) = printf('%02d', :hour)
-          AND strftime('%m', datetime(
-                CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
-            , 'unixepoch')) = printf('%02d', :month)
-        GROUP BY waarnemingen.soortid
-        ORDER BY count DESC
-        LIMIT 3
-    """)
-    suspend fun getTopSpeciesByHour(hour: Int, month: Int): List<com.yvesds.vt5.core.database.dao.AiStatsRow>
-
-    /**
-     * Get top species based on wind direction, filtered by current month for seasonal context.
-     */
-    @Query("""
-        SELECT waarnemingen.soortid, COUNT(*) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek
-        FROM waarnemingen
-        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
-        WHERE telling_headers.windrichting = :wind
-          AND strftime('%m', datetime(
-                CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
-            , 'unixepoch')) = printf('%02d', :month)
-        GROUP BY waarnemingen.soortid
-        ORDER BY count DESC
-        LIMIT 3
-    """)
-    suspend fun getTopSpeciesByWind(wind: String, month: Int): List<com.yvesds.vt5.core.database.dao.AiStatsRow>
-
-    /**
-     * Get top species based on month.
-     */
-    @Query("""
-        SELECT waarnemingen.soortid, COUNT(*) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek
-        FROM waarnemingen
-        JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid
-        WHERE strftime('%m', datetime(
-            CASE WHEN CAST(telling_headers.begintijd AS INTEGER) > 9999999999 THEN CAST(telling_headers.begintijd AS INTEGER)/1000 ELSE CAST(telling_headers.begintijd AS INTEGER) END
-        , 'unixepoch')) = printf('%02d', :month)
-        GROUP BY waarnemingen.soortid
-        ORDER BY count DESC
-        LIMIT 3
-    """)
-    suspend fun getTopSpeciesByMonth(month: Int): List<com.yvesds.vt5.core.database.dao.AiStatsRow>
-
-    @Query("""
-        SELECT begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug, telpostid
-        FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid 
-        WHERE waarnemingen.soortid = :soortId ORDER BY begintijd DESC
-    """)
-    suspend fun getWindDatasetForSpecies(soortId: String): List<SpeciesWindDatasetRow>
-
-    @Query("""
-        SELECT begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug, telpostid
-        FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid 
-        WHERE waarnemingen.soortid = :soortId ORDER BY begintijd DESC LIMIT :limit OFFSET :offset
-    """)
-    suspend fun getWindDatasetForSpeciesPaged(soortId: String, limit: Int, offset: Int): List<SpeciesWindDatasetRow>
-
-    @Query("""
-        SELECT COUNT(*) 
-        FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid 
-        WHERE waarnemingen.soortid = :soortId
-    """)
-    suspend fun countWindDatasetForSpecies(soortId: String): Int
-
-    @Query("SELECT begintijd, timezoneid, aantalterug FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid WHERE aantalterug > 0")
-    suspend fun getAllReturnRows(): List<HeaderReturnRow>
-
-    @Query("""
-        SELECT waarnemingen.idLocal, waarnemingen.tellingid, waarnemingen.onlineid as waarnemingOnlineId, 
-               telling_headers.onlineid as headerOnlineId, begintijd, timezoneid, windrichting, windkracht, aantal, aantalterug 
-        FROM waarnemingen JOIN telling_headers ON waarnemingen.tellingid = telling_headers.tellingid 
-        WHERE waarnemingen.soortid = :soortId ORDER BY begintijd DESC
-    """)
-    suspend fun getWindDebugRowsForSpecies(soortId: String): List<SpeciesWindDebugRow>
-
-    @Query("SELECT DISTINCT strftime('%Y', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) FROM telling_headers ORDER BY begintijd DESC")
-    suspend fun getAvailableYears(): List<String>
-
-    @Query("SELECT COUNT(*) FROM waarnemingen WHERE soortid = :speciesId")
-    suspend fun countObservationsForSpecies(speciesId: String): Int
-
-    @Query("SELECT SUM(aantal) FROM waarnemingen WHERE CAST(tijdstip AS INTEGER) >= CAST(:start AS INTEGER) AND CAST(tijdstip AS INTEGER) <= CAST(:end AS INTEGER)")
-    suspend fun sumCountsInPeriod(start: String, end: String): Int?
-
-    @Query("SELECT soortid, SUM(aantal) as count FROM waarnemingen WHERE CAST(tijdstip AS INTEGER) >= CAST(:start AS INTEGER) AND CAST(tijdstip AS INTEGER) <= CAST(:end AS INTEGER) GROUP BY soortid")
-    suspend fun getSpeciesCountsInPeriod(start: String, end: String): List<SpeciesCountRow>
 
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllSpeciesIds(): List<String>
@@ -284,11 +201,22 @@ interface TellingDao {
     @Query("""
         SELECT DISTINCT telpostid, strftime('%Y', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) as year 
         FROM telling_headers 
-        WHERE windrichting = '' OR windkracht = '' OR temperatuur = '' OR bewolking = '' OR hpa = ''
+        WHERE TRIM(windrichting) IN ('', 'null', '0') 
+           OR TRIM(windkracht) IN ('', 'null', '0') 
+           OR TRIM(temperatuur) IN ('', 'null', '0') 
+           OR TRIM(bewolking) IN ('', 'null', '0') 
+           OR TRIM(hpa) IN ('', 'null', '0')
     """)
     suspend fun getMissingWeatherTelpostYears(): List<TelpostYear>
 
-    @Query("SELECT * FROM telling_headers WHERE windrichting = '' OR windkracht = '' OR temperatuur = '' OR bewolking = '' OR hpa = ''")
+    @Query("""
+        SELECT * FROM telling_headers 
+        WHERE TRIM(windrichting) IN ('', 'null', '0') 
+           OR TRIM(windkracht) IN ('', 'null', '0') 
+           OR TRIM(temperatuur) IN ('', 'null', '0') 
+           OR TRIM(bewolking) IN ('', 'null', '0') 
+           OR TRIM(hpa) IN ('', 'null', '0')
+    """)
     suspend fun getHeadersWithMissingWeather(): List<TellingHeader>
 
     @Query("SELECT * FROM weather_archive WHERE locationId = :locId AND timeEpoch = :epoch LIMIT 1")
@@ -312,107 +240,89 @@ interface TellingDao {
     @Query("SELECT DISTINCT locationId FROM weather_archive")
     suspend fun getWeatherAvailableLocations(): List<String>
 
-    @Query("""
-        SELECT 
-            MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
-            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count
-        FROM waarnemingen w
-        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-        GROUP BY week
-        ORDER BY week ASC
-    """)
+    @Query("SELECT DISTINCT telpostid FROM telling_headers ORDER BY telpostid ASC")
+    suspend fun getUniqueTelpostIds(): List<String>
+
+    @Query("SELECT MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week, SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid GROUP BY week ORDER BY week ASC")
     suspend fun getBirdCountsByWeekGlobal(): List<WeekCountRow>
 
+    @Query("SELECT MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week, SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE h.telpostid = :siteId GROUP BY week ORDER BY week ASC")
+    suspend fun getBirdCountsByWeekForSite(siteId: String): List<WeekCountRow>
+
+    @Query("SELECT MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week, COUNT(*) as count FROM telling_headers h GROUP BY week ORDER BY week ASC")
+    suspend fun getSessionCountsByWeekGlobal(): List<WeekCountRow>
+
+    @Query("SELECT MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week, COUNT(*) as count FROM telling_headers h WHERE h.telpostid = :siteId GROUP BY week ORDER BY week ASC")
+    suspend fun getSessionCountsByWeekForSite(siteId: String): List<WeekCountRow>
+
+    @Query("SELECT UPPER(TRIM(h.windrichting)) as windrichting, MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week, SUM(CAST(w.aantal AS INTEGER)) as totalAantal, SUM(CAST(w.aantalterug AS INTEGER)) as totalTerug, AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgWindForce FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE w.soortid = :speciesId AND (:siteId IS NULL OR h.telpostid = :siteId) AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year) GROUP BY windrichting, week ORDER BY windrichting, week ASC")
+    suspend fun getSpeciesWindStats(speciesId: String, siteId: String?, year: String?): List<SpeciesWindStatsRow>
+
+    @Query("SELECT w.tellingid, w.aantal, w.aantalterug, h.begintijd, h.telpostid FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE w.soortid = :speciesId AND (:siteId IS NULL OR h.telpostid = :siteId) AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year) ORDER BY h.begintijd DESC LIMIT :limit OFFSET :offset")
+    suspend fun getWaarnemingenWithHeaderInfo(speciesId: String, siteId: String?, year: String?, limit: Int, offset: Int): List<WaarnemingWithHeaderInfo>
+
+    @Query("SELECT w.soortid, h.begintijd as sessionStart, w.tijdstip as observationTime, h.windrichting, h.windkracht, h.temperatuur, h.bewolking, h.hpa, h.neerslag, h.telpostid FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE h.status = 'gearchiveerd' OR h.status = 'geupload'")
+    suspend fun getRawTrainingData(): List<RawTrainingRow>
+
+    @Query("SELECT SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER)) FROM waarnemingen WHERE CAST(tijdstip AS INTEGER) >= :start AND CAST(tijdstip AS INTEGER) <= :end")
+    suspend fun getTotalCountInEpochRange(start: Long, end: Long): Long?
+
+    @Query("SELECT DISTINCT strftime('%Y', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) as year FROM telling_headers ORDER BY year DESC")
+    suspend fun getAvailableYears(): List<String?>
+
+    @Query("SELECT SUM(aantal) FROM waarnemingen WHERE CAST(tijdstip AS INTEGER) >= CAST(:start AS INTEGER) AND CAST(tijdstip AS INTEGER) <= CAST(:end AS INTEGER)")
+    suspend fun sumCountsInPeriod(start: String, end: String): Int?
+
+    @Query("SELECT soortid, SUM(aantal) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek FROM waarnemingen WHERE CAST(tijdstip AS INTEGER) >= CAST(:start AS INTEGER) AND CAST(tijdstip AS INTEGER) <= CAST(:end AS INTEGER) GROUP BY soortid ORDER BY count DESC LIMIT 20")
+    suspend fun getTopSpeciesByHour(start: Int, end: Int): List<AiStatsRow>
+
+    @Query("SELECT soortid, SUM(aantal) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE h.windrichting = :wind AND CAST(strftime('%m', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) = :month GROUP BY soortid ORDER BY count DESC LIMIT 20")
+    suspend fun getTopSpeciesByWind(wind: String, month: Int): List<AiStatsRow>
+
+    @Query("SELECT soortid, SUM(aantal) as count, 0 as percentage, 0 as isZeldzaam, 0 as isPiek FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE CAST(strftime('%m', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) = :month GROUP BY soortid ORDER BY count DESC LIMIT 20")
+    suspend fun getTopSpeciesByMonth(month: Int): List<AiStatsRow>
+
+    @Query("SELECT h.begintijd, h.timezoneid, h.windrichting, h.windkracht, w.aantal, w.aantalterug, h.telpostid FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE w.soortid = :speciesId")
+    suspend fun getWindDatasetForSpecies(speciesId: String): List<SpeciesWindDatasetRow>
+
     @Query("""
         SELECT 
-            MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
+            (CAST(h.begintijd AS INTEGER) / 86400) * 86400 as dayEpoch,
             SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-        WHERE h.telpostid = :siteId
-        GROUP BY week
-        ORDER BY week ASC
+        GROUP BY dayEpoch
     """)
-    suspend fun getBirdCountsByWeekForSite(siteId: String): List<WeekCountRow>
+    suspend fun getAllDailyTotals(): List<DayCountRow>
 
     @Query("""
         SELECT 
-            MIN(52, (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
-            COUNT(*) as count
-        FROM telling_headers
-        GROUP BY week
-        ORDER BY week ASC
-    """)
-    suspend fun getSessionCountsByWeekGlobal(): List<WeekCountRow>
-
-    @Query("""
-        SELECT 
-            MIN(52, (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
-            COUNT(*) as count
-        FROM telling_headers
-        WHERE telpostid = :siteId
-        GROUP BY week
-        ORDER BY week ASC
-    """)
-    suspend fun getSessionCountsByWeekForSite(siteId: String): List<WeekCountRow>
-
-    @Query("""
-        SELECT 
-            UPPER(TRIM(h.windrichting)) as windrichting,
-            MIN(52, (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 1) / 7 + 1) as week,
-            SUM(CAST(w.aantal AS INTEGER)) as totalAantal,
-            SUM(CAST(w.aantalterug AS INTEGER)) as totalTerug,
-            AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgWindForce
+            w.soortid, 
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count,
+            AVG(CAST(NULLIF(h.temperatuur, '') AS FLOAT)) as avgTemp,
+            UPPER(h.windrichting) as mainWind,
+            AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgBft,
+            AVG(CAST(NULLIF(h.hpa, '') AS FLOAT)) as avgPressure
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-        WHERE w.soortid = :speciesId
-        AND (:siteId IS NULL OR h.telpostid = :siteId)
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year)
-        GROUP BY windrichting, week
-        ORDER BY windrichting, week ASC
+        WHERE (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
+        GROUP BY w.soortid
+        ORDER BY count DESC
+        LIMIT 50
     """)
-    suspend fun getSpeciesWindStats(speciesId: String, siteId: String?, year: String?): List<SpeciesWindStatsRow>
-
-    @Query("""
-        SELECT w.tellingid, w.aantal, w.aantalterug, h.begintijd, h.telpostid
-        FROM waarnemingen w
-        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-        WHERE w.soortid = :speciesId
-        AND (:siteId IS NULL OR h.telpostid = :siteId)
-        AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year)
-        ORDER BY h.begintijd DESC
-        LIMIT :limit OFFSET :offset
-    """)
-    suspend fun getWaarnemingenWithHeaderInfo(speciesId: String, siteId: String?, year: String?, limit: Int, offset: Int): List<WaarnemingWithHeaderInfo>
+    suspend fun getSpeciesPhenologyProfile(dayStart: Int, dayEnd: Int): List<BsiSpeciesProfile>
 }
 
-data class SpeciesCountRow(
+data class SpeciesCountRow(val soortid: String, val count: Int)
+data class TelpostYear(val telpostid: String, val year: String)
+data class DayCountRow(val dayEpoch: Long, val count: Long)
+data class BsiSpeciesProfile(
     val soortid: String,
-    val count: Int
-)
-
-data class TelpostYear(
-    val telpostid: String,
-    val year: String
-)
-
-data class WeekCountRow(
-    val week: Int,
-    val count: Long
-)
-
-data class SpeciesWindStatsRow(
-    val windrichting: String,
-    val week: Int,
-    val totalAantal: Long,
-    val totalTerug: Long,
-    val avgWindForce: Float
-)
-
-data class WaarnemingWithHeaderInfo(
-    val tellingid: String,
-    val aantal: String,
-    val aantalterug: String,
-    val begintijd: String,
-    val telpostid: String
+    val count: Long,
+    val avgTemp: Float?,
+    val mainWind: String?,
+    val avgBft: Float?,
+    val avgPressure: Float?
 )

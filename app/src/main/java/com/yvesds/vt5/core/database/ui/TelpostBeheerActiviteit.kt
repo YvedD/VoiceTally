@@ -8,6 +8,7 @@ import android.widget.ArrayAdapter
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -71,8 +72,36 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         
         binding.btnTerug.setOnClickListener { finish() }
         binding.btnSave.setOnClickListener { saveCurrentLocatie() }
+        binding.btnReset.setOnClickListener { confirmResetAll() }
         binding.fabMyLocation.setOnClickListener { ensurePermissionAndZoom() }
         binding.fabLayers.setOnClickListener { showLayerPopup() }
+    }
+
+    private fun confirmResetAll() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.telpost_beheer_reset_confirm_title)
+            .setMessage(R.string.telpost_beheer_reset_confirm_msg)
+            .setPositiveButton(R.string.beheer_verwijderen) { _, _ ->
+                resetAllLocaties()
+            }
+            .setNegativeButton(R.string.annuleer, null)
+            .show()
+    }
+
+    private fun resetAllLocaties() {
+        allLocaties.clear()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val emptyRoot = TelpostLocatiesRoot(emptyList())
+            val jsonStr = Json { prettyPrint = true }.encodeToString(emptyRoot)
+            val ok = saf.writeServerDataFile("telpost_locaties.json", jsonStr)
+            withContext(Dispatchers.Main) {
+                if (ok) {
+                    drawAllMarkers()
+                    binding.tvCoords.text = "Locatie: -"
+                    Toast.makeText(this@TelpostBeheerActiviteit, "Alle locaties gewist", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun setupMap() {

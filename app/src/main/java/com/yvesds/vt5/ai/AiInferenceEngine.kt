@@ -6,54 +6,86 @@ import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.AiLog
 import com.yvesds.vt5.core.database.ui.SpeciesNameResolver
 import com.yvesds.vt5.utils.weather.Current
+import com.yvesds.vt5.utils.weather.WeatherManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-import org.tensorflow.lite.Interpreter
-import java.io.FileInputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.channels.FileChannel
 import java.util.*
+import kotlin.math.*
 
 /**
- * AiInferenceEngine - Powering the AI Information Dialog.
+ * AiInferenceEngine - Plan B: Bio-Statistische Intelligentie (BSI).
+ * Gebruikt gewogen patroonherkenning op basis van historische piektrek en weersomstandigheden.
  */
 object AiInferenceEngine {
-    private const val TAG = "AiInferenceEngine"
-    private var interpreter: Interpreter? = null
-    private var loadedLabels: List<String> = emptyList()
+    private const val TAG = "BsiInference"
 
     suspend fun getSuggesties(context: Context, cur: Current): AiInformatieDialoog.AiSuggesties = withContext(Dispatchers.IO) {
-        ensureModelLoaded(context)
+        val db = VoiceTallyDatabase.getDatabase(context)
+        val dao = db.tellingDao()
 
-        if (interpreter != null && loadedLabels.isNotEmpty()) {
-            return@withContext getTflitePredicties(context, cur)
+        // 1. Bepaal het 15-dagen venster (Vandaag +/- 7 dagen)
+        val cal = Calendar.getInstance()
+        val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
+        val dayStart = dayOfYear - 7
+        val dayEnd = dayOfYear + 7
+
+        // 2. Haal historische piektrek-profielen op binnen dit venster (Deep Data Matching)
+        val profiles = dao.getSpeciesPhenologyProfile(dayStart, dayEnd)
+        if (profiles.isEmpty()) return@withContext getEmptySuggesties(cur)
+
+        // 3. Bereken Gisteren-factor (Persistentie)
+        val nowEpoch = System.currentTimeMillis() / 1000L
+        val yesterdayCount = dao.getTotalCountInEpochRange(nowEpoch - 86400, nowEpoch) ?: 0L
+        val gisterenFactor = ln(yesterdayCount.toDouble() + 1.0)
+
+        // 4. Match profielen met de huidige omstandigheden
+        val scoredSpecies = profiles.map { profile ->
+            var score = log10(profile.count.toDouble().coerceAtLeast(1.0))
+
+            // A. Wind Match
+            val currentWind = WeatherManager.degTo16WindLabel(cur.windDirection10m)
+            if (profile.mainWind == currentWind) score *= 1.4
+
+            // B. Temperatuur Match (Gaussian similarity)
+            val tempDiff = abs((profile.avgTemp ?: 15f) - (cur.temperature2m ?: 15.0).toFloat())
+            score *= exp(-(tempDiff * tempDiff) / 50.0) // 50 is de variantie
+
+            // C. Luchtdruk Match
+            val pressDiff = abs((profile.avgPressure ?: 1013f) - (cur.pressureMsl ?: 1013.0).toFloat())
+            score *= (1.0 / (1.0 + pressDiff * 0.02))
+
+            // D. Gisteren Bonus
+            if (gisterenFactor > 1.0) score *= 1.1
+
+            ScoredSpecies(profile.soortid, score)
+        }.sortedByDescending { it.score }
+
+        // 5. Resultaat voorbereiden voor de UI
+        val maxScore = scoredSpecies.firstOrNull()?.score ?: 1.0
+        val topSuggesties = scoredSpecies.take(8).map {
+            val name = SpeciesNameResolver.getName(context, it.soortid)
+            val probability = (min(0.99, it.score / maxScore) * 100).toInt()
+            AiInformatieDialoog.Suggestie(name, probability)
         }
 
-        // Fallback: Real Database Statistics
-        val db = VoiceTallyDatabase.getDatabase(context)
-        val calendar = Calendar.getInstance()
-        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-        val currentMonth = calendar.get(Calendar.MONTH) + 1
-        
-        val tijdstipList = getTopSpeciesByHour(context, db, currentHour, currentMonth)
-        val windLabel = com.yvesds.vt5.utils.weather.WeatherManager.degTo16WindLabel(cur.windDirection10m)
-        val bft = com.yvesds.vt5.utils.weather.WeatherManager.msToBeaufort(cur.windSpeed10m)
-        val weerList = getTopSpeciesByWeather(context, db, windLabel, currentMonth)
-        val periodeList = getTopSpeciesByMonth(context, db, currentMonth)
+        val windLabel = WeatherManager.degTo16WindLabel(cur.windDirection10m)
+        val bft = WeatherManager.msToBeaufort(cur.windSpeed10m)
 
         val result = AiInformatieDialoog.AiSuggesties(
-            tijdstipSuggesties = tijdstipList,
+            tijdstipSuggesties = topSuggesties.take(3),
             weerBeschrijving = "$windLabel-wind / ${bft}bft",
-            weerSuggesties = weerList,
-            periodeSuggesties = periodeList
+            weerSuggesties = topSuggesties.drop(3).take(3),
+            periodeSuggesties = topSuggesties.take(2)
         )
-        
-        // Log the forecast for later evaluation
-        logForecast(context, db, cur, result)
 
+        logForecast(context, db, cur, result)
         return@withContext result
+    }
+
+    private fun getEmptySuggesties(cur: Current): AiInformatieDialoog.AiSuggesties {
+        val windLabel = WeatherManager.degTo16WindLabel(cur.windDirection10m)
+        val bft = WeatherManager.msToBeaufort(cur.windSpeed10m)
+        return AiInformatieDialoog.AiSuggesties(emptyList(), "$windLabel-wind / ${bft}bft", emptyList(), emptyList())
     }
 
     private suspend fun logForecast(context: Context, db: VoiceTallyDatabase, cur: Current, result: AiInformatieDialoog.AiSuggesties) {
@@ -61,197 +93,16 @@ object AiInferenceEngine {
         val conditionJson = org.json.JSONObject().apply {
             put("temp", cur.temperature2m)
             put("wind", cur.windSpeed10m)
-            put("wind_deg", cur.windDirection10m)
+            put("pressure", cur.pressureMsl)
         }.toString()
         
-        val suggestionsJson = org.json.JSONObject().apply {
-            val list = org.json.JSONArray()
-            (result.tijdstipSuggesties + result.weerSuggesties + result.periodeSuggesties).distinctBy { it.soortnaam }.forEach {
-                val item = org.json.JSONObject()
-                item.put("name", it.soortnaam)
-                item.put("prob", it.kans)
-                list.put(item)
-            }
-            put("items", list)
-        }.toString()
-
         db.tellingDao().insertAiLog(AiLog(
             tellingid = tellingId,
-            type = "metadata",
+            type = "bsi_forecast",
             requestContext = conditionJson,
-            suggestions = suggestionsJson
+            suggestions = ""
         ))
     }
 
-    private fun ensureModelLoaded(context: Context) {
-        if (interpreter != null) return
-        try {
-            val modelStore = ModelStore(context)
-            val modelDir = modelStore.getModelDir() ?: return
-            val modelFile = modelDir.findFile("personal_migration_model.tflite") ?: modelDir.findFile("training_model.tflite") ?: return
-            val labelsFile = modelDir.findFile("personal_migration_model.labels.json") ?: modelDir.findFile("training_model.labels.json") ?: return
-
-            context.contentResolver.openFileDescriptor(modelFile.uri, "r")?.use { pfd ->
-                val fileChannel = FileInputStream(pfd.fileDescriptor).channel
-                val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size())
-                interpreter = Interpreter(modelBuffer)
-            }
-
-            context.contentResolver.openInputStream(labelsFile.uri)?.use { input ->
-                val jsonStr = input.bufferedReader().readText()
-                val json = org.json.JSONObject(jsonStr)
-                val arr = json.optJSONArray("classes")
-                val list = mutableListOf<String>()
-                if (arr != null) {
-                    for (i in 0 until arr.length()) list.add(arr.getString(i))
-                }
-                loadedLabels = list
-            }
-        } catch (_: Exception) {}
-    }
-
-    private suspend fun getTflitePredicties(context: Context, cur: Current): AiInformatieDialoog.AiSuggesties {
-        val inter = interpreter ?: return getEmptySuggesties(cur)
-        
-        // 1. Calculate all 19 features in exact same order as training
-        val cal = Calendar.getInstance()
-        val dayOfYear = cal.get(Calendar.DAY_OF_YEAR).toDouble()
-        val hourOfDay = cal.get(Calendar.HOUR_OF_DAY).toDouble()
-        val month = cal.get(Calendar.MONTH) + 1
-        
-        val daySin = Math.sin(2.0 * Math.PI * dayOfYear / 365.25)
-        val dayCos = Math.cos(2.0 * Math.PI * dayOfYear / 365.25)
-        val hourSin = Math.sin(2.0 * Math.PI * hourOfDay / 24.0)
-        val hourCos = Math.cos(2.0 * Math.PI * hourOfDay / 24.0)
-        
-        val moonPhase = calculateMoonPhase(System.currentTimeMillis() / 1000L)
-        val windChill = calculateWindChill(cur.temperature2m ?: 15.0, cur.windSpeed10m ?: 5.0)
-        
-        // Fetch ref weather (same as training)
-        val refs = if (month <= 6) AiConfig.SPRING_SOUTH_REFS else AiConfig.AUTUMN_NORTH_REFS
-        var refAvgWind = 5.0
-        var refAvgPressure = 1013.0
-        var pressureTrend = 0.0
-        try {
-            val refWeathers = refs.mapNotNull { pair ->
-                runCatching { AiWeatherService.fetchContextualWeather(context, pair.first, pair.second) }.getOrNull()
-            }
-            if (refWeathers.isNotEmpty()) {
-                refAvgWind = refWeathers.mapNotNull { it.windSpeed }.average()
-                refAvgPressure = refWeathers.mapNotNull { it.pressure }.average()
-                pressureTrend = refWeathers.mapNotNull { it.pressureTrend }.average()
-            }
-        } catch (_: Exception) {}
-
-        // Yesterday's count
-        val db = VoiceTallyDatabase.getDatabase(context)
-        val nowEpoch = System.currentTimeMillis() / 1000L
-        val yesterdayCount = db.tellingDao().sumCountsInPeriod((nowEpoch - 86400).toString(), nowEpoch.toString()) ?: 0
-
-        // Wind vectors
-        val windRad = cur.windDirection10m?.let { Math.toRadians(it) }
-        val windDirSin = windRad?.let { Math.sin(it) } ?: 0.0
-        val windDirCos = windRad?.let { Math.cos(it) } ?: 0.0
-
-        // Features list (Order MUST match train_model.py)
-        val features = floatArrayOf(
-            (cur.temperature2m ?: 15.0).toFloat(),
-            (cur.windSpeed10m ?: 5.0).toFloat(),
-            windDirSin.toFloat(),
-            windDirCos.toFloat(),
-            (cur.cloudCover ?: 50.0).toFloat(),
-            (cur.visibility ?: 10000.0).toFloat(),
-            (cur.precipitation ?: 0.0).toFloat(),
-            refAvgWind.toFloat(),
-            refAvgPressure.toFloat(),
-            daySin.toFloat(),
-            dayCos.toFloat(),
-            hourSin.toFloat(),
-            hourCos.toFloat(),
-            moonPhase.toFloat(),
-            windChill.toFloat(),
-            pressureTrend.toFloat(),
-            yesterdayCount.toFloat(),
-            0.0f, // is_rare (default 0 during inference as we don't know yet)
-            1.0f  // label_count (default 1)
-        )
-
-        val inputBuffer = ByteBuffer.allocateDirect(1 * features.size * 4).order(ByteOrder.nativeOrder())
-        features.forEach { inputBuffer.putFloat(it) }
-        
-        val outputBuffer = ByteBuffer.allocateDirect(1 * loadedLabels.size * 4).order(ByteOrder.nativeOrder())
-        inter.run(inputBuffer, outputBuffer)
-        
-        outputBuffer.rewind()
-        val results = FloatArray(loadedLabels.size)
-        outputBuffer.asFloatBuffer().get(results)
-        
-        val sortedIndices = results.indices.sortedByDescending { results[it] }
-        val topSuggesties = sortedIndices.take(5).map { index ->
-            AiInformatieDialoog.Suggestie(SpeciesNameResolver.getName(context, loadedLabels.getOrNull(index) ?: "Unknown"), (results[index] * 100).toInt())
-        }
-
-        val windLabel = com.yvesds.vt5.utils.weather.WeatherManager.degTo16WindLabel(cur.windDirection10m)
-        val bft = com.yvesds.vt5.utils.weather.WeatherManager.msToBeaufort(cur.windSpeed10m)
-
-        return AiInformatieDialoog.AiSuggesties(
-            tijdstipSuggesties = topSuggesties.take(3),
-            weerBeschrijving = "$windLabel-wind / ${bft}bft",
-            weerSuggesties = topSuggesties.drop(3).take(2),
-            periodeSuggesties = topSuggesties.take(2)
-        )
-    }
-
-    private fun calculateMoonPhase(epoch: Long): Double {
-        val knownNewMoonEpoch = 1704974760L
-        val synodicMonthSeconds = 29.530588 * 24 * 3600
-        val delta = epoch - knownNewMoonEpoch
-        val phase = (delta % synodicMonthSeconds) / synodicMonthSeconds
-        return if (phase < 0) phase + 1.0 else phase
-    }
-
-    private fun calculateWindChill(temp: Double, windMs: Double): Double {
-        val windKmh = windMs * 3.6
-        if (temp > 10.0 || windKmh < 4.8) return temp
-        return 13.12 + 0.6215 * temp - 11.37 * Math.pow(windKmh, 0.16) + 0.3965 * temp * Math.pow(windKmh, 0.16)
-    }
-
-    private fun getEmptySuggesties(cur: Current): AiInformatieDialoog.AiSuggesties {
-        val windLabel = com.yvesds.vt5.utils.weather.WeatherManager.degTo16WindLabel(cur.windDirection10m)
-        val bft = com.yvesds.vt5.utils.weather.WeatherManager.msToBeaufort(cur.windSpeed10m)
-        return AiInformatieDialoog.AiSuggesties(emptyList(), "$windLabel-wind / ${bft}bft", emptyList(), emptyList())
-    }
-
-    private suspend fun getTopSpeciesByHour(context: Context, db: VoiceTallyDatabase, hour: Int, month: Int): List<AiInformatieDialoog.Suggestie> {
-        return try {
-            val results = db.tellingDao().getTopSpeciesByHour(hour, month)
-            val total = results.sumOf { it.count }.toDouble()
-            results.map { 
-                val perc = if (total > 0) ((it.count / total) * 100).toInt() else 0
-                AiInformatieDialoog.Suggestie(SpeciesNameResolver.getName(context, it.soortid), perc)
-            }
-        } catch (_: Exception) { emptyList() }
-    }
-
-    private suspend fun getTopSpeciesByWeather(context: Context, db: VoiceTallyDatabase, wind: String, month: Int): List<AiInformatieDialoog.Suggestie> {
-        return try {
-            val results = db.tellingDao().getTopSpeciesByWind(wind, month)
-            val total = results.sumOf { it.count }.toDouble()
-            results.map { 
-                val perc = if (total > 0) ((it.count / total) * 100).toInt() else 0
-                AiInformatieDialoog.Suggestie(SpeciesNameResolver.getName(context, it.soortid), perc)
-            }
-        } catch (_: Exception) { emptyList() }
-    }
-
-    private suspend fun getTopSpeciesByMonth(context: Context, db: VoiceTallyDatabase, month: Int): List<AiInformatieDialoog.Suggestie> {
-        return try {
-            val results = db.tellingDao().getTopSpeciesByMonth(month)
-            val total = results.sumOf { it.count }.toDouble()
-            results.map { 
-                val perc = if (total > 0) ((it.count / total) * 100).toInt() else 0
-                AiInformatieDialoog.Suggestie(SpeciesNameResolver.getName(context, it.soortid), perc)
-            }
-        } catch (_: Exception) { emptyList() }
-    }
+    private data class ScoredSpecies(val soortid: String, val score: Double)
 }

@@ -22,9 +22,19 @@
     <string name="perm_audio_checkbox">Microfoon (spraakherkenning) - nodig om soorten via spraak in te geven.</string>
     <string name="perm_saf_checkbox">Bestanden in Documents (SAF) - nodig om tellingen en serverdata op te slaan.</string>
     <string name="perm_location_checkbox">Locatie (weer Auto) - nodig om weergegevens automatisch op te halen.</string>
+    <string name="perm_camera_checkbox">Camera (QR-codes) - nodig om toestellen aan elkaar te koppelen.</string>
+    <string name="perm_bluetooth_checkbox">Bluetooth - nodig voor draadloze communicatie tussen toestellen.</string>
+    <string name="perm_alarm_checkbox">Exact Alarm - nodig voor het betrouwbaar afgaan van het uurlijkse alarm.</string>
     <string name="instellingen_ai_title">AI-functionaliteit</string>
     <string name="instellingen_ai_checkbox">AI-meldingen inschakelen</string>
     <string name="instellingen_ai_description">Indien ingeschakeld worden AI-modellen lokaal op het toestel aangemaakt en gebruikt voor waarnemingssuggesties.</string>
+
+    <!-- Grafiek Instellingen -->
+    <string name="instellingen_chart_title">Grafiek Instellingen</string>
+    <string name="instellingen_chart_thickness">Lijndikte (dp):</string>
+    <string name="instellingen_chart_color_wind">Kleur Wind (Bft):</string>
+    <string name="instellingen_chart_color_trek">Kleur Trek (Aantal):</string>
+    <string name="instellingen_chart_color_terug">Kleur Terug (Retour):</string>
     <string name="instellingen_ai_select_model_btn">Selecteer AI-model map</string>
     <string name="instellingen_ai_model_folder_prefix">AI-model map: %1$s</string>
     <string name="instellingen_ai_model_saved">AI-model map opgeslagen</string>
@@ -394,7 +404,8 @@
     </string-array>
     <string name="db_telling_sort_asc_symbol">↑</string>
     <string name="db_telling_sort_desc_symbol">↓</string>
-    <string name="db_telling_filter_hint">Filter tellingid...</string>
+    <string name="db_telling_filter_site_all">Alle Telposten</string>
+    <string name="db_telling_filter_site_hint">Filter op telpost...</string>
     <string name="db_telling_clear_filter">Filter wissen</string>
 
     <!-- TellingBeheerScherm aanvullingen -->
@@ -453,6 +464,9 @@
     <string name="telpost_beheer_titel">Telpost Beheer</string>
     <string name="telpost_beheer_hint_select">Selecteer een telpost...</string>
     <string name="telpost_beheer_btn_save">Locatie Opslaan</string>
+    <string name="telpost_beheer_btn_reset">Alle Locaties Wissen</string>
+    <string name="telpost_beheer_reset_confirm_title">Locaties wissen?</string>
+    <string name="telpost_beheer_reset_confirm_msg">Weet je zeker dat je ALLE opgeslagen telpost-locaties wilt verwijderen? Dit kan niet ongedaan worden gemaakt.</string>
     <string name="telpost_beheer_btn_my_location">Mijn Locatie</string>
     <string name="telpost_beheer_save_success">Locatie opgeslagen voor %1$s</string>
     <string name="telpost_beheer_save_error">Kon locatie niet opslaan: %1$s</string>

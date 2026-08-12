@@ -65,9 +65,6 @@ class DatabaseBeheerScherm : AppCompatActivity() {
     private lateinit var cbShowTellingen: CheckBox
     private lateinit var spinnerSiteFilter: Spinner
 
-    private val colorBirds by lazy { ContextCompat.getColor(this, R.color.grafiek_beheer_aantallen) }
-    private val colorSessions by lazy { ContextCompat.getColor(this, R.color.grafiek_beheer_tellingen) }
-
     private var availableSiteIds = mutableListOf<String?>() // null represents "All Sites"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,6 +125,10 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         chartView = findViewById(R.id.chartActivity)
         chartView?.modelProducer = modelProducer
         
+        val colorBirds = VicoLineChartHelper.getColorTrek(this)
+        val colorSessions = VicoLineChartHelper.getColorWind(this)
+        val thickness = VicoLineChartHelper.getLineThicknessDp(this)
+
         val birdFormatter = CartesianValueFormatter { _, value, _ ->
             when {
                 value >= 1_000_000 -> String.format(Locale.getDefault(), "%.1fM", value / 1_000_000)
@@ -138,14 +139,20 @@ class DatabaseBeheerScherm : AppCompatActivity() {
 
         val birdLayer = LineCartesianLayer(
             lineProvider = LineCartesianLayer.LineProvider.series(
-                LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(colorBirds)))
+                LineCartesianLayer.Line(
+                    fill = LineCartesianLayer.LineFill.single(Fill(colorBirds)),
+                    thicknessDp = thickness
+                )
             ),
             verticalAxisPosition = Axis.Position.Vertical.Start
         )
 
         val sessionLayer = LineCartesianLayer(
             lineProvider = LineCartesianLayer.LineProvider.series(
-                LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(colorSessions)))
+                LineCartesianLayer.Line(
+                    fill = LineCartesianLayer.LineFill.single(Fill(colorSessions)),
+                    thicknessDp = thickness
+                )
             ),
             verticalAxisPosition = Axis.Position.Vertical.End
         )
@@ -153,15 +160,15 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         chartView?.chart = CartesianChart(
             layers = arrayOf(birdLayer, sessionLayer),
             startAxis = VerticalAxis.start(
-                label = TextComponent(color = colorBirds, textSizeSp = 9f),
+                label = TextComponent(color = Color.WHITE, textSizeSp = 9f),
                 valueFormatter = birdFormatter,
                 itemPlacer = VerticalAxis.ItemPlacer.count(count = { 6 })
             ),
             endAxis = VerticalAxis.end(
-                label = TextComponent(color = colorSessions, textSizeSp = 9f),
+                label = TextComponent(color = Color.WHITE, textSizeSp = 9f),
                 valueFormatter = CartesianValueFormatter { _, v, _ -> String.format(Locale.getDefault(), "%.0f", v) }
             ),
-            bottomAxis = VicoLineChartHelper.createMonthLabelAxis(VicoLineChartHelper.blackAxisLabel)
+            bottomAxis = VicoLineChartHelper.createMonthLabelAxis(VicoLineChartHelper.whiteAxisLabel)
         )
     }
 

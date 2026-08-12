@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.BaseAdapter
 import android.widget.NumberPicker
 import android.widget.Spinner
@@ -20,7 +22,6 @@ import com.google.android.material.checkbox.MaterialCheckBox
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.opslag.AppDataStore
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.widget.Toast
@@ -39,10 +40,9 @@ import kotlinx.coroutines.launch
  * Instellingen worden opgeslagen via SharedPreferences voor gebruik doorheen de app.
  */
 class InstellingenScherm : AppCompatActivity() {
-    private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
     
     companion object {
-        private const val PREFS_NAME = "vt5_prefs"
+        const val PREFS_NAME = "vt5_prefs"
         const val PREF_LETTERGROOTTE_TEGELS_SP = "pref_lettergrootte_tegels_sp"
         const val PREF_PARTIALS_TEXT_COLOR = "pref_partials_text_color"
         const val PREF_UNMATCHED_PARTIALS_TEXT_COLOR = "pref_unmatched_partials_text_color"
@@ -56,9 +56,17 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_SERVER_RESPONSE_LOGGING_ENABLED = "pref_server_response_logging_enabled"
         const val PREF_STORAGE_MODE = "pref_storage_mode"
 
+        const val PREF_CHART_LINE_THICKNESS = "pref_chart_line_thickness"
+        const val PREF_CHART_COLOR_WIND = "pref_chart_color_wind"
+        const val PREF_CHART_COLOR_TREK = "pref_chart_color_trek"
+        const val PREF_CHART_COLOR_TERUG = "pref_chart_color_terug"
+
         const val PREF_PERM_AUDIO_ACK = "pref_perm_audio_ack"
         const val PREF_PERM_SAF_ACK = "pref_perm_saf_ack"
         const val PREF_PERM_LOCATION_ACK = "pref_perm_location_ack"
+        const val PREF_PERM_CAMERA_ACK = "pref_perm_camera_ack"
+        const val PREF_PERM_BLUETOOTH_ACK = "pref_perm_bluetooth_ack"
+        const val PREF_PERM_ALARM_ACK = "pref_perm_alarm_ack"
 
         // Lettergrootte bereik in sp
         const val MIN_LETTERGROOTTE_SP = 10
@@ -183,32 +191,6 @@ class InstellingenScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_instellingen)
 
-        // Register SAF picker for selecting VT5 root / AI model folder
-        openTreeLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
-            if (uri != null) {
-                try {
-                    SaFStorageHelper(this).takePersistablePermission(uri)
-                    SaFStorageHelper(this).saveRootUri(uri)
-                } catch (_: Exception) {}
-
-                // Persist the selected URI into DataStore so other components (Model loading) can read it
-                lifecycleScope.launch {
-                    try {
-                        AppDataStore.setAiModelDirUri(this@InstellingenScherm, uri.toString())
-                        Toast.makeText(this@InstellingenScherm, getString(R.string.instellingen_ai_model_saved), Toast.LENGTH_SHORT).show()
-                        // update button label to show selected folder name
-                        try {
-                            val btn = findViewById<MaterialButton>(R.id.btnSelectAiModel)
-                            val name = uri.path?.substringAfterLast('/') ?: uri.toString()
-                            btn.text = getString(R.string.instellingen_ai_model_folder_prefix, name)
-                        } catch (_: Exception) {}
-                    } catch (e: Exception) {
-                        Toast.makeText(this@InstellingenScherm, getString(R.string.instellingen_ai_model_save_error, e.message ?: ""), Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-        }
-
         try {
             ensureLogTextColorDefaults()
             setupTerugKnop()
@@ -224,24 +206,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
             setupAiSettings()
-            // Hook up AI model folder picker button
-            try {
-                val btn = findViewById<MaterialButton>(R.id.btnSelectAiModel)
-                btn.setOnClickListener {
-                    openTreeLauncher.launch(null)
-                }
-
-                // Show currently stored URI (if any)
-                lifecycleScope.launch {
-                    try {
-                        val stored = AppDataStore.getAiModelDirUri(this@InstellingenScherm)
-                        if (!stored.isNullOrBlank()) {
-                            val name = Uri.parse(stored).path?.substringAfterLast('/') ?: stored
-                            btn.text = getString(R.string.instellingen_ai_model_folder_prefix, name)
-                        }
-                    } catch (_: Exception) {}
-                }
-            } catch (_: Exception) {}
+            setupChartSettings()
         } catch (t: Throwable) {
             // Fail-safe: avoid hard crash to background when a view/id mismatch occurs.
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
@@ -613,10 +578,24 @@ class InstellingenScherm : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         val hasSaf = SaFStorageHelper(this).getRootUri() != null
+        
+        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasBluetooth = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED
+        
+        // Exact alarm permission check (Android 13+)
+        val hasAlarm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else true
 
         bindPermCheckBox(R.id.cbPermAudio, PREF_PERM_AUDIO_ACK, prefs, hasAudio, R.string.perm_disable_message_audio)
         bindPermCheckBox(R.id.cbPermSaf, PREF_PERM_SAF_ACK, prefs, hasSaf, R.string.perm_disable_message_saf)
         bindPermCheckBox(R.id.cbPermLocation, PREF_PERM_LOCATION_ACK, prefs, hasLocation, R.string.perm_disable_message_location)
+        bindPermCheckBox(R.id.cbPermCamera, PREF_PERM_CAMERA_ACK, prefs, hasCamera, 0)
+        bindPermCheckBox(R.id.cbPermBluetooth, PREF_PERM_BLUETOOTH_ACK, prefs, hasBluetooth, 0)
+        bindPermCheckBox(R.id.cbPermAlarm, PREF_PERM_ALARM_ACK, prefs, hasAlarm, 0)
     }
 
     private fun bindPermCheckBox(
@@ -658,12 +637,72 @@ class InstellingenScherm : AppCompatActivity() {
         val cbAiEnabled = findViewById<MaterialCheckBox>(R.id.cbAiEnabled)
         lifecycleScope.launch {
             val enabled = AppDataStore.isAiEnabled(this@InstellingenScherm)
-            cbAiEnabled.isChecked = enabled
-            cbAiEnabled.setOnCheckedChangeListener { _, isChecked ->
+            cbAiEnabled?.isChecked = enabled
+            cbAiEnabled?.setOnCheckedChangeListener { _, isChecked ->
                 lifecycleScope.launch {
                     AppDataStore.setAiEnabled(this@InstellingenScherm, isChecked)
                 }
             }
+        }
+    }
+
+    private fun setupChartSettings() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        
+        // 1. Lijndikte
+        val npThickness = findViewById<NumberPicker>(R.id.npChartThickness)
+        npThickness.minValue = 1
+        npThickness.maxValue = 5
+        npThickness.value = prefs.getInt(PREF_CHART_LINE_THICKNESS, 1)
+        npThickness.setOnValueChangedListener { _, _, newVal ->
+            prefs.edit { putInt(PREF_CHART_LINE_THICKNESS, newVal) }
+        }
+
+        // 2. Kleuren Spinners
+        val colorOptions = UiColorPrefs.getTextOptions(this) // Hergebruik bestaande tekstkleur opties
+        
+        setupChartColorSpinner(R.id.spChartColorWind, PREF_CHART_COLOR_WIND, ContextCompat.getColor(this, R.color.grafiek_beaufort), colorOptions)
+        setupChartColorSpinner(R.id.spChartColorTrek, PREF_CHART_COLOR_TREK, ContextCompat.getColor(this, R.color.grafiek_lijnkleur), colorOptions)
+        setupChartColorSpinner(R.id.spChartColorTerug, PREF_CHART_COLOR_TERUG, ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug), colorOptions)
+    }
+
+    private fun setupChartColorSpinner(spinnerId: Int, prefKey: String, defaultColor: Int, options: List<UiColorPrefs.ColorOption>) {
+        val spinner = findViewById<Spinner>(spinnerId)
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        
+        val adapter = object : BaseAdapter() {
+            override fun getCount(): Int = options.size
+            override fun getItem(position: Int): Any = options[position]
+            override fun getItemId(position: Int): Long = position.toLong()
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val tv = (convertView as? TextView) ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
+                val opt = options[position]
+                tv.text = opt.label
+                tv.setTextColor(opt.argb)
+                tv.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                return tv
+            }
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val tv = (convertView as? TextView) ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
+                val opt = options[position]
+                tv.text = opt.label
+                tv.setTextColor(opt.argb)
+                tv.setBackgroundColor(Color.parseColor("#333333")) // Donkere achtergrond voor dropdown
+                tv.setPadding(24, 16, 24, 16)
+                return tv
+            }
+        }
+        
+        spinner.adapter = adapter
+        val current = prefs.getInt(prefKey, defaultColor)
+        val initialIdx = options.indexOfFirst { it.argb == current }.takeIf { it >= 0 } ?: 0
+        spinner.setSelection(initialIdx)
+        
+        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
+                prefs.edit { putInt(prefKey, options[pos].argb) }
+            }
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
         }
     }
 

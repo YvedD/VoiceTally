@@ -227,6 +227,15 @@ class InstallatieScherm : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         val hasSaf = saf.getRootUri() != null
+        
+        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasBluetooth = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasAlarm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else true
 
         bindPermCheckBox(
             cb = binding.cbPermAudio,
@@ -248,6 +257,27 @@ class InstallatieScherm : AppCompatActivity() {
             prefs = prefs,
             actualGranted = hasLocation,
             disableMessageRes = R.string.perm_disable_message_location
+        )
+        bindPermCheckBox(
+            cb = binding.cbPermCamera,
+            key = InstellingenScherm.PREF_PERM_CAMERA_ACK,
+            prefs = prefs,
+            actualGranted = hasCamera,
+            disableMessageRes = 0
+        )
+        bindPermCheckBox(
+            cb = binding.cbPermBluetooth,
+            key = InstellingenScherm.PREF_PERM_BLUETOOTH_ACK,
+            prefs = prefs,
+            actualGranted = hasBluetooth,
+            disableMessageRes = 0
+        )
+        bindPermCheckBox(
+            cb = binding.cbPermAlarm,
+            key = InstellingenScherm.PREF_PERM_ALARM_ACK,
+            prefs = prefs,
+            actualGranted = hasAlarm,
+            disableMessageRes = 0
         )
     }
 

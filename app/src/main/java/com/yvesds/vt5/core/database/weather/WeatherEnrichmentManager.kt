@@ -9,9 +9,9 @@ import com.yvesds.vt5.core.database.entities.WeatherArchive
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.utils.weather.WeatherManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import okhttp3.Request
 import java.time.Instant
 import java.time.LocalDateTime
@@ -23,7 +23,7 @@ import kotlin.math.*
  * WeatherEnrichmentManager - Beheert het vullen van het weer-archief en het verrijken
  * van telling-headers met historische weergegevens.
  */
-class WeatherEnrichmentManager(private val context: Context) {
+class WeatherEnrichmentManager(context: Context) {
     private val TAG = "WeatherEnrichment"
     private val db = VoiceTallyDatabase.getDatabase(context)
     private val saf = SaFStorageHelper(context)
@@ -51,6 +51,14 @@ class WeatherEnrichmentManager(private val context: Context) {
 
             // 3. Cluster telposten (35km regel)
             val clusters = clusterTelpostYears(missing, locMap)
+            
+            if (clusters.isEmpty()) {
+                Log.w(TAG, "Geen locaties gevonden voor telposten die verrijkt moeten worden.")
+                // We kunnen hier niet verder zonder coördinaten
+                onProgress("Fout: Geen GPS coördinaten bekend voor telposten in deze import.", 0, 0)
+                delay(3000)
+                return@withContext false
+            }
             
             // 4. Haal weergegevens op per cluster/jaar
             var current = 0
@@ -180,16 +188,21 @@ class WeatherEnrichmentManager(private val context: Context) {
             val weather = db.tellingDao().getWeather(locationIdInArchive, hourlyEpoch)
             if (weather != null) {
                 val updatedHeader = h.copy(
-                    windrichting = if (h.windrichting.isEmpty()) WeatherManager.degTo16WindLabel(weather.windDir10m) else h.windrichting,
-                    windkracht = if (h.windkracht.isEmpty()) WeatherManager.msToBeaufort(weather.windSpeed10m).toString() else h.windkracht,
-                    temperatuur = if (h.temperatuur.isEmpty()) weather.temp?.roundToInt()?.toString() ?: "" else h.temperatuur,
-                    bewolking = if (h.bewolking.isEmpty()) WeatherManager.cloudPercentToAchtsten(weather.cloudCover) else h.bewolking,
-                    neerslag = if (h.neerslag.isEmpty()) WeatherManager.precipitationToCode(weather.precip) else h.neerslag,
-                    hpa = if (h.hpa.isEmpty()) weather.pressureMsl?.roundToInt()?.toString() ?: "" else h.hpa
+                    windrichting = if (isFieldMissing(h.windrichting)) WeatherManager.degTo16WindLabel(weather.windDir10m) else h.windrichting,
+                    windkracht = if (isFieldMissing(h.windkracht)) WeatherManager.msToBeaufort(weather.windSpeed10m).toString() else h.windkracht,
+                    temperatuur = if (isFieldMissing(h.temperatuur)) weather.temp?.roundToInt()?.toString() ?: "" else h.temperatuur,
+                    bewolking = if (isFieldMissing(h.bewolking)) WeatherManager.cloudPercentToAchtsten(weather.cloudCover) else h.bewolking,
+                    neerslag = if (isFieldMissing(h.neerslag)) WeatherManager.precipitationToCode(weather.precip) else h.neerslag,
+                    hpa = if (isFieldMissing(h.hpa)) weather.pressureMsl?.roundToInt()?.toString() ?: "" else h.hpa
                 )
                 db.tellingDao().updateHeader(updatedHeader)
             }
         }
+    }
+
+    private fun isFieldMissing(value: String): Boolean {
+        val t = value.trim().lowercase()
+        return t == "" || t == "null" || t == "0"
     }
 
     /**

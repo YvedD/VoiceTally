@@ -28,6 +28,8 @@ import com.patrykandpatrick.vico.core.cartesian.Zoom
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.dao.SpeciesWindDatasetRow
+import com.yvesds.vt5.core.database.dao.SpeciesWindStatsRow
+import com.yvesds.vt5.core.database.dao.WaarnemingWithHeaderInfo
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.opslag.FileLogger
@@ -59,12 +61,6 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private var adapter = SimpleWaarnemingAdapter()
     private val chartBindings = linkedMapOf<String, WindChartBinding>()
     private val windDirections = listOf("N", "NNO", "NO", "ONO", "O", "OZO", "ZO", "ZZO", "Z", "ZZW", "ZW", "WZW", "W", "WNW", "NW", "NNW")
-
-    // --- HIER KUN JE DE KLEUREN TWEAKEN IN res/values/colors.xml ---
-    private val colorAantal by lazy { ContextCompat.getColor(this, R.color.grafiek_lijnkleur) }
-    private val colorTerug by lazy { ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug) }
-    private val colorWind by lazy { ContextCompat.getColor(this, R.color.grafiek_beaufort) }
-    // ---------------------------------------------------------------
 
     private var availableSiteIds = mutableListOf<String?>()
 
@@ -263,20 +259,32 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
     private fun setupSingleChart(chartView: CartesianChartView, producer: CartesianChartModelProducer) {
         chartView.modelProducer = producer
-        chartView.setBackgroundColor(Color.parseColor("#739B9B"))
+        val bgColor = ContextCompat.getColor(this, R.color.grafiek_achtergrondkleur)
+        chartView.setBackgroundColor(bgColor)
         
+        val colorAantal = VicoLineChartHelper.getColorTrek(this)
+        val colorTerug = VicoLineChartHelper.getColorTerug(this)
+        val colorWind = VicoLineChartHelper.getColorWind(this)
+        val thickness = VicoLineChartHelper.getLineThicknessDp(this)
+
         chartView.zoomHandler = ZoomHandler(zoomEnabled = false, initialZoom = Zoom.Content)
         chartView.scrollHandler = ScrollHandler(scrollEnabled = false)
 
         chartView.chart = CartesianChart(
             layers = arrayOf(
                 // 1. Windkracht (Achtergrondlaag)
-                VicoLineChartProducer.createBeaufortLayer(colorWind),
+                VicoLineChartProducer.createBeaufortLayer(this, colorWind),
                 // 2. Vogel-aantallen (Voorgrondlaag)
                 LineCartesianLayer(
                     lineProvider = LineCartesianLayer.LineProvider.series(
-                        LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(colorTerug))), // Midden
-                        LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(colorAantal)))  // Helemaal voor
+                        LineCartesianLayer.Line(
+                            fill = LineCartesianLayer.LineFill.single(Fill(colorTerug)),
+                            thicknessDp = thickness
+                        ), // Midden
+                        LineCartesianLayer.Line(
+                            fill = LineCartesianLayer.LineFill.single(Fill(colorAantal)),
+                            thicknessDp = thickness
+                        )  // Helemaal voor
                     ),
                     verticalAxisPosition = Axis.Position.Vertical.Start
                 )
@@ -350,10 +358,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
 /** Helper om Beaufort laag op de achtergrond te plaatsen zonder de as-schaling van de vogel-aantallen te verstoren */
 object VicoLineChartProducer {
-    fun createBeaufortLayer(color: Int): LineCartesianLayer {
+    fun createBeaufortLayer(context: android.content.Context, color: Int): LineCartesianLayer {
         return LineCartesianLayer(
             lineProvider = LineCartesianLayer.LineProvider.series(
-                LineCartesianLayer.Line(fill = LineCartesianLayer.LineFill.single(Fill(color)))
+                LineCartesianLayer.Line(
+                    fill = LineCartesianLayer.LineFill.single(Fill(color)),
+                    thicknessDp = VicoLineChartHelper.getLineThicknessDp(context)
+                )
             ),
             rangeProvider = com.patrykandpatrick.vico.core.cartesian.data.CartesianLayerRangeProvider.fixed(minY = 0.0, maxY = 13.0),
             verticalAxisPosition = Axis.Position.Vertical.End

@@ -62,6 +62,13 @@
         android:gravity="center_vertical">
 
         <Spinner
+            android:id="@+id/spinnerSiteFilter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:spinnerMode="dropdown" />
+
+        <Spinner
             android:id="@+id/spinnerSortField"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -75,28 +82,7 @@
             android:textOn="@string/db_telling_sort_asc_symbol"
             android:textOff="@string/db_telling_sort_desc_symbol"
             android:checked="true"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp" />
-
-        <EditText
-            android:id="@+id/etFilterTellingId"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.5"
-            android:hint="@string/db_telling_filter_hint"
-            android:autofillHints="none"
-            android:inputType="text"
-            android:maxLines="1"
-            android:imeOptions="actionDone" />
-
-        <ImageButton
-            android:id="@+id/btnClearFilter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="@string/db_telling_clear_filter"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:layout_marginStart="4dp" />
+            android:layout_marginStart="8dp" />
 
     </LinearLayout>
 
