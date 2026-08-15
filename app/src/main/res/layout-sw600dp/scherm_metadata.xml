@@ -392,6 +392,29 @@
                             android:textSize="18sp" />
                     </LinearLayout>
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAiCurrentForecast"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginHorizontal="16dp"
+                        android:layout_marginTop="60dp"
+                        android:text="@string/meta_ai_current_btn"
+                        android:textSize="18sp"
+                        app:icon="@android:drawable/ic_menu_info_details" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAiHourlyForecast"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginHorizontal="16dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="32dp"
+                        android:text="@string/meta_ai_hourly_btn"
+                        android:textSize="18sp"
+                        app:icon="@android:drawable/ic_menu_recent_history" />
+
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
 

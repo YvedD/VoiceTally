@@ -122,10 +122,11 @@ class AiForecastScherm : AppCompatActivity() {
 
                 val suggestionsJson = org.json.JSONObject().apply {
                     val list = org.json.JSONArray()
-                    (result.tijdstipSuggesties + result.weerSuggesties + result.periodeSuggesties).distinctBy { it.soortnaam }.forEach {
+                    result.guildResults.forEach {
                         val item = org.json.JSONObject()
                         item.put("name", it.soortnaam)
                         item.put("prob", it.kans)
+                        item.put("guild", it.guildName)
                         list.put(item)
                     }
                     put("items", list)
@@ -142,16 +143,13 @@ class AiForecastScherm : AppCompatActivity() {
     }
 
     private fun buildSpeciesListText(suggestions: AiInformatieDialoog.AiSuggesties): String {
-        val all = mutableListOf<AiInformatieDialoog.Suggestie>()
-        all.addAll(suggestions.periodeSuggesties)
-        all.addAll(suggestions.weerSuggesties)
+        if (suggestions.guildResults.isEmpty()) return "Geen specifieke prognose beschikbaar"
         
-        // De-duplicate by name and take top 5
-        val uniqueTop = all.distinctBy { it.soortnaam }.take(5)
-        
-        if (uniqueTop.isEmpty()) return "Geen specifieke prognose beschikbaar"
-        
-        return uniqueTop.joinToString("\n") { "• ${it.soortnaam} (${it.kans}%)" }
+        // Toon de top suggesties uit de gilden
+        return suggestions.guildResults
+            .sortedByDescending { it.kans }
+            .take(5)
+            .joinToString("\n") { "• ${it.soortnaam} (${it.kans}%)" }
     }
 
     private fun showError(msg: String) {

@@ -88,7 +88,10 @@ class WeatherDataFetcher(
         }
     }
     
-    private fun applyWeatherToForm(
+    /**
+     * Map fetched weather to UI fields.
+     */
+    fun applyWeatherToForm(
         cur: Current,
         snapshot: DataSnapshot
     ) {
@@ -143,9 +146,27 @@ class WeatherDataFetcher(
         markWeatherAutoApplied()
     }
     
+    /**
+     * Fetch both current and hourly forecast data.
+     */
+    suspend fun fetchCurrentAndHourly(lat: Double, lon: Double): Pair<Current?, List<WeatherManager.HourlyForecast>?> = withContext(Dispatchers.IO) {
+        val current = WeatherManager.fetchCurrent(lat, lon)
+        val hourly = WeatherManager.fetch72HourForecast(lat, lon)
+        Pair(current, hourly)
+    }
+
     private fun markWeatherAutoApplied() {
         // Only change color to indicate weather was fetched, but keep button enabled
         // so user can always fetch fresh weather data (especially for vervolgtelling)
         binding.btnWeerAuto.backgroundTintList = ColorStateList.valueOf("#117CAF".toColorInt())
+    }
+
+    /**
+     * Helper to retrieve hour from time string "HH:mm"
+     */
+    fun parseHourFromText(timeStr: String?): Int? {
+        return try {
+            timeStr?.substringBefore(':')?.toInt()
+        } catch (_: Exception) { null }
     }
 }

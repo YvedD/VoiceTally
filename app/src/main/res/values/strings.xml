@@ -104,6 +104,10 @@
     <string name="metadata_error_preparing">Fout bij voorbereiden telling: %1$s</string>
     <string name="metadata_dialog_time_title">Tijd kiezen</string>
     <string name="metadata_cloudcover_format">%1$d/8</string>
+    <string name="meta_ai_hourly_btn">Toon uurlijkse prognose</string>
+    <string name="meta_ai_current_btn">Toon AI-prognose (nu)</string>
+    <string name="meta_ai_hourly_loading">Uurlijkse trends berekenen…</string>
+    <string name="meta_ai_hourly_title">Uurlijkse verwachting</string>
 
     <!-- HoofdActiviteit -->
     <string name="hoofd_metadata_loading">Metadata laden…</string>

@@ -302,7 +302,8 @@ interface TellingDao {
             AVG(CAST(NULLIF(h.temperatuur, '') AS FLOAT)) as avgTemp,
             UPPER(h.windrichting) as mainWind,
             AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgBft,
-            AVG(CAST(NULLIF(h.hpa, '') AS FLOAT)) as avgPressure
+            AVG(CAST(NULLIF(h.hpa, '') AS FLOAT)) as avgPressure,
+            AVG(CAST(strftime('%H', datetime(CAST(w.tijdstip AS INTEGER), 'unixepoch')) AS INTEGER)) as avgHour
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
         WHERE (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
@@ -310,7 +311,7 @@ interface TellingDao {
            OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
         GROUP BY w.soortid
         ORDER BY count DESC
-        LIMIT 50
+        LIMIT 60
     """)
     suspend fun getSpeciesPhenologyProfile(dayStart: Int, dayEnd: Int): List<BsiSpeciesProfile>
 }
@@ -324,5 +325,6 @@ data class BsiSpeciesProfile(
     val avgTemp: Float?,
     val mainWind: String?,
     val avgBft: Float?,
-    val avgPressure: Float?
+    val avgPressure: Float?,
+    val avgHour: Float?
 )

@@ -18,23 +18,21 @@ import kotlinx.coroutines.withContext
 object AiSuggestieFetcher {
     private const val TAG = "AiSuggestieFetcher"
 
-    suspend fun fetchAndShow(context: Context, cur: Current) {
+    suspend fun fetchAndShow(context: Context, cur: Current, hour: Int? = null) {
         try {
             // Show analysis progress since DB query (154k rows) can take ~1-2 seconds
             val progress = withContext(Dispatchers.Main) {
                 ProgressDialogHelper.show(context, "AI analyseert database...")
             }
             
-            // Perform the actual calculation
-            val suggesties = AiInferenceEngine.getSuggesties(context, cur)
+            // Perform the actual calculation with optional hour override
+            val suggesties = AiInferenceEngine.getSuggesties(context, cur, hourOverride = hour)
             
             withContext(Dispatchers.Main) {
                 progress.dismiss()
                 
                 // Only show dialog if we actually found useful suggestions
-                if (suggesties.tijdstipSuggesties.isNotEmpty() || 
-                    suggesties.weerSuggesties.isNotEmpty() || 
-                    suggesties.periodeSuggesties.isNotEmpty()) {
+                if (suggesties.guildResults.isNotEmpty()) {
                     AiInformatieDialoog.show(context, suggesties)
                 } else {
                     Log.i(TAG, "No significant AI suggestions found for current conditions")
