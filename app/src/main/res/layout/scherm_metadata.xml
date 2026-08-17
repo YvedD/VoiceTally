@@ -474,19 +474,9 @@
                         android:layout_height="wrap_content"
                         android:layout_marginHorizontal="8dp"
                         android:layout_marginTop="60dp"
+                        android:layout_marginBottom="20dp"
                         android:text="@string/meta_ai_current_btn"
                         app:icon="@android:drawable/ic_menu_info_details" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAiHourlyForecast"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="8dp"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginBottom="20dp"
-                        android:text="@string/meta_ai_hourly_btn"
-                        app:icon="@android:drawable/ic_menu_recent_history" />
 
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>

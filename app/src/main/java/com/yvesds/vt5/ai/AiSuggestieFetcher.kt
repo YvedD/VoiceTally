@@ -2,6 +2,7 @@ package com.yvesds.vt5.ai
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.utils.weather.Current
 import kotlinx.coroutines.Dispatchers
@@ -19,27 +20,32 @@ object AiSuggestieFetcher {
     private const val TAG = "AiSuggestieFetcher"
 
     suspend fun fetchAndShow(context: Context, cur: Current, hour: Int? = null) {
+        Log.i(TAG, "Starting AI fetch sequence...")
         try {
-            // Show analysis progress since DB query (154k rows) can take ~1-2 seconds
             val progress = withContext(Dispatchers.Main) {
                 ProgressDialogHelper.show(context, "AI analyseert database...")
             }
             
-            // Perform the actual calculation with optional hour override
-            val suggesties = AiInferenceEngine.getSuggesties(context, cur, hourOverride = hour)
-            
-            withContext(Dispatchers.Main) {
-                progress.dismiss()
+            try {
+                Log.d(TAG, "Calling AiInferenceEngine.getSuggesties...")
+                // Perform the actual calculation with optional hour override
+                val suggesties = AiInferenceEngine.getSuggesties(context, cur, hourOverride = hour)
                 
-                // Only show dialog if we actually found useful suggestions
-                if (suggesties.guildResults.isNotEmpty()) {
-                    AiInformatieDialoog.show(context, suggesties)
-                } else {
-                    Log.i(TAG, "No significant AI suggestions found for current conditions")
+                withContext(Dispatchers.Main) {
+                    // Only show dialog if we actually found useful suggestions
+                    if (suggesties.guildResults.isNotEmpty()) {
+                        AiInformatieDialoog.show(context, suggesties)
+                    } else {
+                        Toast.makeText(context, "AI: Geen specifieke trekpieken gevonden.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    progress.dismiss()
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "AI suggesties fetch failed: ${e.message}")
+            Log.e(TAG, "AI suggesties fetch failed: ${e.message}", e)
         }
     }
 }

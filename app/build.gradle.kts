@@ -81,6 +81,7 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.7.3")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -90,7 +91,7 @@ dependencies {
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.8.1")
 
-    // DataStore (toegevoegd voor moderne persistente opslag)
+    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Room Database

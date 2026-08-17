@@ -51,6 +51,12 @@ class SplashActiviteit : AppCompatActivity() {
         splashJob = lifecycleScope.launch {
             val startedAt = System.currentTimeMillis()
             val pb = findViewById<android.widget.ProgressBar>(R.id.pbLoading)
+            val ivAi = findViewById<android.widget.ImageView>(R.id.ivAiLogo)
+            val ivSplash = findViewById<android.widget.ImageView>(R.id.ivSplashLogo)
+
+            // Moderne transitie: Splash logo verdwijnt, BSI oog verschijnt
+            ivSplash?.animate()?.alpha(0f)?.setDuration(1500)?.start()
+            ivAi?.animate()?.alpha(1.0f)?.setDuration(1500)?.start()
             
             // Wacht op zowel aliassen als serverdata (parallel)
             withTimeoutOrNull(10_000L) {

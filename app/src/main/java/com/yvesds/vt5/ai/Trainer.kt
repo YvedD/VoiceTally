@@ -60,8 +60,20 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             }
 
             // 5. Sla de nieuwe gewichten op
-            onProgress("Nieuwe ervaringen opslaan...", 98, 100)
+            onProgress("Nieuwe ervaringen opslaan...", 95, 100)
             modelStore.saveNeuralEngine(engine)
+
+            // 6. Voer Retroactieve Piek-Analyse uit (Knowledge Base)
+            onProgress("Meteorologische vingerafdrukken berekenen...", 96, 100)
+            val kbManager = ExpertKnowledgeManager(context)
+            kbManager.analyzeHistoricalPeaks { msg, curr, total ->
+                onProgress(msg, curr, total)
+            }
+
+            // 7. Genereer Wetenschappelijke Taxonomie JSON (NIEUW)
+            onProgress("Wetenschappelijke taxonomie bijwerken...", 99, 100)
+            val taxonomyManager = TaxonomyManager(context)
+            taxonomyManager.generateActiveTaxonomyJson()
 
             onProgress("Training succesvol voltooid!", 100, 100)
             Log.i(TAG, "Neural training voltooid.")

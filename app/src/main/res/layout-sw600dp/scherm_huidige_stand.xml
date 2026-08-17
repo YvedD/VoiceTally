@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_huidige_stand"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vt5_black"
+    android:orientation="vertical"
+    android:padding="40dp">
+
+    <TextView
+        android:id="@+id/tv_title_huidige_stand"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/huidige_stand_title"
+        android:textSize="28sp"
+        android:textAlignment="center"
+        android:textColor="@color/vt5_light_blue"
+        android:textStyle="bold"
+        android:paddingBottom="24dp"/>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="750dp"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_horizontal"
+        app:cardBackgroundColor="@color/vt5_dark_gray"
+        app:strokeColor="@color/vt5_outline">
+
+        <ScrollView
+            android:id="@+id/scroll_huidige_stand"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="20dp">
+
+            <TableLayout
+                android:id="@+id/table_soorten"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stretchColumns="0,1,2,3" />
+        </ScrollView>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Totals row -->
+    <TextView
+        android:id="@+id/tv_totals"
+        android:layout_width="600dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/huidige_stand_totals"
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_ok_huidige_stand"
+        android:layout_width="300dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="@string/huidige_stand_ok"
+        android:textSize="18sp"
+        app:cornerRadius="12dp" />
+</LinearLayout>

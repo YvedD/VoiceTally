@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/annot_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
+    android:background="@color/vt5_black"
     android:fillViewport="true">
 
     <LinearLayout
         android:id="@+id/annot_content_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="30dp"
-        android:paddingBottom="40dp"
         android:orientation="vertical"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp">
+        android:padding="32dp">
 
+        <!-- HEADER AREA -->
         <LinearLayout
             android:id="@+id/header_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -27,826 +30,605 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:paddingBottom="8dp"
                 android:text="@string/annotatie_titel"
-                android:textSize="18sp"
+                android:textColor="@color/vt5_light_blue"
+                android:textSize="28sp"
                 android:textStyle="bold" />
 
-            <ImageButton
-                android:id="@+id/btn_density_standard"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/annotatie_density_standard"
-                android:src="@drawable/ic_density_standard"
-                android:tint="@color/vt5_on_surface" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-            <ImageButton
-                android:id="@+id/btn_density_compact"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="6dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/annotatie_density_compact"
-                android:src="@drawable/ic_density_compact"
-                android:tint="@color/vt5_on_surface" />
+                <ImageButton
+                    android:id="@+id/btn_density_standard"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/annotatie_density_standard"
+                    android:src="@drawable/ic_density_standard"
+                    app:tint="@color/vt5_on_surface" />
 
-            <ImageButton
-                android:id="@+id/btn_density_supercompact"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="6dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/annotatie_density_supercompact"
-                android:src="@drawable/ic_density_supercompact"
-                android:tint="@color/vt5_on_surface" />
+                <ImageButton
+                    android:id="@+id/btn_density_compact"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/annotatie_density_compact"
+                    android:src="@drawable/ic_density_compact"
+                    app:tint="@color/vt5_on_surface" />
+
+                <ImageButton
+                    android:id="@+id/btn_density_supercompact"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="16dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/annotatie_density_supercompact"
+                    android:src="@drawable/ic_density_supercompact"
+                    app:tint="@color/vt5_on_surface" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingBottom="8dp">
+            android:baselineAligned="false"
+            android:orientation="horizontal">
 
-            <!-- Column: leeftijd -->
+            <!-- LEFT PANEL: Biological Characteristics -->
             <LinearLayout
-                android:id="@+id/col_leeftijd_container"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="2"
                 android:orientation="vertical"
-                android:padding="4dp">
+                android:paddingEnd="32dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="4dp"
-                    android:text="@string/annotation_age"
-                    android:textAlignment="center"
-                    android:textSize="16sp"
-                    android:textStyle="normal" />
+                    android:layout_marginBottom="16dp"
+                    android:letterSpacing="0.1"
+                    android:text="BIOLOGISCHE KENMERKEN"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-                <LinearLayout
-                    android:id="@+id/col_leeftijd"
+                <GridLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:alignmentMode="alignMargins"
+                    android:columnCount="3">
 
-                    <!-- Pre-drawn placeholder toggle buttons (texts will be set from annotations.json) -->
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_1"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
+                    <!-- Age -->
+                    <LinearLayout
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/annotation_age"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/col_leeftijd"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_1"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_2"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_3"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_4"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_5"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_6"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_7"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_leeftijd_8"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Plumage -->
+                    <LinearLayout
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/annotation_plumage"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/col_kleed"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_1"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_2"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_3"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_4"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_5"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_6"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_7"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_kleed_8"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Height -->
+                    <LinearLayout
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/annotation_height"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/col_height"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_1"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_2"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_3"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_4"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_5"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_6"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_7"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_height_8"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Gender (Row 2) -->
+                    <LinearLayout
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/annotation_gender"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/col_geslacht"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_geslacht_1"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_geslacht_2"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_geslacht_3"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_geslacht_4"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Location (Row 2) -->
+                    <LinearLayout
+                        android:layout_columnWeight="1"
+                        android:orientation="vertical"
+                        android:padding="8dp">
+
+                        <TextView
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/annotation_location"
+                            android:textColor="@android:color/white"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:id="@+id/col_location"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_1"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_2"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_3"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_4"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_5"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_6"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_7"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+
+                            <androidx.appcompat.widget.AppCompatToggleButton
+                                android:id="@+id/btn_location_8"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="44dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </GridLayout>
+
+                <!-- SPECIAL NOTATIONS AREA -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:layout_marginBottom="16dp"
+                    android:letterSpacing="0.1"
+                    android:text="SPECIALE NOTERINGEN"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cb_markeren"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:text="@string/annotation_mark"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_2"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cb_markeren_lokaal"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:layout_marginStart="32dp"
+                        android:text="@string/annotation_mark_local"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_3"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cb_tally"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_4"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_5"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_6"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_7"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_leeftijd_8"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_margin="4dp"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
+                        android:layout_marginStart="32dp"
+                        android:text="@string/annotation_tally"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Column: geslacht -->
+            <!-- RIGHT PANEL: Counts, Compass & Confirm -->
             <LinearLayout
-                android:id="@+id/col_geslacht_container"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="1.2"
+                android:background="#111111"
                 android:orientation="vertical"
-                android:padding="4dp">
+                android:padding="24dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:padding="4dp"
-                    android:text="@string/annotation_gender"
-                    android:textAlignment="center"
-                    android:textSize="16sp"
-                    android:textStyle="normal" />
+                    android:layout_marginBottom="24dp"
+                    android:text="@string/annotation_manual_counts_title"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
-                    android:id="@+id/col_geslacht"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_geslacht_1"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/tv_label_aantal"
+                        android:layout_width="140dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:text="@string/annotation_count_main"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_geslacht_2"
-                        style="@style/Widget.VT5.Button.Outlined"
+                    <EditText
+                        android:id="@+id/et_aantal"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_geslacht_3"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_geslacht_4"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
+                        android:layout_height="64dp"
+                        android:background="@drawable/vt5_input_background"
+                        android:inputType="number"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
                 </LinearLayout>
-            </LinearLayout>
-
-            <!-- Column: kleed -->
-            <LinearLayout
-                android:id="@+id/col_kleed_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:padding="4dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="4dp"
-                    android:text="@string/annotation_plumage"
-                    android:textAlignment="center"
-                    android:textSize="16sp"
-                    android:textStyle="normal" />
 
                 <LinearLayout
-                    android:id="@+id/col_kleed"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_1"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:id="@+id/tv_label_aantalterug"
+                        android:layout_width="140dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:text="@string/annotation_count_return"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_2"
-                        style="@style/Widget.VT5.Button.Outlined"
+                    <EditText
+                        android:id="@+id/et_aantalterug"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_3"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_4"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_5"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_6"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_7"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_kleed_8"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:layout_height="64dp"
+                        android:background="@drawable/vt5_input_background"
+                        android:inputType="number"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
                 </LinearLayout>
-            </LinearLayout>
-
-            <!-- Column: location -->
-            <LinearLayout
-                android:id="@+id/col_location_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:padding="4dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="4dp"
-                    android:text="@string/annotation_location"
-                    android:textAlignment="center"
-                    android:textSize="16sp"
-                    android:textStyle="normal" />
 
                 <LinearLayout
-                    android:id="@+id/col_location"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:layout_marginBottom="32dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_1"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:layout_width="140dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:text="@string/annotation_count_local"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
 
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_2"
-                        style="@style/Widget.VT5.Button.Outlined"
+                    <EditText
+                        android:id="@+id/et_aantal_lokaal"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_3"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_4"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_5"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_6"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_7"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_location_8"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
+                        android:layout_height="64dp"
+                        android:background="@drawable/vt5_input_background"
+                        android:inputType="number"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
                 </LinearLayout>
-            </LinearLayout>
 
-            <!-- Column: height -->
-            <LinearLayout
-                android:id="@+id/col_height_container"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:padding="4dp">
-
-                <TextView
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_compass"
+                    style="@style/Widget.VT5.Button.Outlined"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="4dp"
-                    android:text="@string/annotation_height"
-                    android:textAlignment="center"
+                    android:layout_height="64dp"
+                    android:text="@string/compass_select"
                     android:textSize="16sp"
-                    android:textStyle="normal" />
+                    app:icon="@drawable/ic_compass" />
 
-                <LinearLayout
-                    android:id="@+id/col_height"
+                <TextView
+                    android:id="@+id/tv_selected_sighting_direction"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_1"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_2"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_3"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_4"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_5"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_6"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_7"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-
-                    <androidx.appcompat.widget.AppCompatToggleButton
-                        android:id="@+id/btn_height_8"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="6dp"
-                        android:minHeight="44dp"
-                        android:padding="6dp"
-                        android:textSize="14sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Checkboxes row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start"
-            android:orientation="horizontal"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
-
-            <CheckBox
-                android:id="@+id/cb_markeren"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="4dp"
-                android:text="@string/annotation_mark"
-                android:textSize="16sp" />
-
-            <CheckBox
-                android:id="@+id/cb_markeren_lokaal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:padding="4dp"
-                android:text="@string/annotation_mark_local"
-                android:textSize="16sp" />
-
-            <CheckBox
-                android:id="@+id/cb_tally"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:padding="4dp"
-                android:text="@string/annotation_tally"
-                android:textSize="16sp" />
-        </LinearLayout>
-
-        <!-- Sighting Direction (Compass) row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/annotation_sighting_direction"
-                android:textSize="16sp" />
-
-            <Button
-                android:id="@+id/btn_compass"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:layout_marginStart="12dp"
-                android:minWidth="140dp"
-                android:padding="8dp"
-                android:text="@string/compass_select"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/tv_selected_sighting_direction"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text=""
-                android:textColor="@color/design_default_color_primary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-        <!-- Manual count inputs section -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:layout_marginBottom="0dp"
-            android:orientation="vertical"
-            android:padding="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingBottom="8dp"
-                android:text="@string/annotation_manual_counts_title"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <!-- Aantal (hoofdrichting - seizoensafhankelijk label) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="4dp"
-                android:paddingBottom="8dp">
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:textColor="@color/vt5_light_blue"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tv_label_aantal"
-                    android:layout_width="160dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/annotation_count_main"
-                    android:textSize="18sp" />
-
-                <EditText
-                    android:id="@+id/et_aantal"
-                    android:layout_width="140dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:contentDescription="@string/annotation_count_main"
-                    android:hint="0"
-                    android:inputType="number"
-                    android:minHeight="48dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:singleLine="false"
-                    android:textSize="18sp" />
-            </LinearLayout>
-
-            <!-- Aantal terug (tegengestelde richting - seizoensafhankelijk label) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="4dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:id="@+id/tv_label_aantalterug"
-                    android:layout_width="160dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/annotation_count_return"
-                    android:textSize="18sp" />
-
-                <EditText
-                    android:id="@+id/et_aantalterug"
-                    android:layout_width="140dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:contentDescription="@string/annotation_count_return"
-                    android:hint="0"
-                    android:inputType="number"
-                    android:minHeight="48dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:singleLine="false"
-                    android:textSize="18sp" />
-            </LinearLayout>
-
-            <!-- Aantal Lokaal -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="4dp"
-                android:paddingBottom="8dp">
-
-                <TextView
-                    android:layout_width="160dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/annotation_count_local"
-                    android:textSize="18sp" />
-
-                <EditText
-                    android:id="@+id/et_aantal_lokaal"
-                    android:layout_width="140dp"
-                    android:layout_height="wrap_content"
-                    android:layout_margin="4dp"
-                    android:contentDescription="@string/annotation_count_local"
-                    android:hint="0"
-                    android:inputType="number"
-                    android:minHeight="48dp"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:singleLine="false"
-                    android:textSize="18sp" />
-            </LinearLayout>
-
-            <!-- Opmerking -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="start"
-                android:orientation="horizontal"
-                android:paddingTop="12dp">
-
-                <TextView
-                    android:layout_width="160dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="top"
-                    android:paddingTop="8dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="8dp"
                     android:text="@string/annotation_remarks"
+                    android:textColor="@android:color/white"
                     android:textSize="16sp" />
 
                 <EditText
                     android:id="@+id/et_opmerkingen"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:contentDescription="@string/annotation_remarks"
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp"
+                    android:background="@drawable/vt5_input_background"
+                    android:gravity="top"
                     android:hint="@string/annotation_remarks_hint"
                     android:inputType="textMultiLine"
-                    android:maxLines="4"
-                    android:minLines="2"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:textSize="16sp" />
+                    android:padding="16dp"
+                    android:textColor="@android:color/white"
+                    android:textSize="18sp" />
+
+                <Space
+                    android:layout_width="1dp"
+                    android:layout_height="40dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_ok"
+                    android:layout_width="match_parent"
+                    android:layout_height="80dp"
+                    android:text="@string/annotatie_ok"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/vt5_light_blue"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_cancel"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/annotatie_annuleren"
+                    android:textSize="18sp" />
+
             </LinearLayout>
         </LinearLayout>
-        <!-- Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="73dp"
-            android:gravity="end"
-            android:orientation="horizontal"
-            android:paddingTop="0dp">
 
-            <Button
-                android:id="@+id/btn_cancel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="120dp"
-                android:minHeight="55dp"
-                android:padding="8dp"
-                android:text="@string/annotatie_annuleren"
-                android:textSize="16sp" />
-
-            <Button
-                android:id="@+id/btn_ok"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:minWidth="120dp"
-                android:minHeight="55dp"
-                android:padding="8dp"
-                android:text="@string/annotatie_ok"
-                android:textSize="16sp" />
-        </LinearLayout>
     </LinearLayout>
 </ScrollView>

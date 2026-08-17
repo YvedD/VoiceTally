@@ -41,7 +41,9 @@ abstract class VoiceTallyDatabase : RoomDatabase() {
                         // Optimalisaties voor massa-data (155k waarnemingen + 4.3M weer)
                         try {
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_waarnemingen_soortid_tijdstip ON waarnemingen(soortid, tijdstip)")
+                            db.execSQL("CREATE INDEX IF NOT EXISTS idx_waarnemingen_tijdstip ON waarnemingen(tijdstip)")
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_telling_headers_begintijd ON telling_headers(begintijd)")
+                            db.execSQL("CREATE INDEX IF NOT EXISTS idx_telling_headers_telpostid ON telling_headers(telpostid)")
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_weather_archive_loc_time ON weather_archive(locationId, timeEpoch)")
                         } catch (_: Exception) {}
                     }

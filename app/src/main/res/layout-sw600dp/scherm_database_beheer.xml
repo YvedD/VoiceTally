@@ -109,7 +109,7 @@
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
+                android:layout_height="400dp"
                 android:layout_marginBottom="32dp"
                 app:cardBackgroundColor="@color/grafiek_achtergrondkleur"
                 app:cardCornerRadius="12dp"

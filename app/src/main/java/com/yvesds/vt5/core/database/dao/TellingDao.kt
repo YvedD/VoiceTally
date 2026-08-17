@@ -17,65 +17,6 @@ data class SpeciesWindDatasetRow(
     val telpostid: String = ""
 )
 
-data class SpeciesWindDebugRow(
-    val idLocal: String,
-    val tellingid: String,
-    val waarnemingOnlineId: String,
-    val headerOnlineId: String,
-    val begintijd: String,
-    val timezoneid: String,
-    val windrichting: String,
-    val windkracht: String,
-    val aantal: Int,
-    val aantalterug: Int
-)
-
-data class HeaderReturnRow(
-    val begintijd: String,
-    val timezoneid: String,
-    val aantalterug: Int
-)
-
-data class WaarnemingTotalsRow(
-    val totaal: Int?,
-    val totaalterug: Int?
-)
-
-data class WeekCountRow(
-    val week: Int,
-    val count: Long
-)
-
-data class SpeciesWindStatsRow(
-    val windrichting: String,
-    val week: Int,
-    val totalAantal: Long,
-    val totalTerug: Long,
-    val avgWindForce: Float
-)
-
-data class WaarnemingWithHeaderInfo(
-    val tellingid: String,
-    val aantal: String,
-    val aantalterug: String,
-    val begintijd: String,
-    val telpostid: String
-)
-
-data class RawTrainingRow(
-    val soortid: String,
-    val sessionStart: String,
-    val observationTime: String,
-    val windrichting: String,
-    val windkracht: String,
-    val temperatuur: String,
-    val bewolking: String,
-    val hpa: String,
-    val neerslag: String,
-    val telpostid: String
-)
-
-
 @Dao
 interface TellingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -174,6 +115,9 @@ interface TellingDao {
     @Update
     suspend fun updateAiLog(log: AiLog)
 
+    @Query("SELECT * FROM ai_logs ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestAiLog(): AiLog?
+
     @Query("SELECT * FROM ai_logs ORDER BY timestamp DESC")
     fun getAllAiLogsFlow(): Flow<List<AiLog>>
 
@@ -191,6 +135,42 @@ interface TellingDao {
 
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllUniqueSpeciesIds(): List<String>
+
+    /**
+     * Berekent het totaal aantal exemplaren (trek) per soort over de hele database.
+     */
+    @Query("""
+        SELECT soortid, SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER) + CAST(aantal_plus AS INTEGER) + CAST(aantalterug_plus AS INTEGER)) as count
+        FROM waarnemingen
+        GROUP BY soortid
+    """)
+    suspend fun getGlobalSpeciesMassa(): List<SpeciesCountRow>
+
+    /**
+     * Haalt de totalen op voor één specifieke sessie.
+     */
+    @Query("""
+        SELECT soortid, SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER)) as count
+        FROM waarnemingen
+        WHERE tellingid = :tellingId
+        GROUP BY soortid
+    """)
+    suspend fun getSessionCounts(tellingId: String): List<SpeciesCountRow>
+
+    /**
+     * Haalt de gemiddelde sessie-massa op voor een soort in een bepaald venster.
+     */
+    @Query("""
+        SELECT AVG(sessionTotal) FROM (
+            SELECT SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as sessionTotal
+            FROM waarnemingen w
+            INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+            WHERE w.soortid = :speciesId
+            AND (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
+            GROUP BY h.tellingid
+        )
+    """)
+    suspend fun getHistoricalAverageForWindow(speciesId: String, dayStart: Int, dayEnd: Int): Float?
 
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllSpeciesIds(): List<String>
@@ -288,7 +268,7 @@ interface TellingDao {
     @Query("""
         SELECT 
             (CAST(h.begintijd AS INTEGER) / 86400) * 86400 as dayEpoch,
-            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
         GROUP BY dayEpoch
@@ -298,27 +278,46 @@ interface TellingDao {
     @Query("""
         SELECT 
             w.soortid, 
-            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count,
             AVG(CAST(NULLIF(h.temperatuur, '') AS FLOAT)) as avgTemp,
             UPPER(h.windrichting) as mainWind,
-            AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgBft,
             AVG(CAST(NULLIF(h.hpa, '') AS FLOAT)) as avgPressure,
-            AVG(CAST(strftime('%H', datetime(CAST(w.tijdstip AS INTEGER), 'unixepoch')) AS INTEGER)) as avgHour
+            AVG(CAST(strftime('%H', datetime(CAST(MAX(w.tijdstip, h.begintijd) AS INTEGER), 'unixepoch', 'localtime')) AS INTEGER)) as avgHour,
+            MAX(CAST(w.markeren AS INTEGER)) as isRemarkable
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-        WHERE (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
+        WHERE ((CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
            OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
-           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd))
+           AND (:useCluster = 0 OR h.telpostid IN (:siteIds))
         GROUP BY w.soortid
         ORDER BY count DESC
-        LIMIT 60
+        LIMIT 100
     """)
-    suspend fun getSpeciesPhenologyProfile(dayStart: Int, dayEnd: Int): List<BsiSpeciesProfile>
+    suspend fun getSpeciesPhenologyProfile(dayStart: Int, dayEnd: Int, siteIds: List<String>, useCluster: Int): List<BsiSpeciesProfile>
+
+    /**
+     * Zoekt de top-dagen voor een specifieke set soort-IDs (een gilde).
+     * Houdt alleen rekening met migratie (geen lokaal).
+     */
+    @Query("""
+        SELECT 
+            (CAST(h.begintijd AS INTEGER) / 86400) * 86400 as dayEpoch,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as totalCount
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE w.soortid IN (:speciesIds)
+        GROUP BY dayEpoch
+        ORDER BY totalCount DESC
+        LIMIT :limit
+    """)
+    suspend fun getPeakDaysForSpecies(speciesIds: List<String>, limit: Int): List<PeakDayRow>
 }
 
 data class SpeciesCountRow(val soortid: String, val count: Int)
 data class TelpostYear(val telpostid: String, val year: String)
 data class DayCountRow(val dayEpoch: Long, val count: Long)
+data class PeakDayRow(val dayEpoch: Long, val totalCount: Long)
 data class BsiSpeciesProfile(
     val soortid: String,
     val count: Long,
@@ -326,5 +325,45 @@ data class BsiSpeciesProfile(
     val mainWind: String?,
     val avgBft: Float?,
     val avgPressure: Float?,
-    val avgHour: Float?
+    val avgHour: Float?,
+    val isRemarkable: Int
+)
+
+data class WaarnemingTotalsRow(
+    val totaal: Int?,
+    val totaalterug: Int?
+)
+
+data class WeekCountRow(
+    val week: Int,
+    val count: Long
+)
+
+data class SpeciesWindStatsRow(
+    val windrichting: String,
+    val week: Int,
+    val totalAantal: Long,
+    val totalTerug: Long,
+    val avgWindForce: Float
+)
+
+data class WaarnemingWithHeaderInfo(
+    val tellingid: String,
+    val aantal: String,
+    val aantalterug: String,
+    val begintijd: String,
+    val telpostid: String
+)
+
+data class RawTrainingRow(
+    val soortid: String,
+    val sessionStart: String,
+    val observationTime: String,
+    val windrichting: String,
+    val windkracht: String,
+    val temperatuur: String,
+    val bewolking: String,
+    val hpa: String,
+    val neerslag: String,
+    val telpostid: String
 )

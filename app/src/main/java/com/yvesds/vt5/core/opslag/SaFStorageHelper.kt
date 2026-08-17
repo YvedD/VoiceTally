@@ -167,8 +167,45 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Schrijf een bestand naar de serverdata-map.
+     * Lees een bestand uit de AI-models/models map.
      */
+    fun readModelFile(filename: String): String? {
+        val vt5 = getVt5DirIfExists() ?: return null
+        val ai = vt5.findFile("AI-models") ?: return null
+        val models = ai.findFile("models") ?: return null
+        val file = models.findFile(filename) ?: return null
+        return try {
+            context.contentResolver.openInputStream(file.uri)?.use { it.bufferedReader().readText() }
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Lees een bestand uit de AI-models/feedback map.
+     */
+    fun readFeedbackFile(filename: String): String? {
+        val vt5 = getVt5DirIfExists() ?: return null
+        val ai = vt5.findFile("AI-models") ?: return null
+        val feedback = ai.findFile("feedback") ?: return null
+        val file = feedback.findFile(filename) ?: return null
+        return try {
+            context.contentResolver.openInputStream(file.uri)?.use { it.bufferedReader().readText() }
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Schrijf een bestand naar de AI-models/feedback map.
+     */
+    fun writeFeedbackFile(filename: String, content: String): Boolean {
+        val vt5 = getVt5DirIfExists() ?: return false
+        val ai = vt5.findFile("AI-models") ?: return false
+        val dir = findOrCreateDirectory(ai, "feedback") ?: return false
+        val file = dir.findFile(filename) ?: dir.createFile("application/json", filename) ?: return false
+        return try {
+            context.contentResolver.openOutputStream(file.uri, "wt")?.use { it.write(content.toByteArray()) }
+            true
+        } catch (_: Exception) { false }
+    }
+
     fun writeServerDataFile(filename: String, content: String): Boolean {
         if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) return false
         val vt5Dir = getVt5DirIfExists() ?: return false

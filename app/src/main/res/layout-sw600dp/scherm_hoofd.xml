@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
+    android:background="@color/vt5_black"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:id="@+id/root"
+        android:layout_width="600dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="40dp">
+
+        <TextView
+            android:id="@+id/tvTitel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="32dp"
+            android:text="@string/titel_hoofd"
+            android:textAlignment="center"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <!-- Basis Acties -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnInstall"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/titel_install"
+            android:textSize="20sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVerder"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/btn_verder_metadata"
+            android:textSize="20sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnJoinAsClient"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginBottom="16dp"
+            android:text="@string/mc_btn_join_as_client"
+            android:textSize="20sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAfsluiten"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="@string/btn_afsluiten"
+            android:textSize="20sp" />
+
+        <!-- Alarm Sectie -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            android:alpha="0.3"
+            android:background="@color/vt5_on_surface" />
+
+        <TextView
+            android:id="@+id/tvAlarmStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="16dp"
+            android:textAlignment="center"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="18sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleAlarm"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:text="@string/hoofd_alarm_toggle"
+            android:textSize="18sp" />
+
+        <!-- Beheer & Instellingen Raster -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:columnCount="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBewerkTellingen"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/hoofd_bewerk_tellingen"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpkuisExports"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginStart="8dp"
+                android:text="@string/hoofd_opkuis_exports"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnInstellingen"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="8dp"
+                android:text="@string/hoofd_instellingen"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTelpostBeheer"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="12dp"
+                android:text="@string/hoofd_telpost_beheer"
+                android:textSize="16sp" />
+        </GridLayout>
+
+        <!-- AI Sectie Dashboard -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"
+            android:alpha="0.3"
+            android:background="@color/vt5_on_surface" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:letterSpacing="0.1"
+            android:text="BIOLOGISCHE INTELLIGENTIE"
+            android:textAlignment="center"
+            android:textColor="@color/vt5_light_blue"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="2">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiUpdate"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginEnd="8dp"
+                android:text="@string/hoofd_ai_update"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiForecast3Days"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginStart="8dp"
+                android:text="@string/hoofd_ai_forecast_3days"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiTrain"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnSpan="2"
+                android:layout_columnWeight="1"
+                android:layout_marginTop="12dp"
+                android:text="AI Hersenen Trainen"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:strokeColor="@color/vt5_light_blue" />
+        </GridLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDatabaseBeheer"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="40dp"
+            android:text="@string/hoofd_database_beheer"
+            android:textSize="20sp" />
+
+    </LinearLayout>
+</ScrollView>

@@ -62,7 +62,6 @@ class MetadataScherm : AppCompatActivity() {
 
     private lateinit var binding: SchermMetadataBinding
     private var snapshot: DataSnapshot = DataSnapshot()
-    private var hourlyForecast: List<com.yvesds.vt5.utils.weather.WeatherManager.HourlyForecast>? = null
 
     // Scope voor achtergrondtaken
     private val uiScope = CoroutineScope(Job() + Dispatchers.Main)
@@ -132,7 +131,6 @@ class MetadataScherm : AppCompatActivity() {
         binding.btnVerder.setOnClickListener { onVerderClicked() }
         binding.btnAnnuleer.setOnClickListener { finish() }
         binding.btnWeerAuto.setOnClickListener { ensureLocationPermissionThenFetch() }
-        binding.btnAiHourlyForecast.setOnClickListener { onAiHourlyForecastClicked() }
         binding.btnAiCurrentForecast.setOnClickListener { onAiCurrentForecastClicked() }
 
         // Start het laden in stappen:
@@ -323,8 +321,7 @@ class MetadataScherm : AppCompatActivity() {
                 // Get location first
                 val loc = com.yvesds.vt5.utils.weather.WeatherManager.getLastKnownLocation(this@MetadataScherm)
                 if (loc != null) {
-                    val (current, hourly) = weatherFetcher.fetchCurrentAndHourly(loc.latitude, loc.longitude)
-                    hourlyForecast = hourly
+                    val (current, _) = weatherFetcher.fetchCurrentAndHourly(loc.latitude, loc.longitude)
                     
                     if (current != null) {
                         weatherFetcher.applyWeatherToForm(current, snapshot)
@@ -347,67 +344,7 @@ class MetadataScherm : AppCompatActivity() {
         }
     }
 
-    private fun onAiHourlyForecastClicked() {
-        val hourly = hourlyForecast
-        if (hourly == null) {
-            Toast.makeText(this, "Haal eerst weergegevens op (Auto)", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        uiScope.launch {
-            val progress = ProgressDialogHelper.show(this@MetadataScherm, getString(R.string.meta_ai_hourly_loading))
-            try {
-                val results = mutableListOf<Pair<String, com.yvesds.vt5.ai.AiInformatieDialoog.AiSuggesties>>()
-                
-                // We nemen de komende 8 uur vanaf nu
-                val now = java.time.LocalDateTime.now()
-                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
-                
-                // Zoek de eerstvolgende uur-entry in de forecast
-                val startIdx = hourly.indexOfFirst { entry ->
-                    try {
-                        val dt = java.time.LocalDateTime.parse(entry.time, formatter)
-                        dt.isAfter(now.minusHours(1))
-                    } catch (_: Exception) { false }
-                }.coerceAtLeast(0)
-
-                for (i in 0 until 8) {
-                    val entry = hourly.getOrNull(startIdx + i) ?: break
-                    val pseudoCurrent = com.yvesds.vt5.utils.weather.Current(
-                        temperature2m = entry.temp,
-                        windSpeed10m = entry.windSpeed,
-                        windDirection10m = entry.windDeg
-                    )
-                    
-                    // Parse the hour from the forecast entry (format: 2024-07-22T10:00)
-                    val hour = try {
-                        entry.time.substringAfter('T').substringBefore(':').toInt()
-                    } catch (_: Exception) { 10 }
-
-                    val suggestions = com.yvesds.vt5.ai.AiInferenceEngine.getSuggesties(this@MetadataScherm, pseudoCurrent, hourOverride = hour)
-                    
-                    val timeLabel = entry.time.substringAfter('T')
-                    results.add(timeLabel to suggestions)
-                }
-
-                progress.dismiss()
-                com.yvesds.vt5.ai.AiInformatieDialoog.showHourly(this@MetadataScherm, results)
-
-            } catch (e: Exception) {
-                progress.dismiss()
-                Log.e(TAG, "Hourly AI failed: ${e.message}")
-                Toast.makeText(this@MetadataScherm, "Fout bij berekenen uurlijkse prognose", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     private fun onAiCurrentForecastClicked() {
-        val telpostId = formManager.gekozenTelpostId
-        if (telpostId.isNullOrBlank()) {
-            Toast.makeText(this, "Selecteer eerst een telpost", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         uiScope.launch {
             try {
                 val loc = com.yvesds.vt5.utils.weather.WeatherManager.getLastKnownLocation(this@MetadataScherm)

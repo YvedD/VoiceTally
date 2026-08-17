@@ -122,6 +122,56 @@ object WeatherManager {
         }
     }
 
+    /**
+     * Haalt de huidige condities op voor een lijst van referentiepunten.
+     */
+    suspend fun fetchCorridorStatus(points: List<com.yvesds.vt5.ai.AiConfig.RefPoint>): List<Pair<String, Current>> = withContext(Dispatchers.IO) {
+        if (points.isEmpty()) return@withContext emptyList()
+        val lats = points.joinToString(",") { it.lat.toString() }
+        val lons = points.joinToString(",") { it.lon.toString() }
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lons&current=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl&wind_speed_unit=ms&timezone=auto"
+        
+        try {
+            val req = Request.Builder().url(url).build()
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use emptyList()
+                val body = resp.body?.string() ?: return@use emptyList()
+                val jsonArray = if (body.trim().startsWith("[")) json.decodeFromString<List<WeatherResponse>>(body)
+                                else listOf(json.decodeFromString<WeatherResponse>(body))
+                jsonArray.mapIndexedNotNull { index, res -> res.current?.let { points[index].name to it } }
+            }
+        } catch (e: Exception) { emptyList() }
+    }
+
+    /**
+     * Haalt de 72-uurs verwachting op voor de hele corridor (voor de 3-daagse prognose).
+     */
+    suspend fun fetchCorridorForecast(points: List<com.yvesds.vt5.ai.AiConfig.RefPoint>): Map<String, List<HourlyForecast>> = withContext(Dispatchers.IO) {
+        if (points.isEmpty()) return@withContext emptyMap()
+        val lats = points.joinToString(",") { it.lat.toString() }
+        val lons = points.joinToString(",") { it.lon.toString() }
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lons&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl&wind_speed_unit=ms&timezone=auto&forecast_days=3"
+        
+        try {
+            val req = Request.Builder().url(url).build()
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use emptyMap()
+                val body = resp.body?.string() ?: return@use emptyMap()
+                val jsonArray = if (body.trim().startsWith("[")) json.decodeFromString<List<WeatherResponse>>(body)
+                                else listOf(json.decodeFromString<WeatherResponse>(body))
+                
+                jsonArray.mapIndexed { index, res ->
+                    val h = res.hourly ?: return@mapIndexed points[index].name to emptyList<HourlyForecast>()
+                    val times = h.time ?: return@mapIndexed points[index].name to emptyList<HourlyForecast>()
+                    val list = times.indices.map { i ->
+                        HourlyForecast(times[i], h.temperature2m?.getOrNull(i), h.windSpeed10m?.getOrNull(i), h.windDirection10m?.getOrNull(i))
+                    }
+                    points[index].name to list
+                }.toMap()
+            }
+        } catch (e: Exception) { emptyMap() }
+    }
+
     /** Converteer m/s naar Beaufort 0..12 (klassieke tabel). */
     fun msToBeaufort(ms: Double?): Int {
         val v = ms ?: return 0

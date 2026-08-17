@@ -1,42 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:background="@color/vt5_black"
     android:orientation="vertical"
-    android:paddingLeft="16dp"
-    android:paddingRight="16dp">
+    android:padding="32dp">
 
     <EditText
         android:id="@+id/etZoek"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_width="600dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/vt5_input_background"
         android:hint="Zoek soort..."
         android:imeOptions="actionSearch"
+        android:paddingHorizontal="24dp"
         android:singleLine="true"
-        android:textColor="#FAF8F8"
-        android:textSize="24sp" />
+        android:textColor="@android:color/white"
+        android:textSize="28sp" />
 
+    <!-- divider top voor suggestiezone -->
     <View
         android:id="@+id/dividerTop"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:background="#303030"
         android:visibility="gone" />
 
+    <!-- suggestiezone (verschijnt alleen bij tekst) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSuggesties"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
         android:nestedScrollingEnabled="false"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp" />
 
+    <!-- divider bottom voor suggestiezone -->
     <View
         android:id="@+id/dividerBottom"
         android:layout_width="match_parent"
@@ -46,38 +50,47 @@
 
     <TextView
         android:id="@+id/tvTeller"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp"
         android:text="@string/soort_selection_info"
-        android:textSize="16sp" />
+        android:textColor="@color/vt5_on_surface"
+        android:textAlignment="center"
+        android:textSize="18sp"
+        android:paddingVertical="16dp" />
 
+    <!-- hoofdgrid -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSoorten"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:padding="8dp" />
 
+    <!-- knoppen onderaan -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:gravity="end"
+        android:gravity="center"
         android:orientation="horizontal"
-        android:paddingTop="10dp">
+        android:paddingTop="24dp">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAnnuleer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/soort_cancel" />
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="200dp"
+            android:layout_height="64dp"
+            android:text="@string/soort_cancel"
+            android:textSize="18sp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOk"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="@string/soort_ok" />
+            android:layout_width="200dp"
+            android:layout_height="64dp"
+            android:layout_marginStart="24dp"
+            android:text="@string/soort_ok"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/vt5_light_blue"
+            app:cornerRadius="12dp" />
     </LinearLayout>
 </LinearLayout>

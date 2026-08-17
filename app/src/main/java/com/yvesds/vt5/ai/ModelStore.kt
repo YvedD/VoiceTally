@@ -3,36 +3,31 @@ package com.yvesds.vt5.ai
 import android.content.Context
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
-import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.protobuf.ProtoBuf
+import kotlinx.serialization.decodeFromByteArray
+import kotlinx.serialization.encodeToByteArray
 
 /**
- * ModelStore - manages SAF storage for AI models under VT5/AI-models
+ * ModelStore - Beheert SAF opslag voor AI modellen.
+ * Ondersteunt Dual-Storage (JSON + Binair) met automatische synchronisatie.
  */
 class ModelStore(private val context: Context) {
     private val TAG = "ModelStore"
     private val saf = SaFStorageHelper(context)
+    private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     fun ensureModelDir(): Boolean {
         try {
             val rootUri = saf.getRootUri() ?: return false
             val rootDoc = DocumentFile.fromTreeUri(context, rootUri) ?: return false
-            
-            // 1. Zorg dat de VT5 map zelf bestaat
             val vt5 = saf.findOrCreateDirectory(rootDoc, "VT5") ?: return false
-            
-            // 2. Zorg dat de AI-models map bestaat
             val aiDir = saf.findOrCreateDirectory(vt5, "AI-models") ?: return false
-
-            // 3. Zorg dat alle submappen bestaan
             val subfolders = listOf("training_exports", "models", "feedback")
             for (name in subfolders) {
-                if (saf.findOrCreateDirectory(aiDir, name) == null) {
-                    Log.e(TAG, "Kon submap $name niet aanmaken in AI-models")
-                    return false
-                }
+                if (saf.findOrCreateDirectory(aiDir, name) == null) return false
             }
             return true
         } catch (e: Exception) {
@@ -54,12 +49,15 @@ class ModelStore(private val context: Context) {
     }
 
     /**
-     * Slaat de 'ervaringen' van de AI op naar een JSON bestand in SAF.
+     * Slaat de Neurale Motor op in beide formaten.
      */
     fun saveNeuralEngine(engine: LiteNeuralEngine): Boolean {
         return try {
-            val json = Json.encodeToString(engine)
-            saveFileToModelDir("personal_lite_model.json", json.toByteArray())
+            val jsonStr = json.encodeToString(engine)
+            saveFileToModelDir("personal_lite_model.json", jsonStr.toByteArray())
+            val binaryData = ProtoBuf.encodeToByteArray(engine)
+            saveFileToModelDir("personal_lite_model.bin", binaryData)
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Kon model niet opslaan: ${e.message}")
             false
@@ -67,41 +65,88 @@ class ModelStore(private val context: Context) {
     }
 
     /**
-     * Laadt het opgeslagen model in, of maakt een nieuwe als het bestand niet bestaat.
+     * Laadt de Neurale Motor met Sync-check.
      */
     fun loadNeuralEngine(numSpecies: Int): LiteNeuralEngine {
-        return try {
-            val dir = getModelDir() ?: return LiteNeuralEngine(outputSize = numSpecies)
-            val file = dir.findFile("personal_lite_model.json") ?: return LiteNeuralEngine(outputSize = numSpecies)
-            
-            val jsonStr = context.contentResolver.openInputStream(file.uri)?.use { 
-                it.bufferedReader().readText() 
-            } ?: ""
-            
-            if (jsonStr.isBlank()) LiteNeuralEngine(outputSize = numSpecies)
-            else Json.decodeFromString<LiteNeuralEngine>(jsonStr)
+        val dir = getModelDir() ?: return LiteNeuralEngine(outputSize = numSpecies)
+        val jsonFile = dir.findFile("personal_lite_model.json")
+        val binFile = dir.findFile("personal_lite_model.bin")
+
+        try {
+            if (jsonFile != null && (binFile == null || jsonFile.lastModified() > binFile.lastModified())) {
+                val jsonStr = context.contentResolver.openInputStream(jsonFile.uri)?.use { it.bufferedReader().readText() }
+                if (!jsonStr.isNullOrBlank()) {
+                    val engine = json.decodeFromString<LiteNeuralEngine>(jsonStr)
+                    saveNeuralEngine(engine)
+                    return engine
+                }
+            }
+            if (binFile != null) {
+                val bytes = context.contentResolver.openInputStream(binFile.uri)?.use { it.readBytes() }
+                if (bytes != null) return ProtoBuf.decodeFromByteArray<LiteNeuralEngine>(bytes)
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "Kon model niet inladen, start vers: ${e.message}")
-            LiteNeuralEngine(outputSize = numSpecies)
+            Log.w(TAG, "Load Neural failed: ${e.message}")
+        }
+        return LiteNeuralEngine(outputSize = numSpecies)
+    }
+
+    /**
+     * Slaat de Expert Knowledge Base op in beide formaten.
+     */
+    fun saveExpertKnowledge(kb: ExpertKnowledgeBase): Boolean {
+        return try {
+            saveFileToModelDir("expert_knowledge.json", json.encodeToString(kb).toByteArray())
+            saveFileToModelDir("expert_knowledge.bin", ProtoBuf.encodeToByteArray(kb))
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Kon ExpertKB niet opslaan: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Laadt de Expert Knowledge Base met Sync-check.
+     */
+    fun loadExpertKnowledge(): ExpertKnowledgeBase? {
+        val dir = getModelDir() ?: return null
+        val jsonFile = dir.findFile("expert_knowledge.json")
+        val binFile = dir.findFile("expert_knowledge.bin")
+
+        return try {
+            if (jsonFile != null && (binFile == null || jsonFile.lastModified() > jsonFile.lastModified())) {
+                val jsonStr = context.contentResolver.openInputStream(jsonFile.uri)?.use { it.bufferedReader().readText() }
+                if (!jsonStr.isNullOrBlank()) {
+                    val kb = json.decodeFromString<ExpertKnowledgeBase>(jsonStr)
+                    saveExpertKnowledge(kb)
+                    return kb
+                }
+            }
+            if (binFile != null) {
+                val bytes = context.contentResolver.openInputStream(binFile.uri)?.use { it.readBytes() }
+                if (bytes != null) return ProtoBuf.decodeFromByteArray<ExpertKnowledgeBase>(bytes)
+            }
+            null
+        } catch (e: Exception) {
+            Log.w(TAG, "Load ExpertKB failed: ${e.message}")
+            null
         }
     }
 
     fun saveFileToModelDir(name: String, bytes: ByteArray): Boolean {
         val ai = getModelDir() ?: return false
         val existing = ai.findFile(name)
-        try {
-            val mimeType = when {
-                name.endsWith(".tflite") -> "application/octet-stream"
-                name.endsWith(".json") -> "application/json"
-                else -> "text/plain"
-            }
+        return try {
+            val mimeType = if (name.endsWith(".json")) "application/json" else "application/octet-stream"
             val file = existing ?: ai.createFile(mimeType, name) ?: return false
-            context.contentResolver.openOutputStream(file.uri, "wt")?.use { it.write(bytes) }
-            return true
+            context.contentResolver.openOutputStream(file.uri, "wt")?.use { out ->
+                out.write(bytes)
+                out.flush()
+            }
+            true
         } catch (e: Exception) {
             Log.w(TAG, "Failed to save file $name: ${e.message}")
-            return false
+            false
         }
     }
 }
-

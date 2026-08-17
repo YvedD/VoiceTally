@@ -2,19 +2,24 @@ package com.yvesds.vt5.ai
 
 import android.content.Context
 import android.util.Log
+import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.AiLog
+import com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot
 import com.yvesds.vt5.core.database.ui.SpeciesNameResolver
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.utils.weather.Current
 import com.yvesds.vt5.utils.weather.WeatherManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.math.*
 
 /**
- * AiInferenceEngine - Plan C: Lite-Neural + BSI Gilde Strategie.
- * Nu met strikte uur-controle en biologische ritmes.
+ * AiInferenceEngine - Expert Deep Diagnostic & Live Corridor Edition.
+ * Nu met Zelf-ontdekkende Krenten op basis van de ExpertKnowledgeBase.
  */
 object AiInferenceEngine {
     private const val TAG = "AiInference"
@@ -22,127 +27,259 @@ object AiInferenceEngine {
     suspend fun getSuggesties(
         context: Context, 
         cur: Current, 
-        hourOverride: Int? = null
+        hourOverride: Int? = null,
+        providedRegBoost: Double? = null
     ): AiInformatieDialoog.AiSuggesties = withContext(Dispatchers.IO) {
+        Log.i(TAG, "=========================================================")
+        Log.i(TAG, "START SCIENTIFIC AI ANALYSIS")
+        
         val db = VoiceTallyDatabase.getDatabase(context)
         val dao = db.tellingDao()
+        val saf = SaFStorageHelper(context)
+        
+        // Laad alle AI Kennis (JSON of Binair met Auto-Sync)
+        val snapshot = try { ServerDataCache.getOrLoad(context) } catch (_: Exception) { null }
+        val modelStore = ModelStore(context)
+        val expertKB = loadExpertKnowledge(modelStore)
 
         val cal = Calendar.getInstance()
+        val currentHour = hourOverride ?: cal.get(Calendar.HOUR_OF_DAY)
+        cal.set(Calendar.HOUR_OF_DAY, currentHour); cal.set(Calendar.MINUTE, 0)
         val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
-        val hourOfDay = hourOverride ?: cal.get(Calendar.HOUR_OF_DAY)
+        val month = cal.get(Calendar.MONTH) + 1
         
-        val dayStart = dayOfYear - 7
-        val dayEnd = dayOfYear + 7
+        val loc = WeatherManager.getLastKnownLocation(context)
+        val lat = loc?.latitude ?: 51.0
+        val lon = loc?.longitude ?: 3.0
+        val cluster = getLocalSiteCluster(saf, lat, lon)
+        val phase = SolarTimeEngine.getSolarPhase(lat, lon, cal)
 
-        // 1. Haal historische profielen op (inclusief avgHour)
-        val profiles = dao.getSpeciesPhenologyProfile(dayStart, dayEnd)
-        if (profiles.isEmpty()) return@withContext getEmptySuggesties(cur)
+        // 1. LIVE REGIONALE CORRIDOR CHECK (Tenzij boost al gegeven is)
+        val regBoost = providedRegBoost ?: getLiveCorridorBoost(month)
 
-        // 2. Laad de Neurale Motor
-        val modelStore = ModelStore(context)
-        val allSpecies = dao.getAllSpeciesIds().sorted()
-        val engine = modelStore.loadNeuralEngine(allSpecies.size.coerceAtLeast(1))
-
-        // 3. Bereken factoren
-        val nowEpoch = System.currentTimeMillis() / 1000L
-        val yesterdayCount = dao.getTotalCountInEpochRange(nowEpoch - 86400, nowEpoch) ?: 0L
-        val gisterenFactor = ln(yesterdayCount.toDouble() + 1.0)
+        // 2. Data ophalen
+        val profiles = dao.getSpeciesPhenologyProfile(dayOfYear - 10, dayOfYear + 10, cluster ?: emptyList(), if (cluster == null) 0 else 1)
         
-        val currentWind = WeatherManager.degTo16WindLabel(cur.windDirection10m)
+        val currentWindDeg = cur.windDirection10m ?: 0.0
+        val currentWindLabel = WeatherManager.degTo16WindLabel(currentWindDeg)
         val currentTemp = (cur.temperature2m ?: 15.0).toFloat()
-        val currentPress = (cur.pressureMsl ?: 1013.0).toFloat()
 
-        // 4. Bouw Neurale Input Features
-        val features = FloatArray(21)
-        features[0] = sin(2.0 * PI * dayOfYear / 365.25).toFloat()
-        features[1] = cos(2.0 * PI * dayOfYear / 365.25).toFloat()
-        features[2] = sin(2.0 * PI * hourOfDay / 24.0).toFloat()
-        features[3] = cos(2.0 * PI * hourOfDay / 24.0).toFloat()
-        features[4] = currentTemp
-        val windRad = Math.toRadians(cur.windDirection10m ?: 0.0)
-        features[5] = sin(windRad).toFloat()
-        features[6] = cos(windRad).toFloat()
-        features[7] = WeatherManager.msToBeaufort(cur.windSpeed10m).toFloat()
-        features[9] = currentPress
-        features[11] = gisterenFactor.toFloat()
-        
-        val neuralProbs = engine.predict(features)
-
-        // 5. Combineer alles per soort
-        val scoredSpecies = profiles.map { profile ->
-            var score = log10(profile.count.toDouble().coerceAtLeast(1.0))
+        // 3. Score berekening
+        val scoredList = profiles.mapNotNull { p ->
+            val speciesData = snapshot?.speciesById?.get(p.soortid)
+            val latin = speciesData?.latin
+            val name = speciesData?.soortnaam ?: SpeciesNameResolver.getName(context, p.soortid)
             
-            // A. Biologisch Ritme (DE TIJD CHECK)
-            val avgHour = profile.avgHour ?: 10f
-            val hourDiff = abs(hourOfDay - avgHour)
+            if (name.lowercase().contains("spec.") || 
+                name.lowercase().contains("onbekend") || 
+                name.contains("/")) return@mapNotNull null
             
-            // Strikte penalty voor nachtelijke uren bij dagtrekkers
-            val isNight = hourOfDay < 5 || hourOfDay >= 22
-            val guild = SpeciesGuildMapper.getGuild(profile.soortid)
+            val guild = SpeciesGuildMapper.getGuildByLatin(latin)
+            if (guild == SpeciesGuildMapper.Guild.OTHER) return@mapNotNull null
+            val strategy = guild.strategy
             
-            if (isNight && guild != SpeciesGuildMapper.Guild.PELAGICS && guild != SpeciesGuildMapper.Guild.OTHER) {
-                 score *= 0.001 
-            } else {
-                 // Gaussian time match (breedte van 3 uur)
-                 score *= exp(-(hourDiff * hourDiff) / 18.0)
+            // F1: Massa (Log)
+            val fMassaRaw = log10(p.count.toDouble().coerceAtLeast(1.0))
+            val fMassa = 1.0 + (fMassaRaw * 0.4)
+            
+            // F2: Circulaire Wind
+            val histWindDeg = parseWindLabelToDegrees(p.mainWind) ?: currentWindDeg
+            val diffRad = Math.toRadians(currentWindDeg - histWindDeg)
+            val fWind = 1.2 + (cos(diffRad) * 0.8)
+            
+            // F3: Special / Remarkable / Discovery
+            var fSpecial = 1.0
+            if (p.isRemarkable == 1) fSpecial = 4.0
+            else if (expertKB?.discoveredKrenten?.contains(p.soortid) == true) fSpecial = 2.5 // AI DISCOVERY BOOST
+            
+            // F4: Tijd & Strategie
+            var fTime = 1.0
+            when (strategy) {
+                SpeciesGuildMapper.FlightStrategy.THERMAL -> {
+                    if (currentHour < 9 || currentHour > 18 || phase == SolarTimeEngine.SolarPhase.NIGHT) fTime = 0.0001
+                    else fTime = 0.5 + ((currentTemp - 10.0).coerceIn(0.1, 10.0) / 10.0)
+                }
+                SpeciesGuildMapper.FlightStrategy.ACTIVE -> {
+                    if (phase == SolarTimeEngine.SolarPhase.NIGHT && guild != SpeciesGuildMapper.Guild.PELAGICS) fTime = 0.01 
+                    else fTime = exp(-(abs(currentHour - (p.avgHour ?: 10f)) * abs(currentHour - (p.avgHour ?: 10f))) / 40.0)
+                }
+                SpeciesGuildMapper.FlightStrategy.VISMIG -> {
+                    if (phase == SolarTimeEngine.SolarPhase.NIGHT) fTime = 0.0001
+                    else fTime = exp(-(abs(currentHour - (p.avgHour ?: 08f)) * abs(currentHour - (p.avgHour ?: 08f))) / 25.0)
+                }
             }
 
-            // B. Weer & Wind
-            if (profile.mainWind == currentWind) score *= 1.4
-            val tempDiff = abs((profile.avgTemp ?: 15f) - currentTemp)
-            score *= exp(-(tempDiff * tempDiff) / 50.0)
+            val total = fMassa * fWind * fSpecial * fTime * (1.0 + regBoost)
+            
+            Log.d(TAG, "RAW: %-20s | S:%5.2f | M:%d | W:%.2f | T:%.2f | R:%.1f | Krent:%s".format(
+                name, total, p.count, fWind, fTime, 1.0 + regBoost, if (fSpecial > 1.0) "JA" else "NEE"))
 
-            // C. Neurale 'Second Opinion'
-            val speciesIdx = allSpecies.indexOf(profile.soortid)
-            if (speciesIdx != -1) {
-                score *= (1.0 + neuralProbs[speciesIdx] * 12.0)
-            }
-
-            // D. De 'Krenten' boost
-            if (profile.count < 1000) score *= 1.8
-
-            ScoredSpecies(profile.soortid, score)
+            ScoredSpecies(p.soortid, name, total, guild)
         }
 
-        // 6. Gilde-selectie
-        val guildWinners = scoredSpecies.groupBy { SpeciesGuildMapper.getGuild(it.soortid) }
-            .mapValues { (_, list) -> list.maxByOrNull { it.score } }
-
-        val maxGlobalScore = scoredSpecies.maxOfOrNull { it.score } ?: 1.0
+        // 4. Gilde selectie & Krenten-Highlights
         val finalResults = mutableListOf<AiInformatieDialoog.GuildSuggestie>()
+        val rareHighlights = mutableListOf<AiInformatieDialoog.GuildSuggestie>()
+        val idealScore = 5.0 
 
-        SpeciesGuildMapper.Guild.entries.forEach { guild ->
-            val winner = guildWinners[guild]
-            if (winner != null) {
-                val prob = (min(0.98, winner.score / maxGlobalScore) * 100).toInt()
-                if (prob >= 15) {
-                    val name = SpeciesNameResolver.getName(context, winner.soortid)
-                    finalResults.add(AiInformatieDialoog.GuildSuggestie(guild.displayName, name, prob))
+        SpeciesGuildMapper.Guild.entries.filter { it != SpeciesGuildMapper.Guild.OTHER }.forEach { guild ->
+            val winners = scoredList.filter { it.guild == guild }.sortedByDescending { it.score }.take(3)
+            winners.forEach { w ->
+                val probRaw = (min(0.98, w.score / idealScore) * 100).toInt()
+                
+                // FEEDBACK CORRECTIE via JSON
+                val avgRating = AiFeedbackManager.getCorrectionFactor(context, w.soortid, currentWindLabel)
+                val prob = (probRaw * (0.5f + avgRating * 0.5f)).toInt() 
+
+                if (prob >= 10) {
+                    val latin = snapshot?.speciesById?.get(w.soortid)?.latin
+                    val suggestion = AiInformatieDialoog.GuildSuggestie(
+                        guildName = guild.displayName, 
+                        soortnaam = w.soortnaam, 
+                        kans = prob, 
+                        soortid = w.soortid,
+                        latinName = latin
+                    )
+                    finalResults.add(suggestion)
+                    
+                    // EXTRA: KRENTEN HIGHLIGHTS ("Uitkijken voor")
+                    if (guild.isSpecial || expertKB?.discoveredKrenten?.contains(w.soortid) == true) {
+                        if (prob >= 12) { // Lagere drempel voor kwaliteits-waarschuwingen
+                            Log.i(TAG, "HIGHLIGHT FOUND: ${w.soortnaam} (${prob}%)")
+                            rareHighlights.add(suggestion)
+                        }
+                    }
                 }
             }
         }
 
-        val result = AiInformatieDialoog.AiSuggesties(
+        Log.i(TAG, "FINISH: ${finalResults.size} suggesties, ${rareHighlights.size} highlights.")
+        Log.i(TAG, "=========================================================")
+
+        logForecast(context, db, cur, currentHour, phase, finalResults)
+
+        return@withContext AiInformatieDialoog.AiSuggesties(
             guildResults = finalResults.sortedByDescending { it.kans },
-            weerBeschrijving = "$currentWind-wind / ${WeatherManager.msToBeaufort(cur.windSpeed10m)}bft"
+            rareHighlights = rareHighlights.sortedByDescending { it.kans }.take(3),
+            weerBeschrijving = "$currentWindLabel-wind / ${WeatherManager.msToBeaufort(cur.windSpeed10m)}bft"
         )
-
-        logForecast(context, db, cur, hourOfDay)
-        return@withContext result
     }
 
-    private fun getEmptySuggesties(cur: Current): AiInformatieDialoog.AiSuggesties {
-        return AiInformatieDialoog.AiSuggesties(emptyList(), "Geen data")
+    private suspend fun logForecast(
+        context: Context, 
+        db: VoiceTallyDatabase, 
+        cur: Current, 
+        hour: Int, 
+        phase: SolarTimeEngine.SolarPhase,
+        results: List<AiInformatieDialoog.GuildSuggestie>
+    ) {
+        try {
+            val conditionJson = org.json.JSONObject().apply {
+                put("temp", cur.temperature2m)
+                put("wind", WeatherManager.degTo16WindLabel(cur.windDirection10m))
+                put("h", hour)
+                put("phase", phase.name)
+            }.toString()
+
+            val suggestionsJson = org.json.JSONObject().apply {
+                val list = org.json.JSONArray()
+                results.forEach {
+                    val item = org.json.JSONObject()
+                    item.put("id", it.soortid)
+                    item.put("name", it.soortnaam)
+                    item.put("prob", it.kans)
+                    item.put("guild", it.guildName)
+                    list.put(item)
+                }
+                put("items", list)
+            }.toString()
+
+            db.tellingDao().insertAiLog(com.yvesds.vt5.core.database.entities.AiLog(
+                tellingid = "auto",
+                type = "scientific_v2",
+                requestContext = conditionJson,
+                suggestions = suggestionsJson
+            ))
+        } catch (_: Exception) {}
     }
 
-    private suspend fun logForecast(context: Context, db: VoiceTallyDatabase, cur: Current, hour: Int) {
-        val conditionJson = org.json.JSONObject().apply {
-            put("temp", cur.temperature2m)
-            put("wind", cur.windSpeed10m)
-            put("h", hour)
-        }.toString()
-        db.tellingDao().insertAiLog(AiLog(tellingid = "auto", type = "bsi_neural_guild", requestContext = conditionJson))
+    private fun loadExpertKnowledge(modelStore: ModelStore): ExpertKnowledgeBase? {
+        return modelStore.loadExpertKnowledge()
     }
 
-    private data class ScoredSpecies(val soortid: String, val score: Double)
+    private suspend fun getLiveCorridorBoost(month: Int): Double {
+        val isAutumn = month in 7..11
+        val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
+        
+        // We vragen de laatste 24 uur aan voor een venster-analyse
+        val corridorData = WeatherManager.fetchCorridorForecast(points)
+        if (corridorData.isEmpty()) return 0.0
+
+        val now = java.time.LocalDateTime.now()
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+
+        var totalMaxScore = 0.0
+        corridorData.forEach { (name, hourly) ->
+            // Zoek de meest gunstige condities in de afgelopen 12 uur voor dit punt
+            val recentHours = hourly.filter { 
+                try {
+                    val dt = java.time.LocalDateTime.parse(it.time, formatter)
+                    dt.isAfter(now.minusHours(12)) && dt.isBefore(now.plusHours(1))
+                } catch (_: Exception) { false }
+            }
+            
+            val bestSnapshotScore = recentHours.maxOfOrNull { entry ->
+                val cur = Current(temperature2m = entry.temp, windSpeed10m = entry.windSpeed, windDirection10m = entry.windDeg)
+                calculateSinglePointScore(cur, isAutumn)
+            } ?: 0.0
+            totalMaxScore += bestSnapshotScore
+        }
+        
+        return totalMaxScore / points.size
+    }
+
+    fun calculateSinglePointScore(cur: Current, isAutumn: Boolean): Double {
+        val w = WeatherManager.degTo16WindLabel(cur.windDirection10m)
+        val p = cur.pressureMsl ?: 1013.0
+        return if (isAutumn) {
+            if (w in listOf("N","NNO","NO","ONO","O") && p > 1014.0) 1.0 else 0.0
+        } else {
+            if (w in listOf("Z","ZZW","ZW","WZW") && p > 1010.0) 1.0 else 0.0
+        }
+    }
+
+    /**
+     * Berekent de corridor-score op basis van een lijst met weer-snapshots.
+     */
+    fun calculateCorridorScore(statuses: List<Pair<String, Current>>, isAutumn: Boolean): Double {
+        if (statuses.isEmpty()) return 0.0
+        var matchCount = 0
+        statuses.forEach { (_, cur) ->
+            if (calculateSinglePointScore(cur, isAutumn) > 0.5) matchCount++
+        }
+        return (matchCount.toDouble() / statuses.size)
+    }
+
+    private fun getLocalSiteCluster(saf: SaFStorageHelper, lat: Double, lon: Double): List<String>? {
+        return try {
+            val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: return null
+            val root = VT5App.json.decodeFromString<TelpostLocatiesRoot>(jsonStr)
+            val ids = root.locaties.filter { calculateDistance(lat, lon, it.latitude, it.longitude) <= 35.0 }.map { it.telpostid }
+            ids.ifEmpty { null }
+        } catch (_: Exception) { null }
+    }
+
+    private fun parseWindLabelToDegrees(l: String?): Double? {
+        val labels = arrayOf("N","NNO","NO","ONO","O","OZO","ZO","ZZO","Z","ZZW","ZW","WZW","W","WNW","NW","NNW")
+        val i = labels.indexOf(l?.uppercase()); return if (i >= 0) i * 22.5 else null
+    }
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1); val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat/2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
+        return r * 2 * atan2(sqrt(a), sqrt(1 - a))
+    }
+
+    private data class ScoredSpecies(val soortid: String, val soortnaam: String, val score: Double, val guild: SpeciesGuildMapper.Guild)
 }

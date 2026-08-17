@@ -81,15 +81,28 @@ class AiForecastScherm : AppCompatActivity() {
                     val weatherSummary = "Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
                     dayView.findViewById<TextView>(R.id.tvWeatherSummary).text = weatherSummary
                     
-                    // 4. Get AI Predictions for this weather snapshot
-                    // Create a pseudo-Current object for the inference engine
+                    // 4. Deep AI Analysis (Inclusief Corridor Forecast)
+                    // We bepalen eerst de corridor boost voor dit specifieke tijdstip in de toekomst
+                    val calNow = Calendar.getInstance()
+                    val isAutumn = (calNow.get(Calendar.MONTH) + 1) in 7..11
+                    val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
+                    
+                    // Haal de corridor status op voor dit specifieke uur uit de cache/fetch
+                    val corridorForecast = WeatherManager.fetchCorridorForecast(points)
+                    val regBoost = calculateCorridorBoostAtTime(snapshot.time, corridorForecast, isAutumn)
+
                     val pseudoCurrent = Current(
                         temperature2m = snapshot.temp,
                         windSpeed10m = snapshot.windSpeed,
                         windDirection10m = snapshot.windDeg
                     )
                     
-                    val suggestions = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent)
+                    val suggestions = AiInferenceEngine.getSuggesties(
+                        context = this@AiForecastScherm, 
+                        cur = pseudoCurrent, 
+                        hourOverride = snapshot.time.substringAfter('T').substringBefore(':').toInt(),
+                        providedRegBoost = regBoost
+                    )
                     
                     // Log forecast for evaluation (type "forecast")
                     logForecast(pseudoCurrent, suggestions, snapshot.time)
@@ -140,6 +153,30 @@ class AiForecastScherm : AppCompatActivity() {
                 ))
             } catch (_: Exception) {}
         }
+    }
+
+    private fun calculateCorridorBoostAtTime(targetTime: String, forecast: Map<String, List<WeatherManager.HourlyForecast>>, isAutumn: Boolean): Double {
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
+        val targetDt = java.time.LocalDateTime.parse(targetTime, formatter)
+        
+        var totalMaxScore = 0.0
+        forecast.forEach { (_, hourly) ->
+            // Zoek de meest gunstige condities in de 6 uur VOORAFGAAND aan dit teltijdstip
+            // Dit simuleert de vogels die onderweg zijn.
+            val windowHours = hourly.filter { 
+                try {
+                    val dt = java.time.LocalDateTime.parse(it.time, formatter)
+                    dt.isAfter(targetDt.minusHours(6)) && dt.isBefore(targetDt.plusHours(1))
+                } catch (_: Exception) { false }
+            }
+            
+            val bestInWindow = windowHours.maxOfOrNull { entry ->
+                val cur = Current(temperature2m = entry.temp, windSpeed10m = entry.windSpeed, windDirection10m = entry.windDeg)
+                AiInferenceEngine.calculateSinglePointScore(cur, isAutumn)
+            } ?: 0.0
+            totalMaxScore += bestInWindow
+        }
+        return totalMaxScore / forecast.size
     }
 
     private fun buildSpeciesListText(suggestions: AiInformatieDialoog.AiSuggesties): String {

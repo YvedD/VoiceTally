@@ -1184,6 +1184,13 @@
       "sortering": "13820"
     },
     {
+      "soortid": "1018",
+      "soortnaam": "Shikra",
+      "soortkey": "Shikra",
+      "latin": "Accipiter badius",
+      "sortering": "28450"
+    },
+    {
       "soortid": "445",
       "soortnaam": "Geelpootmeeuw",
       "soortkey": "Geelpmeeu",
@@ -1280,6 +1287,13 @@
       "soortkey": "Rouwkw",
       "latin": "Motacilla alba yarrellii",
       "sortering": "100140"
+    },
+    {
+      "soortid": "997",
+      "soortnaam": "roofvogel spec.",
+      "soortkey": "roofvogel spec.",
+      "latin": "Raptor",
+      "sortering": "29752"
     },
     {
       "soortid": "49",
@@ -1476,6 +1490,13 @@
       "soortkey": "Noordse Waterlijster",
       "latin": "Parkesia noveboracensis",
       "sortering": "106290"
+    },
+    {
+      "soortid": "1459",
+      "soortnaam": "Accipiter sp.",
+      "soortkey": "Accipiter sp.",
+      "latin": "Accipiter sp.",
+      "sortering": "28862"
     },
     {
       "soortid": "949",
@@ -1917,13 +1938,6 @@
       "soortkey": "Tennesseezanger",
       "latin": "Leiothlypis peregrina",
       "sortering": "106380"
-    },
-    {
-      "soortid": "410",
-      "soortnaam": "barmsijs spec.",
-      "soortkey": "barmSpec",
-      "latin": "Acanthis spec.",
-      "sortering": "102392"
     },
     {
       "soortid": "219",
@@ -3130,6 +3144,13 @@
       "sortering": "23320"
     },
     {
+      "soortid": "5333",
+      "soortnaam": "Corsicaanse Citroensijs",
+      "soortkey": "Corsicaanse Citroensijs",
+      "latin": "Carduelis corsicana",
+      "sortering": "102500"
+    },
+    {
       "soortid": "1084",
       "soortnaam": "rotgans spec.",
       "soortkey": "rotgans spec.",
@@ -3849,13 +3870,6 @@
       "soortkey": "Noordse Boszanger",
       "latin": "Phylloscopus borealis",
       "sortering": "77610"
-    },
-    {
-      "soortid": "997",
-      "soortnaam": "roofvogel spec.",
-      "soortkey": "roofvogel spec.",
-      "latin": "Raptor",
-      "sortering": "29752"
     },
     {
       "soortid": "248",
@@ -6005,6 +6019,13 @@
       "soortkey": "Goudlijster",
       "latin": "Zoothera aurea",
       "sortering": "89720"
+    },
+    {
+      "soortid": "410",
+      "soortnaam": "Barmsijs",
+      "soortkey": "Barmsijs",
+      "latin": "Acanthis spec.",
+      "sortering": "102392"
     },
     {
       "soortid": "455",

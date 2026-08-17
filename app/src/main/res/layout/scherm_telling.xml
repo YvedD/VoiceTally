@@ -195,6 +195,17 @@
             app:iconPadding="0dp"
             app:iconTint="@null" />
 
+        <ImageButton
+            android:id="@+id/btnBirdNet"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_margin="5dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="BirdNet-GO"
+            android:src="@drawable/ic_birdnet_go"
+            android:visibility="gone"
+            app:tint="@android:color/white" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAfronden"
             style="@style/Widget.VT5.Button.Outlined.IconOnly"

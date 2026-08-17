@@ -36,7 +36,15 @@ class AiLogActiviteit : AppCompatActivity() {
         findViewById<View>(R.id.btnTerug).setOnClickListener { finish() }
 
         val rv = findViewById<RecyclerView>(R.id.rvAiLogs)
-        rv.layoutManager = LinearLayoutManager(this)
+        
+        // Gebruik 2 kolommen op tablets
+        val isTablet = resources.configuration.smallestScreenWidthDp >= 600
+        rv.layoutManager = if (isTablet) {
+            androidx.recyclerview.widget.GridLayoutManager(this, 2)
+        } else {
+            LinearLayoutManager(this)
+        }
+        
         adapter = AiLogAdapter { log ->
             showFeedbackDialog(log)
         }
@@ -54,8 +62,8 @@ class AiLogActiviteit : AppCompatActivity() {
     }
 
     private fun showFeedbackDialog(log: AiLog) {
-        AiFeedbackDialoog.show(this, log.tellingid, logId = log.id) {
-            // Updated in DB via the dialog
+        AiFeedbackDialoog.show(this, log) {
+            // Evaluatie voltooid
         }
     }
 

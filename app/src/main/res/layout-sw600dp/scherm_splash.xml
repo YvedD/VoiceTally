@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 
-    VT5 Splash Screen Layout
-    Toont het vt5.png logo groot en gecentreerd.
-    Inclusief progressie indicator voor data pre-loading.
+<!--
+    VT5 Splash Screen Layout (Tablet)
+    Geoptimaliseerd voor grotere schermen.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/vt5_black">
 
-    <!-- Container voor de Logo-transitie -->
+    <!-- Container voor de Logo-transitie (Tablet) -->
     <FrameLayout
-        android:layout_width="400dp"
-        android:layout_height="400dp"
+        android:layout_width="550dp"
+        android:layout_height="550dp"
         android:layout_gravity="center">
 
         <ImageView
@@ -24,7 +22,7 @@
             android:contentDescription="@string/app_name"
             android:src="@drawable/vt5" />
 
-        <!-- AI Layer: BSI-powered oog dat de plaats inneemt -->
+        <!-- AI Layer: Groter BSI-powered oog voor tablets -->
         <ImageView
             android:id="@+id/ivAiLogo"
             android:layout_width="match_parent"
@@ -35,10 +33,10 @@
     </FrameLayout>
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="400dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginTop="60dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="80dp"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="24dp">
@@ -48,7 +46,7 @@
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="16dp"
             android:indeterminate="true"
             android:indeterminateTint="@color/vt5_light_blue" />
 
@@ -59,7 +57,7 @@
             android:text="Voicetally 5 app version 1.0.3-f"
             android:textAlignment="center"
             android:textColor="#5292DC"
-            android:textSize="12sp" />
+            android:textSize="16sp" />
     </LinearLayout>
 
 </FrameLayout>

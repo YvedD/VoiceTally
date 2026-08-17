@@ -4,285 +4,280 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingLeft="8dp"
-    android:paddingRight="8dp"
-    android:paddingBottom="48dp"
-    android:paddingTop="38dp">
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
+    android:background="@color/vt5_black"
+    android:orientation="vertical">
 
-    <!-- Titel -->
+    <!-- BirdNet-GO & Ticker Area (Full Width Top) -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        app:cardBackgroundColor="#1A1A11"
+        app:cardCornerRadius="8dp"
+        app:strokeColor="#FFFF00"
+        app:strokeWidth="2dp">
+
+        <LinearLayout
+            android:id="@+id/birdnet_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvBirdNetPendingTicker"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Wachten op BirdNet-GO..."
+                    android:textColor="@color/vt5_orange"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:ellipsize="marquee"
+                    android:singleLine="true"
+                    android:marqueeRepeatLimit="marquee_forever" />
+
+                <ImageButton
+                    android:id="@+id/btnToggleAlarm"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_lock_idle_alarm"
+                    app:tint="@android:color/white" />
+
+                <ImageButton
+                    android:id="@+id/btnMasterClientConnection"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_mc_wifi"
+                    app:tint="#808080" />
+
+                <ImageButton
+                    android:id="@+id/btnShowMasterQr"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_qr_code"
+                    android:visibility="gone"
+                    app:tint="#808080" />
+
+                <ImageButton
+                    android:id="@+id/btnOpenSettings"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_preferences"
+                    app:tint="@android:color/white" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvMasterClientStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="11sp"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/birdnet_detection_frame"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/vt5_outline" />
+
+    <!-- Main Content Area: Split into Left (Speech) and Right (Actions/Tiles) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:layout_marginTop="0dp"
-        android:layout_marginRight="35dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingBottom="1dp">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
 
-        <TextView
+        <!-- LEFT PANEL: Vertical Speech Bars -->
+        <LinearLayout
+            android:layout_width="250dp"
+            android:layout_height="match_parent"
+            android:background="#0A0A0A"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:gravity="center"
+                android:text="PARTIALS"
+                android:textColor="#888888"
+                android:textSize="10sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSpeechPartials"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="8dp"
+                app:strokeColor="@color/vt5_light_blue"
+                app:strokeWidth="2dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewSpeechPartials"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#111111" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="4dp"
+                android:gravity="center"
+                android:text="FINALS"
+                android:textColor="#888888"
+                android:textSize="10sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSpeechFinals"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1.5"
+                app:cardCornerRadius="8dp"
+                app:strokeColor="@color/vt5_green"
+                app:strokeWidth="2dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewSpeechFinals"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#111111" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/vt5_outline" />
+
+        <!-- RIGHT PANEL: Action Buttons & Species Tiles -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="start|center_vertical"
-            android:paddingLeft="10dp"
-            android:text="@string/telling_speech_results"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <ImageButton
-            android:id="@+id/btnToggleAlarm"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/hoofd_alarm_enabled"
-            android:src="@android:drawable/ic_lock_idle_alarm"
-            app:tint="@android:color/white" />
+            <!-- Action Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/btnMasterClientConnection"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/mc_enable_master_mode"
-            android:src="@drawable/ic_mc_wifi"
-            app:tint="#808080" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveClose"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="64dp"
+                    android:text="Status"
+                    app:icon="@drawable/ic_action_sum" />
 
-        <ImageButton
-            android:id="@+id/btnShowMasterQr"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/mc_show_qr_codes"
-            android:src="@drawable/ic_qr_code"
-            android:visibility="gone"
-            app:tint="#808080" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddSoorten"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="12dp"
+                    android:text="Voeg Soorten"
+                    app:icon="@drawable/ic_action_add" />
 
-        <ImageButton
-            android:id="@+id/btnBirdNet"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/telling_birdnet_open"
-            android:padding="10dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_birdnet_favicon" />
+                <ImageButton
+                    android:id="@+id/btnBirdNet"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_birdnet_go"
+                    android:visibility="gone"
+                    app:tint="@android:color/white" />
 
-        <ImageButton
-            android:id="@+id/btnOpenSettings"
-            android:layout_width="58dp"
-            android:layout_height="58dp"
-            android:layout_marginStart="15dp"
-            android:layout_marginEnd="15dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/instellingen_titel"
-            android:src="@android:drawable/ic_menu_preferences"
-            app:tint="@android:color/white" />
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <!-- Totals Display -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#222222"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="8dp">
+
+                    <TextView
+                        android:id="@+id/tvDailyMainTotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ZW 0"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="2dp"
+                        android:layout_height="24dp"
+                        android:layout_marginHorizontal="12dp"
+                        android:background="#444444" />
+
+                    <TextView
+                        android:id="@+id/tvDailyReturnTotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="NO 0"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAfronden"
+                    android:layout_width="wrap_content"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="12dp"
+                    android:text="Afronden"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/vt5_light_blue"
+                    app:icon="@drawable/ic_action_upload" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewSpecies"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+        </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvMasterClientStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:layout_marginBottom="6dp"
-        android:alpha="0.9"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:textColor="@color/vt5_on_surface"
-        android:textSize="15sp"
-        android:visibility="gone" />
-
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardBirdNetPendingTicker"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:layout_marginBottom="6dp"
-        app:cardCornerRadius="8dp"
-        app:cardUseCompatPadding="true"
-        app:strokeColor="@color/vt5_light_blue"
-        app:strokeWidth="2dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#111111"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="10dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="10dp"
-                android:text="@string/telling_birdnet_pending_title"
-                android:textColor="@color/vt5_light_blue"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvBirdNetPendingTicker"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="marquee"
-                android:fadingEdge="horizontal"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:maxLines="1"
-                android:scrollHorizontally="true"
-                android:text="@string/telling_birdnet_pending_not_configured"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="14sp" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Bovenste kaart: PARTIALS / niet‑finals -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardSpeechPartials"
-        android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_marginTop="1dp"
-        android:layout_marginBottom="1dp"
-        app:cardCornerRadius="8dp"
-        app:cardUseCompatPadding="true"
-        app:strokeColor="@color/vt5_light_blue"
-        app:strokeWidth="2dp">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerViewSpeechPartials"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#111111"
-            android:padding="6dp" />
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Onderste kaart: FINALS -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardSpeechFinals"
-        android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_marginTop="1dp"
-        android:layout_marginBottom="1dp"
-        app:cardCornerRadius="8dp"
-        app:cardUseCompatPadding="true"
-        app:strokeColor="@color/vt5_green"
-        app:strokeWidth="2dp">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerViewSpeechFinals"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#111111"
-            android:padding="6dp" />
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Actieknoppen -->
-    <LinearLayout
-        android:id="@+id/knoppenBalk1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="4dp">
-
-        <LinearLayout
-            android:id="@+id/dailyTotalsContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="12dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvDailyMainTotal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="ZW 0"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <View
-                android:id="@+id/viewDailyTotalsDivider"
-                android:layout_width="1dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:alpha="0.35"
-                android:background="@color/vt5_on_surface" />
-
-            <TextView
-                android:id="@+id/tvDailyReturnTotal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="NO 0"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSaveClose"
-            style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_margin="5dp"
-            android:contentDescription="@string/telling_totals_icon_description"
-            android:minWidth="64dp"
-            android:minHeight="64dp"
-            android:text=""
-            app:icon="@drawable/ic_action_sum"
-            app:iconPadding="0dp"
-            app:iconTint="@null" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddSoorten"
-            style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_margin="5dp"
-            android:contentDescription="@string/telling_add_icon_description"
-            android:minWidth="64dp"
-            android:minHeight="64dp"
-            android:text=""
-            app:icon="@drawable/ic_action_add"
-            app:iconPadding="0dp"
-            app:iconTint="@null" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAfronden"
-            style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_margin="5dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="@string/telling_finish_icon_description"
-            android:minWidth="64dp"
-            android:minHeight="64dp"
-            android:text=""
-            app:icon="@drawable/ic_action_upload"
-            app:iconPadding="0dp"
-            app:iconTint="@null" />
-    </LinearLayout>
-
-    <!-- Grid met soort-tiles -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewSpecies"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
 </LinearLayout>

@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
+    android:background="@color/vt5_black"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="24dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTerug"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="64dp"
+            android:text="←"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/tvTitel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_weight="1"
+            android:text="@string/beheer_titel"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteSelected"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="64dp"
+            android:layout_marginStart="16dp"
+            android:enabled="false"
+            android:text="@string/beheer_verwijderen"
+            android:textSize="16sp"
+            app:strokeColor="@color/vt5_red" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:alpha="0.3"
+        android:background="@color/vt5_on_surface" />
+
+    <!-- Two-pane style for Tablet -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <!-- Left Pane: Session List (Fixed width or weight) -->
+        <LinearLayout
+            android:id="@+id/layoutList"
+            android:layout_width="350dp"
+            android:layout_height="match_parent"
+            android:background="#111111"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvTellingen"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/vt5_outline" />
+
+        <!-- Right Pane: Session Detail -->
+        <ScrollView
+            android:id="@+id/layoutDetail"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:padding="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    app:cardBackgroundColor="@color/vt5_dark_gray"
+                    app:cardCornerRadius="16dp"
+                    app:strokeColor="@color/vt5_light_blue"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="24dp">
+
+                        <TextView
+                            android:id="@+id/tvDetailFilename"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/vt5_on_surface"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvDetailInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:textColor="@color/vt5_light_gray"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/tvDetailTelpost"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:textColor="@color/vt5_light_gray"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:columnCount="2">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnMetadataBewerken"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/beheer_metadata_bewerken" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRecordToevoegen"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/beheer_record_toevoegen" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpslaan"
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/beheer_opslaan"
+                        app:backgroundTint="@color/vt5_light_blue" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTellingVerwijderen"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="12dp"
+                        android:text="Telling verwijderen"
+                        android:textColor="@color/vt5_red"
+                        app:strokeColor="@color/vt5_red" />
+                </GridLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Waarnemingen in deze sessie"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvRecords"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- Empty State / Loading in right pane if needed -->
+        <TextView
+            android:id="@+id/tvEmpty"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Selecteer een sessie uit de lijst"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="18sp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</LinearLayout>

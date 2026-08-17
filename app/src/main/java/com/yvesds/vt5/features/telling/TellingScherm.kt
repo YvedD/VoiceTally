@@ -1852,7 +1852,13 @@ class TellingScherm : AppCompatActivity() {
         lifecycleScope.launch {
             // Show AI Feedback dialog first if AI is enabled
             if (com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@TellingScherm)) {
-                com.yvesds.vt5.ai.AiFeedbackDialoog.show(this@TellingScherm, tellingId) {
+                val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(this@TellingScherm)
+                val latestLog = db.tellingDao().getLatestAiLog()
+                if (latestLog != null) {
+                    com.yvesds.vt5.ai.AiFeedbackDialoog.show(this@TellingScherm, latestLog) {
+                        showActualVervolgtellingDialog(eindtijdEpoch)
+                    }
+                } else {
                     showActualVervolgtellingDialog(eindtijdEpoch)
                 }
             } else {

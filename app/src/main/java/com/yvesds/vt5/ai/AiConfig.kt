@@ -1,33 +1,43 @@
 package com.yvesds.vt5.ai
 
 /**
- * AiConfig - static configuration for AI module (reference points, rare-species weights)
+ * AiConfig - Centrale configuratie voor de AI-motor.
+ * Bevat de 21 meteorologische referentiepunten voor Europese migratie.
  */
 object AiConfig {
-    // Reference coordinates (lat, lon) for south / north reference regions
-    val SPRING_SOUTH_REFS = listOf(
-        Pair(49.33, -0.46), // Ouistreham
-        Pair(49.34, -0.85), // Pointe du Hoc (approx)
-        Pair(49.9, 2.3) // Amiens area (approx)
-    )
 
-    val AUTUMN_NORTH_REFS = listOf(
-        Pair(52.0705, 4.3007), // Den Haag
-        Pair(51.8126, 5.8372), // Nijmegen
-        Pair(53.0793, 8.8017)  // Bremen
-    )
+    data class RefPoint(val name: String, val lat: Double, val lon: Double)
 
-    // Default rare species weights (example mapping soortid -> weight)
-    val RARE_SPECIES_WEIGHTS: Map<String, Int> = mapOf(
-        // fill with known rare soortids as needed, e.g. "1234" to 250
-    )
+    // 21 Strategische locaties voor najaar- en voorjaarstrek
+    val REFERENCE_POINTS = listOf(
+        // NOORD (Najaar bronnen)
+        RefPoint("Falsterbo (SE)", 55.38, 12.83),
+        RefPoint("Skagen (DK)", 57.72, 10.58),
+        RefPoint("Blåvand (DK)", 55.55, 8.08),
+        RefPoint("Helgoland (DE)", 54.18, 7.88),
+        RefPoint("Sylt (DE)", 54.91, 8.30),
+        RefPoint("Borkum (DE)", 53.58, 6.66),
+        RefPoint("Texel (NL)", 53.05, 4.80),
+        RefPoint("Lauwersmeer (NL)", 53.38, 6.19),
+        RefPoint("IJmuiden (NL)", 52.46, 4.56),
+        RefPoint("Gdansk (PL)", 54.35, 18.64),
 
-    // Default weight to apply when a species is explicitly marked rare (if used)
-    const val DEFAULT_RARE_WEIGHT: Int = 250
+        // ZUID (Voorjaar bronnen)
+        RefPoint("Cap Gris-Nez (FR)", 50.87, 1.58),
+        RefPoint("Baie de Somme (FR)", 50.21, 1.62),
+        RefPoint("Ouistreham (FR)", 49.28, -0.25),
+        RefPoint("Île d'Oléron (FR)", 45.91, -1.30),
+        RefPoint("Biarritz (FR)", 43.48, -1.56),
+        RefPoint("Tarifa (ES)", 36.01, -5.60),
+        RefPoint("Gibraltar (UK)", 36.14, -5.35),
+        RefPoint("Sagres (PT)", 37.01, -8.94),
+        RefPoint("Camargue (FR)", 43.53, 4.65),
+        RefPoint("Mallorca (ES)", 39.69, 3.01),
+        RefPoint("Messina (IT)", 38.19, 15.55)
+    )
 
     fun getSampleWeightForSpecies(soortid: String?): Int {
         if (soortid == null) return 1
-        return RARE_SPECIES_WEIGHTS[soortid] ?: 1
+        return 1
     }
 }
-
