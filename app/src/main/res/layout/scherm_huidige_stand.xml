@@ -3,20 +3,22 @@
     android:id="@+id/root_huidige_stand"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:orientation="vertical"
     android:paddingLeft="12dp"
-    android:paddingRight="12dp">
+    android:paddingTop="30dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="40dp">
 
     <TextView
         android:id="@+id/tv_title_huidige_stand"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingBottom="8dp"
         android:text="@string/huidige_stand_title"
         android:textSize="18sp"
-        android:textStyle="bold"
-        android:paddingBottom="8dp"/>
+        android:textStyle="bold" />
 
     <ScrollView
         android:id="@+id/scroll_huidige_stand"
@@ -36,10 +38,10 @@
         android:id="@+id/tv_totals"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/huidige_stand_totals"
-        android:textStyle="bold"
         android:paddingTop="8dp"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="8dp"
+        android:text="@string/huidige_stand_totals"
+        android:textStyle="bold" />
 
     <Button
         android:id="@+id/btn_ok_huidige_stand"

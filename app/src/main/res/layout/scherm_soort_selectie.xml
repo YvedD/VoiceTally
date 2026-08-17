@@ -3,11 +3,13 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:orientation="vertical"
     android:paddingLeft="12dp"
-    android:paddingRight="12dp">
+    android:paddingTop="30dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="40dp">
 
     <!-- zoekveld -->
     <EditText
@@ -33,10 +35,10 @@
         android:id="@+id/rvSuggesties"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:nestedScrollingEnabled="false"
-        android:visibility="gone"
         android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp" />
+        android:layout_marginBottom="4dp"
+        android:nestedScrollingEnabled="false"
+        android:visibility="gone" />
 
     <!-- divider bottom voor suggestiezone -->
     <View
@@ -51,9 +53,9 @@
         android:id="@+id/tvTeller"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/soort_selection_info"
         android:paddingTop="8dp"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="8dp"
+        android:text="@string/soort_selection_info" />
 
     <!-- hoofdgrid (alle site-soorten of alle soorten) -->
     <androidx.recyclerview.widget.RecyclerView

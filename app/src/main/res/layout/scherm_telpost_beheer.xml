@@ -3,8 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
+    android:orientation="vertical"
     android:paddingTop="30dp">
 
     <!-- Header -->
@@ -87,9 +89,9 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="16dp"
+        android:layout_weight="1">
 
         <org.osmdroid.views.MapView
             android:id="@+id/mapView"
@@ -102,10 +104,10 @@
             android:layout_height="wrap_content"
             android:layout_gravity="top|end"
             android:layout_margin="16dp"
-            app:srcCompat="@android:drawable/ic_menu_mapmode"
+            android:contentDescription="@string/telpost_beheer_layers"
             app:backgroundTint="@color/vt5_light_blue"
-            app:tint="@color/vt5_white"
-            android:contentDescription="@string/telpost_beheer_layers" />
+            app:srcCompat="@android:drawable/ic_menu_mapmode"
+            app:tint="@color/vt5_white" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabMyLocation"
@@ -113,10 +115,10 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
-            app:srcCompat="@android:drawable/ic_menu_mylocation"
+            android:contentDescription="@string/telpost_beheer_btn_my_location"
             app:backgroundTint="@color/vt5_light_blue"
-            app:tint="@color/vt5_white"
-            android:contentDescription="@string/telpost_beheer_btn_my_location" />
+            app:srcCompat="@android:drawable/ic_menu_mylocation"
+            app:tint="@color/vt5_white" />
     </FrameLayout>
 
     <LinearLayout
@@ -131,12 +133,12 @@
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginEnd="8dp"
+            android:layout_weight="1"
             android:text="@string/telpost_beheer_btn_reset"
             android:textColor="@color/vt5_red"
-            app:strokeColor="@color/vt5_red"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            app:strokeColor="@color/vt5_red" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSave"

@@ -4,6 +4,8 @@
     android:id="@+id/rootScroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:fillViewport="true">
 
@@ -12,10 +14,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingTop="30dp"
-        android:paddingBottom="40dp"
         android:paddingLeft="20dp"
-        android:paddingRight="20dp">
+        android:paddingTop="30dp"
+        android:paddingRight="20dp"
+        android:paddingBottom="40dp">
 
         <!-- Titel -->
 
@@ -135,34 +137,34 @@
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/btn_kies_documents"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="12dp"
+            android:text="@string/btn_kies_documents" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCheckFolders"
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/btn_check_folders"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:text="@string/btn_check_folders" />
 
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/vt5_on_surface"
+            android:layout_marginTop="8dp"
             android:text="@string/status_saf_niet_ingesteld"
-            android:layout_marginTop="8dp" />
+            android:textColor="@color/vt5_on_surface" />
 
         <!-- Trektellen sectie -->
         <TextView
             android:id="@+id/tvSectTrektellen"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:text="@string/sect_trektellen"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="18sp"
-            android:layout_marginTop="16dp" />
+            android:textSize="18sp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilLogin"

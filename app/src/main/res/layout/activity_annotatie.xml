@@ -3,17 +3,19 @@
     android:id="@+id/annot_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:fillViewport="true">
 
     <LinearLayout
         android:id="@+id/annot_content_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="30dp"
-        android:paddingBottom="40dp"
         android:orientation="vertical"
         android:paddingLeft="12dp"
-        android:paddingRight="12dp">
+        android:paddingTop="30dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="40dp">
 
         <LinearLayout
             android:id="@+id/header_row"

@@ -4,34 +4,36 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingTop="30dp"
+    android:paddingBottom="40dp">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical">
+        android:padding="16dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTerug"
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minWidth="48dp"
             android:text="←"
-            android:textSize="18sp"
-            android:minWidth="48dp" />
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/tvTitel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:layout_marginStart="12dp"
+            android:layout_weight="1"
             android:text="@string/beheer_titel"
             android:textColor="@color/vt5_on_surface"
             android:textSize="18sp"
@@ -43,9 +45,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:enabled="false"
             android:text="@string/beheer_verwijderen"
             android:textSize="12sp"
-            android:enabled="false"
             app:strokeColor="@color/vt5_red" />
     </LinearLayout>
 
@@ -53,8 +55,8 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/vt5_on_surface"
-        android:alpha="0.3" />
+        android:alpha="0.3"
+        android:background="@color/vt5_on_surface" />
 
     <!-- Content area - switches between list and detail views -->
     <FrameLayout
@@ -98,8 +100,8 @@
                 android:id="@+id/rvTellingen"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="8dp"
-                android:clipToPadding="false" />
+                android:clipToPadding="false"
+                android:padding="8dp" />
         </LinearLayout>
 
         <!-- Detail View -->
@@ -161,11 +163,11 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
                     android:text="Acties"
                     android:textColor="@color/vt5_on_surface"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnMetadataBewerken"
@@ -208,11 +210,11 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
                     android:text="Records"
                     android:textColor="@color/vt5_on_surface"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
+                    android:textStyle="bold" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvRecords"

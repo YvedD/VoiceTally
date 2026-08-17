@@ -3,10 +3,12 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingTop="30dp"
+    android:paddingBottom="40dp">
 
     <!-- Header met terugknop -->
     <LinearLayout
@@ -731,14 +733,16 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/instellingen_chart_thickness"
                     android:textColor="@color/vt5_on_surface" />
+
                 <NumberPicker
                     android:id="@+id/npChartThickness"
                     android:layout_width="wrap_content"
@@ -749,14 +753,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/instellingen_chart_color_wind"
                     android:textColor="@color/vt5_on_surface" />
+
                 <Spinner
                     android:id="@+id/spChartColorWind"
                     android:layout_width="wrap_content"
@@ -767,14 +773,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/instellingen_chart_color_trek"
                     android:textColor="@color/vt5_on_surface" />
+
                 <Spinner
                     android:id="@+id/spChartColorTrek"
                     android:layout_width="wrap_content"
@@ -785,14 +793,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/instellingen_chart_color_terug"
                     android:textColor="@color/vt5_on_surface" />
+
                 <Spinner
                     android:id="@+id/spChartColorTerug"
                     android:layout_width="wrap_content"

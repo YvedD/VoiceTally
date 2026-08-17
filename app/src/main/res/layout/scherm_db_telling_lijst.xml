@@ -3,10 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingTop="30dp"
+    android:paddingBottom="40dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -57,9 +59,9 @@
         android:id="@+id/llSortFilter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="8dp"
-        android:gravity="center_vertical">
+        android:padding="8dp">
 
         <Spinner
             android:id="@+id/spinnerSiteFilter"
@@ -79,10 +81,10 @@
             android:id="@+id/toggleSortDirection"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textOn="@string/db_telling_sort_asc_symbol"
-            android:textOff="@string/db_telling_sort_desc_symbol"
+            android:layout_marginStart="8dp"
             android:checked="true"
-            android:layout_marginStart="8dp" />
+            android:textOff="@string/db_telling_sort_desc_symbol"
+            android:textOn="@string/db_telling_sort_asc_symbol" />
 
     </LinearLayout>
 
