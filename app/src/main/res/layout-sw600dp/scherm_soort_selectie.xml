@@ -4,6 +4,8 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical"
     android:padding="32dp">
@@ -35,10 +37,10 @@
         android:id="@+id/rvSuggesties"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:nestedScrollingEnabled="false"
-        android:visibility="gone"
         android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp" />
+        android:layout_marginBottom="4dp"
+        android:nestedScrollingEnabled="false"
+        android:visibility="gone" />
 
     <!-- divider bottom voor suggestiezone -->
     <View
@@ -52,11 +54,11 @@
         android:id="@+id/tvTeller"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingVertical="16dp"
         android:text="@string/soort_selection_info"
-        android:textColor="@color/vt5_on_surface"
         android:textAlignment="center"
-        android:textSize="18sp"
-        android:paddingVertical="16dp" />
+        android:textColor="@color/vt5_on_surface"
+        android:textSize="18sp" />
 
     <!-- hoofdgrid -->
     <androidx.recyclerview.widget.RecyclerView

@@ -4,6 +4,8 @@
     android:id="@+id/root_huidige_stand"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical"
     android:padding="40dp">
@@ -12,18 +14,18 @@
         android:id="@+id/tv_title_huidige_stand"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingBottom="24dp"
         android:text="@string/huidige_stand_title"
-        android:textSize="28sp"
         android:textAlignment="center"
         android:textColor="@color/vt5_light_blue"
-        android:textStyle="bold"
-        android:paddingBottom="24dp"/>
+        android:textSize="28sp"
+        android:textStyle="bold" />
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="750dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:layout_gravity="center_horizontal"
+        android:layout_weight="1"
         app:cardBackgroundColor="@color/vt5_dark_gray"
         app:strokeColor="@color/vt5_outline">
 
@@ -47,12 +49,12 @@
         android:layout_width="600dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp"
         android:text="@string/huidige_stand_totals"
         android:textColor="@android:color/white"
         android:textSize="20sp"
-        android:textStyle="bold"
-        android:paddingTop="20dp"
-        android:paddingBottom="20dp" />
+        android:textStyle="bold" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_ok_huidige_stand"

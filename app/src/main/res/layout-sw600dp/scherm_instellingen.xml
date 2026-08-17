@@ -4,6 +4,8 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="45dp"
+    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical"
     android:padding="24dp">
@@ -63,22 +65,57 @@
                 android:layout_margin="12dp"
                 app:cardBackgroundColor="#111111"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#333333">
+                app:strokeColor="#333333"
+                app:strokeWidth="1dp">
 
-                <LinearLayout android:orientation="vertical" android:padding="20dp">
-                    <TextView android:text="Interface &amp; Tekst" android:textColor="@color/vt5_on_surface" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="16dp" />
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_marginBottom="16dp"
+                        android:text="Interface &amp; Tekst"
+                        android:textColor="@color/vt5_on_surface"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
                     <!-- Partials SP -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/instellingen_lettergrootte_partials_label" android:textColor="@color/vt5_on_surface" />
-                        <NumberPicker android:id="@+id/npLettergroottePartials" android:layout_width="80dp" android:layout_height="100dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/instellingen_lettergrootte_partials_label"
+                            android:textColor="@color/vt5_on_surface" />
+
+                        <NumberPicker
+                            android:id="@+id/npLettergroottePartials"
+                            android:layout_width="80dp"
+                            android:layout_height="100dp" />
                     </LinearLayout>
 
                     <!-- Finals SP -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginTop="12dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/instellingen_lettergrootte_finals_label" android:textColor="@color/vt5_on_surface" />
-                        <NumberPicker android:id="@+id/npLettergrootteFinals" android:layout_width="80dp" android:layout_height="100dp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/instellingen_lettergrootte_finals_label"
+                            android:textColor="@color/vt5_on_surface" />
+
+                        <NumberPicker
+                            android:id="@+id/npLettergrootteFinals"
+                            android:layout_width="80dp"
+                            android:layout_height="100dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -91,20 +128,64 @@
                 android:layout_margin="12dp"
                 app:cardBackgroundColor="#111111"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#333333">
+                app:strokeColor="#333333"
+                app:strokeWidth="1dp">
 
-                <LinearLayout android:orientation="vertical" android:padding="20dp">
-                    <TextView android:text="AI &amp; Gedrag" android:textColor="@color/vt5_on_surface" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="16dp" />
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
-                    <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbAiEnabled" android:text="@string/instellingen_ai_checkbox" android:textColor="@color/vt5_on_surface" />
-                    <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbDynamicTileSorting" android:text="@string/instellingen_dynamic_tile_sorting_checkbox" android:textColor="@color/vt5_on_surface" />
+                    <TextView
+                        android:layout_marginBottom="16dp"
+                        android:text="AI &amp; Gedrag"
+                        android:textColor="@color/vt5_on_surface"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
-                    <TextView android:text="@string/instellingen_double_tap_title" android:textColor="@color/vt5_on_surface" android:layout_marginTop="16dp" android:textStyle="bold" />
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingTop="8dp">
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnDoubleTap5" style="@style/Widget.Material3.Button.TonalButton" android:layout_width="0dp" android:layout_weight="1" android:text="5" />
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnDoubleTap10" style="@style/Widget.Material3.Button.TonalButton" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="10" />
-                        <com.google.android.material.button.MaterialButton android:id="@+id/btnDoubleTap50" style="@style/Widget.Material3.Button.TonalButton" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="4dp" android:text="50" />
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbAiEnabled"
+                        android:text="@string/instellingen_ai_checkbox"
+                        android:textColor="@color/vt5_on_surface" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbDynamicTileSorting"
+                        android:text="@string/instellingen_dynamic_tile_sorting_checkbox"
+                        android:textColor="@color/vt5_on_surface" />
+
+                    <TextView
+                        android:layout_marginTop="16dp"
+                        android:text="@string/instellingen_double_tap_title"
+                        android:textColor="@color/vt5_on_surface"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingTop="8dp">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnDoubleTap5"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="5" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnDoubleTap10"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="10" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnDoubleTap50"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="50" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -117,15 +198,36 @@
                 android:layout_margin="12dp"
                 app:cardBackgroundColor="#111111"
                 app:cardCornerRadius="16dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#333333">
+                app:strokeColor="#333333"
+                app:strokeWidth="1dp">
 
-                <LinearLayout android:orientation="vertical" android:padding="20dp">
-                    <TextView android:text="Visualisatie" android:textColor="@color/vt5_on_surface" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="16dp" />
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Grafiek Dikte" android:textColor="@color/vt5_on_surface" />
-                        <NumberPicker android:id="@+id/npChartThickness" android:layout_width="80dp" android:layout_height="100dp" />
+                    <TextView
+                        android:layout_marginBottom="16dp"
+                        android:text="Visualisatie"
+                        android:textColor="@color/vt5_on_surface"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Grafiek Dikte"
+                            android:textColor="@color/vt5_on_surface" />
+
+                        <NumberPicker
+                            android:id="@+id/npChartThickness"
+                            android:layout_width="80dp"
+                            android:layout_height="100dp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
