@@ -61,12 +61,13 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 13. [Huidige Stand Scherm](#13-huidige-stand-scherm)
 14. [Telling Afronden](#14-telling-afronden)
 15. [Auto-Weather Systeem](#15-auto-weather-systeem)
-16. [AI 3-daagse Prognose & Live Suggesties](#16-ai-3-daagse-prognose--live-suggesties)
-17. [BirdNET-GO Integratie](#17-birdnet-go-integratie)
-18. [Master / Client Samenwerking](#18-master--client-samenwerking)
-19. [AI Optimalisatie & Enrichment](#19-ai-optimalisatie--enrichment)
-20. [Database & Telpost Beheer](#20-database--telpost-beheer)
-21. [Geavanceerde Instellingen](#21-geavanceerde-instellingen)
+16. [AI 3-daagse Prognose & BpH Index](#16-ai-3-daagse-prognose--bph-index)
+17. [AI Teldag Evaluatie (Sterrensysteem)](#17-ai-teldag-evaluatie-sterrensysteem)
+18. [BirdNET-GO Integratie](#18-birdnet-go-integratie)
+19. [Master / Client Samenwerking](#19-master--client-samenwerking)
+20. [AI Optimalisatie & Zelflerend Brein](#20-ai-optimalisatie--zelflerend-brein)
+21. [Database & Telpost Beheer](#21-database--telpost-beheer)
+22. [Geavanceerde Instellingen](#22-geavanceerde-instellingen)
 
 ---
 
@@ -145,7 +146,7 @@ Documents/VT5/
 │   ├── annotations.json            # Annotatie-opties (leeftijd, geslacht, kleed)
 │
 ├── AI-models/                       # Lokale AI-intelligentie
-│   ├── models/                     # Getrainde modellen (.tflite / .json)
+│   ├── models/                     # Getrainde modellen (.json / .bin)
 │   ├── training_exports/           # CSV exports van jouw waarnemingen
 │   └── feedback/                   # Correcties op AI suggesties
 │
@@ -582,22 +583,42 @@ VT5 kan automatisch actuele weergegevens ophalen via GPS en een weer-API. Dit be
 
 ---
 
-## 16. AI 3-daagse Prognose & Live Suggesties
+## 16. AI 3-daagse Prognose & BpH Index
 
-VT5 bevat een slim AI-subsysteem dat vogelmigratie voorspelt op basis van weerspatronen.
+VT5 bevat een geavanceerd **Bio-Statistic Intelligence (BSI)** subsysteem dat vogelmigratie voorspelt op basis van lokale historie en Europese weerspatronen.
 
 ### AI Prognosescherm
-Klik in het hoofdscherm op de **AI Forecast** knop om een 3-daagse voorspelling te zien.
-- **Dag-overzicht**: Belangrijkste weersfactoren per dag.
-- **Top Suggesties**: De 5 vogelsoorten of groepen (gilden) met de hoogste kans op trek.
-- **Corridor Boost**: De AI kijkt niet alleen naar het weer op de telpost, maar ook naar gunstige condities "stroomopwaarts" (de migratiecorridor).
+Klik in het hoofdscherm op de **AI Forecast** knop voor een gedetailleerde voorspelling.
+- **BpH Index**: Voor elke soort wordt de historische **Birds per Hour** getoond (bv. `Buizerd (BpH index 2.1ex/h)`). Dit is het gemiddelde aantal vogels per uur in uw 35km-cluster.
+- **Kanspercentage**: De AI berekent de trefkans op basis van wind, temperatuur en luchtdruk.
+- **72-uurs Corridor Boost**: De AI analyseert de weerscondities op strategische locaties in Scandinavië, Denemarken en Zuid-Europa van de afgelopen 3 dagen. Gunstige omstandigheden daar resulteren in een "boost" van de kansen bij u op de post.
 
-### Live Suggesties tijdens de telling
-Tijdens het invoeren van metadata kun je op het AI-icoon tikken voor een "Live" suggestie. De AI vertelt je dan op welke soorten je nu extra alert moet zijn.
+### Live Suggesties
+Tijdens het invoeren van metadata in het telscherm kunt u op het AI-icoon tikken voor directe suggesties op basis van het actuele weer.
 
 ---
 
-## 17. BirdNET-GO Integratie
+## 17. AI Teldag Evaluatie (Sterrensysteem)
+
+Naast het voorspellen kan VT5 uw teldag ook wetenschappelijk evalueren via een objectief sterrensysteem.
+
+### Hoe werkt de evaluatie?
+De app vergelijkt uw prestaties met de regionale norm (**Catch Per Unit Effort**). Er wordt gekeken naar hoeveel exemplaren u per uur heeft gezien in vergelijking met het gemiddelde van alle actieve telposten in uw 35km-cluster.
+
+| Score | Betekenis |
+|-------|-----------|
+| ⭐⭐⭐⭐⭐ | **Uitzonderlijk**: Meer dan 200% van het clustergemiddelde. |
+| ⭐⭐⭐ | **Volgens verwachting**: U scoort precies op het regionale gemiddelde. |
+| ☁️ | **Niet gezien**: De soort werd verwacht, maar u heeft deze niet waargenomen. |
+
+### Automatisch Teldag Verslag
+Wanneer u een teldag beëindigt (via **Afronden -> Annuleren**), genereert de app automatisch een eindrapport.
+- **Teldag Reconstructie**: De AI doorloopt alle sessies van de dag en haalt via de **Open-Meteo Archive API** de exacte historische weergegevens op voor uw post.
+- **Stille Prognose**: Ook als u overdag de AI niet heeft geraadpleegd, bepaalt de app achteraf welke soorten u had kunnen zien op basis van de veranderende weersomstandigheden (bv. ochtend vs. middag).
+
+---
+
+## 18. BirdNET-GO Integratie
 
 VoiceTally kan koppelen met een **BirdNET-GO** server (bv. draaiend op een Raspberry Pi) voor automatische geluidsherkenning in het veld.
 
@@ -629,21 +650,27 @@ Met de Master/Client modus kunnen meerdere tellers op dezelfde telpost tegelijk 
 
 ---
 
-## 19. AI Optimalisatie & Enrichment
+## 20. AI Optimalisatie & Zelflerend Brein
 
-De AI van VT5 leert van jouw persoonlijke waarnemingen. Om dit proces te optimaliseren, gebruikt de app "Enrichment" (verrijking).
+De AI van VT5 leert van jouw persoonlijke waarnemingen en die van je directe omgeving.
 
 ### Gegevens Verrijken
-Klik op **"AI Update"** in het hoofdscherm om de lokale database te verrijken.
-- De app zoekt historische waarnemingen die nog geen weergegevens hebben.
-- Deze data wordt opgehaald en gekoppeld, zodat de AI exact weet bij welke weersomstandigheden jij bepaalde soorten ziet.
+Klik op **"AI Update"** in het hoofdscherm. De app haalt via de **Archive API** het werkelijke weer op voor al je historische waarnemingen. Dit is de brandstof voor een nauwkeurige training.
 
-### AI Training
-Via de knop **"AI Train"** kun je het model op je toestel opnieuw trainen. De AI analyseert dan je gehele lokale database en past zijn suggesties aan op jouw specifieke telpost en vogel-expertise.
+### Zelflerende Lus (Feedback)
+Wanneer de app een teldag evalueert, worden de resultaten (sterren) opgeslagen in `user_evaluations.json`. De AI-motor gebruikt deze data om zijn eigen kansberekeningen voor de toekomst te kalibreren op basis van jouw specifieke telpost-ervaring.
+
+### Sandbox Veiligheid
+Tellingen op de **VoiceTally Testsite** (ID 5177) worden automatisch genegeerd door het AI-brein. Hierdoor kun je onbeperkt experimenteren zonder je statistieken te vervuilen.
 
 ---
 
-## 20. Database & Telpost Beheer
+## 21. Database & Telpost Beheer
+
+VT5 gebruikt een hybride opslagsysteem met een lokale **Room Database**.
+
+### Teldag Verslagen Archief
+Onder de knop **"Teldag Verslagen"** in het databasebeheer vind je een chronologische lijst van al je telsessies. Hier kun je voor elke dag uit het verleden de AI-evaluatie en het sterrenrapport opnieuw genereren.
 
 VT5 gebruikt een hybride opslagsysteem met een lokale **Room Database** voor razendsnelle toegang en betrouwbaarheid.
 
@@ -712,4 +739,4 @@ Voor vragen of problemen, neem contact op met de app-ontwikkelaar.
 
 ---
 
-*Versie: 2.1.0 | Laatste update: 2026-08-18*
+*Versie: 2.2.0 | Laatste update: 2026-08-18*
