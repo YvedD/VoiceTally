@@ -91,10 +91,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
-                    android:buttonTint="@color/grafiek_beheer_aantallen"
                     android:checked="true"
                     android:text="Aantallen"
-                    android:textColor="@color/grafiek_beheer_aantallen"
                     android:textSize="12sp" />
 
                 <CheckBox
@@ -102,10 +100,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:buttonTint="@color/grafiek_beheer_tellingen"
                     android:checked="true"
                     android:text="Tellingen"
-                    android:textColor="@color/grafiek_beheer_tellingen"
                     android:textSize="12sp" />
             </LinearLayout>
 

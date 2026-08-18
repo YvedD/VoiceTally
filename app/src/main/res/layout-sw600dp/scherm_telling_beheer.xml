@@ -62,7 +62,7 @@
         android:baselineAligned="false"
         android:orientation="horizontal">
 
-        <!-- Left Pane: Session List (Fixed width or weight) -->
+        <!-- Left Pane: Session List -->
         <LinearLayout
             android:id="@+id/layoutList"
             android:layout_width="350dp"
@@ -70,6 +70,28 @@
             android:background="#111111"
             android:orientation="vertical"
             android:padding="8dp">
+
+            <!-- Loading indicator -->
+            <TextView
+                android:id="@+id/tvLoading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:text="@string/beheer_laden"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <!-- Empty state -->
+            <TextView
+                android:id="@+id/tvEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:text="@string/beheer_geen_tellingen"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="14sp"
+                android:visibility="gone" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTellingen"
@@ -89,7 +111,8 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:padding="24dp">
+            android:padding="24dp"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -197,18 +220,6 @@
 
             </LinearLayout>
         </ScrollView>
-
-        <!-- Empty State / Loading in right pane if needed -->
-        <TextView
-            android:id="@+id/tvEmpty"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Selecteer een sessie uit de lijst"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="18sp"
-            android:visibility="gone" />
 
     </LinearLayout>
 

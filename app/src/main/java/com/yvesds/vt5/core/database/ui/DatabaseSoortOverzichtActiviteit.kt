@@ -203,6 +203,12 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 windDirections.forEach { dir ->
                     val binding = chartBindings[dir] ?: return@forEach
                     
+                    val seasonFilter = when (binding.rgSeason.checkedRadioButtonId) {
+                        R.id.rbSpring -> 1..6
+                        R.id.rbAutumn -> 7..12
+                        else -> 1..12
+                    }
+
                     val filteredStats = stats.filter { it.windrichting == dir }
 
                     val weekAantal = FloatArray(53)
@@ -212,7 +218,9 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                     var sumTerug = 0L
 
                     filteredStats.forEach { row ->
-                        if (row.week in 1..52) {
+                        // Determine month from week (approximate is fine for filtering)
+                        val approxMonth = ((row.week - 1) / 4.33).toInt() + 1
+                        if (approxMonth in seasonFilter && row.week in 1..52) {
                             weekAantal[row.week] = row.totalAantal.toFloat()
                             weekTerug[row.week] = row.totalTerug.toFloat()
                             weekWindAvg[row.week] = row.avgWindForce
@@ -238,9 +246,20 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 view.findViewById(R.id.chartDirection),
                 CartesianChartModelProducer(),
                 view.findViewById(R.id.cbShowReturn),
-                view.findViewById(R.id.cbShowTrek)
+                view.findViewById(R.id.cbShowTrek),
+                view.findViewById(R.id.rgSeason)
             )
             binding.headerView.text = dir
+            
+            val colorAantal = VicoLineChartHelper.getColorTrek(this)
+            val colorTerug = VicoLineChartHelper.getColorTerug(this)
+            
+            binding.cbShowTrek.buttonTintList = android.content.res.ColorStateList.valueOf(colorAantal)
+            binding.cbShowTrek.setTextColor(colorAantal)
+            
+            binding.cbShowReturn.buttonTintList = android.content.res.ColorStateList.valueOf(colorTerug)
+            binding.cbShowReturn.setTextColor(colorTerug)
+
             setupSingleChart(binding.chartView, binding.producer)
             
             view.setOnLongClickListener {
@@ -251,6 +270,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             val listener = { _: View? -> prepareAndShowCharts() }
             binding.cbShowTrek.setOnClickListener(listener)
             binding.cbShowReturn.setOnClickListener(listener)
+            binding.rgSeason.setOnCheckedChangeListener { _, _ -> prepareAndShowCharts() }
             
             chartBindings[dir] = binding
             gridWindCharts.addView(view)
@@ -352,7 +372,8 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val chartView: CartesianChartView,
         val producer: CartesianChartModelProducer,
         val cbShowReturn: CheckBox,
-        val cbShowTrek: CheckBox
+        val cbShowTrek: CheckBox,
+        val rgSeason: RadioGroup
     )
 }
 

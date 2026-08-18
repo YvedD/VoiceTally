@@ -31,13 +31,7 @@ import com.yvesds.vt5.core.ui.UiColorPrefs
 import kotlinx.coroutines.launch
 
 /**
- * InstellingenScherm - Scherm voor app-instellingen
- * 
- * Biedt instellingen voor:
- * - Lettergrootte van logregels (partial/final) in TellingScherm
- * - Lettergrootte van tegels (soortnaam + aantallen) in TellingScherm
- * 
- * Instellingen worden opgeslagen via SharedPreferences voor gebruik doorheen de app.
+ * InstellingenScherm - Scherm voor app-instellingen met volledige tablet-synchronisatie.
  */
 class InstellingenScherm : AppCompatActivity() {
     
@@ -68,7 +62,6 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_PERM_BLUETOOTH_ACK = "pref_perm_bluetooth_ack"
         const val PREF_PERM_ALARM_ACK = "pref_perm_alarm_ack"
 
-        // Lettergrootte bereik in sp
         const val MIN_LETTERGROOTTE_SP = 10
         const val MAX_LETTERGROOTTE_SP = 30
         const val DEFAULT_LETTERGROOTTE_SP = 17
@@ -90,101 +83,55 @@ class InstellingenScherm : AppCompatActivity() {
         private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
         private val TILE_TAP_GROUP_WINDOW_OPTIONS = listOf(2, 3, 5, 8, 10, 12, 15)
 
-        /**
-         * Haal de huidige lettergrootte voor partials op uit SharedPreferences.
-         */
         fun getPartialsTextSizeSp(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_PARTIALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_PARTIALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
         }
 
-        /**
-         * Haal de huidige lettergrootte voor finals op uit SharedPreferences.
-         */
         fun getFinalsTextSizeSp(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_FINALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_FINALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
         }
 
-        /**
-         * Haal de huidige lettergrootte voor tegels op uit SharedPreferences.
-         */
         fun getLettergroottTegelsSp(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_LETTERGROOTTE_TEGELS_SP, DEFAULT_LETTERGROOTTE_SP)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_LETTERGROOTTE_TEGELS_SP, DEFAULT_LETTERGROOTTE_SP)
         }
 
-        /**
-         * Haal de huidige tekstkleur voor partials logregels op uit SharedPreferences.
-         */
         fun getPartialsTextColor(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_PARTIALS_TEXT_COLOR, android.graphics.Color.WHITE)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_PARTIALS_TEXT_COLOR, Color.WHITE)
         }
 
-        /**
-         * Haal de huidige tekstkleur voor niet-herkende partials logregels op uit SharedPreferences.
-         */
         fun getUnmatchedPartialsTextColor(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR)
         }
 
-        /**
-         * Haal de huidige tekstkleur voor finals logregels op uit SharedPreferences.
-         */
         fun getFinalsTextColor(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_FINALS_TEXT_COLOR, android.graphics.Color.WHITE)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_FINALS_TEXT_COLOR, Color.WHITE)
         }
 
-        @Suppress("unused")
-        private const val _keepGetMaxFavorieten = 0
-
-        /**
-         * Haal het huidige maximum aantal favorieten op uit SharedPreferences.
-         */
         fun getMaxFavorieten(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
         }
 
         fun getTileDoubleTapIncrement(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            val stored = prefs.getInt(PREF_TILE_DOUBLE_TAP_INCREMENT, DEFAULT_TILE_DOUBLE_TAP_INCREMENT)
+            val stored = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_TILE_DOUBLE_TAP_INCREMENT, DEFAULT_TILE_DOUBLE_TAP_INCREMENT)
             return stored.takeIf { it in TILE_DOUBLE_TAP_OPTIONS } ?: DEFAULT_TILE_DOUBLE_TAP_INCREMENT
         }
 
         fun getTileTapGroupWindowSeconds(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            val stored = prefs.getInt(
-                PREF_TILE_TAP_GROUP_WINDOW_SECONDS,
-                DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS
-            )
+            val stored = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(PREF_TILE_TAP_GROUP_WINDOW_SECONDS, DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS)
             return stored.takeIf { it in TILE_TAP_GROUP_WINDOW_OPTIONS } ?: DEFAULT_TILE_TAP_GROUP_WINDOW_SECONDS
         }
 
         fun isDynamicTileSortingEnabled(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, DEFAULT_DYNAMIC_TILE_SORTING_ENABLED)
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, DEFAULT_DYNAMIC_TILE_SORTING_ENABLED)
         }
 
         fun isServerResponseLoggingEnabled(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            return prefs.getBoolean(
-                PREF_SERVER_RESPONSE_LOGGING_ENABLED,
-                DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED
-            )
+            return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED)
         }
 
-        /**
-         * Haal de huidige opslagmodus op.
-         * Gefixeerd op het Hybride Systeem (Parallel).
-         */
         fun getStorageMode(context: Context): String {
             return STORAGE_MODE_PARALLEL
         }
-
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -208,468 +155,164 @@ class InstellingenScherm : AppCompatActivity() {
             setupAiSettings()
             setupChartSettings()
         } catch (t: Throwable) {
-            // Fail-safe: avoid hard crash to background when a view/id mismatch occurs.
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
-            android.widget.Toast.makeText(this, "Fout in instellingen-scherm: ${t.message}", android.widget.Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Fout in instellingen: ${t.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun ensureLogTextColorDefaults() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        if (!prefs.contains(PREF_PARTIALS_TEXT_COLOR)) {
-            prefs.edit { putInt(PREF_PARTIALS_TEXT_COLOR, android.graphics.Color.WHITE) }
-        }
-        if (!prefs.contains(PREF_UNMATCHED_PARTIALS_TEXT_COLOR)) {
-            prefs.edit { putInt(PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR) }
-        }
-        if (!prefs.contains(PREF_FINALS_TEXT_COLOR)) {
-            prefs.edit { putInt(PREF_FINALS_TEXT_COLOR, android.graphics.Color.WHITE) }
+        prefs.edit {
+            if (!prefs.contains(PREF_PARTIALS_TEXT_COLOR)) putInt(PREF_PARTIALS_TEXT_COLOR, Color.WHITE)
+            if (!prefs.contains(PREF_UNMATCHED_PARTIALS_TEXT_COLOR)) putInt(PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR)
+            if (!prefs.contains(PREF_FINALS_TEXT_COLOR)) putInt(PREF_FINALS_TEXT_COLOR, Color.WHITE)
         }
     }
 
     private fun setupTerugKnop() {
-        val btnTerug = findViewById<MaterialButton>(R.id.btnTerug)
-        btnTerug.setOnClickListener {
-            finish()
-        }
+        findViewById<MaterialButton>(R.id.btnTerug)?.setOnClickListener { finish() }
     }
     
     private fun setupLettergrootteNumberPickers() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
-        // NumberPicker voor partials
-        val npPartials = findViewById<NumberPicker>(R.id.npLettergroottePartials)
-        npPartials.minValue = MIN_LETTERGROOTTE_SP
-        npPartials.maxValue = MAX_LETTERGROOTTE_SP
-        npPartials.wrapSelectorWheel = false
-        npPartials.value = prefs.getInt(PREF_PARTIALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
-            .coerceIn(MIN_LETTERGROOTTE_SP, MAX_LETTERGROOTTE_SP)
-        npPartials.setOnValueChangedListener { _, _, newVal ->
-            prefs.edit { putInt(PREF_PARTIALS_TEXT_SIZE_SP, newVal) }
-        }
-
-        // NumberPicker voor finals
-        val npFinals = findViewById<NumberPicker>(R.id.npLettergrootteFinals)
-        npFinals.minValue = MIN_LETTERGROOTTE_SP
-        npFinals.maxValue = MAX_LETTERGROOTTE_SP
-        npFinals.wrapSelectorWheel = false
-        npFinals.value = prefs.getInt(PREF_FINALS_TEXT_SIZE_SP, DEFAULT_LETTERGROOTTE_SP)
-            .coerceIn(MIN_LETTERGROOTTE_SP, MAX_LETTERGROOTTE_SP)
-        npFinals.setOnValueChangedListener { _, _, newVal ->
-            prefs.edit { putInt(PREF_FINALS_TEXT_SIZE_SP, newVal) }
-        }
-
-        // NumberPicker voor tegels
-        val npTegels = findViewById<NumberPicker>(R.id.npLettergrootteTegels)
-        npTegels.minValue = MIN_LETTERGROOTTE_SP
-        npTegels.maxValue = MAX_LETTERGROOTTE_SP
-        npTegels.wrapSelectorWheel = false
-        npTegels.value = prefs.getInt(PREF_LETTERGROOTTE_TEGELS_SP, DEFAULT_LETTERGROOTTE_SP)
-            .coerceIn(MIN_LETTERGROOTTE_SP, MAX_LETTERGROOTTE_SP)
-        
-        npTegels.setOnValueChangedListener { _, _, newVal ->
-            prefs.edit {
-                putInt(PREF_LETTERGROOTTE_TEGELS_SP, newVal)
+        fun setupNP(id: Int, key: String) {
+            findViewById<NumberPicker>(id)?.apply {
+                minValue = MIN_LETTERGROOTTE_SP
+                maxValue = MAX_LETTERGROOTTE_SP
+                wrapSelectorWheel = false
+                value = prefs.getInt(key, DEFAULT_LETTERGROOTTE_SP).coerceIn(MIN_LETTERGROOTTE_SP, MAX_LETTERGROOTTE_SP)
+                setOnValueChangedListener { _, _, newVal -> prefs.edit { putInt(key, newVal) } }
             }
         }
+
+        setupNP(R.id.npLettergroottePartials, PREF_PARTIALS_TEXT_SIZE_SP)
+        setupNP(R.id.npLettergrootteFinals, PREF_FINALS_TEXT_SIZE_SP)
+        setupNP(R.id.npLettergrootteTegels, PREF_LETTERGROOTTE_TEGELS_SP)
     }
 
     private fun setupColorSpinners() {
-        val spBg = findViewById<Spinner>(R.id.spBackgroundColor)
-        val spText = findViewById<Spinner>(R.id.spTextColor)
+        val spBg = findViewById<Spinner>(R.id.spBackgroundColor) ?: return
+        val spText = findViewById<Spinner>(R.id.spTextColor) ?: return
 
         val bgOptions = UiColorPrefs.getBackgroundOptions(this)
         val textOptions = UiColorPrefs.getTextOptions(this)
 
-        fun buildAdapter(
-            items: List<UiColorPrefs.ColorOption>,
-            getBg: () -> Int,
-            getText: () -> Int
-        ): BaseAdapter {
+        fun buildAdapter(items: List<UiColorPrefs.ColorOption>, getBg: () -> Int, getText: () -> Int): BaseAdapter {
             return object : BaseAdapter() {
                 override fun getCount(): Int = items.size
                 override fun getItem(position: Int): Any = items[position]
                 override fun getItemId(position: Int): Long = position.toLong()
-
-                private fun bind(tv: TextView, position: Int) {
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val tv = (convertView as? TextView) ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
                     val opt = items[position]
                     tv.text = opt.label
                     tv.setBackgroundColor(getBg())
                     tv.setTextColor(getText())
                     tv.setPadding(24, 18, 24, 18)
-                }
-
-                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                    val tv = (convertView as? TextView)
-                        ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
-                    bind(tv, position)
                     return tv
                 }
-
-                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                    val tv = (convertView as? TextView)
-                        ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
-                    bind(tv, position)
-                    return tv
-                }
+                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View = getView(position, convertView, parent)
             }
         }
 
-        // Current selection holders (so each spinner can reflect the combined choice)
         var selectedBg = UiColorPrefs.getBackgroundColor(this)
         var selectedText = UiColorPrefs.getTextColor(this)
 
-        val bgAdapter = buildAdapter(bgOptions, getBg = { selectedBg }, getText = { selectedText })
-        val textAdapter = buildAdapter(textOptions, getBg = { selectedBg }, getText = { selectedText })
+        val bgAdapter = buildAdapter(bgOptions, { selectedBg }, { selectedText })
+        val textAdapter = buildAdapter(textOptions, { selectedBg }, { selectedText })
 
         spBg.adapter = bgAdapter
         spText.adapter = textAdapter
 
-        // Preselect from prefs
-        spBg.setSelection(bgOptions.indexOfFirst { it.argb == selectedBg }.takeIf { it >= 0 } ?: 0)
-        spText.setSelection(textOptions.indexOfFirst { it.argb == selectedText }.takeIf { it >= 0 } ?: 0)
+        spBg.setSelection(bgOptions.indexOfFirst { it.argb == selectedBg }.coerceAtLeast(0))
+        spText.setSelection(textOptions.indexOfFirst { it.argb == selectedText }.coerceAtLeast(0))
 
-        spBg.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+        spBg.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, position: Int, p3: Long) {
                 selectedBg = bgOptions[position].argb
                 UiColorPrefs.setBackgroundColor(this@InstellingenScherm, selectedBg)
-
-                // Refresh both spinners so each item reflects the combined colors
-                bgAdapter.notifyDataSetChanged()
-                textAdapter.notifyDataSetChanged()
+                bgAdapter.notifyDataSetChanged(); textAdapter.notifyDataSetChanged()
             }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
         }
 
-        spText.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+        spText.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, position: Int, p3: Long) {
                 selectedText = textOptions[position].argb
                 UiColorPrefs.setTextColor(this@InstellingenScherm, selectedText)
-
-                // Refresh both spinners so each item reflects the combined colors
-                bgAdapter.notifyDataSetChanged()
-                textAdapter.notifyDataSetChanged()
+                bgAdapter.notifyDataSetChanged(); textAdapter.notifyDataSetChanged()
             }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
         }
     }
 
     private fun setupDoubleTapIncrementButtons() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-
-        val btn5 = findViewById<MaterialButton>(R.id.btnDoubleTap5)
-        val btn10 = findViewById<MaterialButton>(R.id.btnDoubleTap10)
-        val btn50 = findViewById<MaterialButton>(R.id.btnDoubleTap50)
-        val btn100 = findViewById<MaterialButton>(R.id.btnDoubleTap100)
-
-        val allButtons = listOf(btn5, btn10, btn50, btn100)
+        val btnMap = mapOf(
+            5 to findViewById<MaterialButton>(R.id.btnDoubleTap5),
+            10 to findViewById<MaterialButton>(R.id.btnDoubleTap10),
+            50 to findViewById<MaterialButton>(R.id.btnDoubleTap50),
+            100 to findViewById<MaterialButton>(R.id.btnDoubleTap100)
+        )
 
         fun applySelection(value: Int) {
             prefs.edit { putInt(PREF_TILE_DOUBLE_TAP_INCREMENT, value) }
-            allButtons.forEach { it.isChecked = false }
-            when (value) {
-                5 -> btn5.isChecked = true
-                50 -> btn50.isChecked = true
-                100 -> btn100.isChecked = true
-                else -> btn10.isChecked = true
-            }
+            btnMap.forEach { (v, btn) -> btn?.isChecked = (v == value) }
         }
 
         applySelection(getTileDoubleTapIncrement(this))
-
-        btn5.setOnClickListener { applySelection(5) }
-        btn10.setOnClickListener { applySelection(10) }
-        btn50.setOnClickListener { applySelection(50) }
-        btn100.setOnClickListener { applySelection(100) }
+        btnMap.forEach { (v, btn) ->
+            btn?.setOnClickListener { applySelection(v) }
+        }
     }
 
     private fun setupTileTapGroupWindowButtons() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-
-        val btn2 = findViewById<MaterialButton>(R.id.btnPendingTiles2)
-        val btn3 = findViewById<MaterialButton>(R.id.btnPendingTiles3)
-        val btn5 = findViewById<MaterialButton>(R.id.btnPendingTiles5)
-        val btn8 = findViewById<MaterialButton>(R.id.btnPendingTiles8)
-        val btn10 = findViewById<MaterialButton>(R.id.btnPendingTiles10)
-        val btn12 = findViewById<MaterialButton>(R.id.btnPendingTiles12)
-        val btn15 = findViewById<MaterialButton>(R.id.btnPendingTiles15)
-
-        val allButtons = listOf(btn2, btn3, btn5, btn8, btn10, btn12, btn15)
+        val btnMap = mapOf(
+            2 to findViewById<MaterialButton>(R.id.btnPendingTiles2),
+            3 to findViewById<MaterialButton>(R.id.btnPendingTiles3),
+            5 to findViewById<MaterialButton>(R.id.btnPendingTiles5),
+            8 to findViewById<MaterialButton>(R.id.btnPendingTiles8),
+            10 to findViewById<MaterialButton>(R.id.btnPendingTiles10),
+            12 to findViewById<MaterialButton>(R.id.btnPendingTiles12),
+            15 to findViewById<MaterialButton>(R.id.btnPendingTiles15)
+        )
 
         fun applySelection(value: Int) {
             prefs.edit { putInt(PREF_TILE_TAP_GROUP_WINDOW_SECONDS, value) }
-            allButtons.forEach { it.isChecked = false }
-            when (value) {
-                2 -> btn2.isChecked = true
-                3 -> btn3.isChecked = true
-                5 -> btn5.isChecked = true
-                8 -> btn8.isChecked = true
-                10 -> btn10.isChecked = true
-                12 -> btn12.isChecked = true
-                15 -> btn15.isChecked = true
-                else -> btn5.isChecked = true
-            }
+            btnMap.forEach { (v, btn) -> btn?.isChecked = (v == value) }
         }
 
         applySelection(getTileTapGroupWindowSeconds(this))
-
-        btn2.setOnClickListener { applySelection(2) }
-        btn3.setOnClickListener { applySelection(3) }
-        btn5.setOnClickListener { applySelection(5) }
-        btn8.setOnClickListener { applySelection(8) }
-        btn10.setOnClickListener { applySelection(10) }
-        btn12.setOnClickListener { applySelection(12) }
-        btn15.setOnClickListener { applySelection(15) }
+        btnMap.forEach { (v, btn) ->
+            btn?.setOnClickListener { applySelection(v) }
+        }
     }
 
     private fun setupDynamicTileSortingToggle() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val cb = findViewById<MaterialCheckBox>(R.id.cbDynamicTileSorting)
-        cb.isChecked = prefs.getBoolean(
-            PREF_DYNAMIC_TILE_SORTING_ENABLED,
-            DEFAULT_DYNAMIC_TILE_SORTING_ENABLED
-        )
-        cb.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit { putBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, isChecked) }
+        findViewById<MaterialCheckBox>(R.id.cbDynamicTileSorting)?.apply {
+            val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            isChecked = prefs.getBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, DEFAULT_DYNAMIC_TILE_SORTING_ENABLED)
+            setOnCheckedChangeListener { _, isChecked -> prefs.edit { putBoolean(PREF_DYNAMIC_TILE_SORTING_ENABLED, isChecked) } }
         }
     }
 
     private fun setupServerResponseLoggingToggle() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val cb = findViewById<MaterialCheckBox>(R.id.cbServerResponseLogging)
-        cb.isChecked = prefs.getBoolean(
-            PREF_SERVER_RESPONSE_LOGGING_ENABLED,
-            DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED
-        )
-        cb.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit { putBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, isChecked) }
+        findViewById<MaterialCheckBox>(R.id.cbServerResponseLogging)?.apply {
+            val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            isChecked = prefs.getBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED)
+            setOnCheckedChangeListener { _, isChecked -> prefs.edit { putBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, isChecked) } }
         }
     }
 
-    private fun setupPartialsTextColorSpinner() {
-        setupLogColorSpinner(
-            spinnerId = R.id.spPartialsTextColor,
-            prefKey = PREF_PARTIALS_TEXT_COLOR,
-            defaultColor = android.graphics.Color.WHITE
-        )
-    }
-
-    private fun setupUnmatchedPartialsTextColorSpinner() {
-        setupLogColorSpinner(
-            spinnerId = R.id.spUnmatchedPartialsTextColor,
-            prefKey = PREF_UNMATCHED_PARTIALS_TEXT_COLOR,
-            defaultColor = DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR
-        )
-    }
-
-    private fun setupFinalsTextColorSpinner() {
-        setupLogColorSpinner(
-            spinnerId = R.id.spFinalsTextColor,
-            prefKey = PREF_FINALS_TEXT_COLOR,
-            defaultColor = android.graphics.Color.WHITE
-        )
-    }
+    private fun setupPartialsTextColorSpinner() = setupLogColorSpinner(R.id.spPartialsTextColor, PREF_PARTIALS_TEXT_COLOR, Color.WHITE)
+    private fun setupUnmatchedPartialsTextColorSpinner() = setupLogColorSpinner(R.id.spUnmatchedPartialsTextColor, PREF_UNMATCHED_PARTIALS_TEXT_COLOR, DEFAULT_UNMATCHED_PARTIALS_TEXT_COLOR)
+    private fun setupFinalsTextColorSpinner() = setupLogColorSpinner(R.id.spFinalsTextColor, PREF_FINALS_TEXT_COLOR, Color.WHITE)
 
     private fun setupLogColorSpinner(spinnerId: Int, prefKey: String, defaultColor: Int) {
-        val spLogText = findViewById<Spinner>(spinnerId)
-        val textOptions = UiColorPrefs.getTextOptions(this)
-
-        val adapter = object : BaseAdapter() {
-            override fun getCount(): Int = textOptions.size
-            override fun getItem(position: Int): Any = textOptions[position]
-            override fun getItemId(position: Int): Long = position.toLong()
-
-            private fun bind(tv: TextView, position: Int) {
-                val opt = textOptions[position]
-                tv.text = opt.label
-                tv.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                tv.setTextColor(opt.argb)
-                tv.setPadding(24, 18, 24, 18)
-            }
-
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val tv = (convertView as? TextView)
-                    ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
-                bind(tv, position)
-                return tv
-            }
-
-            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val tv = (convertView as? TextView)
-                    ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
-                bind(tv, position)
-                return tv
-            }
-        }
-
-        spLogText.adapter = adapter
-
-        val current = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getInt(prefKey, defaultColor)
-        val initial = textOptions.indexOfFirst { it.argb == current }.takeIf { it >= 0 } ?: 0
-        spLogText.setSelection(initial)
-
-        spLogText.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val selected = textOptions[position].argb
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit {
-                    putInt(prefKey, selected)
-                }
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
-    }
-
-    private fun setupMaxFavorietenButtons() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-
-        fun findButton(idName: String): MaterialButton? {
-            val id = resources.getIdentifier(idName, "id", packageName)
-            if (id == 0) return null
-            return findViewById(id)
-        }
-
-        val btn15 = findButton("btnFav15")
-        val btn20 = findButton("btnFav20")
-        val btn25 = findButton("btnFav25")
-        val btn30 = findButton("btnFav30")
-        val btn35 = findButton("btnFav35")
-        val btn40 = findButton("btnFav40")
-        val btn75 = findButton("btnFav75")
-        val btnAll = findButton("btnFavAll")
-
-        val allButtons = listOfNotNull(btn15, btn20, btn25, btn30, btn35, btn40, btn75, btnAll)
-        if (allButtons.isEmpty()) return
-
-        fun applySelection(value: Int) {
-            prefs.edit { putInt(PREF_MAX_FAVORIETEN, value) }
-            allButtons.forEach { it.isChecked = false }
-            when (value) {
-                15 -> btn15?.isChecked = true
-                20 -> btn20?.isChecked = true
-                25 -> btn25?.isChecked = true
-                30 -> btn30?.isChecked = true
-                35 -> btn35?.isChecked = true
-                40 -> btn40?.isChecked = true
-                75 -> btn75?.isChecked = true
-                else -> btnAll?.isChecked = true
-            }
-        }
-
-        val current = prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
-        applySelection(current)
-
-        btn15?.setOnClickListener { applySelection(15) }
-        btn20?.setOnClickListener { applySelection(20) }
-        btn25?.setOnClickListener { applySelection(25) }
-        btn30?.setOnClickListener { applySelection(30) }
-        btn35?.setOnClickListener { applySelection(35) }
-        btn40?.setOnClickListener { applySelection(40) }
-        btn75?.setOnClickListener { applySelection(75) }
-        btnAll?.setOnClickListener { applySelection(MAX_FAVORIETEN_ALL) }
-    }
-
-    private fun setupPermissionAcknowledgements() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasSaf = SaFStorageHelper(this).getRootUri() != null
-        
-        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasBluetooth = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
-            PackageManager.PERMISSION_GRANTED
-        
-        // Exact alarm permission check (Android 13+)
-        val hasAlarm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-            alarmManager.canScheduleExactAlarms()
-        } else true
-
-        bindPermCheckBox(R.id.cbPermAudio, PREF_PERM_AUDIO_ACK, prefs, hasAudio, R.string.perm_disable_message_audio)
-        bindPermCheckBox(R.id.cbPermSaf, PREF_PERM_SAF_ACK, prefs, hasSaf, R.string.perm_disable_message_saf)
-        bindPermCheckBox(R.id.cbPermLocation, PREF_PERM_LOCATION_ACK, prefs, hasLocation, R.string.perm_disable_message_location)
-        bindPermCheckBox(R.id.cbPermCamera, PREF_PERM_CAMERA_ACK, prefs, hasCamera, 0)
-        bindPermCheckBox(R.id.cbPermBluetooth, PREF_PERM_BLUETOOTH_ACK, prefs, hasBluetooth, 0)
-        bindPermCheckBox(R.id.cbPermAlarm, PREF_PERM_ALARM_ACK, prefs, hasAlarm, 0)
-    }
-
-    private fun bindPermCheckBox(
-        id: Int,
-        key: String,
-        prefs: SharedPreferences,
-        actualGranted: Boolean,
-        disableMessageRes: Int
-    ) {
-        val cb = findViewById<MaterialCheckBox>(id)
-        var suppress = false
-        val stored = prefs.getBoolean(key, false)
-        val effective = stored || actualGranted
-        if (effective && !stored) {
-            prefs.edit { putBoolean(key, true) }
-        }
-        suppress = true
-        cb.isChecked = effective
-        suppress = false
-        cb.setOnCheckedChangeListener { _, isChecked ->
-            if (suppress) return@setOnCheckedChangeListener
-            if (!isChecked) {
-                showDisablePermissionDialog(disableMessageRes) { confirmed ->
-                    if (confirmed) {
-                        prefs.edit { putBoolean(key, false) }
-                    } else {
-                        suppress = true
-                        cb.isChecked = true
-                        suppress = false
-                    }
-                }
-            } else {
-                prefs.edit { putBoolean(key, true) }
-            }
-        }
-    }
-
-    private fun setupAiSettings() {
-        val cbAiEnabled = findViewById<MaterialCheckBox>(R.id.cbAiEnabled)
-        lifecycleScope.launch {
-            val enabled = AppDataStore.isAiEnabled(this@InstellingenScherm)
-            cbAiEnabled?.isChecked = enabled
-            cbAiEnabled?.setOnCheckedChangeListener { _, isChecked ->
-                lifecycleScope.launch {
-                    AppDataStore.setAiEnabled(this@InstellingenScherm, isChecked)
-                }
-            }
-        }
-    }
-
-    private fun setupChartSettings() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        
-        // 1. Lijndikte
-        val npThickness = findViewById<NumberPicker>(R.id.npChartThickness)
-        npThickness.minValue = 1
-        npThickness.maxValue = 5
-        npThickness.value = prefs.getInt(PREF_CHART_LINE_THICKNESS, 1)
-        npThickness.setOnValueChangedListener { _, _, newVal ->
-            prefs.edit { putInt(PREF_CHART_LINE_THICKNESS, newVal) }
-        }
-
-        // 2. Kleuren Spinners
-        val colorOptions = UiColorPrefs.getTextOptions(this) // Hergebruik bestaande tekstkleur opties
-        
-        setupChartColorSpinner(R.id.spChartColorWind, PREF_CHART_COLOR_WIND, ContextCompat.getColor(this, R.color.grafiek_beaufort), colorOptions)
-        setupChartColorSpinner(R.id.spChartColorTrek, PREF_CHART_COLOR_TREK, ContextCompat.getColor(this, R.color.grafiek_lijnkleur), colorOptions)
-        setupChartColorSpinner(R.id.spChartColorTerug, PREF_CHART_COLOR_TERUG, ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug), colorOptions)
-    }
-
-    private fun setupChartColorSpinner(spinnerId: Int, prefKey: String, defaultColor: Int, options: List<UiColorPrefs.ColorOption>) {
-        val spinner = findViewById<Spinner>(spinnerId)
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        
+        val spinner = findViewById<Spinner>(spinnerId) ?: return
+        val options = UiColorPrefs.getTextOptions(this)
         val adapter = object : BaseAdapter() {
             override fun getCount(): Int = options.size
             override fun getItem(position: Int): Any = options[position]
@@ -679,46 +322,136 @@ class InstellingenScherm : AppCompatActivity() {
                 val opt = options[position]
                 tv.text = opt.label
                 tv.setTextColor(opt.argb)
-                tv.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                tv.setBackgroundColor(Color.TRANSPARENT)
+                tv.setPadding(24, 18, 24, 18)
                 return tv
             }
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val tv = (convertView as? TextView) ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
-                val opt = options[position]
-                tv.text = opt.label
-                tv.setTextColor(opt.argb)
-                tv.setBackgroundColor(Color.parseColor("#333333")) // Donkere achtergrond voor dropdown
-                tv.setPadding(24, 16, 24, 16)
-                return tv
+                val v = getView(position, convertView, parent)
+                v.setBackgroundColor(Color.parseColor("#333333"))
+                return v
             }
         }
-        
         spinner.adapter = adapter
-        val current = prefs.getInt(prefKey, defaultColor)
-        val initialIdx = options.indexOfFirst { it.argb == current }.takeIf { it >= 0 } ?: 0
-        spinner.setSelection(initialIdx)
-        
-        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+        val current = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getInt(prefKey, defaultColor)
+        spinner.setSelection(options.indexOfFirst { it.argb == current }.coerceAtLeast(0))
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
-                prefs.edit { putInt(prefKey, options[pos].argb) }
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit { putInt(prefKey, options[pos].argb) }
             }
             override fun onNothingSelected(p0: AdapterView<*>?) {}
         }
     }
 
-    private fun showDisablePermissionDialog(messageRes: Int, onResult: (Boolean) -> Unit) {
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.perm_disable_title)
-            .setMessage(messageRes)
-            .setPositiveButton(R.string.perm_disable_confirm) { _, _ ->
-                onResult(true)
-            }
-            .setNegativeButton(R.string.perm_disable_cancel) { _, _ ->
-                onResult(false)
-            }
-            .setCancelable(false)
-            .show()
+    private fun setupMaxFavorietenButtons() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val btnMap = mapOf(
+            15 to findViewById<MaterialButton>(R.id.btnFav15),
+            20 to findViewById<MaterialButton>(R.id.btnFav20),
+            25 to findViewById<MaterialButton>(R.id.btnFav25),
+            30 to findViewById<MaterialButton>(R.id.btnFav30),
+            35 to findViewById<MaterialButton>(R.id.btnFav35),
+            40 to findViewById<MaterialButton>(R.id.btnFav40),
+            75 to findViewById<MaterialButton>(R.id.btnFav75),
+            MAX_FAVORIETEN_ALL to findViewById<MaterialButton>(R.id.btnFavAll)
+        )
 
-        DialogStyler.apply(dialog)
+        fun apply(v: Int) {
+            prefs.edit { putInt(PREF_MAX_FAVORIETEN, v) }
+            btnMap.forEach { (value, btn) -> btn?.isChecked = (value == v) }
+        }
+
+        val current = prefs.getInt(PREF_MAX_FAVORIETEN, DEFAULT_MAX_FAVORIETEN)
+        apply(current)
+
+        btnMap.forEach { (value, btn) ->
+            btn?.setOnClickListener { apply(value) }
+        }
+    }
+
+    private fun setupPermissionAcknowledgements() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val hasLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasSaf = SaFStorageHelper(this).getRootUri() != null
+        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val hasBluetooth = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        val hasAlarm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) (getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager).canScheduleExactAlarms() else true
+
+        bindPermCheckBox(R.id.cbPermAudio, PREF_PERM_AUDIO_ACK, prefs, hasAudio, R.string.perm_disable_message_audio)
+        bindPermCheckBox(R.id.cbPermSaf, PREF_PERM_SAF_ACK, prefs, hasSaf, R.string.perm_disable_message_saf)
+        bindPermCheckBox(R.id.cbPermLocation, PREF_PERM_LOCATION_ACK, prefs, hasLocation, R.string.perm_disable_message_location)
+        bindPermCheckBox(R.id.cbPermCamera, PREF_PERM_CAMERA_ACK, prefs, hasCamera, 0)
+        bindPermCheckBox(R.id.cbPermBluetooth, PREF_PERM_BLUETOOTH_ACK, prefs, hasBluetooth, 0)
+        bindPermCheckBox(R.id.cbPermAlarm, PREF_PERM_ALARM_ACK, prefs, hasAlarm, 0)
+    }
+
+    private fun bindPermCheckBox(id: Int, key: String, prefs: SharedPreferences, granted: Boolean, msg: Int) {
+        findViewById<MaterialCheckBox>(id)?.apply {
+            isChecked = prefs.getBoolean(key, false) || granted
+            setOnCheckedChangeListener { _, checked ->
+                if (!checked) showDisablePermissionDialog(msg) { ok -> if (ok) prefs.edit { putBoolean(key, false) } else isChecked = true }
+                else prefs.edit { putBoolean(key, true) }
+            }
+        }
+    }
+
+    private fun setupAiSettings() {
+        findViewById<MaterialCheckBox>(R.id.cbAiEnabled)?.apply {
+            lifecycleScope.launch {
+                isChecked = AppDataStore.isAiEnabled(this@InstellingenScherm)
+                setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setAiEnabled(this@InstellingenScherm, checked) } }
+            }
+        }
+    }
+
+    private fun setupChartSettings() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        findViewById<NumberPicker>(R.id.npChartThickness)?.apply {
+            minValue = 1; maxValue = 5; value = prefs.getInt(PREF_CHART_LINE_THICKNESS, 1)
+            setOnValueChangedListener { _, _, v -> prefs.edit { putInt(PREF_CHART_LINE_THICKNESS, v) } }
+        }
+        
+        // Filter out black/very dark colors for charts to ensure visibility on black background
+        val options = UiColorPrefs.getTextOptions(this).filter { colorOpt ->
+            val color = colorOpt.argb
+            // Simple brightness check: (R+G+B)/3 > some threshold
+            (Color.red(color) + Color.green(color) + Color.blue(color)) / 3 > 30
+        }
+        
+        setupChartColorSpinner(R.id.spChartColorWind, PREF_CHART_COLOR_WIND, ContextCompat.getColor(this, R.color.grafiek_beaufort), options)
+        setupChartColorSpinner(R.id.spChartColorTrek, PREF_CHART_COLOR_TREK, ContextCompat.getColor(this, R.color.grafiek_lijnkleur), options)
+        setupChartColorSpinner(R.id.spChartColorTerug, PREF_CHART_COLOR_TERUG, ContextCompat.getColor(this, R.color.grafiek_lijnkleur_terug), options)
+    }
+
+    private fun setupChartColorSpinner(id: Int, key: String, def: Int, opts: List<UiColorPrefs.ColorOption>) {
+        val spinner = findViewById<Spinner>(id) ?: return
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val adapter = object : BaseAdapter() {
+            override fun getCount() = opts.size
+            override fun getItem(p: Int) = opts[p]
+            override fun getItemId(p: Int) = p.toLong()
+            override fun getView(p: Int, v: View?, parent: ViewGroup): View {
+                val tv = (v as? TextView) ?: layoutInflater.inflate(R.layout.item_color_option, parent, false) as TextView
+                tv.text = opts[p].label; tv.setTextColor(opts[p].argb); tv.setBackgroundColor(Color.TRANSPARENT); return tv
+            }
+            override fun getDropDownView(p: Int, v: View?, parent: ViewGroup): View {
+                val tv = getView(p, v, parent) as TextView; tv.setBackgroundColor(Color.parseColor("#333333")); tv.setPadding(24, 16, 24, 16); return tv
+            }
+        }
+        spinner.adapter = adapter
+        spinner.setSelection(opts.indexOfFirst { it.argb == prefs.getInt(key, def) }.coerceAtLeast(0))
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) { prefs.edit { putInt(key, opts[p2].argb) } }
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
+        }
+    }
+
+    private fun showDisablePermissionDialog(msg: Int, onResult: (Boolean) -> Unit) {
+        if (msg == 0) { onResult(true); return }
+        val d = AlertDialog.Builder(this).setTitle(R.string.perm_disable_title).setMessage(msg)
+            .setPositiveButton(R.string.perm_disable_confirm) { _, _ -> onResult(true) }
+            .setNegativeButton(R.string.perm_disable_cancel) { _, _ -> onResult(false) }.setCancelable(false).create()
+        DialogStyler.apply(d); d.show()
     }
 }

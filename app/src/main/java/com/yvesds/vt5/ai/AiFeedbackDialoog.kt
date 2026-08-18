@@ -18,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
 
@@ -46,18 +47,22 @@ object AiFeedbackDialoog {
                 tvContext.text = "Historisch moment: $wind | ${temp.toInt()}°C"
 
                 val suggestionsJson = JSONObject(log.suggestions)
-                val items = suggestionsJson.optJSONArray("items") ?: return@launch
+                val items = suggestionsJson.optJSONArray("items") ?: JSONArray() // Fail-safe lege array
 
                 // 1. Haal de werkelijke aantallen van de sessie op
                 val sessionCounts = withContext(Dispatchers.IO) {
-                    db.tellingDao().getSessionCounts(log.tellingid).associateBy { it.soortid }
+                    if (log.tellingid.isBlank() || log.tellingid == "manual" || log.tellingid == "auto") emptyMap()
+                    else db.tellingDao().getSessionCounts(log.tellingid).associateBy { it.soortid }
                 }
 
                 val speciesList = mutableListOf<EvaluationItem>()
                 for (i in 0 until items.length()) {
-                    val item = items.getJSONObject(i)
-                    val speciesId = item.getString("id")
+                    val item = items.optJSONObject(i) ?: continue
+                    val speciesId = item.optString("id", "")
+                    val speciesName = item.optString("name", "Onbekende soort")
                     
+                    if (speciesId.isBlank()) continue
+
                     // 2. Automatische sterren berekening
                     val actualCount = sessionCounts[speciesId]?.count?.toFloat() ?: 0f
                     var autoStars = 0f
@@ -79,7 +84,7 @@ object AiFeedbackDialoog {
                     val existing = AiFeedbackManager.getExistingRating(context, speciesId, wind)
                     speciesList.add(EvaluationItem(
                         id = speciesId,
-                        name = item.getString("name"),
+                        name = speciesName,
                         currentRating = if (existing != null) existing * 5.0f else autoStars
                     ))
                 }

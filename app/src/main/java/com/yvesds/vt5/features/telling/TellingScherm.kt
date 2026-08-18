@@ -263,7 +263,7 @@ class TellingScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = SchermTellingBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        birdNetPendingTickerView = findViewById(R.id.tvBirdNetPendingTicker)
+        birdNetPendingTickerView = binding.tvBirdNetPendingTicker
         birdNetPendingTickerView?.isSelected = true
         setupBackPressedCallback()
 
@@ -2402,24 +2402,24 @@ class TellingScherm : AppCompatActivity() {
         val isMaster = mode == MasterClientPrefs.MODE_MASTER || mcMasterServer != null
         val active = isMaster || isClient
         val tint = if (active) ContextCompat.getColor(this, R.color.vt5_green) else Color.parseColor("#808080")
-        binding.btnMasterClientConnection.setColorFilter(tint)
-        binding.btnMasterClientConnection.contentDescription = getString(
+        binding.btnMasterClientConnection?.setColorFilter(tint)
+        binding.btnMasterClientConnection?.contentDescription = getString(
             if (active) R.string.mc_master_mode_active else R.string.mc_enable_master_mode
         )
-        binding.btnShowMasterQr.visibility = if (isMaster) View.VISIBLE else View.GONE
-        binding.btnShowMasterQr.setColorFilter(
+        binding.btnShowMasterQr?.visibility = if (isMaster) View.VISIBLE else View.GONE
+        binding.btnShowMasterQr?.setColorFilter(
             if (mcMasterServer != null) ContextCompat.getColor(this, R.color.vt5_green) else Color.parseColor("#808080")
         )
         val clientStopMode = isClientFlowLocked()
-        binding.btnAfronden.text = ""
-        binding.btnAfronden.contentDescription = getString(
+        binding.btnAfronden?.text = ""
+        binding.btnAfronden?.contentDescription = getString(
             if (clientStopMode) R.string.telling_stop_icon_description else R.string.telling_finish_icon_description
         )
-        binding.btnAfronden.setIconResource(
+        binding.btnAfronden?.setIconResource(
             if (clientStopMode) R.drawable.ic_action_stop else R.drawable.ic_action_upload
         )
-        binding.btnAfronden.isEnabled = true
-        binding.btnAfronden.alpha = 1.0f
+        binding.btnAfronden?.isEnabled = true
+        binding.btnAfronden?.alpha = 1.0f
 
         val statusText = when {
             isMaster && !McNetworkUtils.isWifiTransportActive(this) -> getString(R.string.mc_existing_wifi_required_master_short)
@@ -2443,8 +2443,8 @@ class TellingScherm : AppCompatActivity() {
             clientModeLocked -> getString(R.string.mc_existing_wifi_required_client_short)
             else -> ""
         }
-        binding.tvMasterClientStatus.text = statusText
-        binding.tvMasterClientStatus.visibility = if (statusText.isBlank()) View.GONE else View.VISIBLE
+        binding.tvMasterClientStatus?.text = statusText
+        binding.tvMasterClientStatus?.visibility = if (statusText.isBlank()) View.GONE else View.VISIBLE
         updateMasterPairingDialogStatus()
     }
 

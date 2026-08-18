@@ -149,10 +149,10 @@ class SoortSelectieScherm : AppCompatActivity() {
             }
         }
         // Pool instellen voor view recycling
-        binding.rvSoorten.setItemViewCacheSize(30)
-        binding.rvSoorten.layoutManager = glm
-        binding.rvSoorten.setHasFixedSize(true)
-        binding.rvSoorten.adapter = gridAdapter
+        binding.rvSoorten?.setItemViewCacheSize(30)
+        binding.rvSoorten?.layoutManager = glm
+        binding.rvSoorten?.setHasFixedSize(true)
+        binding.rvSoorten?.adapter = gridAdapter
 
         // SUGGESTIES: eenvoudige lijst (zelfde rijlayout)
         suggestAdapter = SoortSelectieAdapter(
@@ -175,9 +175,9 @@ class SoortSelectieScherm : AppCompatActivity() {
             }
         )
 
-        binding.rvSuggesties.layoutManager = LinearLayoutManager(this)
-        binding.rvSuggesties.setHasFixedSize(true)
-        binding.rvSuggesties.adapter = suggestAdapter
+        binding.rvSuggesties?.layoutManager = LinearLayoutManager(this)
+        binding.rvSuggesties?.setHasFixedSize(true)
+        binding.rvSuggesties?.adapter = suggestAdapter
         showSuggestions(false)
     }
 
@@ -491,9 +491,9 @@ class SoortSelectieScherm : AppCompatActivity() {
     }
 
     private fun showSuggestions(visible: Boolean) {
-        binding.rvSuggesties.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.dividerTop.visibility = binding.rvSuggesties.visibility
-        binding.dividerBottom.visibility = binding.rvSuggesties.visibility
+        binding.rvSuggesties?.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.dividerTop?.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.dividerBottom?.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {

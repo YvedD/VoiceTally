@@ -194,8 +194,11 @@ object AiInferenceEngine {
                 put("items", list)
             }.toString()
 
+            val prefs = context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
+            val currentTellingId = prefs.getString("pref_telling_id", "manual") ?: "manual"
+
             db.tellingDao().insertAiLog(com.yvesds.vt5.core.database.entities.AiLog(
-                tellingid = "auto",
+                tellingid = currentTellingId,
                 type = "scientific_v2",
                 requestContext = conditionJson,
                 suggestions = suggestionsJson

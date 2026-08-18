@@ -6,228 +6,230 @@
     android:layout_height="match_parent"
     android:layout_marginTop="45dp"
     android:layout_marginBottom="60dp"
-    android:orientation="vertical"
-    android:paddingLeft="8dp"
-    android:paddingTop="38dp"
-    android:paddingRight="8dp"
-    android:paddingBottom="48dp">
+    android:background="@color/vt5_black"
+    android:orientation="vertical">
 
-    <!-- Titel -->
+    <!-- BirdNet-GO Area & Main Buttons -->
     <LinearLayout
+        android:id="@+id/birdnet_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingBottom="1dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center_horizontal"
-            android:text="@string/telling_speech_results"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/btnToggleAlarm"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="6dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/hoofd_alarm_enabled"
-            android:src="@android:drawable/ic_lock_idle_alarm"
-            app:tint="@android:color/white" />
-
-        <ImageButton
-            android:id="@+id/btnMasterClientConnection"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="6dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/mc_enable_master_mode"
-            android:src="@drawable/ic_mc_wifi"
-            app:tint="#808080" />
-
-        <ImageButton
-            android:id="@+id/btnShowMasterQr"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="6dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/mc_show_qr_codes"
-            android:src="@drawable/ic_qr_code"
-            android:visibility="gone"
-            app:tint="#808080" />
-
-
-        <ImageButton
-            android:id="@+id/btnOpenSettings"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/instellingen_titel"
-            android:src="@android:drawable/ic_menu_preferences"
-            app:tint="@android:color/white" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/tvMasterClientStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:layout_marginBottom="4dp"
-        android:alpha="0.9"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        android:textColor="@color/vt5_on_surface"
-        android:textSize="12sp"
-        android:visibility="gone" />
-
-    <!-- Bovenste kaart: PARTIALS / niet‑finals -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardSpeechPartials"
-        android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:layout_marginTop="1dp"
-        android:layout_marginBottom="1dp"
-        app:cardCornerRadius="8dp"
-        app:cardUseCompatPadding="true"
-        app:strokeColor="@color/vt5_light_blue"
-        app:strokeWidth="4dp">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerViewSpeechPartials"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#111111"
-            android:padding="6dp" />
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Onderste kaart: FINALS -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardSpeechFinals"
-        android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:layout_marginTop="1dp"
-        android:layout_marginBottom="1dp"
-        app:cardCornerRadius="8dp"
-        app:cardUseCompatPadding="true"
-        app:strokeColor="@color/vt5_green"
-        app:strokeWidth="4dp">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerViewSpeechFinals"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#111111"
-            android:padding="6dp" />
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Actieknoppen -->
-    <LinearLayout
-        android:id="@+id/knoppenBalk1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
+        android:background="#1A1A11"
+        android:orientation="vertical"
         android:padding="4dp">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvBirdNetPendingTicker"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:paddingStart="8dp"
+                android:singleLine="true"
+                android:text="Wachten op BirdNet-GO..."
+                android:textColor="@color/vt5_orange"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnToggleAlarm"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_lock_idle_alarm"
+                app:tint="@android:color/white" />
+
+            <ImageButton
+                android:id="@+id/btnMasterClientConnection"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_mc_wifi"
+                app:tint="#808080" />
+
+            <ImageButton
+                android:id="@+id/btnShowMasterQr"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_qr_code"
+                android:visibility="gone"
+                app:tint="#808080" />
+
+            <ImageButton
+                android:id="@+id/btnOpenSettings"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_preferences"
+                app:tint="@android:color/white" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvMasterClientStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:id="@+id/birdnet_detection_frame"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:alpha="0.3"
+        android:background="@color/vt5_outline" />
+
+    <!-- Speech Results -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:orientation="vertical">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSpeechPartials"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            app:cardCornerRadius="4dp"
+            app:strokeColor="@color/vt5_light_blue"
+            app:strokeWidth="2dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewSpeechPartials"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#111111" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSpeechFinals"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_margin="1dp"
+            android:layout_weight="1.2"
+            app:cardCornerRadius="4dp"
+            app:strokeColor="@color/vt5_green"
+            app:strokeWidth="2dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewSpeechFinals"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#111111" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+
+    <!-- Action Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="2dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSaveClose"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="2dp"
+            app:icon="@drawable/ic_action_sum"
+            app:iconTint="@null" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddSoorten"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="2dp"
+            app:icon="@drawable/ic_action_add"
+            app:iconTint="@null" />
+
+        <ImageButton
+            android:id="@+id/btnBirdNet"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_birdnet_go"
+            android:visibility="gone"
+            app:tint="@android:color/white" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Totals -->
         <LinearLayout
             android:id="@+id/dailyTotalsContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:background="#222222"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp">
 
             <TextView
                 android:id="@+id/tvDailyMainTotal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="ZW 0"
-                android:textColor="@color/vt5_on_surface"
+                android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
             <View
-                android:id="@+id/viewDailyTotalsDivider"
                 android:layout_width="1dp"
-                android:layout_height="24dp"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
-                android:alpha="0.35"
-                android:background="@color/vt5_on_surface" />
+                android:layout_height="16dp"
+                android:layout_marginHorizontal="6dp"
+                android:background="#444444" />
 
             <TextView
                 android:id="@+id/tvDailyReturnTotal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="NO 0"
-                android:textColor="@color/vt5_on_surface"
+                android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSaveClose"
-            style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_margin="5dp"
-            android:contentDescription="@string/telling_totals_icon_description"
-            android:minWidth="52dp"
-            android:minHeight="52dp"
-            android:text=""
-            app:icon="@drawable/ic_action_sum"
-            app:iconPadding="0dp"
-            app:iconTint="@null" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddSoorten"
-            style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_margin="5dp"
-            android:contentDescription="@string/telling_add_icon_description"
-            android:minWidth="52dp"
-            android:minHeight="52dp"
-            android:text=""
-            app:icon="@drawable/ic_action_add"
-            app:iconPadding="0dp"
-            app:iconTint="@null" />
-
-        <ImageButton
-            android:id="@+id/btnBirdNet"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_margin="5dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="BirdNet-GO"
-            android:src="@drawable/ic_birdnet_go"
-            android:visibility="gone"
-            app:tint="@android:color/white" />
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAfronden"
             style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_margin="5dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="@string/telling_finish_icon_description"
-            android:minWidth="52dp"
-            android:minHeight="52dp"
-            android:text=""
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="2dp"
             app:icon="@drawable/ic_action_upload"
-            app:iconPadding="0dp"
             app:iconTint="@null" />
     </LinearLayout>
 
-    <!-- Grid met soort-tiles -->
+    <!-- Tiles -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewSpecies"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
+
 </LinearLayout>

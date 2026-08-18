@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="6dp">
+            android:layout_marginBottom="4dp">
 
             <TextView
                 android:id="@+id/tvDirectionHeader"
@@ -27,31 +27,70 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="3dp"
                 android:layout_weight="1"
-                android:textColor="@color/popup_bg_wit"
-                android:textSize="12sp"
+                android:textColor="@color/vt5_white"
+                android:textSize="14sp"
                 android:textStyle="bold" />
+
+            <RadioGroup
+                android:id="@+id/rgSeason"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <RadioButton
+                    android:id="@+id/rbYear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Jaar"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="10sp"
+                    android:checked="true"
+                    android:buttonTint="@color/vt5_white" />
+                <RadioButton
+                    android:id="@+id/rbSpring"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="V"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="10sp"
+                    android:buttonTint="@color/vt5_white" />
+                <RadioButton
+                    android:id="@+id/rbAutumn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="N"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="10sp"
+                    android:buttonTint="@color/vt5_white" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
 
             <CheckBox
                 android:id="@+id/cbShowTrek"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/chart_show_trek"
-                android:textColor="@color/popup_bg_wit"
+                android:textColor="@color/grafiek_lijnkleur"
                 android:buttonTint="@color/grafiek_lijnkleur"
                 android:checked="true"
-                android:paddingStart="8dp"
-                android:paddingEnd="0dp" />
+                android:paddingStart="8dp" />
 
             <CheckBox
                 android:id="@+id/cbShowReturn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
                 android:text="@string/chart_show_return"
-                android:textColor="@color/popup_bg_wit"
+                android:textColor="@color/grafiek_lijnkleur_terug"
                 android:buttonTint="@color/grafiek_lijnkleur_terug"
                 android:checked="true"
-                android:paddingStart="8dp"
-                android:paddingEnd="0dp" />
+                android:paddingStart="8dp" />
 
         </LinearLayout>
 

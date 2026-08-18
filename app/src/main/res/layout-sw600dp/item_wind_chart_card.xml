@@ -19,38 +19,81 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="12dp">
 
             <TextView
                 android:id="@+id/tvDirectionHeader"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="@color/popup_bg_wit"
-                android:textSize="14sp"
+                android:textColor="@color/vt5_white"
+                android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <RadioGroup
+                android:id="@+id/rgSeason"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <RadioButton
+                    android:id="@+id/rbYear"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Volledig Jaar"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="14sp"
+                    android:checked="true"
+                    android:buttonTint="@color/vt5_white" />
+                <RadioButton
+                    android:id="@+id/rbSpring"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:text="Voorjaar"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="14sp"
+                    android:buttonTint="@color/vt5_white" />
+                <RadioButton
+                    android:id="@+id/rbAutumn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:text="Najaar"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="14sp"
+                    android:buttonTint="@color/vt5_white" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
 
             <CheckBox
                 android:id="@+id/cbShowTrek"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/chart_show_trek"
-                android:textColor="@color/popup_bg_wit"
+                android:textColor="@color/grafiek_lijnkleur"
                 android:buttonTint="@color/grafiek_lijnkleur"
                 android:checked="true"
-                android:paddingStart="8dp"
-                android:paddingEnd="0dp" />
+                android:paddingStart="12dp"
+                android:textSize="16sp" />
 
             <CheckBox
                 android:id="@+id/cbShowReturn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
                 android:text="@string/chart_show_return"
-                android:textColor="@color/popup_bg_wit"
+                android:textColor="@color/grafiek_lijnkleur_terug"
                 android:buttonTint="@color/grafiek_lijnkleur_terug"
                 android:checked="true"
-                android:paddingStart="8dp"
-                android:paddingEnd="0dp" />
+                android:paddingStart="12dp"
+                android:textSize="16sp" />
 
         </LinearLayout>
 

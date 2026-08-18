@@ -129,6 +129,11 @@ class DatabaseBeheerScherm : AppCompatActivity() {
         val colorSessions = VicoLineChartHelper.getColorWind(this)
         val thickness = VicoLineChartHelper.getLineThicknessDp(this)
 
+        cbShowAantallen.buttonTintList = android.content.res.ColorStateList.valueOf(colorBirds)
+        cbShowAantallen.setTextColor(colorBirds)
+        cbShowTellingen.buttonTintList = android.content.res.ColorStateList.valueOf(colorSessions)
+        cbShowTellingen.setTextColor(colorSessions)
+
         val birdFormatter = CartesianValueFormatter { _, value, _ ->
             when {
                 value >= 1_000_000 -> String.format(Locale.getDefault(), "%.1fM", value / 1_000_000)

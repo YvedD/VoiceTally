@@ -163,23 +163,23 @@ class TellingUiManager(
             onSaveCloseCallback?.invoke(current)
         }
 
-        binding.btnOpenSettings.setOnClickListener {
+        binding.btnOpenSettings?.setOnClickListener {
             onOpenSettingsCallback?.invoke()
         }
 
-        binding.btnToggleAlarm.setOnClickListener {
+        binding.btnToggleAlarm?.setOnClickListener {
             onToggleAlarmCallback?.invoke()
         }
 
-        binding.btnMasterClientConnection.setOnClickListener {
+        binding.btnMasterClientConnection?.setOnClickListener {
             onMasterClientConnectionCallback?.invoke()
         }
 
-        binding.btnShowMasterQr.setOnClickListener {
+        binding.btnShowMasterQr?.setOnClickListener {
             onShowMasterQrCallback?.invoke()
         }
 
-        binding.root.findViewById<android.view.View>(R.id.btnBirdNet)?.setOnClickListener {
+        binding.btnBirdNet?.setOnClickListener {
             onBirdNetCallback?.invoke()
         }
     }
