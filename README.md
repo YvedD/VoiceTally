@@ -1,3 +1,7 @@
+# Voor ontwikkelaars: zie [DEVELOPER.md](DEVELOPER.md) voor build- en ontwikkelinstructies (Windows PowerShell, paden, BirdNET-info).
+
+# Moderne Android-versies (vooral vanaf Android 12–14) en de aangepaste beveiligingslaag Samsung Knox op Samsung-toestellen tonen vaak waarschuwingen wanneer je een APK buiten de officiële store installeert. Dat is normaal gedrag van Google Play Protect en het systeem voor “Unknown Apps”.
+
 # Moderne Android-versies (vooral vanaf Android 12–14) en de aangepaste beveiligingslaag Samsung Knox op Samsung-toestellen tonen vaak waarschuwingen wanneer je een APK buiten de officiële store installeert. Dat is normaal gedrag van Google Play Protect en het systeem voor “Unknown Apps”.
 
 Er zijn een paar legitieme manieren om die waarschuwingen te vermijden of te minimaliseren.
@@ -57,6 +61,12 @@ Daarna kan je APK’s installeren zonder dat Android het blokkeert.
 13. [Huidige Stand Scherm](#13-huidige-stand-scherm)
 14. [Telling Afronden](#14-telling-afronden)
 15. [Auto-Weather Systeem](#15-auto-weather-systeem)
+16. [AI 3-daagse Prognose & Live Suggesties](#16-ai-3-daagse-prognose--live-suggesties)
+17. [BirdNET-GO Integratie](#17-birdnet-go-integratie)
+18. [Master / Client Samenwerking](#18-master--client-samenwerking)
+19. [AI Optimalisatie & Enrichment](#19-ai-optimalisatie--enrichment)
+20. [Database & Telpost Beheer](#20-database--telpost-beheer)
+21. [Geavanceerde Instellingen](#21-geavanceerde-instellingen)
 
 ---
 
@@ -86,10 +96,12 @@ VT5 vraagt om de volgende permissies:
 | Permissie | Waarvoor nodig |
 |-----------|----------------|
 | **Microfoon** (`RECORD_AUDIO`) | Spraakherkenning voor het invoeren van waarnemingen |
-| **Locatie** (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`) | Auto-weather functie: ophalen van actuele weergegevens |
+| **Locatie** (`ACCESS_FINE_LOCATION`) | Auto-weather en AI-prognose (GPS-gebaseerd) |
 | **Opslagtoegang** (via SAF) | Bestanden opslaan en laden in `Documents/VT5/` |
+| **Camera** (`CAMERA`) | QR-code scannen voor Master/Client koppeling |
+| **Bluetooth** (`BLUETOOTH_CONNECT`) | Gebruik van BT-HID knoppen (klik-afstandsbediening) |
 | **Alarm** (`SCHEDULE_EXACT_ALARM`) | Uurlijks alarm op de 59e minuut |
-| **Trillen** (`VIBRATE`) | Feedback bij alarmmeldingen |
+| **Trillen** (`VIBRATE`) | Feedback bij alarmmeldingen en teller-interactie |
 
 De app vraagt deze permissies automatisch aan wanneer ze nodig zijn.
 
@@ -109,11 +121,14 @@ SAF (Storage Access Framework) is het moderne opslagsysteem van Android. U kiest
 
 ### Mappen Controleren/Aanmaken
 Klik op **"Controleer/Maak mappen"** om te verifiëren dat alle submappen bestaan:
-- `Documents/VT5/assets/`
-- `Documents/VT5/serverdata/`
-- `Documents/VT5/counts/`
-- `Documents/VT5/exports/`
-- `Documents/VT5/binaries/`
+- `Documents/VT5/assets/` — Configuratie & Master Aliassen
+- `Documents/VT5/serverdata/` — Trektellen metadata (soorten, locaties)
+- `Documents/VT5/counts/` — Opgeslagen tellingen (archief)
+- `Documents/VT5/exports/` — Logs & tijdelijke exports
+- `Documents/VT5/binaries/` — Geoptimaliseerde indexen (CBOR)
+- `Documents/VT5/AI-models/` — Lokale AI modellen & training data
+- `Documents/VT5/imports/` — Te importeren gegevens
+- `Documents/VT5/logs/` — Applicatielogs voor debugging
 
 ---
 
@@ -129,10 +144,17 @@ Documents/VT5/
 │   ├── alias_index.json            # Exportformaat van aliases
 │   ├── annotations.json            # Annotatie-opties (leeftijd, geslacht, kleed)
 │
+├── AI-models/                       # Lokale AI-intelligentie
+│   ├── models/                     # Getrainde modellen (.tflite / .json)
+│   ├── training_exports/           # CSV exports van jouw waarnemingen
+│   └── feedback/                   # Correcties op AI suggesties
+│
 ├── binaries/                        # Geoptimaliseerde runtime bestanden
 │   ├── aliases_optimized.cbor.gz   # Binaire alias-index (snel laden)
 │   └── species_master.cbor.gz      # Soortenlijst (binair)
 │
+├── logs/                            # App-diagnostiek
+│   └── vt5_app_log.txt             # Chronologisch logboek van app-acties
 ├── serverdata/                      # Gedownloade server data
 │   ├── species.json                # Alle vogelsoorten
 │   ├── site_species.json           # Soorten per telpost
@@ -306,17 +328,24 @@ Op elke 59ste minuut van het begonnen uur verschijn het "Totalenscherm" met de h
 Na controle is het aangeraden om de telling alsnog af te ronden en naar de server te sturen.<br>
 Na het uploaden kan je kiezen om niet verder te tellen **[Annuleren] of een vervolgtelling te starten [OK].<br>
 
-### Handmatig Tellen (Tik op Tegel)
-1. **Tik** op een soort-tegel
-2. Er verschijnt een dialoog: *"Voer aantal in voor [Soortnaam]"*
-3. Typ het aantal (bijv. `5`)
-4. Klik op **"OK"**
-5. Het aantal wordt opgeteld bij de huidige telling
+### Handmatig Tellen (Interactie met Tegels)
+De tegels zijn de primaire manier om snel aantallen toe te voegen zonder spraak.
+
+| Actie | Resultaat |
+|-------|-----------|
+| **Enkele Tik** | Voegt **+1** toe aan de hoofdrichting. |
+| **Dubbele Tik** | Voegt een instelbaar aantal toe (standaard **+10**). |
+| **Lange Druk** | Opent een numeriek toetsenbord voor exacte invoer. |
+
+### Visuele Indicatoren op Tegels
+- **Gekleurde randen**: Geven de status van de soort aan (bv. recent toegevoegd of gemarkeerd).
+- **Richting-labels**: Toont de verdeling tussen hoofdrichting (links) en tegenrichting (rechts).
+- **Handteller-modus**: Een icoon verschijnt wanneer een soort in de 'tally' modus staat voor snelle series.
 
 ### Resultaat
-- De tegel toont het nieuwe totaal
-- In het **Finals-venster** verschijnt: `Buizerd -> +5`
-- De telling wordt automatisch opgeslagen in een backup-bestand
+- De tegel toont de nieuwe totalen voor beide richtingen.
+- In het **Finals-venster** verschijnt de logregel: `Buizerd -> +5`
+- De telling wordt automatisch opgeslagen in het backup-bestand.
 
 ### Voorbeeld screenshot
 ![Metadatascherm van de app](app/src/main/images/tellingscherm.jpg)
@@ -331,14 +360,21 @@ VT5 is geoptimaliseerd voor snelle spraakherkenning van Nederlandse vogelnamen.
 - Of automatisch via voice-key handler of een BT-HID knop
 
 ### Spraakprotocol
-Spreek in het formaat: **"Soortnaam Aantal"**
+Spreek in het formaat: **"Soortnaam Aantal [Richting]"**
 
 | U zegt | Resultaat |
 |--------|-----------|
-| "Buizerd vijf" | Buizerd +5 |
-| "Koolmees" | Koolmees +1 (impliciet 1) |
-| "Wilde eend tien" | Wilde Eend +10 |
-| "Vink twee" | Vink +2 |
+| "Buizerd vijf" | Buizerd +5 (Hoofdrichting) |
+| "Koolmees" | Koolmees +1 (Impliciet 1) |
+| "Vink tien terug" | Vink +10 (**Tegenrichting**) |
+| "Sperwer twee lokaal" | Sperwer +2 (**Lokaal**) |
+
+### Richting-terug Aliassen
+U kunt specifieke woorden aanleren die als "terug" of "tegenrichting" moeten worden geïnterpreteerd:
+1. Spreek een zin uit zoals "Vink twee noord".
+2. Tik op de regel in het blauwe venster waar "noord" in staat.
+3. Koppel dit woord aan de speciale systeemsoort: **"Richting: Terug"**.
+4. Voortaan zal elk getal dat gevolgd wordt door "noord" automatisch in de tegenrichting kolom verschijnen.
 
 ### Nederlandse Getallen
 VT5 herkent Nederlandse telwoorden:
@@ -524,33 +560,120 @@ Documents/VT5/counts/<timestamp>_count_<online_id>.json
 
 ## 15. Auto-Weather Systeem
 
-VT5 kan automatisch actuele weergegevens ophalen via GPS en een weer-API.
+VT5 kan automatisch actuele weergegevens ophalen via GPS en een weer-API. Dit bespaart tijd en zorgt voor consistente metadata.
 
 ### Functie Activeren
-1. In het `MetadataScherm`, klik op **"Auto Weer"** (of wolk-icoon)
-2. Bij eerste gebruik: sta locatiepermissie toe
-3. VT5 haalt de huidige locatie op
-4. Weergegevens worden automatisch ingevuld
+1. In het `MetadataScherm`, klik op **"Auto Weer"** (wolk-icoon).
+2. De app vraagt (eenmalig) om locatiepermissie.
+3. VT5 bepaalt de huidige GPS-locatie en haalt real-time data op bij **Open-Meteo**.
 
 ### Automatisch Ingevulde Velden
 
-| Veld | Bron |
+| Veld | Bron / Berekening |
 |------|------|
-| Windrichting | GPS + weer-API (16-punts kompas) |
-| Windkracht | Windsnelheid omgezet naar Beaufort |
-| Bewolking | Cloud cover % omgezet naar achtsten |
-| Neerslag | Precipitation code |
-| Temperatuur | Actuele temperatuur in °C |
-| Zicht | Visibility in meters |
-| Luchtdruk | Sea-level pressure in hPa |
+| **Windrichting** | 16-punts kompas op basis van windsnelheidsvectoren. |
+| **Windkracht** | Omzetting van m/s naar de schaal van Beaufort. |
+| **Bewolking** | % bewolking vertaald naar achtsten (0/8 - 8/8). |
+| **Zicht** | In meters (gebaseerd op atmosferische data). |
+| **Luchtdruk** | Herleid naar zeeniveau (hPa). |
 
-### Na Auto-Weather
-- De **"Auto Weer"** knop wordt blauw gekleurd
-- De knop wordt uitgeschakeld (om dubbel ophalen te voorkomen)
-- U kunt handmatig waarden aanpassen indien nodig
+> [!TIP]
+> Bij een **vervolgtelling** wordt de eindtijd van de vorige telling automatisch als starttijd genomen, en wordt het weer-systeem direct geactiveerd om de continuïteit te waarborgen.
 
-### Weer API
-VT5 gebruikt de Open-Meteo API voor weergegevens (gratis, geen API-key nodig).
+---
+
+## 16. AI 3-daagse Prognose & Live Suggesties
+
+VT5 bevat een slim AI-subsysteem dat vogelmigratie voorspelt op basis van weerspatronen.
+
+### AI Prognosescherm
+Klik in het hoofdscherm op de **AI Forecast** knop om een 3-daagse voorspelling te zien.
+- **Dag-overzicht**: Belangrijkste weersfactoren per dag.
+- **Top Suggesties**: De 5 vogelsoorten of groepen (gilden) met de hoogste kans op trek.
+- **Corridor Boost**: De AI kijkt niet alleen naar het weer op de telpost, maar ook naar gunstige condities "stroomopwaarts" (de migratiecorridor).
+
+### Live Suggesties tijdens de telling
+Tijdens het invoeren van metadata kun je op het AI-icoon tikken voor een "Live" suggestie. De AI vertelt je dan op welke soorten je nu extra alert moet zijn.
+
+---
+
+## 17. BirdNET-GO Integratie
+
+VoiceTally kan koppelen met een **BirdNET-GO** server (bv. draaiend op een Raspberry Pi) voor automatische geluidsherkenning in het veld.
+
+### Configuratie
+1. Ga naar het BirdNET-menu in het telscherm.
+2. Gebruik **"Auto-discover"** om een server op het lokale netwerk te vinden (birdnet.local).
+3. Of stel handmatig het IP-adres en de poort in.
+
+### Live Detecties
+- **Pending Ticker**: Bovenin het scherm verschijnt een scrollende balk met "onzekere" detecties die BirdNET momenteel hoort.
+- **Detectielijst**: Klik op de BirdNET-knop om de lijst met definitieve detecties te zien.
+- **Direct Loggen**: Tik op een vinkje naast een BirdNET-detectie om deze direct toe te voegen aan je VT5-telling. De soortnamen worden automatisch vertaald naar de juiste Trektellen-soorten.
+
+---
+
+## 18. Master / Client Samenwerking
+
+Met de Master/Client modus kunnen meerdere tellers op dezelfde telpost tegelijk invoeren op hun eigen toestel.
+
+### Master (Hoofdtoestel)
+1. Eén toestel start de telling als **Master**.
+2. Klik op het Master-icoon om een **QR-code** te tonen.
+3. De Master beheert de centrale lijst en de uiteindelijke upload naar de server.
+
+### Client (Hulptoestel)
+1. Andere tellers kiezen op het hoofdscherm voor **"Join as Client"**.
+2. Scan de QR-code van de Master.
+3. Elke waarneming die de Client invoert (via spraak of tegels), verschijnt direct op het scherm van de Master en alle andere Clients.
+
+---
+
+## 19. AI Optimalisatie & Enrichment
+
+De AI van VT5 leert van jouw persoonlijke waarnemingen. Om dit proces te optimaliseren, gebruikt de app "Enrichment" (verrijking).
+
+### Gegevens Verrijken
+Klik op **"AI Update"** in het hoofdscherm om de lokale database te verrijken.
+- De app zoekt historische waarnemingen die nog geen weergegevens hebben.
+- Deze data wordt opgehaald en gekoppeld, zodat de AI exact weet bij welke weersomstandigheden jij bepaalde soorten ziet.
+
+### AI Training
+Via de knop **"AI Train"** kun je het model op je toestel opnieuw trainen. De AI analyseert dan je gehele lokale database en past zijn suggesties aan op jouw specifieke telpost en vogel-expertise.
+
+---
+
+## 20. Database & Telpost Beheer
+
+VT5 gebruikt een hybride opslagsysteem met een lokale **Room Database** voor razendsnelle toegang en betrouwbaarheid.
+
+### Database Beheer
+In het `DatabaseBeheerScherm` kun je:
+- De status van alle lokale tellingen inzien.
+- Back-ups maken of oude gegevens opschonen.
+- Data importeren vanuit CSV-bestanden.
+
+### Telpost Beheer
+U kunt uw eigen telposten en locaties beheren, los van de officiële serverlijst, voor privé-tellingen of nieuwe posten die nog niet op Trektellen staan.
+
+---
+
+## 21. Geavanceerde Instellingen
+
+In het `InstellingenScherm` kunt u de app volledig naar uw hand zetten:
+
+### Visueel
+- **Lettergrootte**: Pas de grootte van de tekst op de tegels en in de logs (partials/finals) onafhankelijk aan.
+- **Kleurenschema**: Kies uit verschillende contrastrijke thema's voor betere leesbaarheid in de zon.
+- **Grafieken**: Stel de kleuren en lijndikte in voor de trek-grafieken.
+
+### Gedrag
+- **Tegel Interactie**: Stel in hoeveel een "dubbele tik" toevoegt (bv. 10, 50 of 100).
+- **Dynamische Sortering**: Laat de meest getelde soorten automatisch bovenaan komen te staan voor snellere invoer.
+- **Opslagmodus**: Schakel tussen SAF (bestanden) en Room (database) voor hybride veiligheid.
+
+### Permissies Beheren
+Hier kunt u ook zien welke permissies (Microfoon, Locatie, Camera) zijn toegekend en deze eventueel opnieuw aanvragen.
 
 ---
 
@@ -589,4 +712,4 @@ Voor vragen of problemen, neem contact op met de app-ontwikkelaar.
 
 ---
 
-*Versie: 1.0.1 | Laatste update: 2025-12-18*
+*Versie: 2.1.0 | Laatste update: 2026-08-18*
