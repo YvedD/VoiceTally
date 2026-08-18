@@ -167,6 +167,12 @@
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />
 
+        <activity
+            android:name=".ai.AiReportListActiviteit"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
         <!-- Uurlijks alarm receivers -->
         <receiver
             android:name=".core.app.HourlyAlarmManager$HourlyAlarmReceiver"

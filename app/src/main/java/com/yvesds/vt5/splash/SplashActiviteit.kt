@@ -29,9 +29,8 @@ class SplashActiviteit : AppCompatActivity() {
     companion object {
         /**
          * Duur van de splash screen in milliseconden.
-         * Dit geeft tijd om data in de achtergrond te laden.
          */
-        private const val SPLASH_DURATION_MS = 2000L
+        private const val SPLASH_DURATION_MS = 3500L // Verhoogd om de animatie de ruimte te geven
     }
     
     private var splashJob: Job? = null
@@ -51,12 +50,36 @@ class SplashActiviteit : AppCompatActivity() {
         splashJob = lifecycleScope.launch {
             val startedAt = System.currentTimeMillis()
             val pb = findViewById<android.widget.ProgressBar>(R.id.pbLoading)
-            val ivAi = findViewById<android.widget.ImageView>(R.id.ivAiLogo)
+            val containerAi = findViewById<android.view.View>(R.id.containerAiLogo)
             val ivSplash = findViewById<android.widget.ImageView>(R.id.ivSplashLogo)
+            val tvBsi = findViewById<android.widget.TextView>(R.id.tvBsiTitle)
 
-            // Moderne transitie: Splash logo verdwijnt, BSI oog verschijnt
-            ivSplash?.animate()?.alpha(0f)?.setDuration(1500)?.start()
-            ivAi?.animate()?.alpha(1.0f)?.setDuration(1500)?.start()
+            // Opmaak van de BSI tekst: B, S en I groter maken
+            tvBsi?.let {
+                val fullText = "Bio Statistic Intelligence"
+                val spannable = android.text.SpannableString(fullText)
+                
+                // B
+                spannable.setSpan(android.text.style.RelativeSizeSpan(1.5f), 0, 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.WHITE), 0, 1, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                
+                // S
+                spannable.setSpan(android.text.style.RelativeSizeSpan(1.5f), 4, 5, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.WHITE), 4, 5, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                
+                // I
+                spannable.setSpan(android.text.style.RelativeSizeSpan(1.5f), 14, 15, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                spannable.setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.WHITE), 14, 15, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                
+                it.text = spannable
+            }
+
+            // Transitie: Splash logo verdwijnt in 1.25s, daarna BSI oog verschijnt in 1.25s
+            ivSplash?.animate()?.alpha(0f)?.setDuration(1250)?.start()
+            
+            delay(1250) // Wacht tot splash weg is
+            
+            containerAi?.animate()?.alpha(1.0f)?.setDuration(1250)?.start()
             
             // Wacht op zowel aliassen als serverdata (parallel)
             withTimeoutOrNull(10_000L) {

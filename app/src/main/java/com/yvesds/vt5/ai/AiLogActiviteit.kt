@@ -84,7 +84,6 @@ class AiLogActiviteit : AppCompatActivity() {
             val item = items[position]
             val sdf = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
             holder.tvDate.text = "${sdf.format(Date(item.timestamp))} (Sessie: ${item.tellingid})"
-            holder.rbRating.rating = item.rating.toFloat()
             
             // Parse details from context/suggestions JSON
             try {
@@ -115,7 +114,6 @@ class AiLogActiviteit : AppCompatActivity() {
 
         inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val tvDate = v.findViewById<TextView>(R.id.tvLogDate)
-            val rbRating = v.findViewById<RatingBar>(R.id.rbLogRating)
             val tvDetails = v.findViewById<TextView>(R.id.tvLogDetails)
             val tvComment = v.findViewById<TextView>(R.id.tvLogComment)
         }

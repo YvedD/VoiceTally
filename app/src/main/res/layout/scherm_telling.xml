@@ -4,7 +4,7 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="45dp"
+    android:layout_marginTop="50dp"
     android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
@@ -100,15 +100,14 @@
     <!-- Speech Results -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="180dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSpeechPartials"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="100dp"
             android:layout_margin="1dp"
-            android:layout_weight="1"
             app:cardCornerRadius="4dp"
             app:strokeColor="@color/vt5_light_blue"
             app:strokeWidth="2dp">
@@ -123,7 +122,7 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSpeechFinals"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="100dp"
             android:layout_margin="1dp"
             android:layout_weight="1.2"
             app:cardCornerRadius="4dp"

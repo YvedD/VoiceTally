@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="45dp"
+    android:layout_marginTop="50dp"
     android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical"
@@ -147,8 +147,17 @@
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="AI-Historiek"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiDailyReports"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="AI-Evaluatie"
+                android:text="Teldag Verslagen"
                 android:textSize="16sp" />
 
             <TextView

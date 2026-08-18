@@ -121,7 +121,7 @@ class ExpertKnowledgeManager(private val context: Context) {
         val startDate = date.minusDays(3).toString()
         val endDate = date.toString()
         
-        val url = "https://api.open-meteo.com/v1/forecast" +
+        val url = "https://archive-api.open-meteo.com/v1/archive" +
                 "?latitude=${ref.lat}&longitude=${ref.lon}" +
                 "&start_date=$startDate&end_date=$endDate" +
                 "&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl" +

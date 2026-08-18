@@ -60,6 +60,11 @@ object AiInferenceEngine {
         // 2. Data ophalen
         val profiles = dao.getSpeciesPhenologyProfile(dayOfYear - 10, dayOfYear + 10, cluster ?: emptyList(), if (cluster == null) 0 else 1)
         
+        // Nieuw: B/h Index ophalen voor de cluster
+        val clusterIndices = if (cluster != null) {
+            dao.getSpeciesClusterIndex(dayOfYear - 10, dayOfYear + 10, cluster).associateBy { it.soortid }
+        } else emptyMap()
+
         val currentWindDeg = cur.windDirection10m ?: 0.0
         val currentWindLabel = WeatherManager.degTo16WindLabel(currentWindDeg)
         val currentTemp = (cur.temperature2m ?: 15.0).toFloat()
@@ -114,7 +119,7 @@ object AiInferenceEngine {
             Log.d(TAG, "RAW: %-20s | S:%5.2f | M:%d | W:%.2f | T:%.2f | R:%.1f | Krent:%s".format(
                 name, total, p.count, fWind, fTime, 1.0 + regBoost, if (fSpecial > 1.0) "JA" else "NEE"))
 
-            ScoredSpecies(p.soortid, name, total, guild)
+            ScoredSpecies(p.soortid, name, total, guild, clusterIndices[p.soortid]?.clusterIndex)
         }
 
         // 4. Gilde selectie & Krenten-Highlights
@@ -138,7 +143,8 @@ object AiInferenceEngine {
                         soortnaam = w.soortnaam, 
                         kans = prob, 
                         soortid = w.soortid,
-                        latinName = latin
+                        latinName = latin,
+                        expectedIndex = w.expectedIndex
                     )
                     finalResults.add(suggestion)
                     
@@ -223,11 +229,11 @@ object AiInferenceEngine {
 
         var totalMaxScore = 0.0
         corridorData.forEach { (name, hourly) ->
-            // Zoek de meest gunstige condities in de afgelopen 12 uur voor dit punt
+            // Zoek de meest gunstige condities in de afgelopen 72 uur (3 dagen) voor dit punt
             val recentHours = hourly.filter { 
                 try {
                     val dt = java.time.LocalDateTime.parse(it.time, formatter)
-                    dt.isAfter(now.minusHours(12)) && dt.isBefore(now.plusHours(1))
+                    dt.isAfter(now.minusHours(72)) && dt.isBefore(now.plusHours(1))
                 } catch (_: Exception) { false }
             }
             
@@ -284,5 +290,11 @@ object AiInferenceEngine {
         return r * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 
-    private data class ScoredSpecies(val soortid: String, val soortnaam: String, val score: Double, val guild: SpeciesGuildMapper.Guild)
+    private data class ScoredSpecies(
+        val soortid: String, 
+        val soortnaam: String, 
+        val score: Double, 
+        val guild: SpeciesGuildMapper.Guild,
+        val expectedIndex: Float? = null
+    )
 }

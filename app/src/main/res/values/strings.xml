@@ -465,7 +465,7 @@
     <string name="telpost_beheer_titel">Telpost Beheer</string>
     <string name="telpost_beheer_hint_select">Selecteer een telpost...</string>
     <string name="telpost_beheer_btn_save">Locatie Opslaan</string>
-    <string name="telpost_beheer_btn_reset">Alle Locaties Wissen</string>
+    <string name="telpost_beheer_btn_reset">Wis Locaties</string>
     <string name="telpost_beheer_reset_confirm_title">Locaties wissen?</string>
     <string name="telpost_beheer_reset_confirm_msg">Weet je zeker dat je ALLE opgeslagen telpost-locaties wilt verwijderen? Dit kan niet ongedaan worden gemaakt.</string>
     <string name="telpost_beheer_btn_my_location">Mijn Locatie</string>

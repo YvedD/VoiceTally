@@ -1847,24 +1847,7 @@ class TellingScherm : AppCompatActivity() {
      * @param eindtijdEpoch The eindtijd to use as begintijd for the follow-up telling
      */
     private fun showVervolgtellingDialog(eindtijdEpoch: String) {
-        val tellingId = prefs.getString("pref_telling_id", "") ?: ""
-        
-        lifecycleScope.launch {
-            // Show AI Feedback dialog first if AI is enabled
-            if (com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@TellingScherm)) {
-                val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(this@TellingScherm)
-                val latestLog = db.tellingDao().getLatestAiLog()
-                if (latestLog != null) {
-                    com.yvesds.vt5.ai.AiFeedbackDialoog.show(this@TellingScherm, latestLog) {
-                        showActualVervolgtellingDialog(eindtijdEpoch)
-                    }
-                } else {
-                    showActualVervolgtellingDialog(eindtijdEpoch)
-                }
-            } else {
-                showActualVervolgtellingDialog(eindtijdEpoch)
-            }
-        }
+        showActualVervolgtellingDialog(eindtijdEpoch)
     }
 
     private fun showActualVervolgtellingDialog(eindtijdEpoch: String) {
@@ -1883,6 +1866,10 @@ class TellingScherm : AppCompatActivity() {
             .setNegativeButton(getString(R.string.dlg_cancel)) { _, _ ->
                 // Navigate to HoofdActiviteit (main screen) so user can close app or edit tellingen
                 MasterClientRuntimeStore.clearAll()
+                
+                // NIEUW: Toon het AI Teldag Verslag bij het definitief afsluiten
+                com.yvesds.vt5.ai.AiEvaluator.showEndOfDayReport(this@TellingScherm)
+                
                 val intent = Intent(this@TellingScherm, com.yvesds.vt5.hoofd.HoofdActiviteit::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 startActivity(intent)

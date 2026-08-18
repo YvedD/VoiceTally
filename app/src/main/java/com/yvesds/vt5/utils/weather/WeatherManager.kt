@@ -63,6 +63,41 @@ object WeatherManager {
         }
     }
 
+    /** Haal historische weerdata op voor een specifieke dag. */
+    suspend fun fetchHistoricalWeather(lat: Double, lon: Double, dateStrYmd: String): List<HourlyForecast>? = withContext(Dispatchers.IO) {
+        val url = "https://archive-api.open-meteo.com/v1/archive" +
+                "?latitude=$lat&longitude=$lon" +
+                "&start_date=$dateStrYmd&end_date=$dateStrYmd" +
+                "&hourly=temperature_2m,wind_speed_10m,wind_direction_10m" +
+                "&wind_speed_unit=ms" +
+                "&timezone=auto"
+        
+        Log.d(TAG, "Fetching historical weather: $url")
+        val req = Request.Builder().url(url).get().build()
+        
+        try {
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) return@use null
+                val body = resp.body?.string() ?: return@use null
+                val wr = json.decodeFromString(WeatherResponse.serializer(), body)
+                val h = wr.hourly ?: return@use null
+                val times = h.time ?: return@use null
+                
+                times.mapIndexed { i, time ->
+                    HourlyForecast(
+                        time = time,
+                        temp = h.temperature2m?.getOrNull(i),
+                        windSpeed = h.windSpeed10m?.getOrNull(i),
+                        windDeg = h.windDirection10m?.getOrNull(i)
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching historical weather: ${e.message}")
+            null
+        }
+    }
+
     /** Helper class for hourly forecast entries. */
     data class HourlyForecast(
         val time: String,
@@ -129,7 +164,7 @@ object WeatherManager {
         if (points.isEmpty()) return@withContext emptyList()
         val lats = points.joinToString(",") { it.lat.toString() }
         val lons = points.joinToString(",") { it.lon.toString() }
-        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lons&current=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl&wind_speed_unit=ms&timezone=auto"
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lons&current=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl&wind_speed_unit=ms&timezone=auto&past_days=3"
         
         try {
             val req = Request.Builder().url(url).build()
@@ -150,7 +185,7 @@ object WeatherManager {
         if (points.isEmpty()) return@withContext emptyMap()
         val lats = points.joinToString(",") { it.lat.toString() }
         val lons = points.joinToString(",") { it.lon.toString() }
-        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lons&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl&wind_speed_unit=ms&timezone=auto&forecast_days=3"
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lons&hourly=temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl&wind_speed_unit=ms&timezone=auto&forecast_days=3&past_days=3"
         
         try {
             val req = Request.Builder().url(url).build()

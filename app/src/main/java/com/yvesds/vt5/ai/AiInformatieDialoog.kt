@@ -57,7 +57,11 @@ object AiInformatieDialoog {
                 val view = LayoutInflater.from(context).inflate(R.layout.item_ai_suggestion, null)
                 view.findViewById<TextView>(R.id.tvGuild).text = item.guildName
                 val tvName = view.findViewById<TextView>(R.id.tvSpeciesName)
-                tvName.text = item.soortnaam
+                tvName.text = if (item.expectedIndex != null && item.expectedIndex > 0) {
+                    "${item.soortnaam} (BpH index %.1fex/h)".format(item.expectedIndex)
+                } else {
+                    item.soortnaam
+                }
                 tvName.setTextColor(getGuildColor(item.guildName))
                 view.findViewById<TextView>(R.id.tvProbability).text = "Gunstige condities (${item.kans}%)"
                 
@@ -100,7 +104,11 @@ object AiInformatieDialoog {
                 val ivIcon = view.findViewById<ImageView>(R.id.ivSpecies)
                 
                 tvGuild.text = item.guildName
-                tvName.text = item.soortnaam
+                tvName.text = if (item.expectedIndex != null && item.expectedIndex > 0) {
+                    "${item.soortnaam} (BpH index %.1fex/h)".format(item.expectedIndex)
+                } else {
+                    item.soortnaam
+                }
                 tvName.setTextColor(getGuildColor(item.guildName))
                 tvProb.text = "Waarschijnlijkheid: ${item.kans}%"
                 
@@ -164,6 +172,7 @@ object AiInformatieDialoog {
         val kans: Int,
         val soortid: String,
         val debugReasoning: String = "",
-        val latinName: String? = null
+        val latinName: String? = null,
+        val expectedIndex: Float? = null
     )
 }

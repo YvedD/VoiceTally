@@ -7,7 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_marginTop="45dp"
-    android:layout_marginBottom="60dp"
+    android:layout_marginBottom="80dp"
     android:background="@color/vt5_black">
 
     <!-- Container voor de Logo-transitie (Tablet) -->
@@ -24,18 +24,36 @@
             android:contentDescription="@string/app_name"
             android:src="@drawable/vt5" />
 
-        <!-- AI Layer: Groter BSI-powered oog voor tablets -->
-        <ImageView
-            android:id="@+id/ivAiLogo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+        <!-- AI Layer: BSI-powered oog dat de plaats inneemt -->
+        <LinearLayout
+            android:id="@+id/containerAiLogo"
+            android:layout_width="550dp"
+            android:layout_height="550dp"
             android:alpha="0"
-            android:contentDescription="BSI Logo"
-            android:src="@drawable/ic_vt5_ai_horizon" />
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/ivAiLogo"
+                android:layout_width="550dp"
+                android:layout_height="550dp"
+                android:contentDescription="BSI Logo"
+                android:src="@drawable/ic_vt5_ai_horizon" />
+
+            <TextView
+                android:id="@+id/tvBsiTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-60dp"
+                android:text="Bio Statistic Intelligence"
+                android:textColor="#117CAF"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </FrameLayout>
 
     <LinearLayout
-        android:layout_width="400dp"
+        android:layout_width="600dp"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="80dp"
@@ -56,7 +74,7 @@
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Voicetally 5 app version 1.0.3-f"
+            android:text="Voicetally Bio Statistic Intelligence 2.1.0"
             android:textAlignment="center"
             android:textColor="#5292DC"
             android:textSize="16sp" />

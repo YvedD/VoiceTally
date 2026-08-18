@@ -92,7 +92,7 @@ object AiFeedbackDialoog {
                 val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
                 val spanCount = if (isTablet) 2 else 1
                 rv.layoutManager = GridLayoutManager(context, spanCount)
-                rv.adapter = SpeciesEvalAdapter(context, speciesList, wind)
+                rv.adapter = SpeciesEvalAdapter(speciesList)
 
             } catch (e: Exception) {
                 Log.e("AiFeedbackDialoog", "Fout bij laden log-details: ${e.message}")
@@ -115,9 +115,7 @@ object AiFeedbackDialoog {
     )
 
     private class SpeciesEvalAdapter(
-        private val context: Context,
-        private val items: List<EvaluationItem>,
-        private val wind: String
+        private val items: List<EvaluationItem>
     ) : RecyclerView.Adapter<SpeciesEvalAdapter.ViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -127,31 +125,13 @@ object AiFeedbackDialoog {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
-            holder.tvName.text = item.name
-            
-            holder.rbRating.onRatingBarChangeListener = null
-            holder.rbRating.rating = item.currentRating
-            
-            holder.rbRating.setOnRatingBarChangeListener { _, rating, fromUser ->
-                if (fromUser) {
-                    item.currentRating = rating
-                    AiFeedbackManager.saveRating(context, item.id, rating, wind)
-                }
-            }
-
-            holder.btnReset.setOnClickListener {
-                item.currentRating = 0f
-                holder.rbRating.rating = 0f
-                AiFeedbackManager.saveRating(context, item.id, 0.0f, wind)
-            }
+            holder.tvName.text = "${item.name} (${item.currentRating.toInt()} sterren)"
         }
 
         override fun getItemCount() = items.size
 
         class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val tvName = v.findViewById<TextView>(R.id.tvSpeciesName)
-            val rbRating = v.findViewById<RatingBar>(R.id.rbSpeciesRating)
-            val btnReset = v.findViewById<View>(R.id.btnResetRating)
         }
     }
 }

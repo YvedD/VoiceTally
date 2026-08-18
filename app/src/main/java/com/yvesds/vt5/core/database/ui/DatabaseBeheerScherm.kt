@@ -109,6 +109,10 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             startActivity(Intent(this, com.yvesds.vt5.ai.AiLogActiviteit::class.java))
         }
 
+        findViewById<MaterialButton>(R.id.btnAiDailyReports).setOnClickListener {
+            startActivity(Intent(this, com.yvesds.vt5.ai.AiReportListActiviteit::class.java))
+        }
+
         findViewById<MaterialButton>(R.id.btnBatchImport).setOnClickListener {
             startExcelBatchImport()
         }
