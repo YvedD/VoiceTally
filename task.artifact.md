@@ -1,0 +1,13 @@
+- [x] Inhoudsopgave bijwerken
+- [x] Permissies tabel actualiseren
+- [x] Directory structuur en bestandslijst updaten
+- [ ] Hoofdstuk 8 (Tegels) vernieuwen (double-tap, indicators)
+- [ ] Hoofdstuk 9 & 11 aanvullen (Richting-terug aliassen)
+- [ ] Hoofdstuk 15 (Auto-Weather) uitbreiden (GPS details)
+- [ ] Hoofdstuk 16: AI 3-daagse Prognose toevoegen
+- [ ] Hoofdstuk 17: BirdNET-GO Integratie toevoegen
+- [ ] Hoofdstuk 18: Master / Client Samenwerking toevoegen
+- [ ] Hoofdstuk 19: AI Optimalisatie & Enrichment toevoegen
+- [ ] Hoofdstuk 20: Database & Telpost Beheer toevoegen
+- [ ] Hoofdstuk 21: Geavanceerde Instellingen toevoegen
+- [ ] Finale link-check & afronding

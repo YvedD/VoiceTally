@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -648,6 +649,79 @@
                 android:text="@string/instellingen_ai_description"
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="12sp" />
+
+            <!-- NIEUW: Krentenfilter (Birds of Interest) -->
+            <TextView
+                android:id="@+id/tvKrentenFilterTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"
+                android:text="Birds of Interest (Krentenfilter)"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="8dp"
+                android:text="De krentenfilter markeert zeldzame soorten op basis van jouw persoonlijke database. Soorten die minder vaak zijn waargenomen dan de drempelwaarde krijgen een boost in de AI-prognose. Let op: het aanpassen van de drempelwaarde vereist een nieuwe AI-training om de lijst bij te werken."
+                android:textColor="@color/vt5_on_surface"
+                android:alpha="0.8"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvKrentenThresholdLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Drempel (max. waarnemingen)"
+                    android:textColor="@color/vt5_on_surface"
+                    android:textSize="14sp" />
+
+                <NumberPicker
+                    android:id="@+id/npKrentenThreshold"
+                    android:layout_width="88dp"
+                    android:layout_height="70dp"
+                    android:theme="@style/Theme.VT5.NumberPicker" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApplyKrentenThreshold"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="DREMPEL TOEPASSEN"
+                android:textSize="12sp"
+                app:icon="@android:drawable/ic_menu_save" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.82"
+                android:text="Soorten met minder waarnemingen dan deze drempel worden als 'krent' gemarkeerd voor de AI-monitor."
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="11sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenKrentenMonitor"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="BEKIJK KRENTEN-MONITOR"
+                android:textSize="12sp"
+                app:icon="@android:drawable/ic_menu_view" />
 
             <View
                 android:layout_width="match_parent"

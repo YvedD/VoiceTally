@@ -12,14 +12,15 @@
 
     <!-- Container voor de Logo-transitie (Tablet) -->
     <FrameLayout
-        android:layout_width="550dp"
-        android:layout_height="550dp"
+        android:layout_width="650dp"
+        android:layout_height="650dp"
         android:layout_gravity="center">
 
         <ImageView
             android:id="@+id/ivSplashLogo"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_gravity="top|center_horizontal"
             android:adjustViewBounds="true"
             android:contentDescription="@string/app_name"
             android:src="@drawable/vt5" />
@@ -27,24 +28,23 @@
         <!-- AI Layer: BSI-powered oog dat de plaats inneemt -->
         <LinearLayout
             android:id="@+id/containerAiLogo"
-            android:layout_width="550dp"
-            android:layout_height="550dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:alpha="0"
             android:gravity="center"
             android:orientation="vertical">
 
             <ImageView
                 android:id="@+id/ivAiLogo"
-                android:layout_width="550dp"
-                android:layout_height="550dp"
+                android:layout_width="514dp"
+                android:layout_height="514dp"
                 android:contentDescription="BSI Logo"
                 android:src="@drawable/ic_vt5_ai_horizon" />
 
             <TextView
                 android:id="@+id/tvBsiTitle"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="-60dp"
+                android:layout_height="136dp"
                 android:text="Bio Statistic Intelligence"
                 android:textColor="#117CAF"
                 android:textSize="28sp"

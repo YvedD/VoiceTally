@@ -21,7 +21,7 @@ android {
 
         // Beperk ABIs tot ARM (64-bit en 32-bit). 
         // Dit verwijdert x86 en x86_64 native libs (voor emulators), wat de APK grootte 
-        // aanzienlijk verkleint (zeker bij gebruik van TensorFlow Lite).
+        // aanzienlijk verkleint.
         ndk {
             abiFilters.add("armeabi-v7a")
             abiFilters.add("arm64-v8a")

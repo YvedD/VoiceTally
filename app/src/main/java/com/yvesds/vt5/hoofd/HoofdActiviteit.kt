@@ -191,6 +191,7 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
         val btnAiTrain = findViewById<MaterialButton>(R.id.btnAiTrain)
         val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
+        val btnAiDailyReports = findViewById<MaterialButton>(R.id.btnAiDailyReports)
 
         // Alarm sectie - altijd zichtbaar
         setupAlarmSection()
@@ -209,11 +210,7 @@ class HoofdActiviteit : AppCompatActivity() {
             // Start preloading minimal data in background
             lifecycleScope.launch {
                 try {
-                    val repo = com.yvesds.vt5.features.serverdata.model.ServerDataRepository(this@HoofdActiviteit)
-                    withContext(Dispatchers.IO) {
-                        // Trigger background preload (non-blocking)
-                        repo.loadMinimalData()
-                    }
+                    val repo = com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(this@HoofdActiviteit)
                 } catch (e: Exception) {
                     Log.w(TAG, "Background preload failed (non-critical): ${e.message}")
                 }
@@ -277,6 +274,12 @@ class HoofdActiviteit : AppCompatActivity() {
             runAiTrainingFlow()
         }
 
+        btnAiDailyReports.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, com.yvesds.vt5.ai.AiReportListActiviteit::class.java))
+            it.isEnabled = true
+        }
+
         btnAiForecast?.setOnClickListener {
             startActivity(Intent(this, com.yvesds.vt5.ai.AiForecastScherm::class.java))
         }
@@ -311,8 +314,8 @@ class HoofdActiviteit : AppCompatActivity() {
                 progress.dismiss()
 
                 AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle("Training Voltooid")
-                    .setMessage("De AI heeft geleerd van je database. Het persoonlijke model is bijgewerkt en klaar voor gebruik.")
+                    .setTitle("BSI-Training Voltooid")
+                    .setMessage("De BSI heeft geleerd van je database. Het persoonlijke model is bijgewerkt en klaar voor gebruik.")
                     .setPositiveButton("OK", null)
                     .show()
 
@@ -344,9 +347,14 @@ class HoofdActiviteit : AppCompatActivity() {
                 val enrichmentManager = com.yvesds.vt5.core.database.weather.WeatherEnrichmentManager(this@HoofdActiviteit)
                 
                 // Stap A & B: Weer ophalen en Headers aanvullen
+                var lastUpdate = 0L
                 val success = enrichmentManager.performEnrichment { msg, current, total ->
-                    lifecycleScope.launch(Dispatchers.Main) {
-                        ProgressDialogHelper.updateMessage(progress, "$msg\n($current van $total)")
+                    val now = System.currentTimeMillis()
+                    if (now - lastUpdate > 100 || current == total) {
+                        lastUpdate = now
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            ProgressDialogHelper.updateMessage(progress, "$msg\n($current van $total)")
+                        }
                     }
                 }
 
@@ -354,7 +362,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
                 if (success) {
                     AlertDialog.Builder(this@HoofdActiviteit)
-                        .setTitle("Verrijking Voltooid")
+                        .setTitle("Aanvullingen voltooid")
                         .setMessage("Alle beschikbare weergegevens zijn opgehaald en ontbrekende velden in de database zijn aangevuld.")
                         .setPositiveButton("OK", null)
                         .show()
@@ -366,7 +374,7 @@ class HoofdActiviteit : AppCompatActivity() {
                 progress.dismiss()
                 Log.e(TAG, "Enrichment flow failed", e)
                 AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle("Fout bij verrijken")
+                    .setTitle("Fout bij aanvullen weergegevens")
                     .setMessage("Er is een fout opgetreden: ${e.message}")
                     .setPositiveButton("OK", null)
                     .show()

@@ -3,85 +3,77 @@ package com.yvesds.vt5.ai
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import android.util.LruCache
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.entities.SpeciesImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.json.JSONObject
-import java.net.URLEncoder
+import java.io.ByteArrayOutputStream
 
 /**
- * SpeciesImageHelper - Haalt on-the-fly vogelthumbnails op van Wikipedia/Wikimedia.
+ * SpeciesImageHelper - Geoptimaliseerde beeldlader via Wikipedia REST API.
+ * Snel, vederlicht en met lokale database-cache.
  */
 object SpeciesImageHelper {
-    private const val TAG = "SpeciesImage"
-    private val cache = LruCache<String, Bitmap>(100) 
+    private const val TAG = "SpeciesImageHelper"
+    private const val REST_API_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 
     suspend fun getThumbnail(latinName: String?): Bitmap? = withContext(Dispatchers.IO) {
         if (latinName.isNullOrBlank()) return@withContext null
         
-        // Alleen Genus + species (Wikipedia voorkeur)
-        val cleanName = latinName.split(" ").take(2).joinToString(" ")
+        val cleanLatin = latinName.split("/")[0].split("spec.")[0].trim().replace(" ", "_")
+        if (cleanLatin.isEmpty()) return@withContext null
         
-        cache.get(cleanName)?.let { return@withContext it }
+        val db = VoiceTallyDatabase.getDatabase(VT5App.instance)
+        val dao = db.tellingDao()
 
+        // 1. Check DB Cache
         try {
-            // Wikipedia API met redirects en User-Agent
-            val encodedName = URLEncoder.encode(cleanName, "UTF-8").replace("+", "%20")
-            val apiUrl = "https://en.wikipedia.org/w/api.php?action=query&titles=$encodedName&prop=pageimages&format=json&pithumbsize=250&redirects=1"
-            
-            val request = Request.Builder()
-                .url(apiUrl)
-                .header("User-Agent", "VoiceTally/5.0 (Android; Contact: yvesds@example.com)")
-                .build()
+            val cached = dao.getSpeciesImage(cleanLatin)
+            if (cached != null) return@withContext BitmapFactory.decodeByteArray(cached.thumbnailBlob, 0, cached.thumbnailBlob.size)
+        } catch (_: Exception) {}
+
+        // 2. Haal van Wikipedia REST API (Razendsnel)
+        val url = REST_API_URL + cleanLatin
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", "VoiceTally/5.0 (yves@voicetally.be)")
+            .build()
+        
+        try {
+            VT5App.http.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val body = response.body?.string() ?: return@withContext null
+                val json = JSONObject(body)
+                val thumbUrl = json.optJSONObject("thumbnail")?.optString("source") ?: return@withContext null
                 
-            val response = VT5App.http.newCall(request).execute()
-            if (!response.isSuccessful) {
-                Log.w(TAG, "API Error: ${response.code} voor $cleanName")
-                return@withContext null
+                // Download de afbeelding
+                val imgRequest = Request.Builder().url(thumbUrl).build()
+                VT5App.http.newCall(imgRequest).execute().use { imgResponse ->
+                    if (!imgResponse.isSuccessful) return@withContext null
+                    val bytes = imgResponse.body?.bytes() ?: return@withContext null
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    
+                    if (bitmap != null) {
+                        saveToCache(dao, cleanLatin, bitmap)
+                    }
+                    return@withContext bitmap
+                }
             }
-
-            val body = response.body?.string() ?: return@withContext null
-            val json = JSONObject(body)
-            val query = json.optJSONObject("query") ?: return@withContext null
-            val pages = query.optJSONObject("pages") ?: return@withContext null
-            val keys = pages.keys()
-            
-            if (!keys.hasNext()) return@withContext null
-            val pageId = keys.next()
-            if (pageId == "-1") {
-                Log.d(TAG, "Geen pagina gevonden voor: $cleanName")
-                return@withContext null
-            }
-
-            val page = pages.getJSONObject(pageId)
-            if (!page.has("thumbnail")) {
-                Log.d(TAG, "Geen thumbnail beschikbaar voor: $cleanName")
-                return@withContext null
-            }
-            
-            val imageUrl = page.getJSONObject("thumbnail").getString("source")
-
-            // Download de foto zelf
-            val imgRequest = Request.Builder()
-                .url(imageUrl)
-                .header("User-Agent", "VoiceTally/5.0")
-                .build()
-                
-            val imgResponse = VT5App.http.newCall(imgRequest).execute()
-            val bytes = imgResponse.body?.bytes() ?: return@withContext null
-            
-            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            if (bitmap != null) {
-                cache.put(cleanName, bitmap)
-                Log.i(TAG, "Succesvol geladen: $cleanName")
-            }
-            return@withContext bitmap
-            
         } catch (e: Exception) {
-            Log.w(TAG, "Fout bij ophalen $cleanName: ${e.message}")
+            Log.w(TAG, "Fetch failed for $cleanLatin: ${e.message}")
             null
         }
+    }
+
+    private suspend fun saveToCache(dao: com.yvesds.vt5.core.database.dao.TellingDao, latin: String, bitmap: Bitmap) {
+        try {
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 75, stream)
+            val blob = stream.toByteArray()
+            dao.insertSpeciesImage(SpeciesImage(latinName = latin, thumbnailBlob = blob))
+        } catch (_: Exception) {}
     }
 }

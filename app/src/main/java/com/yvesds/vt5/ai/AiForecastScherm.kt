@@ -1,23 +1,29 @@
 package com.yvesds.vt5.ai
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.card.MaterialCardView
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.utils.weather.WeatherManager
 import com.yvesds.vt5.utils.weather.Current
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
 /**
- * Scherm voor het tonen van de 3-daagse AI-prognose op basis van echte weerdata.
+ * Scherm voor het tonen van de 3-daagse AI-prognose met een professionele top-15 lijst.
  */
 class AiForecastScherm : AppCompatActivity() {
 
@@ -34,82 +40,110 @@ class AiForecastScherm : AppCompatActivity() {
 
     private fun loadForecast() {
         lifecycleScope.launch {
-            val progress = ProgressDialogHelper.show(this@AiForecastScherm, "AI haalt weersverwachting op...")
+            val progress = ProgressDialogHelper.show(this@AiForecastScherm, "AI berekent 3-daagse prognose...")
             
             try {
-                // 1. Get Location
                 val loc = WeatherManager.getLastKnownLocation(this@AiForecastScherm)
                 if (loc == null) {
                     showError("Geen locatie beschikbaar")
                     return@launch
                 }
 
-                // 2. Fetch 72-hour forecast
                 val hourlyData = WeatherManager.fetch72HourForecast(loc.latitude, loc.longitude)
                 if (hourlyData == null || hourlyData.isEmpty()) {
                     showError("Kon weersverwachting niet ophalen")
                     return@launch
                 }
 
-                // 3. Process and display daily snapshots (e.g., at 10:00 AM each day)
                 val container = findViewById<LinearLayout>(R.id.forecastContainer)
                 container.removeAllViews()
 
-                val calendar = Calendar.getInstance()
                 val sdf = SimpleDateFormat("EEEE d MMMM", Locale("nl", "BE"))
-
-                // Filter for approx 10:00 AM each day for a representative migration snapshot
                 val dailySnapshots = hourlyData.filter { it.time.endsWith("T10:00") }
+
+                // Bepaal of we op een tablet zitten voor de grid layout
+                val isTablet = resources.configuration.smallestScreenWidthDp >= 600
 
                 for (snapshot in dailySnapshots) {
                     val dayView = LayoutInflater.from(this@AiForecastScherm)
                         .inflate(R.layout.item_ai_forecast_day, container, false)
                     
-                    // Parse date from snapshot time (format: 2024-07-22T10:00)
                     val dateParts = snapshot.time.split("T")[0].split("-")
                     val snapshotCal = Calendar.getInstance().apply {
                         set(dateParts[0].toInt(), dateParts[1].toInt() - 1, dateParts[2].toInt())
                     }
                     
-                    dayView.findViewById<TextView>(R.id.tvDayTitle).text = sdf.format(snapshotCal.time)
+                    dayView.findViewById<TextView>(R.id.tvDayTitle).text = sdf.format(snapshotCal.time).replaceFirstChar { it.uppercase() }
                     
-                    // Convert wind to Beaufort and Label
                     val bft = WeatherManager.msToBeaufort(snapshot.windSpeed)
                     val windLabel = WeatherManager.degTo16WindLabel(snapshot.windDeg)
                     val temp = snapshot.temp?.roundToInt() ?: "?"
-                    
-                    val weatherSummary = "Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
+                    val weatherSummary = "Verwachting 10:00u | Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
                     dayView.findViewById<TextView>(R.id.tvWeatherSummary).text = weatherSummary
                     
-                    // 4. Deep AI Analysis (Inclusief Corridor Forecast)
-                    // We bepalen eerst de corridor boost voor dit specifieke tijdstip in de toekomst
+                    // 1. Haal corridor boost op
                     val calNow = Calendar.getInstance()
                     val isAutumn = (calNow.get(Calendar.MONTH) + 1) in 7..11
                     val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
-                    
-                    // Haal de corridor status op voor dit specifieke uur uit de cache/fetch
-                    val corridorForecast = WeatherManager.fetchCorridorForecast(points)
+                    val corridorForecast = withContext(Dispatchers.IO) { WeatherManager.fetchCorridorForecast(points) }
                     val regBoost = calculateCorridorBoostAtTime(snapshot.time, corridorForecast, isAutumn)
 
-                    val pseudoCurrent = Current(
-                        temperature2m = snapshot.temp,
-                        windSpeed10m = snapshot.windSpeed,
-                        windDirection10m = snapshot.windDeg
-                    )
-                    
+                    // 2. Voer AI Inference uit
+                    val pseudoCurrent = Current(temperature2m = snapshot.temp, windSpeed10m = snapshot.windSpeed, windDirection10m = snapshot.windDeg)
                     val suggestions = AiInferenceEngine.getSuggesties(
                         context = this@AiForecastScherm, 
                         cur = pseudoCurrent, 
-                        hourOverride = snapshot.time.substringAfter('T').substringBefore(':').toInt(),
+                        hourOverride = 10,
                         providedRegBoost = regBoost
                     )
                     
-                    // Log forecast for evaluation (type "forecast")
-                    logForecast(pseudoCurrent, suggestions, snapshot.time)
-
-                    val speciesText = buildSpeciesListText(suggestions)
+                    // 3. Vul de soorten-grid
+                    val speciesGrid = dayView.findViewById<GridLayout>(R.id.speciesGrid)
+                    speciesGrid.columnCount = if (isTablet) 2 else 1
                     
-                    dayView.findViewById<TextView>(R.id.tvSpeciesList).text = speciesText
+                    val top15 = suggestions.guildResults.sortedByDescending { it.kans }.take(15)
+                    
+                    for (item in top15) {
+                        val specView = LayoutInflater.from(this@AiForecastScherm)
+                            .inflate(R.layout.item_forecast_species, speciesGrid, false)
+                        
+                        val card = specView.findViewById<MaterialCardView>(R.id.cardSpecies)
+                        val tvName = specView.findViewById<TextView>(R.id.tvSpeciesName)
+                        val tvBph = specView.findViewById<TextView>(R.id.tvSpeciesBph)
+                        val tvProb = specView.findViewById<TextView>(R.id.tvProbability)
+                        val ivIcon = specView.findViewById<ImageView>(R.id.ivSpecies)
+                        
+                        tvName.text = item.soortnaam
+                        tvProb.text = "${item.kans}%"
+                        
+                        if (item.expectedIndex != null && item.expectedIndex > 0) {
+                            tvBph.text = "BpH index: %.2f ex/h".format(item.expectedIndex)
+                            tvBph.visibility = View.VISIBLE
+                        } else {
+                            tvBph.visibility = View.GONE
+                        }
+                        
+                        val guildColor = getGuildColor(item.guildName)
+                        card.strokeColor = guildColor
+                        
+                        // Foto laden op de achtergrond
+                        if (!item.latinName.isNullOrBlank()) {
+                            val latin = item.latinName
+                            ivIcon.tag = latin
+                            lifecycleScope.launch {
+                                val bitmap = withContext(Dispatchers.IO) { SpeciesImageHelper.getThumbnail(latin) }
+                                if (bitmap != null && ivIcon.tag == latin) ivIcon.setImageBitmap(bitmap)
+                            }
+                        }
+                        
+                        // Layout params voor grid om breedte goed te verdelen
+                        val params = GridLayout.LayoutParams()
+                        params.width = 0
+                        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                        specView.layoutParams = params
+                        
+                        speciesGrid.addView(specView)
+                    }
                     
                     container.addView(dayView)
                 }
@@ -122,36 +156,16 @@ class AiForecastScherm : AppCompatActivity() {
         }
     }
 
-    private fun logForecast(cur: Current, result: AiInformatieDialoog.AiSuggesties, time: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(this@AiForecastScherm)
-                val conditionJson = org.json.JSONObject().apply {
-                    put("temp", cur.temperature2m)
-                    put("wind", cur.windSpeed10m)
-                    put("wind_deg", cur.windDirection10m)
-                    put("forecast_time", time)
-                }.toString()
-
-                val suggestionsJson = org.json.JSONObject().apply {
-                    val list = org.json.JSONArray()
-                    result.guildResults.forEach {
-                        val item = org.json.JSONObject()
-                        item.put("name", it.soortnaam)
-                        item.put("prob", it.kans)
-                        item.put("guild", it.guildName)
-                        list.put(item)
-                    }
-                    put("items", list)
-                }.toString()
-
-                db.tellingDao().insertAiLog(com.yvesds.vt5.core.database.entities.AiLog(
-                    tellingid = "forecast_3d",
-                    type = "forecast",
-                    requestContext = conditionJson,
-                    suggestions = suggestionsJson
-                ))
-            } catch (_: Exception) {}
+    private fun getGuildColor(guildName: String): Int {
+        return when {
+            guildName.contains("Zang") -> Color.CYAN
+            guildName.contains("Roof") -> Color.YELLOW
+            guildName.contains("Reiger") -> Color.GREEN
+            guildName.contains("Zee") -> Color.MAGENTA
+            guildName.contains("Stelt") -> Color.parseColor("#FF9800")
+            guildName.contains("Water") -> Color.parseColor("#4FC3F7")
+            guildName.contains("Kust") -> Color.parseColor("#009688")
+            else -> Color.parseColor("#333333")
         }
     }
 
@@ -161,32 +175,19 @@ class AiForecastScherm : AppCompatActivity() {
         
         var totalMaxScore = 0.0
         forecast.forEach { (_, hourly) ->
-            // Zoek de meest gunstige condities in de 6 uur VOORAFGAAND aan dit teltijdstip
-            // Dit simuleert de vogels die onderweg zijn.
             val windowHours = hourly.filter { 
                 try {
                     val dt = java.time.LocalDateTime.parse(it.time, formatter)
                     dt.isAfter(targetDt.minusHours(6)) && dt.isBefore(targetDt.plusHours(1))
                 } catch (_: Exception) { false }
             }
-            
             val bestInWindow = windowHours.maxOfOrNull { entry ->
                 val cur = Current(temperature2m = entry.temp, windSpeed10m = entry.windSpeed, windDirection10m = entry.windDeg)
                 AiInferenceEngine.calculateSinglePointScore(cur, isAutumn)
             } ?: 0.0
             totalMaxScore += bestInWindow
         }
-        return totalMaxScore / forecast.size
-    }
-
-    private fun buildSpeciesListText(suggestions: AiInformatieDialoog.AiSuggesties): String {
-        if (suggestions.guildResults.isEmpty()) return "Geen specifieke prognose beschikbaar"
-        
-        // Toon de top suggesties uit de gilden
-        return suggestions.guildResults
-            .sortedByDescending { it.kans }
-            .take(5)
-            .joinToString("\n") { "• ${it.soortnaam} (${it.kans}%)" }
+        return if (forecast.isEmpty()) 0.0 else totalMaxScore / forecast.size
     }
 
     private fun showError(msg: String) {

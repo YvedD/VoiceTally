@@ -6,16 +6,15 @@
     android:layout_marginTop="50dp"
     android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
-    android:orientation="vertical"
-    android:paddingTop="30dp"
-    android:paddingBottom="40dp">
+    android:orientation="vertical">
 
+    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="10dp">
+        android:padding="12dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTerug"
@@ -24,17 +23,25 @@
             android:layout_height="wrap_content"
             android:minWidth="48dp"
             android:text="@string/instellingen_back_arrow"
-            android:textSize="18sp" />
+            android:textSize="20sp" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="16dp"
             android:layout_weight="1"
-            android:text="Teldag Verslagen"
+            android:text="Birds-of-Interest Monitor"
             android:textColor="@color/vt5_on_surface"
             android:textSize="22sp"
             android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSave"
+            style="@style/Widget.VT5.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OPSLAAN"
+            app:icon="@android:drawable/ic_menu_save" />
     </LinearLayout>
 
     <View
@@ -43,21 +50,20 @@
         android:alpha="0.3"
         android:background="@color/vt5_on_surface" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnReconstructAll"
-        style="@style/Widget.VT5.Button"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:text="RECONSTRUEER ALLE ONTBREKENDE VERSLAGEN"
-        android:textSize="12sp"
-        app:icon="@android:drawable/ic_menu_rotate" />
+        android:padding="16dp"
+        android:text="Bevestig de soorten die de BSI als 'Birds of Interest' moet markeren voor jouw regio. Deze soorten krijgen een boost in de prognoses."
+        android:textColor="@color/vt5_on_surface"
+        android:alpha="0.7"
+        android:textSize="13sp" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvReports"
+        android:id="@+id/rvKrenten"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="10dp"
-        android:clipToPadding="false" />
+        android:clipToPadding="false"
+        android:padding="8dp" />
 
 </LinearLayout>

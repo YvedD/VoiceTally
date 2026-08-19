@@ -34,6 +34,9 @@ interface TellingDao {
     @Query("SELECT * FROM telling_headers ORDER BY begintijd DESC")
     suspend fun getAllHeaders(): List<TellingHeader>
 
+    @Query("SELECT tellingid, telpostid, begintijd, eindtijd FROM telling_headers ORDER BY begintijd DESC")
+    suspend fun getAllHeadersLight(): List<HeaderLightRow>
+
     @Query("DELETE FROM waarnemingen WHERE tellingid = :tellingId")
     suspend fun deleteWaarnemingenVoorTellingById(tellingId: String): Int
 
@@ -42,6 +45,9 @@ interface TellingDao {
 
     @Update
     suspend fun updateHeader(header: TellingHeader)
+
+    @Update
+    suspend fun updateHeaders(headers: List<TellingHeader>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWaarneming(waarneming: Waarneming)
@@ -121,6 +127,9 @@ interface TellingDao {
     @Query("SELECT * FROM ai_logs ORDER BY timestamp DESC")
     fun getAllAiLogsFlow(): Flow<List<AiLog>>
 
+    @Query("SELECT * FROM ai_logs WHERE timestamp >= :start AND timestamp <= :end ORDER BY timestamp ASC")
+    suspend fun getAiLogsInRange(start: Long, end: Long): List<AiLog>
+
     @Query("SELECT * FROM ai_logs WHERE id = :id LIMIT 1")
     suspend fun getAiLogById(id: Int): AiLog?
 
@@ -137,16 +146,19 @@ interface TellingDao {
     suspend fun getAllUniqueSpeciesIds(): List<String>
 
     /**
-     * Berekent het totaal aantal exemplaren (trek) per soort over de hele database.
+     * Berekent de statistieken per soort over de hele database voor de krenten-monitor.
      */
     @Query("""
-        SELECT soortid, SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER) + CAST(aantal_plus AS INTEGER) + CAST(aantalterug_plus AS INTEGER)) as count
+        SELECT 
+            soortid, 
+            COUNT(*) as observationCount,
+            SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER) + CAST(aantal_plus AS INTEGER) + CAST(aantalterug_plus AS INTEGER)) as totalQuantity
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
         WHERE h.telpostid != '5177'
         GROUP BY soortid
     """)
-    suspend fun getGlobalSpeciesMassa(): List<SpeciesCountRow>
+    suspend fun getGlobalSpeciesMassa(): List<SpeciesMassaRow>
 
     /**
      * Haalt de totalen op voor één specifieke sessie.
@@ -177,29 +189,43 @@ interface TellingDao {
     @Query("SELECT DISTINCT soortid FROM waarnemingen")
     suspend fun getAllSpeciesIds(): List<String>
 
+    /**
+     * Haalt de massa-statistieken op voor een specifieke lijst met soorten.
+     */
+    @Query("""
+        SELECT 
+            soortid, 
+            COUNT(*) as observationCount,
+            SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER) + CAST(aantal_plus AS INTEGER) + CAST(aantalterug_plus AS INTEGER)) as totalQuantity
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE soortid IN (:speciesIds) AND h.telpostid != '5177'
+        GROUP BY soortid
+    """)
+    suspend fun getSpeciesMassaList(speciesIds: List<String>): List<SpeciesMassaRow>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertWeatherArchiveIgnore(data: List<WeatherArchive>)
 
     @Query("""
         SELECT DISTINCT telpostid, strftime('%Y', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) as year 
-        FROM telling_headers 
-        WHERE TRIM(windrichting) IN ('', 'null', '0') 
-           OR TRIM(windkracht) IN ('', 'null', '0') 
-           OR TRIM(temperatuur) IN ('', 'null', '0') 
-           OR TRIM(bewolking) IN ('', 'null', '0') 
-           OR TRIM(hpa) IN ('', 'null', '0')
+        FROM telling_headers
     """)
-    suspend fun getMissingWeatherTelpostYears(): List<TelpostYear>
+    suspend fun getAllTelpostYears(): List<TelpostYear>
 
     @Query("""
         SELECT * FROM telling_headers 
-        WHERE TRIM(windrichting) IN ('', 'null', '0') 
-           OR TRIM(windkracht) IN ('', 'null', '0') 
-           OR TRIM(temperatuur) IN ('', 'null', '0') 
-           OR TRIM(bewolking) IN ('', 'null', '0') 
-           OR TRIM(hpa) IN ('', 'null', '0')
+        WHERE TRIM(windrichting) IN ('', 'null', '0', 'nan') 
+           OR TRIM(windkracht) IN ('', 'null', '0', 'nan') 
+           OR TRIM(temperatuur) IN ('', 'null', '0', 'nan') 
+           OR TRIM(bewolking) IN ('', 'null', '0', 'nan', 'NaN') 
+           OR TRIM(hpa) IN ('', 'null', '0', 'nan')
+           OR TRIM(neerslag) IN ('', 'null', '0', 'nan', 'onbekend', '-')
     """)
-    suspend fun getHeadersWithMissingWeather(): List<TellingHeader>
+    suspend fun getHeadersWithGaps(): List<TellingHeader>
+
+    @Query("SELECT COUNT(*) FROM weather_archive WHERE locationId = :locId AND strftime('%Y', datetime(timeEpoch, 'unixepoch')) = :year")
+    suspend fun countWeatherForLocationInYear(locId: String, year: String): Int
 
     @Query("SELECT * FROM weather_archive WHERE locationId = :locId AND timeEpoch = :epoch LIMIT 1")
     suspend fun getWeather(locId: String, epoch: Long): WeatherArchive?
@@ -243,7 +269,7 @@ interface TellingDao {
     @Query("SELECT w.tellingid, w.aantal, w.aantalterug, h.begintijd, h.telpostid FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE w.soortid = :speciesId AND (:siteId IS NULL OR h.telpostid = :siteId) AND (:year IS NULL OR strftime('%Y', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) = :year) ORDER BY h.begintijd DESC LIMIT :limit OFFSET :offset")
     suspend fun getWaarnemingenWithHeaderInfo(speciesId: String, siteId: String?, year: String?, limit: Int, offset: Int): List<WaarnemingWithHeaderInfo>
 
-    @Query("SELECT w.soortid, h.begintijd as sessionStart, w.tijdstip as observationTime, h.windrichting, h.windkracht, h.temperatuur, h.bewolking, h.hpa, h.neerslag, h.telpostid FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE h.status = 'gearchiveerd' OR h.status = 'geupload'")
+    @Query("SELECT w.soortid, h.begintijd as sessionStart, w.tijdstip as observationTime, h.windrichting, h.windkracht, h.temperatuur, h.bewolking, h.hpa, h.neerslag, h.telpostid FROM waarnemingen w INNER JOIN telling_headers h ON w.tellingid = h.tellingid WHERE h.status = 'gearchiveerd' OR h.status = 'geupload' ORDER BY h.begintijd DESC")
     suspend fun getRawTrainingData(): List<RawTrainingRow>
 
     @Query("SELECT SUM(CAST(aantal AS INTEGER) + CAST(aantalterug AS INTEGER)) FROM waarnemingen WHERE CAST(tijdstip AS INTEGER) >= :start AND CAST(tijdstip AS INTEGER) <= :end")
@@ -283,6 +309,7 @@ interface TellingDao {
             SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count,
             AVG(CAST(NULLIF(h.temperatuur, '') AS FLOAT)) as avgTemp,
             UPPER(h.windrichting) as mainWind,
+            AVG(CAST(NULLIF(h.windkracht, '') AS FLOAT)) as avgBft,
             AVG(CAST(NULLIF(h.hpa, '') AS FLOAT)) as avgPressure,
             AVG(CAST(strftime('%H', datetime(CAST(MAX(w.tijdstip, h.begintijd) AS INTEGER), 'unixepoch', 'localtime')) AS INTEGER)) as avgHour,
             MAX(CAST(w.markeren AS INTEGER)) as isRemarkable
@@ -311,7 +338,7 @@ interface TellingDao {
     suspend fun getUserDailyEffort(telpostId: String, dayStart: Long, dayEnd: Long): Long?
 
     /**
-     * Berekent de totale aantallen per soort voor een specifieke telpost op een specifieke dag.
+     * Berekent de totale aantallen per soort for een specifieke telpost op een specifieke dag.
      */
     @Query("""
         SELECT w.soortid, SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
@@ -380,9 +407,78 @@ interface TellingDao {
         LIMIT :limit
     """)
     suspend fun getPeakDaysForSpecies(speciesIds: List<String>, limit: Int): List<PeakDayRow>
+
+    /**
+     * Haalt alle actieve telposten op voor een specifieke dag (start van de dag in seconden).
+     */
+    @Query("""
+        SELECT DISTINCT telpostid FROM telling_headers 
+        WHERE (CAST(begintijd AS INTEGER) / 86400) * 86400 = :dayEpoch
+    """)
+    suspend fun getActiveSitesForDay(dayEpoch: Long): List<String>
+
+    /**
+     * Haalt de totalen per soort op per telpost voor een specifieke dag.
+     */
+    @Query("""
+        SELECT 
+            h.telpostid as soortid, 
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE (CAST(h.begintijd AS INTEGER) / 86400) * 86400 = :dayEpoch AND w.soortid = :speciesId
+        GROUP BY h.telpostid
+    """)
+    suspend fun getSpeciesCountPerSiteForDay(dayEpoch: Long, speciesId: String): List<SpeciesCountRow>
+
+    /**
+     * Haalt alle unieke soort-IDs op die op een specifieke dag zijn waargenomen.
+     */
+    @Query("""
+        SELECT DISTINCT soortid FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE (CAST(h.begintijd AS INTEGER) / 86400) * 86400 = :dayEpoch
+    """)
+    suspend fun getSeenSpeciesIdsForDay(dayEpoch: Long): List<String>
+
+    /**
+     * AI Dagrapport (DailyAnalysis) operaties
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyAnalysis(analysis: DailyAnalysis)
+
+    @Query("SELECT dayEpoch, type FROM daily_analysis")
+    suspend fun getAllAnalyzedDays(): List<AnalyzedDayRow>
+
+    @Query("SELECT * FROM daily_analysis WHERE dayEpoch = :dayEpoch LIMIT 1")
+    suspend fun getDailyAnalysis(dayEpoch: Long): DailyAnalysis?
+
+    @Query("SELECT * FROM daily_analysis ORDER BY dayEpoch DESC")
+    fun getAllDailyAnalysisFlow(): Flow<List<DailyAnalysis>>
+
+    @Query("DELETE FROM daily_analysis WHERE dayEpoch = :dayEpoch")
+    suspend fun deleteDailyAnalysis(dayEpoch: Long)
+
+    @Query("DELETE FROM daily_analysis")
+    suspend fun clearDailyAnalysis()
+
+    @Query("SELECT COUNT(*) FROM daily_analysis")
+    suspend fun countDailyAnalysis(): Int
+
+    /**
+     * Vogelbeeld-cache (SpeciesImage) operaties
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSpeciesImage(image: SpeciesImage)
+
+    @Query("SELECT * FROM species_images WHERE latinName = :latin LIMIT 1")
+    suspend fun getSpeciesImage(latin: String): SpeciesImage?
 }
 
 data class SpeciesCountRow(val soortid: String, val count: Int)
+data class HeaderLightRow(val tellingid: String, val telpostid: String, val begintijd: String, val eindtijd: String)
+data class AnalyzedDayRow(val dayEpoch: Long, val type: String)
+data class SpeciesMassaRow(val soortid: String, val observationCount: Int, val totalQuantity: Long)
 data class SpeciesClusterIndex(val soortid: String, val clusterIndex: Float, val activePosts: Int)
 data class TelpostYear(val telpostid: String, val year: String)
 data class DayCountRow(val dayEpoch: Long, val count: Long)

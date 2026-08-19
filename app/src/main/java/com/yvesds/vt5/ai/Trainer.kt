@@ -19,7 +19,7 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
 
     suspend fun runOnDeviceTraining(onProgress: (String, Int, Int) -> Unit) = withContext(Dispatchers.Default) {
         try {
-            Log.i(TAG, "Start BSI & Neural Training...")
+            Log.i(TAG, "Start BSI Training...")
             onProgress("Historische data analyseren...", 5, 100)
             
             val db = VoiceTallyDatabase.getDatabase(context)
@@ -52,7 +52,8 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             trainingSamples.forEachIndexed { index, sample ->
                 engine.train(sample.features, sample.labelIndex)
                 
-                if (index % 500 == 0) {
+                // Minder frequente updates om de Main thread te ontlasten (was 500)
+                if (index % 2500 == 0 || index == total - 1) {
                     count = index
                     val perc = (20 + (index.toFloat() / total * 75)).toInt()
                     onProgress("AI leert van waarnemingen...\n($index van $total)", perc, 100)
@@ -70,10 +71,32 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 onProgress(msg, curr, total)
             }
 
-            // 7. Genereer Wetenschappelijke Taxonomie JSON (NIEUW)
-            onProgress("Wetenschappelijke taxonomie bijwerken...", 99, 100)
+            // 7. Genereer Wetenschappelijke Taxonomie JSON
+            onProgress("Wetenschappelijke taxonomie bijwerken...", 98, 100)
             val taxonomyManager = TaxonomyManager(context)
             taxonomyManager.generateActiveTaxonomyJson()
+
+            // 8. Vogelbeelden archiveren (PROACTIEF)
+            val snapshot = try { com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(context) } catch(_: Exception) { null }
+            if (snapshot != null) {
+                val uniqueSids = trainingSamples.map { allSpecies[it.labelIndex] }.distinct()
+                val totalSids = uniqueSids.size
+                
+                uniqueSids.forEachIndexed { i, sid ->
+                    val latin = snapshot.speciesById[sid]?.latin
+                    val name = snapshot.speciesById[sid]?.soortnaam ?: sid
+                    
+                    if (!latin.isNullOrBlank()) {
+                        if (i % 5 == 0) {
+                            onProgress("Beelden archiveren: $name (${i+1}/$totalSids)...", 99, 100)
+                        }
+                        // Alleen ophalen als het nog niet in de DB staat
+                        SpeciesImageHelper.getThumbnail(latin)
+                        // Kleine adempauze voor de API
+                        delay(50)
+                    }
+                }
+            }
 
             onProgress("Training succesvol voltooid!", 100, 100)
             Log.i(TAG, "Neural training voltooid.")

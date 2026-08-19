@@ -510,6 +510,78 @@
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="12dp"
+                        android:alpha="0.1"
+                        android:background="@android:color/white" />
+
+                    <!-- NIEUW: Krentenfilter (Birds of Interest) -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Birds of Interest (Krentenfilter)"
+                        android:textColor="@color/vt5_light_blue"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingBottom="12dp"
+                        android:text="De krentenfilter markeert zeldzame soorten op basis van jouw persoonlijke database. Soorten die minder vaak zijn waargenomen dan de drempelwaarde krijgen een boost in de AI-prognose. Let op: het aanpassen van de drempelwaarde vereist een nieuwe AI-training om de lijst bij te werken."
+                        android:textColor="@color/vt5_on_surface"
+                        android:alpha="0.8"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Drempel (max. waarnemingen)"
+                            android:textColor="@color/vt5_on_surface" />
+
+                        <NumberPicker
+                            android:id="@+id/npKrentenThreshold"
+                            android:layout_width="80dp"
+                            android:layout_height="100dp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnApplyKrentenThreshold"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="DREMPEL TOEPASSEN"
+                        app:icon="@android:drawable/ic_menu_save" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:alpha="0.7"
+                        android:text="Soorten met minder waarnemingen dan deze drempel worden als 'krent' gemarkeerd voor de AI-monitor."
+                        android:textColor="@color/vt5_on_surface"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenKrentenMonitor"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="BEKIJK KRENTEN-MONITOR"
+                        app:icon="@android:drawable/ic_menu_view" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
                         android:layout_marginVertical="16dp"
                         android:alpha="0.1"
                         android:background="@android:color/white" />

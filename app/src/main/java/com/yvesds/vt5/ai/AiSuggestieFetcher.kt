@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
  * 
  * Logic:
  * - Shows a progress dialog during analysis to avoid user confusion.
- * - Triggers the inference calculation (DB stats or TFLite).
+ * - Triggers the inference calculation (BSI DB stats).
  * - Displays the results in the styled AiInformatieDialoog.
  */
 object AiSuggestieFetcher {

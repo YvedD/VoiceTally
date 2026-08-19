@@ -8,7 +8,7 @@ import java.io.IOException
 
 /**
  * Utility for BSI Model management.
- * TFLite functionality has been removed in favor of Plan B (Bio-Statistische Intelligentie).
+ * (TFLite functionality is not used in this project).
  */
 object ModelManager {
     private const val TAG = "ModelManager"
@@ -19,11 +19,10 @@ object ModelManager {
     private var loadedModel: LoadedModel? = null
 
     /**
-     * Stub for ModelManager compatibility after removing TFLite.
+     * Stub for ModelManager compatibility.
      */
     fun loadAndSet(context: Context): String? {
-        // BSI doesn't need an external model file, but we can load labels if needed.
-        Log.i(TAG, "BSI Model Manager initialized (No TFLite needed)")
+        Log.i(TAG, "BSI Model Manager initialized")
         return null
     }
 

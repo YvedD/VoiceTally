@@ -216,7 +216,7 @@ object AiInferenceEngine {
         return modelStore.loadExpertKnowledge()
     }
 
-    private suspend fun getLiveCorridorBoost(month: Int): Double {
+    suspend fun getLiveCorridorBoost(month: Int): Double {
         val isAutumn = month in 7..11
         val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
         
@@ -245,6 +245,36 @@ object AiInferenceEngine {
         }
         
         return totalMaxScore / points.size
+    }
+
+    /**
+     * NIEUW: Haalt de corridor boost op uit de lokale database voor een historisch moment.
+     */
+    suspend fun getHistoricalCorridorBoost(context: Context, dayEpoch: Long, month: Int): Double = withContext(Dispatchers.IO) {
+        val isAutumn = month in 7..11
+        val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
+        val db = VoiceTallyDatabase.getDatabase(context)
+        val dao = db.tellingDao()
+
+        var totalMaxScore = 0.0
+        val windowStart = dayEpoch - (72 * 3600)
+        
+        points.forEach { point ->
+            var bestPointScore = 0.0
+            // Check elk uur in het 72-uurs venster in het archief
+            for (hour in 0 until 72) {
+                val checkEpoch = windowStart + (hour * 3600)
+                val w = dao.getWeather(point.name, checkEpoch)
+                if (w != null) {
+                    val cur = Current(temperature2m = w.temp, windSpeed10m = w.windSpeed10m, windDirection10m = w.windDir10m, pressureMsl = w.pressureMsl)
+                    val score = calculateSinglePointScore(cur, isAutumn)
+                    if (score > bestPointScore) bestPointScore = score
+                }
+            }
+            totalMaxScore += bestPointScore
+        }
+        
+        return@withContext totalMaxScore / points.size
     }
 
     fun calculateSinglePointScore(cur: Current, isAutumn: Boolean): Double {

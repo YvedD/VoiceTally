@@ -23,12 +23,14 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.opslag.AppDataStore
 import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.UiColorPrefs
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * InstellingenScherm - Scherm voor app-instellingen met volledige tablet-synchronisatie.
@@ -49,6 +51,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_DYNAMIC_TILE_SORTING_ENABLED = "pref_dynamic_tile_sorting_enabled"
         const val PREF_SERVER_RESPONSE_LOGGING_ENABLED = "pref_server_response_logging_enabled"
         const val PREF_STORAGE_MODE = "pref_storage_mode"
+        const val EXTRA_TRIGGER_AI_TRAINING = "extra_trigger_ai_training"
 
         const val PREF_CHART_LINE_THICKNESS = "pref_chart_line_thickness"
         const val PREF_CHART_COLOR_WIND = "pref_chart_color_wind"
@@ -153,6 +156,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
             setupAiSettings()
+            setupKrentenFilterSettings()
             setupChartSettings()
         } catch (t: Throwable) {
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
@@ -403,6 +407,65 @@ class InstellingenScherm : AppCompatActivity() {
                 setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setAiEnabled(this@InstellingenScherm, checked) } }
             }
         }
+    }
+
+    private fun setupKrentenFilterSettings() {
+        val np = findViewById<NumberPicker>(R.id.npKrentenThreshold) ?: return
+        np.minValue = 1
+        np.maxValue = 500
+        np.wrapSelectorWheel = false
+
+        lifecycleScope.launch {
+            val currentThreshold = AppDataStore.getKrentenThreshold(this@InstellingenScherm)
+            np.value = currentThreshold
+        }
+
+        findViewById<MaterialButton>(R.id.btnApplyKrentenThreshold)?.setOnClickListener {
+            val newVal = np.value
+            lifecycleScope.launch {
+                val currentInStore = AppDataStore.getKrentenThreshold(this@InstellingenScherm)
+                if (newVal != currentInStore) {
+                    showKrentenThresholdWarning(newVal)
+                } else {
+                    Toast.makeText(this@InstellingenScherm, "Drempel is al ingesteld op $newVal", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        
+        findViewById<MaterialButton>(R.id.btnOpenKrentenMonitor)?.setOnClickListener {
+            startActivity(Intent(this, com.yvesds.vt5.ai.KrentenMonitorActiviteit::class.java))
+        }
+    }
+
+    private fun showKrentenThresholdWarning(newVal: Int) {
+        val builder = AlertDialog.Builder(this)
+            .setTitle("AI Training Vereist")
+            .setMessage("Het wijzigen van de krenten-drempel vereist een nieuwe AI-training om de lijst met 'Birds of Interest' te verversen.\n\nWilt u de drempel aanpassen naar $newVal en de training nu starten?")
+            .setPositiveButton("JA, START TRAINING") { dialog, _ ->
+                lifecycleScope.launch {
+                    AppDataStore.setKrentenThreshold(this@InstellingenScherm, newVal)
+                    dialog.dismiss()
+                    // Ga terug naar hoofdscherm en trigger training
+                    val intent = Intent(this@InstellingenScherm, HoofdActiviteit::class.java)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    intent.putExtra(EXTRA_TRIGGER_AI_TRAINING, true)
+                    startActivity(intent)
+                    finish()
+                }
+            }
+            .setNegativeButton("ANNULEREN") { dialog, _ ->
+                dialog.dismiss()
+                // Reset de NumberPicker naar de oude waarde
+                lifecycleScope.launch {
+                    val oldVal = AppDataStore.getKrentenThreshold(this@InstellingenScherm)
+                    findViewById<NumberPicker>(R.id.npKrentenThreshold)?.value = oldVal
+                }
+            }
+            .setCancelable(false)
+        
+        val dialog = builder.create()
+        dialog.show()
+        DialogStyler.apply(dialog)
     }
 
     private fun setupChartSettings() {

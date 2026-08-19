@@ -77,12 +77,15 @@ class ExpertKnowledgeManager(private val context: Context) {
             // 7. Zelf-ontdekkende Krenten-motor (Gefilterd op VisMig relevantie)
             onProgress("Zeldzaamheden identificeren uit database...", 90, 100)
             
+            // Haal de dynamische drempelwaarde op uit de instellingen
+            val threshold = com.yvesds.vt5.core.opslag.AppDataStore.getKrentenThreshold(context)
+            
             // Laad serverdata voor filters
             val snapshot = try { com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(context) } catch (_: Exception) { null }
             
             val globalMassa = db.tellingDao().getGlobalSpeciesMassa()
             val discoveredKrenten = globalMassa
-                .filter { it.count in 1..100 }
+                .filter { it.observationCount in 1..threshold }
                 .filter { p ->
                     val species = snapshot?.speciesById?.get(p.soortid)
                     val name = species?.soortnaam?.lowercase() ?: ""

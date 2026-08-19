@@ -5,20 +5,21 @@ import android.util.Log
 import androidx.appcompat.app.AlertDialog
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.entities.DailyAnalysis
 import com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.utils.weather.WeatherManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
-import java.util.Date
 
 /**
  * AiEvaluator - Wetenschappelijke prestatie-analyse op basis van Catch Per Unit Effort (CPUE).
+ * Nu met historisch corridor-bewustzijn voor dagrapporten uit het verleden.
  */
 object AiEvaluator {
 
@@ -46,158 +47,154 @@ object AiEvaluator {
 
     /**
      * Genereert en toont een eindrapport van de teldag.
-     * @param dateMillis De start van de dag in milliseconden. Indien null wordt 'vandaag' gebruikt.
      */
     fun showEndOfDayReport(context: Context, dateMillis: Long? = null) {
-        val prefs = context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
-        val telpostId = prefs.getString("pref_telpost_id", "") ?: return
-        
-        CoroutineScope(Dispatchers.Main).launch {
+        CoroutineScope(Dispatchers.Default).launch {
             try {
-                val db = VoiceTallyDatabase.getDatabase(context)
-                val dao = db.tellingDao()
-                
                 val cal = Calendar.getInstance()
                 if (dateMillis != null) cal.timeInMillis = dateMillis
+                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
                 
-                cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0)
-                val startDay = cal.timeInMillis / 1000
-                cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59)
-                val endDay = cal.timeInMillis / 1000
+                reconstructAndSaveReport(context, cal.timeInMillis)
                 
-                val totalSeconds = withContext(Dispatchers.IO) { dao.getUserDailyEffort(telpostId, startDay, endDay) } ?: 0L
-                if (totalSeconds < 300) {
-                    if (dateMillis != null) {
-                         AlertDialog.Builder(context).setTitle("Geen data").setMessage("Geen telsessies gevonden voor deze dag.").setPositiveButton("OK", null).show()
-                    }
-                    return@launch
-                }
-                
-                val durationHours = totalSeconds / 3600.0
-                val userYieldRows = withContext(Dispatchers.IO) { dao.getUserDailyYield(telpostId, startDay, endDay) }
-                val userYield = userYieldRows.associateBy { it.soortid }
-                
-                val targetSpecies = mutableMapOf<String, AiInformatieDialoog.GuildSuggestie>()
-                
-                // 3a. Haal soorten uit de bestaande logs van deze specifieke dag
-                val logs = withContext(Dispatchers.IO) { dao.getAllAiLogsFlow() }.first().filter { it.timestamp >= startDay * 1000 && it.timestamp <= endDay * 1000 }
-                logs.forEach { log ->
-                    try {
-                        val json = JSONObject(log.suggestions)
-                        val items = json.getJSONArray("items")
-                        for (i in 0 until items.length()) {
-                            val obj = items.getJSONObject(i)
-                            val id = obj.getString("id")
-                            if (!targetSpecies.containsKey(id)) {
-                                targetSpecies[id] = AiInformatieDialoog.GuildSuggestie(
-                                    guildName = obj.optString("guild"),
-                                    soortnaam = obj.getString("name"),
-                                    kans = obj.getInt("prob"),
-                                    soortid = id
-                                )
-                            }
-                        }
-                    } catch (_: Exception) {}
-                }
-
-                // 3b. "Stille Prognose": Reconstrueer doelsoorten op basis van sessie-weer
-                if (targetSpecies.size < 5) {
-                    val todaysHeaders = withContext(Dispatchers.IO) { 
-                        dao.getAllHeaders().filter { 
-                            val bt = it.begintijd.toLongOrNull() ?: 0L
-                            bt >= startDay && bt <= endDay 
-                        } 
-                    }
-                    
-                    val loc = WeatherManager.getLastKnownLocation(context)
-                    val lat = loc?.latitude ?: 51.0
-                    val lon = loc?.longitude ?: 3.0
-                    val dateStrYmd = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(cal.time)
-                    val dayWeather = WeatherManager.fetchHistoricalWeather(lat, lon, dateStrYmd)
-
-                    todaysHeaders.forEach { header ->
-                        val bt = header.begintijd.toLongOrNull() ?: 0L
-                        val hour = Calendar.getInstance().apply { timeInMillis = bt * 1000 }.get(Calendar.HOUR_OF_DAY)
-                        
-                        val headerWindBft = header.windkracht.toDoubleOrNull() ?: 0.0
-                        val windDeg = parseWindLabelToDegrees(header.windrichting) ?: dayWeather?.getOrNull(hour)?.windDeg ?: 0.0
-                        val windMs = if (headerWindBft > 0) headerWindBft * 0.8 else dayWeather?.getOrNull(hour)?.windSpeed ?: 0.0
-                        val temp = header.temperatuur.toDoubleOrNull() ?: dayWeather?.getOrNull(hour)?.temp ?: 15.0
-                        
-                        val pseudoCurrent = com.yvesds.vt5.utils.weather.Current(
-                            temperature2m = temp,
-                            windSpeed10m = windMs,
-                            windDirection10m = windDeg
-                        )
-
-                        val sessionSuggesties = AiInferenceEngine.getSuggesties(context, pseudoCurrent, hourOverride = hour)
-                        sessionSuggesties.guildResults.forEach { s ->
-                            if (!targetSpecies.containsKey(s.soortid)) targetSpecies[s.soortid] = s
-                        }
-                    }
-                }
-
-                val reportItems = mutableListOf<String>()
-                val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
-                val loc = WeatherManager.getLastKnownLocation(context)
-                val saf = SaFStorageHelper(context)
-                
-                val clusterIds = withContext(Dispatchers.IO) { 
-                    getLocalSiteClusterIds(saf, loc?.latitude ?: 51.0, loc?.longitude ?: 3.0) 
-                } ?: listOf(telpostId)
-                
-                val indices = withContext(Dispatchers.IO) {
-                    dao.getSpeciesClusterIndex(dayOfYear - 10, dayOfYear + 10, clusterIds).associateBy { it.soortid }
-                }
-
-                val dayStarsList = mutableListOf<Int>()
-                targetSpecies.values.sortedByDescending { it.kans }.forEach { target ->
-                    val count = userYield[target.soortid]?.count ?: 0
-                    val index = indices[target.soortid]?.clusterIndex
-                    val starsCount = calculateStars(count, durationHours, index)
-                    
-                    if (count > 0 || starsCount > 0) {
-                        val stars = "⭐".repeat(starsCount).ifEmpty { "☁️" }
-                        reportItems.add("${target.soortnaam}: $stars ($count ex)")
-                        dayStarsList.add(starsCount)
-                        
-                        // ZELFLERENDE LUS: Sla de score op in het brein (JSON)
-                        // EXCLUSIE: VoiceTally Testsite (5177) nooit meenemen in feedback
-                        if (telpostId != "5177") {
-                            val windForFeedback = logs.lastOrNull()?.let { 
-                                try { JSONObject(it.requestContext).optString("wind") } catch(_: Exception) { null }
-                            } ?: "Onbekend"
-                            AiFeedbackManager.saveRating(context, target.soortid, starsCount.toFloat(), windForFeedback)
-                        }
-                    }
-                }
-
-                // 5. Update de database logs met de gemiddelde dag-score
-                if (dayStarsList.isNotEmpty() && telpostId != "5177") {
-                    val avgDayRating = dayStarsList.average().toInt()
-                    withContext(Dispatchers.IO) {
-                        logs.forEach { log ->
-                            log.rating = avgDayRating
-                            dao.updateAiLog(log)
-                        }
-                    }
-                }
-
-                if (reportItems.isNotEmpty()) {
-                    val sdfDisplay = java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale("nl", "BE"))
-                    val dateStr = sdfDisplay.format(cal.time)
-                    val durationText = "%du %02dm".format(totalSeconds / 3600, (totalSeconds % 3600) / 60)
+                withContext(Dispatchers.Main) {
+                    val sdf = java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale("nl", "BE"))
                     AlertDialog.Builder(context)
-                        .setTitle("AI Evaluatie: $dateStr")
-                        .setMessage("Totaal geteld op deze post: $durationText\n\nResultaten t.o.v. de cluster:\n\n" + reportItems.joinToString("\n"))
-                        .setPositiveButton("Mooi!") { d, _ -> d.dismiss() }
+                        .setTitle("Analyse Voltooid")
+                        .setMessage("Het AI-verslag voor ${sdf.format(cal.time)} is opgeslagen in het archief.")
+                        .setPositiveButton("BEKIJK") { _, _ ->
+                            val intent = android.content.Intent(context, AiReportDetailsActiviteit::class.java)
+                            intent.putExtra("date_millis", cal.timeInMillis)
+                            context.startActivity(intent)
+                        }
+                        .setNegativeButton("SLUITEN", null)
                         .show()
-                } else if (dateMillis != null) {
-                    AlertDialog.Builder(context).setTitle("Geen evaluatie").setMessage("Kon geen relevante AI-evaluatie genereren voor deze dag.").setPositiveButton("OK", null).show()
                 }
             } catch (e: Exception) {
-                Log.e("AiEvaluator", "Error generating report: ${e.message}", e)
+                Log.e("AiEvaluator", "Error in showEndOfDayReport: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * De "Tijdsmachine": Reconstrueert een complete teldag en slaat deze op in de DailyAnalysis kluis.
+     * Gebruikt het lokale weer-archief voor historisch correcte corridor boosts.
+     */
+    suspend fun reconstructAndSaveReport(context: Context, dateMillis: Long) = withContext(Dispatchers.Default) {
+        try {
+            val db = VoiceTallyDatabase.getDatabase(context)
+            val dao = db.tellingDao()
+            
+            val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+            cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+            val startDay = cal.timeInMillis / 1000
+            val endDay = startDay + 86399
+
+            val dayHeaders = dao.getAllHeaders().filter { (it.begintijd.toLongOrNull() ?: 0L) in startDay..endDay }
+            if (dayHeaders.isEmpty()) return@withContext
+
+            val loc = WeatherManager.getLastKnownLocation(context)
+            val lat = loc?.latitude ?: 51.0
+            val lon = loc?.longitude ?: 3.0
+            val dateStrYmd = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(cal.time)
+            
+            // 1. Data-verwerving (Lokaal Archief)
+            val month = cal.get(Calendar.MONTH) + 1
+            val dayBoost = AiInferenceEngine.getHistoricalCorridorBoost(context, startDay, month)
+            
+            val isAutumn = month in 7..11
+            val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
+            val corridorHistoryMap = mutableMapOf<String, List<com.yvesds.vt5.core.database.entities.WeatherArchive>>()
+            
+            points.forEach { point ->
+                val list = mutableListOf<com.yvesds.vt5.core.database.entities.WeatherArchive>()
+                for (h in 0 until 72) {
+                    val checkEpoch = startDay - (72 * 3600) + (h * 3600)
+                    dao.getWeather(point.name, checkEpoch)?.let { list.add(it) }
+                }
+                corridorHistoryMap[point.name] = list
+            }
+
+            // 2. Inspanning & Norm-berekening
+            val totalSeconds = dayHeaders.sumOf { (it.eindtijd.toLongOrNull() ?: 0L) - (it.begintijd.toLongOrNull() ?: 0L) }
+            val durationHours = totalSeconds / 3600.0
+            val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
+            val saf = SaFStorageHelper(context)
+            val clusterIds = getLocalSiteClusterIds(saf, lat, lon) ?: emptyList()
+            val indices = dao.getSpeciesClusterIndex(dayOfYear - 10, dayOfYear + 10, clusterIds).associateBy { it.soortid }
+            
+            // 3. AI Inference Loop
+            val targetSpecies = mutableMapOf<String, AiInformatieDialoog.GuildSuggestie>()
+            dayHeaders.forEach { h ->
+                val bt = h.begintijd.toLongOrNull() ?: 0L
+                // AFRONDING NAAR DICHTSTBIJZIJNDE UUR:
+                val hour = (((bt + 1800) / 3600) % 24).toInt()
+                
+                val cur = com.yvesds.vt5.utils.weather.Current(
+                    temperature2m = h.temperatuur.toDoubleOrNull() ?: 15.0,
+                    windSpeed10m = (h.windkracht.toDoubleOrNull() ?: 0.0) * 0.8,
+                    windDirection10m = parseWindLabelToDegrees(h.windrichting) ?: 0.0
+                )
+                AiInferenceEngine.getSuggesties(context, cur, hour, dayBoost).guildResults.forEach { s ->
+                    if (!targetSpecies.containsKey(s.soortid)) targetSpecies[s.soortid] = s
+                }
+            }
+
+            // 4. Resultaten bundelen in JSON
+            val resultsArray = JSONArray()
+            targetSpecies.values.forEach { s ->
+                val sid = s.soortid
+                val siteCounts = dao.getSpeciesCountPerSiteForDay(startDay, sid)
+                val totalSeen = siteCounts.sumOf { it.count.toLong() }
+                val bph = indices[sid]?.clusterIndex ?: 0f
+                
+                val item = JSONObject()
+                item.put("id", sid); item.put("name", s.soortnaam); item.put("prob", s.kans)
+                item.put("guild", s.guildName); item.put("latin", s.latinName)
+                item.put("count", totalSeen); item.put("bph", bph)
+                
+                val sites = JSONArray()
+                siteCounts.forEach { sc ->
+                    val sj = JSONObject(); sj.put("site", sc.soortid); sj.put("c", sc.count); sites.put(sj)
+                }
+                item.put("sites", sites)
+                resultsArray.put(item)
+            }
+
+            val weatherJson = JSONObject().apply {
+                val h = dayHeaders.first()
+                put("wind", h.windrichting); put("bft", h.windkracht); put("temp", h.temperatuur); put("hpa", h.hpa)
+            }.toString()
+
+            val effortJson = JSONObject().apply {
+                dayHeaders.groupBy { it.telpostid }.forEach { (id, list) ->
+                    val sec = list.sumOf { (it.eindtijd.toLongOrNull() ?: 0L) - (it.begintijd.toLongOrNull() ?: 0L) }
+                    put(id, sec)
+                }
+            }.toString()
+
+            val corridorJson = JSONObject().apply {
+                corridorHistoryMap.forEach { (name, data) ->
+                    val arr = JSONArray()
+                    data.forEach { d ->
+                        val dj = JSONObject(); dj.put("t", d.timeEpoch); dj.put("w", d.windDir10m); dj.put("s", d.windSpeed10m); arr.put(dj)
+                    }
+                    put(name, arr)
+                }
+            }.toString()
+
+            // 5. Opslaan
+            dao.insertDailyAnalysis(DailyAnalysis(
+                dayEpoch = startDay,
+                type = "RECONSTRUCTED",
+                weatherJson = weatherJson,
+                effortJson = effortJson,
+                resultsJson = resultsArray.toString(),
+                corridorJson = corridorJson
+            ))
+
+        } catch (e: Exception) {
+            Log.e("AiEvaluator", "Reconstruction failed for $dateMillis: ${e.message}")
         }
     }
 

@@ -18,6 +18,7 @@ object AppDataStore {
     private val KEY_NEXT_TELLING_ID = longPreferencesKey("next_telling_id")
     private val KEY_AI_ENABLED = booleanPreferencesKey("ai_enabled")
     private val KEY_AI_MODEL_DIR_URI = stringPreferencesKey("ai_model_dir_uri")
+    private val KEY_KRENTEN_THRESHOLD = intPreferencesKey("ai_krenten_threshold")
     private const val PREFIX_RECORD_ID = "next_record_id_"
 
     /**
@@ -91,5 +92,15 @@ object AppDataStore {
 
     suspend fun getAiModelDirUri(context: Context): String? {
         return context.dataStore.data.map { it[KEY_AI_MODEL_DIR_URI] }.first()
+    }
+
+    suspend fun setKrentenThreshold(context: Context, threshold: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_KRENTEN_THRESHOLD] = threshold
+        }
+    }
+
+    suspend fun getKrentenThreshold(context: Context): Int {
+        return context.dataStore.data.map { it[KEY_KRENTEN_THRESHOLD] ?: 100 }.first()
     }
 }

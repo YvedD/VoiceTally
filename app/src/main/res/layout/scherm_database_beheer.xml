@@ -147,17 +147,8 @@
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="AI-Historiek"
-                android:textSize="16sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAiDailyReports"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:text="Teldag Verslagen"
+                android:text="AI-Historiek"
                 android:textSize="16sp" />
 
             <TextView

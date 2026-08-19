@@ -3,12 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="45dp"
+    android:layout_marginTop="16dp"
     android:layout_marginBottom="12dp"
     app:cardBackgroundColor="@color/vt5_dark_gray"
-    app:cardCornerRadius="8dp"
-    app:strokeColor="@color/vt5_outline"
-    app:strokeWidth="1dp">
+    app:cardCornerRadius="12dp"
+    app:strokeColor="@color/vt5_green"
+    app:strokeWidth="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -20,37 +20,34 @@
             android:id="@+id/tvDayTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Maandag 22 Juli"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvWeatherSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:alpha="0.7"
+            android:alpha="0.8"
             android:paddingTop="4dp"
-            android:text="Wind: ZO 4bft | Temp: 22°C"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="13sp" />
+            android:textSize="14sp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
             android:alpha="0.2"
             android:background="@color/vt5_on_surface" />
 
-        <TextView
-            android:id="@+id/tvSpeciesList"
+        <!-- Container voor de soorten-kaarten -->
+        <GridLayout
+            android:id="@+id/speciesGrid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:lineSpacingExtra="4dp"
-            android:text="• Soort A (80% kans)\n• Soort B (45% kans)"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="14sp" />
+            android:alignmentMode="alignMargins"
+            android:columnCount="1" />
 
     </LinearLayout>
 

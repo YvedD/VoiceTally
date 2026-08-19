@@ -185,12 +185,23 @@
                 android:textSize="16sp" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAiDailyReports"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="0dp"
+                android:layout_height="64dp"
+                android:layout_columnWeight="1"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="8dp"
+                android:text="Teldag Verslagen"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAiTrain"
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="64dp"
-                android:layout_columnSpan="2"
                 android:layout_columnWeight="1"
+                android:layout_marginStart="8dp"
                 android:layout_marginTop="12dp"
                 android:text="AI Trainen"
                 android:textSize="18sp"

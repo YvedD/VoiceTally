@@ -13,7 +13,9 @@ import java.io.File
         TellingHeader::class, 
         Waarneming::class, 
         AiLog::class, 
-        WeatherArchive::class
+        WeatherArchive::class,
+        DailyAnalysis::class,
+        SpeciesImage::class
     ],
     version = 1,
     exportSchema = false
@@ -38,17 +40,18 @@ abstract class VoiceTallyDatabase : RoomDatabase() {
                     override fun onOpen(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                         super.onOpen(db)
                         db.execSQL("PRAGMA foreign_keys = ON")
-                        // Optimalisaties voor massa-data (155k waarnemingen + 4.3M weer)
+                        // Optimalisaties voor massa-data
                         try {
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_waarnemingen_soortid_tijdstip ON waarnemingen(soortid, tijdstip)")
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_waarnemingen_tijdstip ON waarnemingen(tijdstip)")
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_telling_headers_begintijd ON telling_headers(begintijd)")
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_telling_headers_telpostid ON telling_headers(telpostid)")
                             db.execSQL("CREATE INDEX IF NOT EXISTS idx_weather_archive_loc_time ON weather_archive(locationId, timeEpoch)")
+                            db.execSQL("CREATE INDEX IF NOT EXISTS idx_daily_analysis_type ON daily_analysis(type)")
                         } catch (_: Exception) {}
                     }
                 })
-                .fallbackToDestructiveMigration() // Bij version reset naar 1
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance
