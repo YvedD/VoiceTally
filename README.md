@@ -570,13 +570,14 @@ VT5 kan automatisch actuele weergegevens ophalen via GPS en een weer-API. Dit be
 
 ### Automatisch Ingevulde Velden
 
-| Veld | Bron / Berekening |
-|------|------|
+| Veld             | Bron / Berekening                                   |
+|------------------|-----------------------------------------------------|
 | **Windrichting** | 16-punts kompas op basis van windsnelheidsvectoren. |
-| **Windkracht** | Omzetting van m/s naar de schaal van Beaufort. |
-| **Bewolking** | % bewolking vertaald naar achtsten (0/8 - 8/8). |
-| **Zicht** | In meters (gebaseerd op atmosferische data). |
-| **Luchtdruk** | Herleid naar zeeniveau (hPa). |
+| **Windkracht**   | Omzetting van m/s naar de schaal van Beaufort.      |
+| **Bewolking**    | % bewolking vertaald naar achtsten (0/8 - 8/8).     |
+| **Zicht**        | In meters (gebaseerd op atmosferische data).        |
+| **Luchtdruk**    | Herleid naar zeeniveau (hPa).                       |
+| **Temperatuur**  | In graden Celsius.                                  |
 
 > [!TIP]
 > Bij een **vervolgtelling** wordt de eindtijd van de vorige telling automatisch als starttijd genomen, en wordt het weer-systeem direct geactiveerd om de continuïteit te waarborgen.

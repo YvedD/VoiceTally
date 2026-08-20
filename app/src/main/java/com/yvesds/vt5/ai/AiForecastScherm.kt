@@ -117,7 +117,7 @@ class AiForecastScherm : AppCompatActivity() {
                         tvProb.text = "${item.kans}%"
                         
                         if (item.expectedIndex != null && item.expectedIndex > 0) {
-                            tvBph.text = "BpH index: %.2f ex/h".format(item.expectedIndex)
+                            tvBph.text = "BpH index: ${"%.2f".format(item.expectedIndex)} ex/h"
                             tvBph.visibility = View.VISIBLE
                         } else {
                             tvBph.visibility = View.GONE

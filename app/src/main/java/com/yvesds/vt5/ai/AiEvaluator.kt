@@ -1,6 +1,7 @@
 package com.yvesds.vt5.ai
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.appcompat.app.AlertDialog
 import com.yvesds.vt5.VT5App
@@ -63,7 +64,7 @@ object AiEvaluator {
                         .setTitle("Analyse Voltooid")
                         .setMessage("Het AI-verslag voor ${sdf.format(cal.time)} is opgeslagen in het archief.")
                         .setPositiveButton("BEKIJK") { _, _ ->
-                            val intent = android.content.Intent(context, AiReportDetailsActiviteit::class.java)
+                            val intent = Intent(context, AiReportDetailsActiviteit::class.java)
                             intent.putExtra("date_millis", cal.timeInMillis)
                             context.startActivity(intent)
                         }
@@ -115,7 +116,6 @@ object AiEvaluator {
                 corridorHistoryMap[point.name] = list
             }
 
-            // 2. Inspanning & Norm-berekening
             val totalSeconds = dayHeaders.sumOf { (it.eindtijd.toLongOrNull() ?: 0L) - (it.begintijd.toLongOrNull() ?: 0L) }
             val durationHours = totalSeconds / 3600.0
             val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)

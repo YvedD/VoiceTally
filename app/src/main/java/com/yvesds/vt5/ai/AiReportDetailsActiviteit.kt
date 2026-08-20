@@ -72,7 +72,9 @@ class AiReportDetailsActiviteit : AppCompatActivity() {
             val effortText = ej.keys().asSequence().joinToString(" | ") { id ->
                 val name = snapshot?.sitesById?.get(id)?.telpostnaam ?: id
                 val sec = ej.getLong(id)
-                "$name: %du %02dm".format(sec / 3600, (sec % 3600) / 60)
+                val h = sec / 3600
+                val m = (sec % 3600) / 60
+                "$name: ${h}u ${"%02d".format(m)}m"
             }
             findViewById<TextView>(R.id.tvEffortInfo).text = "INSPANNING:\n$effortText"
 
@@ -117,7 +119,7 @@ class AiReportDetailsActiviteit : AppCompatActivity() {
                 totalCountTv.text = "$totalSeen ex."
                 totalCountTv.visibility = if (totalSeen > 0) View.VISIBLE else View.INVISIBLE
 
-                val scientific = "AI Kans: $prob% | Norm: %.2f ex/h".format(bph)
+                val scientific = "BSI Kans: $prob% | Norm: ${"%.2f".format(bph)} ex/h"
                 speciesView.findViewById<TextView>(R.id.tvScientificInfo).text = scientific
 
                 speciesView.findViewById<MaterialCardView>(R.id.cardSpecies).strokeColor = getGuildColor(guild)

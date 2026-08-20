@@ -58,7 +58,7 @@ object AiInformatieDialoog {
                 view.findViewById<TextView>(R.id.tvGuild).text = item.guildName
                 val tvName = view.findViewById<TextView>(R.id.tvSpeciesName)
                 tvName.text = if (item.expectedIndex != null && item.expectedIndex > 0) {
-                    "${item.soortnaam} (BpH index %.1fex/h)".format(item.expectedIndex)
+                    "${item.soortnaam} (BpH index ${"%.1f".format(item.expectedIndex)}ex/h)"
                 } else {
                     item.soortnaam
                 }
@@ -105,7 +105,7 @@ object AiInformatieDialoog {
                 
                 tvGuild.text = item.guildName
                 tvName.text = if (item.expectedIndex != null && item.expectedIndex > 0) {
-                    "${item.soortnaam} (BpH index %.1fex/h)".format(item.expectedIndex)
+                    "${item.soortnaam} (BpH index ${"%.1f".format(item.expectedIndex)}ex/h)"
                 } else {
                     item.soortnaam
                 }
