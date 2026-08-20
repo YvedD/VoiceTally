@@ -352,14 +352,12 @@ interface TellingDao {
 
     /**
      * Berekent de wetenschappelijke Cluster-Index (Birds per Hour) voor alle soorten in een cluster.
-     * Filtert op sessies van minimaal 30 minuten voor een betrouwbaar gemiddelde.
+     * GEFIXT: Gebruikt nu (Totaal Aantal / Totaal Aantal Teluren) over de hele cluster.
+     * Dit lost de 'Slangenarend-paradox' op door ook de uren zonder waarnemingen mee te tellen.
      */
     @Query("""
-        WITH EffortPerDay AS (
-            SELECT 
-                telpostid, 
-                (CAST(begintijd AS INTEGER) / 86400) * 86400 as dayEpoch,
-                SUM(CAST(eindtijd AS INTEGER) - CAST(begintijd AS INTEGER)) as totalSeconds
+        WITH ClusterEffort AS (
+            SELECT SUM(CAST(eindtijd AS INTEGER) - CAST(begintijd AS INTEGER)) / 3600.0 as totalHours
             FROM telling_headers
             WHERE telpostid IN (:siteIds) AND telpostid != '5177'
             AND (
@@ -367,27 +365,24 @@ interface TellingDao {
                 OR (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
                 OR (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
             )
-            GROUP BY telpostid, dayEpoch
-            HAVING totalSeconds >= 1800
         ),
         SpeciesYield AS (
-            SELECT 
-                h.telpostid,
-                (CAST(h.begintijd AS INTEGER) / 86400) * 86400 as dayEpoch,
-                w.soortid,
-                SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as dayCount
+            SELECT w.soortid, SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as totalCount
             FROM waarnemingen w
             INNER JOIN telling_headers h ON w.tellingid = h.tellingid
             WHERE h.telpostid IN (:siteIds) AND h.telpostid != '5177'
-            GROUP BY h.telpostid, dayEpoch, w.soortid
+            AND (
+                (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
+                OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
+                OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
+            )
+            GROUP BY w.soortid
         )
         SELECT 
             sy.soortid,
-            AVG(CAST(sy.dayCount AS FLOAT) / (CAST(epd.totalSeconds AS FLOAT) / 3600.0)) as clusterIndex,
-            COUNT(DISTINCT epd.telpostid) as activePosts
+            CAST(sy.totalCount AS FLOAT) / (SELECT totalHours FROM ClusterEffort) as clusterIndex,
+            (SELECT COUNT(DISTINCT telpostid) FROM telling_headers WHERE telpostid IN (:siteIds)) as activePosts
         FROM SpeciesYield sy
-        JOIN EffortPerDay epd ON sy.telpostid = epd.telpostid AND sy.dayEpoch = epd.dayEpoch
-        GROUP BY sy.soortid
     """)
     suspend fun getSpeciesClusterIndex(dayStart: Int, dayEnd: Int, siteIds: List<String>): List<SpeciesClusterIndex>
 
@@ -409,16 +404,17 @@ interface TellingDao {
     suspend fun getPeakDaysForSpecies(speciesIds: List<String>, limit: Int): List<PeakDayRow>
 
     /**
-     * Haalt alle actieve telposten op voor een specifieke dag (start van de dag in seconden).
+     * Haalt alle unieke soort-IDs op die in een specifiek tijdsvenster zijn waargenomen.
      */
     @Query("""
-        SELECT DISTINCT telpostid FROM telling_headers 
-        WHERE (CAST(begintijd AS INTEGER) / 86400) * 86400 = :dayEpoch
+        SELECT DISTINCT soortid FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE CAST(h.begintijd AS INTEGER) BETWEEN :start AND :end
     """)
-    suspend fun getActiveSitesForDay(dayEpoch: Long): List<String>
+    suspend fun getSeenSpeciesIdsInRange(start: Long, end: Long): List<String>
 
     /**
-     * Haalt de totalen per soort op per telpost voor een specifieke dag.
+     * Haalt de totalen per soort op per telpost voor een specifiek tijdsvenster.
      */
     @Query("""
         SELECT 
@@ -426,10 +422,16 @@ interface TellingDao {
             SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
         FROM waarnemingen w
         INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-        WHERE (CAST(h.begintijd AS INTEGER) / 86400) * 86400 = :dayEpoch AND w.soortid = :speciesId
+        WHERE CAST(h.begintijd AS INTEGER) BETWEEN :start AND :end AND w.soortid = :speciesId
         GROUP BY h.telpostid
     """)
-    suspend fun getSpeciesCountPerSiteForDay(dayEpoch: Long, speciesId: String): List<SpeciesCountRow>
+    suspend fun getSpeciesCountPerSiteInRange(start: Long, end: Long, speciesId: String): List<SpeciesCountRow>
+
+    /**
+     * Update alleen de opmerkingen van een dagrapport.
+     */
+    @Query("UPDATE daily_analysis SET remarks = :remarks WHERE dayEpoch = :dayEpoch")
+    suspend fun updateDailyAnalysisRemarks(dayEpoch: Long, remarks: String)
 
     /**
      * Haalt alle unieke soort-IDs op die op een specifieke dag zijn waargenomen.

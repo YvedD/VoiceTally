@@ -87,21 +87,23 @@ object AiInferenceEngine {
             val fMassaRaw = log10(p.count.toDouble().coerceAtLeast(1.0))
             val fMassa = 1.0 + (fMassaRaw * 0.4)
             
-            // F2: Circulaire Wind
+            // F2: Harde Wind-DNA Match (Kwadratische afstraffing bij mismatch)
             val histWindDeg = parseWindLabelToDegrees(p.mainWind) ?: currentWindDeg
             val diffRad = Math.toRadians(currentWindDeg - histWindDeg)
-            val fWind = 1.2 + (cos(diffRad) * 0.8)
+            val fWind = (cos(diffRad / 2.0).pow(4.0) * 1.8) + 0.1
             
             // F3: Special / Remarkable / Discovery
             var fSpecial = 1.0
             if (p.isRemarkable == 1) fSpecial = 4.0
-            else if (expertKB?.discoveredKrenten?.contains(p.soortid) == true) fSpecial = 2.5 // AI DISCOVERY BOOST
+            else if (expertKB?.discoveredKrenten?.contains(p.soortid) == true) fSpecial = 2.5
             
             // F4: Tijd & Strategie
             var fTime = 1.0
+            val bft = WeatherManager.msToBeaufort(cur.windSpeed10m)
+            
             when (strategy) {
                 SpeciesGuildMapper.FlightStrategy.THERMAL -> {
-                    if (currentHour < 9 || currentHour > 18 || phase == SolarTimeEngine.SolarPhase.NIGHT) fTime = 0.0001
+                    if (currentHour < 9 || currentHour > 18 || phase == SolarTimeEngine.SolarPhase.NIGHT || bft >= 6) fTime = 0.0001
                     else fTime = 0.5 + ((currentTemp - 10.0).coerceIn(0.1, 10.0) / 10.0)
                 }
                 SpeciesGuildMapper.FlightStrategy.ACTIVE -> {
@@ -114,10 +116,23 @@ object AiInferenceEngine {
                 }
             }
 
-            val total = fMassa * fWind * fSpecial * fTime * (1.0 + regBoost)
+            // F5: Local Wind Gatekeeper (The Veto)
+            var fGatekeeper = 1.0
+            val isOffShore = currentWindLabel in listOf("O","OZO","ZO","ZZO","Z")
+            val isOnShore = currentWindLabel in listOf("NW","WNW","W","ZW","NNW")
             
-            Log.d(TAG, "RAW: %-20s | S:%5.2f | M:%d | W:%.2f | T:%.2f | R:%.1f | Krent:%s".format(
-                name, total, p.count, fWind, fTime, 1.0 + regBoost, if (fSpecial > 1.0) "JA" else "NEE"))
+            if (guild == SpeciesGuildMapper.Guild.PELAGICS) {
+                if (isOffShore) fGatekeeper = 0.001 
+                else if (isOnShore) fGatekeeper = 2.0 
+            } else if (guild == SpeciesGuildMapper.Guild.RAPTORS_THERMAL || guild == SpeciesGuildMapper.Guild.RAPTORS_ACTIVE) {
+                if (currentWindLabel in listOf("O", "ONO", "NO")) fGatekeeper = 1.5
+                else if (isOnShore && bft >= 5) fGatekeeper = 0.1 
+            }
+
+            val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * (1.0 + regBoost)
+            
+            Log.d(TAG, "RAW: %-20s | S:%5.2f | M:%d | W:%.2f | T:%.2f | G:%.2f | Krent:%s".format(
+                name, total, p.count, fWind, fTime, fGatekeeper, if (fSpecial > 1.0) "JA" else "NEE"))
 
             ScoredSpecies(p.soortid, name, total, guild, clusterIndices[p.soortid]?.clusterIndex)
         }

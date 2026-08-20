@@ -20,7 +20,6 @@ import java.util.Calendar
 
 /**
  * AiEvaluator - Wetenschappelijke prestatie-analyse op basis van Catch Per Unit Effort (CPUE).
- * Nu met historisch corridor-bewustzijn voor dagrapporten uit het verleden.
  */
 object AiEvaluator {
 
@@ -79,7 +78,6 @@ object AiEvaluator {
 
     /**
      * De "Tijdsmachine": Reconstrueert een complete teldag en slaat deze op in de DailyAnalysis kluis.
-     * Gebruikt het lokale weer-archief voor historisch correcte corridor boosts.
      */
     suspend fun reconstructAndSaveReport(context: Context, dateMillis: Long) = withContext(Dispatchers.Default) {
         try {
@@ -116,6 +114,7 @@ object AiEvaluator {
                 corridorHistoryMap[point.name] = list
             }
 
+            // 2. Inspanning & Norm-berekening
             val totalSeconds = dayHeaders.sumOf { (it.eindtijd.toLongOrNull() ?: 0L) - (it.begintijd.toLongOrNull() ?: 0L) }
             val durationHours = totalSeconds / 3600.0
             val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
@@ -123,43 +122,61 @@ object AiEvaluator {
             val clusterIds = getLocalSiteClusterIds(saf, lat, lon) ?: emptyList()
             val indices = dao.getSpeciesClusterIndex(dayOfYear - 10, dayOfYear + 10, clusterIds).associateBy { it.soortid }
             
-            // 3. AI Inference Loop
-            val targetSpecies = mutableMapOf<String, AiInformatieDialoog.GuildSuggestie>()
+            // 3. AI Inference Loop (Prognose)
+            val predictedSpecies = mutableMapOf<String, AiInformatieDialoog.GuildSuggestie>()
             dayHeaders.forEach { h ->
                 val bt = h.begintijd.toLongOrNull() ?: 0L
-                // AFRONDING NAAR DICHTSTBIJZIJNDE UUR:
                 val hour = (((bt + 1800) / 3600) % 24).toInt()
-                
                 val cur = com.yvesds.vt5.utils.weather.Current(
                     temperature2m = h.temperatuur.toDoubleOrNull() ?: 15.0,
                     windSpeed10m = (h.windkracht.toDoubleOrNull() ?: 0.0) * 0.8,
                     windDirection10m = parseWindLabelToDegrees(h.windrichting) ?: 0.0
                 )
                 AiInferenceEngine.getSuggesties(context, cur, hour, dayBoost).guildResults.forEach { s ->
-                    if (!targetSpecies.containsKey(s.soortid)) targetSpecies[s.soortid] = s
+                    if (!predictedSpecies.containsKey(s.soortid)) predictedSpecies[s.soortid] = s
                 }
             }
 
-            // 4. Resultaten bundelen in JSON
-            val resultsArray = JSONArray()
-            targetSpecies.values.forEach { s ->
-                val sid = s.soortid
-                val siteCounts = dao.getSpeciesCountPerSiteForDay(startDay, sid)
+            // 4. Combineer Voorspeld + Werkelijk Gezien
+            val seenSpeciesIds = dao.getSeenSpeciesIdsInRange(startDay, endDay)
+            val allRelevantIds = (predictedSpecies.keys + seenSpeciesIds).distinct()
+            val snapshot = try { com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(context) } catch(_: Exception) { null }
+
+            val rawResults = allRelevantIds.map { sid ->
+                // Haal de echte aantallen op over ALLE actieve posten van die dag
+                val siteCounts = dao.getSpeciesCountPerSiteInRange(startDay, endDay, sid)
                 val totalSeen = siteCounts.sumOf { it.count.toLong() }
+                
                 val bph = indices[sid]?.clusterIndex ?: 0f
+                val pred = predictedSpecies[sid]
+                val stars = calculateStars(totalSeen.toInt(), durationHours, bph)
                 
                 val item = JSONObject()
-                item.put("id", sid); item.put("name", s.soortnaam); item.put("prob", s.kans)
-                item.put("guild", s.guildName); item.put("latin", s.latinName)
-                item.put("count", totalSeen); item.put("bph", bph)
+                item.put("id", sid)
+                item.put("name", pred?.soortnaam ?: snapshot?.speciesById?.get(sid)?.soortnaam ?: sid)
+                item.put("prob", pred?.kans ?: 0)
+                item.put("guild", pred?.guildName ?: snapshot?.speciesById?.get(sid)?.let { SpeciesGuildMapper.getGuildByLatin(it.latin).displayName } ?: "Overige")
+                item.put("latin", pred?.latinName ?: snapshot?.speciesById?.get(sid)?.latin ?: "")
+                item.put("count", totalSeen)
+                item.put("bph", bph)
+                item.put("stars", stars)
+                item.put("isSeen", totalSeen > 0)
                 
                 val sites = JSONArray()
                 siteCounts.forEach { sc ->
                     val sj = JSONObject(); sj.put("site", sc.soortid); sj.put("c", sc.count); sites.put(sj)
                 }
                 item.put("sites", sites)
-                resultsArray.put(item)
+                item
             }
+
+            // 5. Sorteren: Gezien & Sterren eerst, dan de rest
+            val sortedResults = rawResults.sortedWith(compareByDescending<JSONObject> { it.getBoolean("isSeen") }
+                .thenByDescending { it.getInt("stars") }
+                .thenByDescending { it.getInt("prob") })
+
+            val resultsArray = JSONArray()
+            sortedResults.forEach { resultsArray.put(it) }
 
             val weatherJson = JSONObject().apply {
                 val h = dayHeaders.first()
@@ -183,7 +200,7 @@ object AiEvaluator {
                 }
             }.toString()
 
-            // 5. Opslaan
+            // 6. Opslaan
             dao.insertDailyAnalysis(DailyAnalysis(
                 dayEpoch = startDay,
                 type = "RECONSTRUCTED",
@@ -194,7 +211,7 @@ object AiEvaluator {
             ))
 
         } catch (e: Exception) {
-            Log.e("AiEvaluator", "Reconstruction failed for $dateMillis: ${e.message}")
+            Log.e("AiEvaluator", "Reconstruction failed for $dateMillis: ${e.message}", e)
         }
     }
 
