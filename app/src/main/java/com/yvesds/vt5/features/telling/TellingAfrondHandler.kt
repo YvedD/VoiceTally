@@ -230,6 +230,11 @@ class TellingAfrondHandler(
                 // D) Batch update Room (shadow update)
                 hybridRepository.saveHeaderToRoom(uploadResult.preparedEnvelope, status = "geupload")
                 
+                // Update tel-inspanning teller in DataStore
+                val start = uploadResult.preparedEnvelope.begintijd.toLongOrNull() ?: 0L
+                val end = uploadResult.preparedEnvelope.eindtijd.toLongOrNull() ?: 0L
+                com.yvesds.vt5.core.opslag.EffortManager.addSessionEffort(context, uploadResult.preparedEnvelope.telpostid, start, end)
+
                 // For records, we ensure consistency.
                 finalRecords.forEach { hybridRepository.saveWaarnemingToRoom(it) }
 

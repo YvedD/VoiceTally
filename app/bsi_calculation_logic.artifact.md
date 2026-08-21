@@ -1,38 +1,41 @@
-# BSI Score: Wetenschappelijke Verfijning (v3.3)
+# BSI Score: Wetenschappelijke Verfijning (v3.5)
 
-Dit document beschrijft de "Regionale Baseline" methode, waarbij de volledige historische inspanning van een telpost-cluster wordt gebruikt als ijkpunt.
+Dit document beschrijft de implementatie van de **Gaussische Fenologie-modellen** voor een nauwkeurige piek-analyse in de voor- en najaarstrek.
 
-## 1. De "Giga-Baseline" (15.800h Methode)
-Om te voorkomen dat zeldzaamheden een te hoge norm krijgen (zoals de Slangenarend-paradox), berekent de app nu een absolute baseline over de gehele geschiedenis van de regio.
+## 1. De Gaussische Piek-analyse (Klok-curve)
+In plaats van een simpele datum-range, berekent de BSI-motor nu de **Fenologische Piek-curve** op basis van de historische uurs-intensiteit.
 
-### Mathematische Precisie-Query:
-De AI voert nu een "Giga-Scan" uit die de volgende variabelen berekent:
-*   **Total Cluster Effort ($E_{total}$):** De som van álle geregistreerde teluren (bijv. 15.800 uur).
-*   **Total Species Yield ($Y_{species}$):** Het totale aantal exemplaren van een soort over alle jaren (bijv. 51.231 Aalscholvers).
-*   **Global BpH Index:** De absolute regionale norm ($Y_{species} / E_{total}$).
-    *   *Resultaat:* 51.231 / 15.800 = **3,24 ex/h**.
+### Mathematisch Model:
+Voor zowel de Voorjaarstrek ($V$) als de Najaarstrek ($N$) wordt een aparte Normaalverdeling berekend:
+$$f(x) = a \cdot e^{-\frac{(x-\mu)^2}{2\sigma^2}}$$
 
-## 2. Dynamische Piek-Analyse
-De BSI-motor begrijpt nu ook het jaarritme van de soort door de maandelijkse verdeling te analyseren.
+*   **$\mu$ (Mu):** De absolute piekdagen (de "top van de klok").
+*   **$\sigma$ (Sigma):** De spreiding van de trek (de "breedte van de klok").
+*   **$x$:** De huidige teldag.
+
+## 2. Visuele Integratie: In-line Sparklines
+In de CardView van elke soort wordt een mini-grafiek (Sparkline) getekend die het jaarritme weergeeft.
 
 ```mermaid
 graph LR
-    A[Database Scan] --> B(Groepeer op Maand)
-    B --> C{Maand-Sommatie}
-    C --> D[Piekmaand 1: Hoogste volume]
-    C --> E[Piekmaand 2: Tweede piek]
-    D & E --> F[Fenologisch Profiel]
+    A[Jan] --- B[Mei: Piek 1]
+    B --- C[Aug]
+    C --- D[Okt: Piek 2]
+    D --- E[Dec]
+
+    style B fill:#f96,stroke:#333,stroke-width:4px
+    style D fill:#f96,stroke:#333,stroke-width:4px
 ```
 
-### Hoe dit de BSI-score stuurt:
-1.  **Buiten Piekperiodes:** Als een soort wordt gezien buiten zijn top-maanden, wordt de BSI-score (sterren) automatisch verzwaard. De teller wordt extra beloond voor de "vroege" of "late" waarneming.
-2.  **Tijdens de Piek:** De norm ligt op zijn hoogst; de teller moet hard werken (hoge CPUE) om de 5 sterren te verdienen.
+*   **Top 1 (Voorjaar):** Gebaseerd op data van Jan-Jun.
+*   **Top 2 (Najaar):** Gebaseerd op data van Jul-Dec.
+*   **Real-time Marker:** Een indicator toont de positie van de huidige teldag op deze curves.
 
-## 3. De "Zero-Inflated" Correctie
-De belangrijkste wijziging in v3.3 is dat de app nu ook rekent met de uren waarin een soort **niet** is gezien.
-*   **Oude methode:** Gemiddelde van de dagen waarop de vogel er was.
-*   **Nieuwe methode:** Totaal aantal vogels / Totaal aantal uren dat er geteld is (ook de lege uren).
+## 3. Dynamische BpH-Weging
+De BSI-score wordt nu beïnvloed door de positie op de curve:
+1.  **Summit (Top):** De norm ($BpH_{baseline}$) wordt gecorrigeerd naar het historische maximum. De teller moet maximaal presteren voor 5 sterren.
+2.  **Tail (Flank):** De norm wordt verlaagd. Een vogel die in de "staart" van de curve wordt gezien, is statistisch zeldzamer en levert sneller extra sterren op.
 
 ---
 > [!TIP]
-> Door deze aanpak wordt een Slangenarend (1 ex op 15.800h) mathematisch gezien **52.488 keer zeldzamer** dan een Aalscholver. Dit vertaalt zich direct in een eerlijke en indrukwekkende sterren-score in je verslagen.
+> De naam van dit systeem is de **Double-Peak Gaussian Distribution**. Het stelt de app in staat om per soort te "begrijpen" of een waarneming midden in de hoofdmacht valt of een vroege/late pionier betreft.

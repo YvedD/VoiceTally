@@ -26,6 +26,7 @@
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
 
         <LinearLayout
+            android:id="@+id/llTextContainer"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
@@ -55,6 +56,14 @@
                 android:layout_marginTop="2dp"
                 android:textColor="@color/vt5_green"
                 android:textSize="11sp" />
+
+            <!-- Fenologische Sparkline (Klok-curve) -->
+            <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                android:id="@+id/sparklinePhenology"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:layout_marginTop="4dp"
+                android:alpha="0.8" />
         </LinearLayout>
 
         <LinearLayout

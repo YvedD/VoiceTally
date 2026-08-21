@@ -395,6 +395,7 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             database.tellingDao().clearAllWaarnemingen()
             database.tellingDao().clearAllAiLogs()
             AppDataStore.resetTellingId(this@DatabaseBeheerScherm) // Reset teller in DataStore
+            com.yvesds.vt5.core.opslag.EffortStore.resetAll(this@DatabaseBeheerScherm) // Reset tel-inspanning
             withContext(Dispatchers.Main) { refreshTableList(); setupChartData() }
         }
     }
@@ -410,7 +411,8 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                 addTableCard("Sessies", hCount) { 
                     lifecycleScope.launch(Dispatchers.IO) { 
                         database.tellingDao().clearAllHeaders()
-                        AppDataStore.resetTellingId(this@DatabaseBeheerScherm) // Ook hier resetten
+                        AppDataStore.resetTellingId(this@DatabaseBeheerScherm) 
+                        com.yvesds.vt5.core.opslag.EffortStore.resetAll(this@DatabaseBeheerScherm) 
                         withContext(Dispatchers.Main) { refreshTableList(); setupChartData() } 
                     } 
                 }

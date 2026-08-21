@@ -351,40 +351,32 @@ interface TellingDao {
     suspend fun getUserDailyYield(telpostId: String, dayStart: Long, dayEnd: Long): List<SpeciesCountRow>
 
     /**
-     * Berekent de wetenschappelijke Cluster-Index (Birds per Hour) voor alle soorten in een cluster.
-     * GEFIXT: Gebruikt nu (Totaal Aantal / Totaal Aantal Teluren) over de hele cluster.
-     * Dit lost de 'Slangenarend-paradox' op door ook de uren zonder waarnemingen mee te tellen.
+     * Berekent de Giga-Baseline voor alle soorten in een cluster.
+     * Nu volledig dynamisch gebaseerd op de werkelijke tel-inspanning die als parameter wordt meegegeven.
      */
     @Query("""
-        WITH ClusterEffort AS (
-            SELECT SUM(CAST(eindtijd AS INTEGER) - CAST(begintijd AS INTEGER)) / 3600.0 as totalHours
-            FROM telling_headers
-            WHERE telpostid IN (:siteIds) AND telpostid != '5177'
-            AND (
-                (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
-                OR (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
-                OR (CAST(strftime('%j', datetime(CAST(begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
-            )
-        ),
-        SpeciesYield AS (
-            SELECT w.soortid, SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as totalCount
-            FROM waarnemingen w
-            INNER JOIN telling_headers h ON w.tellingid = h.tellingid
-            WHERE h.telpostid IN (:siteIds) AND h.telpostid != '5177'
-            AND (
-                (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
-                OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
-                OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd)
-            )
-            GROUP BY w.soortid
-        )
         SELECT 
-            sy.soortid,
-            CAST(sy.totalCount AS FLOAT) / (SELECT totalHours FROM ClusterEffort) as clusterIndex,
-            (SELECT COUNT(DISTINCT telpostid) FROM telling_headers WHERE telpostid IN (:siteIds)) as activePosts
-        FROM SpeciesYield sy
+            w.soortid,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) / MAX(1.0, :totalHours) as clusterIndex,
+            (SELECT COUNT(DISTINCT telpostid) FROM telling_headers WHERE telpostid IN (:siteIds)) as activePosts,
+            (SELECT CAST(strftime('%j', datetime(CAST(h2.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) 
+             FROM waarnemingen w2 
+             JOIN telling_headers h2 ON w2.tellingid = h2.tellingid 
+             WHERE w2.soortid = w.soortid AND h2.telpostid IN (:siteIds)
+             GROUP BY strftime('%j', datetime(CAST(h2.begintijd AS INTEGER), 'unixepoch'))
+             ORDER BY SUM(CAST(w2.aantal AS INTEGER)) DESC LIMIT 1) as peakDay1,
+            (SELECT CAST(strftime('%j', datetime(CAST(h3.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) 
+             FROM waarnemingen w3 
+             JOIN telling_headers h3 ON w3.tellingid = h3.tellingid 
+             WHERE w3.soortid = w.soortid AND h3.telpostid IN (:siteIds)
+             GROUP BY strftime('%j', datetime(CAST(h3.begintijd AS INTEGER), 'unixepoch'))
+             ORDER BY SUM(CAST(w3.aantal AS INTEGER)) DESC LIMIT 1 OFFSET 3) as peakDay2
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE h.telpostid IN (:siteIds) AND h.telpostid != '5177'
+        GROUP BY w.soortid
     """)
-    suspend fun getSpeciesClusterIndex(dayStart: Int, dayEnd: Int, siteIds: List<String>): List<SpeciesClusterIndex>
+    suspend fun getSpeciesGigaBaseline(siteIds: List<String>, totalHours: Double): List<SpeciesGigaIndex>
 
     /**
      * Zoekt de top-dagen voor een specifieke set soort-IDs (een gilde).
@@ -443,11 +435,16 @@ interface TellingDao {
     """)
     suspend fun getSeenSpeciesIdsForDay(dayEpoch: Long): List<String>
 
-    /**
-     * AI Dagrapport (DailyAnalysis) operaties
-     */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertDailyAnalysis(analysis: DailyAnalysis)
+    @Query("""
+        SELECT 
+            CAST(strftime('%m', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) as month,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE w.soortid = :speciesId AND h.telpostid IN (:siteIds) AND h.telpostid != '5177'
+        GROUP BY month ORDER BY month ASC
+    """)
+    suspend fun getSpeciesMonthlyDistribution(speciesId: String, siteIds: List<String>): List<MonthCountRow>
 
     @Query("SELECT dayEpoch, type FROM daily_analysis")
     suspend fun getAllAnalyzedDays(): List<AnalyzedDayRow>
@@ -467,6 +464,9 @@ interface TellingDao {
     @Query("SELECT COUNT(*) FROM daily_analysis")
     suspend fun countDailyAnalysis(): Int
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyAnalysis(analysis: DailyAnalysis)
+
     /**
      * Vogelbeeld-cache (SpeciesImage) operaties
      */
@@ -478,7 +478,9 @@ interface TellingDao {
 }
 
 data class SpeciesCountRow(val soortid: String, val count: Int)
+data class SpeciesGigaIndex(val soortid: String, val clusterIndex: Float, val activePosts: Int, val peakDay1: Int, val peakDay2: Int)
 data class HeaderLightRow(val tellingid: String, val telpostid: String, val begintijd: String, val eindtijd: String)
+data class MonthCountRow(val month: Int, val count: Long)
 data class AnalyzedDayRow(val dayEpoch: Long, val type: String)
 data class SpeciesMassaRow(val soortid: String, val observationCount: Int, val totalQuantity: Long)
 data class SpeciesClusterIndex(val soortid: String, val clusterIndex: Float, val activePosts: Int)

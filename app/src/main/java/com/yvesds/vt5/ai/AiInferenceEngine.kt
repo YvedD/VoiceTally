@@ -7,6 +7,7 @@ import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.AiLog
 import com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot
 import com.yvesds.vt5.core.database.ui.SpeciesNameResolver
+import com.yvesds.vt5.core.opslag.EffortManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.utils.weather.Current
@@ -57,12 +58,12 @@ object AiInferenceEngine {
         // 1. LIVE REGIONALE CORRIDOR CHECK (Tenzij boost al gegeven is)
         val regBoost = providedRegBoost ?: getLiveCorridorBoost(month)
 
-        // 2. Data ophalen
+        // 2. Data ophalen (Nu met de persistente Giga-Baseline)
+        val effortHours = EffortManager.getClusterEffortHours(context, cluster ?: emptyList())
         val profiles = dao.getSpeciesPhenologyProfile(dayOfYear - 10, dayOfYear + 10, cluster ?: emptyList(), if (cluster == null) 0 else 1)
         
-        // Nieuw: B/h Index ophalen voor de cluster
         val clusterIndices = if (cluster != null) {
-            dao.getSpeciesClusterIndex(dayOfYear - 10, dayOfYear + 10, cluster).associateBy { it.soortid }
+            dao.getSpeciesGigaBaseline(cluster, effortHours).associateBy { it.soortid }
         } else emptyMap()
 
         val currentWindDeg = cur.windDirection10m ?: 0.0

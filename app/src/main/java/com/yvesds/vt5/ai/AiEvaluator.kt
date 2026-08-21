@@ -8,6 +8,7 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.DailyAnalysis
 import com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot
+import com.yvesds.vt5.core.opslag.EffortManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.utils.weather.WeatherManager
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +18,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * AiEvaluator - Wetenschappelijke prestatie-analyse op basis van Catch Per Unit Effort (CPUE).
@@ -58,7 +61,7 @@ object AiEvaluator {
                 reconstructAndSaveReport(context, cal.timeInMillis)
                 
                 withContext(Dispatchers.Main) {
-                    val sdf = java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale("nl", "BE"))
+                    val sdf = SimpleDateFormat("dd MMMM yyyy", Locale("nl", "BE"))
                     AlertDialog.Builder(context)
                         .setTitle("Analyse Voltooid")
                         .setMessage("Het AI-verslag voor ${sdf.format(cal.time)} is opgeslagen in het archief.")
@@ -95,7 +98,7 @@ object AiEvaluator {
             val loc = WeatherManager.getLastKnownLocation(context)
             val lat = loc?.latitude ?: 51.0
             val lon = loc?.longitude ?: 3.0
-            val dateStrYmd = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(cal.time)
+            val dateStrYmd = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
             
             // 1. Data-verwerving (Lokaal Archief)
             val month = cal.get(Calendar.MONTH) + 1
@@ -114,13 +117,14 @@ object AiEvaluator {
                 corridorHistoryMap[point.name] = list
             }
 
-            // 2. Inspanning & Norm-berekening
+            // 2. Inspanning & Giga-Norm-berekening (15.800h Methode)
             val totalSeconds = dayHeaders.sumOf { (it.eindtijd.toLongOrNull() ?: 0L) - (it.begintijd.toLongOrNull() ?: 0L) }
             val durationHours = totalSeconds / 3600.0
-            val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
             val saf = SaFStorageHelper(context)
             val clusterIds = getLocalSiteClusterIds(saf, lat, lon) ?: emptyList()
-            val indices = dao.getSpeciesClusterIndex(dayOfYear - 10, dayOfYear + 10, clusterIds).associateBy { it.soortid }
+            
+            val clusterEffortHours = EffortManager.getClusterEffortHours(context, clusterIds)
+            val gigaIndices = dao.getSpeciesGigaBaseline(clusterIds, clusterEffortHours).associateBy { it.soortid }
             
             // 3. AI Inference Loop (Prognose)
             val predictedSpecies = mutableMapOf<String, AiInformatieDialoog.GuildSuggestie>()
@@ -143,11 +147,11 @@ object AiEvaluator {
             val snapshot = try { com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(context) } catch(_: Exception) { null }
 
             val rawResults = allRelevantIds.map { sid ->
-                // Haal de echte aantallen op over ALLE actieve posten van die dag
                 val siteCounts = dao.getSpeciesCountPerSiteInRange(startDay, endDay, sid)
                 val totalSeen = siteCounts.sumOf { it.count.toLong() }
                 
-                val bph = indices[sid]?.clusterIndex ?: 0f
+                val giga = gigaIndices[sid]
+                val bph = giga?.clusterIndex ?: 0f
                 val pred = predictedSpecies[sid]
                 val stars = calculateStars(totalSeen.toInt(), durationHours, bph)
                 
@@ -162,6 +166,13 @@ object AiEvaluator {
                 item.put("stars", stars)
                 item.put("isSeen", totalSeen > 0)
                 
+                // Piekperiodes berekenen
+                if (giga != null) {
+                    val p1 = formatPeakRange(giga.peakDay1)
+                    val p2 = formatPeakRange(giga.peakDay2)
+                    item.put("peaks", "[$p1] & [$p2]")
+                }
+                
                 val sites = JSONArray()
                 siteCounts.forEach { sc ->
                     val sj = JSONObject(); sj.put("site", sc.soortid); sj.put("c", sc.count); sites.put(sj)
@@ -170,7 +181,7 @@ object AiEvaluator {
                 item
             }
 
-            // 5. Sorteren: Gezien & Sterren eerst, dan de rest
+            // 5. Sorteren
             val sortedResults = rawResults.sortedWith(compareByDescending<JSONObject> { it.getBoolean("isSeen") }
                 .thenByDescending { it.getInt("stars") }
                 .thenByDescending { it.getInt("prob") })
@@ -200,7 +211,6 @@ object AiEvaluator {
                 }
             }.toString()
 
-            // 6. Opslaan
             dao.insertDailyAnalysis(DailyAnalysis(
                 dayEpoch = startDay,
                 type = "RECONSTRUCTED",
@@ -211,8 +221,21 @@ object AiEvaluator {
             ))
 
         } catch (e: Exception) {
-            Log.e("AiEvaluator", "Reconstruction failed for $dateMillis: ${e.message}", e)
+            Log.e("AiEvaluator", "Reconstruction failed: ${e.message}", e)
         }
+    }
+
+    private fun formatPeakRange(dayOfYear: Int): String {
+        if (dayOfYear <= 0) return "onbekend"
+        val cal = Calendar.getInstance()
+        // Centreer het venster rond de piekdagen: 7 dagen ervoor en 7 dagen erna
+        cal.set(Calendar.DAY_OF_YEAR, dayOfYear)
+        cal.add(Calendar.DAY_OF_YEAR, -7)
+        val startFmt = SimpleDateFormat("d MMMM", Locale("nl", "BE"))
+        val start = startFmt.format(cal.time)
+        cal.add(Calendar.DAY_OF_YEAR, 14)
+        val end = startFmt.format(cal.time)
+        return "$start / $end"
     }
 
     private fun parseWindLabelToDegrees(l: String?): Double? {

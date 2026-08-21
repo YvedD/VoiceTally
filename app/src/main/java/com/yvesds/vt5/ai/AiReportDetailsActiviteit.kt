@@ -13,6 +13,7 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
+import com.yvesds.vt5.utils.weather.WeatherManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,7 +23,7 @@ import java.util.*
 import kotlin.math.roundToInt
 
 /**
- * AiReportDetailsActiviteit - Gedetailleerd overzicht met secties en opmerkingen.
+ * AiReportDetailsActiviteit - Gedetailleerd overzicht met secties, opmerkingen en fenologische sparklines.
  */
 class AiReportDetailsActiviteit : AppCompatActivity() {
 
@@ -153,6 +154,30 @@ class AiReportDetailsActiviteit : AppCompatActivity() {
         val scientific = "BSI Kans: $prob% | Norm: ${"%.2f".format(bph)} ex/h"
         view.findViewById<TextView>(R.id.tvScientificInfo).text = scientific
         
+        // SPARKLINE INTEGRATIE
+        val chartView = view.findViewById<com.patrykandpatrick.vico.views.cartesian.CartesianChartView>(R.id.sparklinePhenology)
+        lifecycleScope.launch {
+            val saf = SaFStorageHelper(this@AiReportDetailsActiviteit)
+            val loc = withContext(Dispatchers.IO) { WeatherManager.getLastKnownLocation(this@AiReportDetailsActiviteit) }
+            val clusterIds = getLocalSiteClusterIds(saf, loc?.latitude ?: 51.0, loc?.longitude ?: 3.0) ?: emptyList<String>()
+            val distribution = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesMonthlyDistribution(sid, clusterIds) }
+            if (distribution.isNotEmpty()) {
+                val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
+                PhenologySparklineHelper.setup(chartView, distribution, cal.get(Calendar.MONTH) + 1)
+            } else {
+                chartView.visibility = View.GONE
+            }
+        }
+
+        val peaks = item.optString("peaks")
+        if (peaks.isNotEmpty()) {
+            val tvPeaks = TextView(this@AiReportDetailsActiviteit)
+            tvPeaks.text = "Historische Piekperiode $peaks"
+            tvPeaks.setTextColor(Color.parseColor("#FFD54F")) 
+            tvPeaks.textSize = 10f
+            view.findViewById<LinearLayout>(R.id.llTextContainer).addView(tvPeaks)
+        }
+
         view.findViewById<MaterialCardView>(R.id.cardSpecies).strokeColor = getGuildColor(guild)
         
         val iv = view.findViewById<ImageView>(R.id.ivSpecies)
@@ -193,5 +218,19 @@ class AiReportDetailsActiviteit : AppCompatActivity() {
             guildName.contains("Kust") -> Color.parseColor("#009688")
             else -> Color.parseColor("#333333")
         }
+    }
+
+    private fun getLocalSiteClusterIds(saf: SaFStorageHelper, lat: Double, lon: Double): List<String>? {
+        return try {
+            val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: return null
+            val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
+            root.locaties.filter { 
+                val r = 6371.0
+                val dLat = Math.toRadians(it.latitude - lat); val dLon = Math.toRadians(it.longitude - lon)
+                val a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(Math.toRadians(lat)) * Math.cos(Math.toRadians(it.latitude)) * Math.sin(dLon/2) * Math.sin(dLon/2)
+                val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+                r * c <= 35.0 
+            }.map { it.telpostid }
+        } catch (_: Exception) { null }
     }
 }

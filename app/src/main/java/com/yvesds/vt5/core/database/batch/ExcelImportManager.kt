@@ -152,6 +152,13 @@ class ExcelImportManager(private val context: Context) {
             if (headersToInsert.isNotEmpty()) {
                 onProgress("Sessies opslaan...", 0, 0)
                 db.tellingDao().insertHeaders(headersToInsert)
+                
+                // Update tel-inspanning teller in DataStore
+                headersToInsert.forEach { h ->
+                    val start = h.begintijd.toLongOrNull() ?: 0L
+                    val end = h.eindtijd.toLongOrNull() ?: 0L
+                    com.yvesds.vt5.core.opslag.EffortManager.addSessionEffort(context, h.telpostid, start, end)
+                }
             }
 
             // 3. Waarnemingen
