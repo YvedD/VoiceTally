@@ -34,16 +34,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * InstallatieScherm - Gerefactored om helper classes te gebruiken.
- * 
- * Helpers:
- * - InstallationSafManager: SAF operations
- * - ServerAuthenticationManager: Login test & checkuser
- * - ServerDataDownloadManager: Download orchestration
- * - AliasIndexManager: Alias index lifecycle
- * - InstallationDialogManager: All dialogs
- * 
- * Reduced from 702 lines to ~280 lines door extraction naar helpers.
+ * InstallatieScherm - Beheert de installatie en permissies.
+ * Nu met actieve permissie-aanvragen via de checkboxen.
  */
 class InstallatieScherm : AppCompatActivity() {
     companion object {
@@ -51,12 +43,8 @@ class InstallatieScherm : AppCompatActivity() {
     }
 
     private lateinit var binding: SchermInstallatieBinding
-    
-    // Core infrastructure (existing)
     private lateinit var saf: SaFStorageHelper
     private lateinit var creds: CredentialsStore
-    
-    // NEW: Helper managers
     private lateinit var safManager: InstallationSafManager
     private lateinit var authManager: ServerAuthenticationManager
     private lateinit var downloadManager: ServerDataDownloadManager
@@ -70,39 +58,20 @@ class InstallatieScherm : AppCompatActivity() {
         binding = SchermInstallatieBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize core infrastructure
         saf = SaFStorageHelper(this)
         creds = CredentialsStore(this)
         
-        // Initialize helper managers
         initializeHelpers()
-        
-        // Setup UI
         initUi()
         setupPermissionAcknowledgements()
         wireClicks()
 
-        // Preload data if SAF already configured
         if (safManager.isSafConfigured()) {
             preloadDataIfExists()
         }
-
-        // Update button states
         updatePrecomputeButtonState()
     }
 
-    override fun onDestroy() {
-        // No need for manual dialog cleanup - InstallationDialogManager handles it
-        super.onDestroy()
-    }
-
-    /**
-     * Initialize all helper managers.
-     * 
-     * BELANGRIJK: safManager moet hier geïnitialiseerd worden (in onCreate) omdat
-     * registerForActivityResult() moet worden aangeroepen voordat de activity in
-     * STARTED state komt.
-     */
     private fun initializeHelpers() {
         safManager = InstallationSafManager(this, saf) { success ->
             binding.tvStatus.text = if (success) {
@@ -119,9 +88,6 @@ class InstallatieScherm : AppCompatActivity() {
         dialogManager = InstallationDialogManager(this)
     }
 
-    /**
-     * Initialize UI elements.
-     */
     private fun initUi() {
         binding.etUitleg.setText(getString(R.string.install_uitleg))
         restoreCreds()
@@ -129,16 +95,11 @@ class InstallatieScherm : AppCompatActivity() {
         binding.etUitleg.measure(0, 0)
     }
 
-    /**
-     * Wire up all button click listeners.
-     */
     private fun wireClicks() = with(binding) {
-        // SAF picker button
         btnKiesDocuments.setOnClickListener { 
             safManager.launchDocumentPicker()
         }
 
-        // Check/create folders button
         btnCheckFolders.setOnClickListener {
             it.isEnabled = false
             try {
@@ -158,7 +119,6 @@ class InstallatieScherm : AppCompatActivity() {
             }
         }
 
-        // Credentials management buttons
         btnWis.setOnClickListener {
             it.isEnabled = false
             try {
@@ -189,26 +149,22 @@ class InstallatieScherm : AppCompatActivity() {
             }
         }
 
-        // Login test button
         btnLoginTest.setOnClickListener {
             val (username, password) = getCredentialsOrWarn() ?: return@setOnClickListener
             it.isEnabled = false
             handleLoginTest(username, password)
         }
 
-        // Download server data button
         btnDownloadJsons.setOnClickListener {
             val (username, password) = getCredentialsOrWarn() ?: return@setOnClickListener
             it.isEnabled = false
             handleDownloadServerData(username, password)
         }
 
-        // Force alias reindex button
         btnAliasPrecompute.setOnClickListener {
             handleForceRebuildAliasIndex()
         }
 
-        // Done button - return to main
         btnKlaar.setOnClickListener {
             navigateToOpstart()
         }
@@ -220,99 +176,66 @@ class InstallatieScherm : AppCompatActivity() {
 
     private fun setupPermissionAcknowledgements() {
         val prefs = getSharedPreferences("vt5_prefs", MODE_PRIVATE)
-        val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
+        val hasAudio = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        val hasLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasSaf = saf.getRootUri() != null
-        
-        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
-            PackageManager.PERMISSION_GRANTED
-        val hasBluetooth = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
-            PackageManager.PERMISSION_GRANTED
+        val hasCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val hasBluetooth = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
         val hasAlarm = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
             alarmManager.canScheduleExactAlarms()
         } else true
 
-        bindPermCheckBox(
-            cb = binding.cbPermAudio,
-            key = InstellingenScherm.PREF_PERM_AUDIO_ACK,
-            prefs = prefs,
-            actualGranted = hasAudio,
-            disableMessageRes = R.string.perm_disable_message_audio
-        )
-        bindPermCheckBox(
-            cb = binding.cbPermSaf,
-            key = InstellingenScherm.PREF_PERM_SAF_ACK,
-            prefs = prefs,
-            actualGranted = hasSaf,
-            disableMessageRes = R.string.perm_disable_message_saf
-        )
-        bindPermCheckBox(
-            cb = binding.cbPermLocation,
-            key = InstellingenScherm.PREF_PERM_LOCATION_ACK,
-            prefs = prefs,
-            actualGranted = hasLocation,
-            disableMessageRes = R.string.perm_disable_message_location
-        )
-        bindPermCheckBox(
-            cb = binding.cbPermCamera,
-            key = InstellingenScherm.PREF_PERM_CAMERA_ACK,
-            prefs = prefs,
-            actualGranted = hasCamera,
-            disableMessageRes = 0
-        )
-        bindPermCheckBox(
-            cb = binding.cbPermBluetooth,
-            key = InstellingenScherm.PREF_PERM_BLUETOOTH_ACK,
-            prefs = prefs,
-            actualGranted = hasBluetooth,
-            disableMessageRes = 0
-        )
-        bindPermCheckBox(
-            cb = binding.cbPermAlarm,
-            key = InstellingenScherm.PREF_PERM_ALARM_ACK,
-            prefs = prefs,
-            actualGranted = hasAlarm,
-            disableMessageRes = 0
-        )
+        bindPermCheckBox(binding.cbPermAudio, InstellingenScherm.PREF_PERM_AUDIO_ACK, prefs, hasAudio, R.string.perm_disable_message_audio)
+        bindPermCheckBox(binding.cbPermSaf, InstellingenScherm.PREF_PERM_SAF_ACK, prefs, hasSaf, R.string.perm_disable_message_saf)
+        bindPermCheckBox(binding.cbPermLocation, InstellingenScherm.PREF_PERM_LOCATION_ACK, prefs, hasLocation, R.string.perm_disable_message_location)
+        bindPermCheckBox(binding.cbPermCamera, InstellingenScherm.PREF_PERM_CAMERA_ACK, prefs, hasCamera, 0)
+        bindPermCheckBox(binding.cbPermBluetooth, InstellingenScherm.PREF_PERM_BLUETOOTH_ACK, prefs, hasBluetooth, 0)
+        bindPermCheckBox(binding.cbPermAlarm, InstellingenScherm.PREF_PERM_ALARM_ACK, prefs, hasAlarm, 0)
+
+        // Extra actie voor SAF
+        binding.cbPermSaf.setOnClickListener {
+            if (binding.cbPermSaf.isChecked) safManager.launchDocumentPicker()
+        }
     }
 
-    private fun bindPermCheckBox(
-        cb: MaterialCheckBox,
-        key: String,
-        prefs: android.content.SharedPreferences,
-        actualGranted: Boolean,
-        disableMessageRes: Int
-    ) {
+    private fun bindPermCheckBox(cb: MaterialCheckBox, key: String, prefs: android.content.SharedPreferences, actualGranted: Boolean, disableMessageRes: Int) {
         var suppress = false
         val stored = prefs.getBoolean(key, false)
         val effective = stored || actualGranted
-        if (effective && !stored) {
-            prefs.edit { putBoolean(key, true) }
-        }
+        if (effective && !stored) prefs.edit { putBoolean(key, true) }
+        
         suppress = true
         cb.isChecked = effective
         suppress = false
 
         cb.setOnCheckedChangeListener { _, isChecked ->
             if (suppress) return@setOnCheckedChangeListener
-            if (!isChecked) {
-                showDisablePermissionDialog(disableMessageRes) { confirmed ->
-                    if (confirmed) {
-                        prefs.edit { putBoolean(key, false) }
-                    } else {
-                        suppress = true
-                        cb.isChecked = true
-                        suppress = false
+            if (isChecked) {
+                when (key) {
+                    InstellingenScherm.PREF_PERM_AUDIO_ACK -> requestPermission(Manifest.permission.RECORD_AUDIO)
+                    InstellingenScherm.PREF_PERM_LOCATION_ACK -> requestPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                    InstellingenScherm.PREF_PERM_CAMERA_ACK -> requestPermission(Manifest.permission.CAMERA)
+                    InstellingenScherm.PREF_PERM_BLUETOOTH_ACK -> requestPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                    InstellingenScherm.PREF_PERM_ALARM_ACK -> {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply { data = "package:$packageName".toUri() })
+                        }
                     }
                 }
-            } else {
                 prefs.edit { putBoolean(key, true) }
+            } else {
+                showDisablePermissionDialog(disableMessageRes) { confirmed ->
+                    if (confirmed) prefs.edit { putBoolean(key, false) }
+                    else { suppress = true; cb.isChecked = true; suppress = false }
+                }
             }
+        }
+    }
+
+    private fun requestPermission(permission: String) {
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(permission), 100)
         }
     }
 
@@ -320,38 +243,25 @@ class InstallatieScherm : AppCompatActivity() {
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.perm_disable_title)
             .setMessage(messageRes)
-            .setPositiveButton(R.string.perm_disable_confirm) { _, _ ->
-                onResult(true)
-            }
-            .setNegativeButton(R.string.perm_disable_cancel) { _, _ ->
-                onResult(false)
-            }
+            .setPositiveButton(R.string.perm_disable_confirm) { _, _ -> onResult(true) }
+            .setNegativeButton(R.string.perm_disable_cancel) { _, _ -> onResult(false) }
             .setCancelable(false)
             .show()
-
         DialogStyler.apply(dialog)
     }
 
     private fun openUnknownSourcesSettings() {
         try {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                "package:$packageName".toUri()
-            )
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:$packageName".toUri())
             startActivity(intent)
         } catch (e: Exception) {
-            Log.w(TAG, "Unable to open unknown sources settings: ${e.message}", e)
             Toast.makeText(this, "Kan installatie-instellingen niet openen.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    /**
-     * Get credentials from input fields or show warning if missing.
-     */
     private fun getCredentialsOrWarn(): Pair<String, String>? {
         val username = binding.etLogin.text?.toString().orEmpty().trim()
         val password = binding.etPass.text?.toString().orEmpty()
-        
         if (username.isBlank() || password.isBlank()) {
             Toast.makeText(this, getString(R.string.msg_vul_login_eerst), Toast.LENGTH_LONG).show()
             return null
@@ -359,43 +269,26 @@ class InstallatieScherm : AppCompatActivity() {
         return username to password
     }
 
-    /**
-     * Handle login test using ServerAuthenticationManager.
-     */
     private fun handleLoginTest(username: String, password: String) {
         lifecycleScope.launch {
             val progressDialog = dialogManager.showProgress("Login testen...")
-            
             try {
                 val result = authManager.testLogin(username, password)
                 progressDialog.dismiss()
-                
-                when (result) {
-                    is ServerAuthenticationManager.AuthResult.Success -> {
-                        dialogManager.showInfo(getString(R.string.dlg_titel_result), result.response)
-                        
-                        // Save credentials automatically after successful login test
-                        creds.save(username, password)
-                        
-                        // Save fullname to SharedPreferences for quick access
-                        authManager.saveFullnameToPreferences(result.response)
-                        
-                        // Save checkuser.json to serverdata folder
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            try {
-                                val serverdataDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
-                                authManager.saveCheckUserResponse(serverdataDir, result.response)
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Error saving checkuser.json: ${e.message}", e)
-                            }
-                        }
+                if (result is ServerAuthenticationManager.AuthResult.Success) {
+                    dialogManager.showInfo(getString(R.string.dlg_titel_result), result.response)
+                    creds.save(username, password)
+                    authManager.saveFullnameToPreferences(result.response)
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val serverdataDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
+                            authManager.saveCheckUserResponse(serverdataDir, result.response)
+                        } catch (_: Exception) {}
                     }
-                    is ServerAuthenticationManager.AuthResult.Failure -> {
-                        dialogManager.showError("Login mislukt", result.error)
-                    }
+                } else if (result is ServerAuthenticationManager.AuthResult.Failure) {
+                    dialogManager.showError("Login mislukt", result.error)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Exception in handleLoginTest: ${e.message}", e)
                 dialogManager.showError("Fout bij login test", e.message ?: "Onbekende fout")
                 progressDialog.dismiss()
             } finally {
@@ -404,9 +297,6 @@ class InstallatieScherm : AppCompatActivity() {
         }
     }
 
-    /**
-     * Handle server data download using ServerDataDownloadManager.
-     */
     private fun handleDownloadServerData(username: String, password: String) {
         val vt5Dir = safManager.getVt5Directory()
         if (vt5Dir == null) {
@@ -414,71 +304,30 @@ class InstallatieScherm : AppCompatActivity() {
             binding.btnDownloadJsons.isEnabled = true
             return
         }
-        
         val serverdataDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
         val binariesDir = safManager.getSubdirectory("binaries", createIfMissing = true)
 
         lifecycleScope.launch {
             val progressDialog = dialogManager.showProgress("JSONs downloaden...")
-            
             try {
-                // Download server data
-                val downloadResult = downloadManager.downloadAllServerData(
-                    serverdataDir = serverdataDir,
-                    binariesDir = binariesDir,
-                    username = username,
-                    password = password,
-                    onProgress = { message ->
-                        dialogManager.updateProgress(progressDialog, message)
-                    }
-                )
-                
-                when (downloadResult) {
-                    is ServerDataDownloadManager.DownloadResult.Success -> {
-                        // Check if alias regeneration needed
-                        if (aliasManager.needsRegeneration(vt5Dir)) {
-                            dialogManager.updateProgress(progressDialog, "Alias index bijwerken...")
-                            
-                            val timestamp = authManager.generateIsoTimestamp()
-                            val regenResult = aliasManager.regenerateIndexIfNeeded(
-                                vt5Dir = vt5Dir,
-                                timestamp = timestamp,
-                                onProgress = { message ->
-                                    dialogManager.updateProgress(progressDialog, message)
-                                }
-                            )
-                            
-                            when (regenResult) {
-                                is AliasIndexManager.RegenerationResult.Success -> {
-                                }
-                                is AliasIndexManager.RegenerationResult.AlreadyUpToDate -> {
-                                }
-                                is AliasIndexManager.RegenerationResult.Failure -> {
-                                    Log.w(TAG, "Alias regeneration failed: ${regenResult.error}")
-                                }
-                            }
+                val downloadResult = downloadManager.downloadAllServerData(serverdataDir, binariesDir, username, password) { message ->
+                    dialogManager.updateProgress(progressDialog, message)
+                }
+                if (downloadResult is ServerDataDownloadManager.DownloadResult.Success) {
+                    if (aliasManager.needsRegeneration(vt5Dir)) {
+                        aliasManager.regenerateIndexIfNeeded(vt5Dir, authManager.generateIsoTimestamp()) { message ->
+                            dialogManager.updateProgress(progressDialog, message)
                         }
-                        
-                        // Invalidate data preload flag
-                        dataPreloaded = false
-                        
-                        // Show success
-                        progressDialog.dismiss()
-                        dialogManager.showInfo(
-                            getString(R.string.dlg_titel_result),
-                            downloadResult.messages.joinToString("\n")
-                        )
-                        
-                        // Preload data in background
-                        preloadDataIfExists()
                     }
-                    is ServerDataDownloadManager.DownloadResult.Failure -> {
-                        progressDialog.dismiss()
-                        dialogManager.showError("Fout bij downloaden", downloadResult.error)
-                    }
+                    dataPreloaded = false
+                    progressDialog.dismiss()
+                    dialogManager.showInfo(getString(R.string.dlg_titel_result), downloadResult.messages.joinToString("\n"))
+                    preloadDataIfExists()
+                } else if (downloadResult is ServerDataDownloadManager.DownloadResult.Failure) {
+                    progressDialog.dismiss()
+                    dialogManager.showError("Fout bij downloaden", downloadResult.error)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error during download: ${e.message}", e)
                 dialogManager.showError("Fout bij downloaden", e.message ?: "Onbekende fout")
                 progressDialog.dismiss()
             } finally {
@@ -488,98 +337,49 @@ class InstallatieScherm : AppCompatActivity() {
         }
     }
 
-    /**
-     * Handle force rebuild of alias index using AliasIndexManager.
-     */
     private fun handleForceRebuildAliasIndex() {
-        val vt5Dir = safManager.getVt5Directory()
-        if (vt5Dir == null) {
-            Toast.makeText(this, getString(R.string.msg_kies_documents_eerst), Toast.LENGTH_LONG).show()
-            return
-        }
-        
+        val vt5Dir = safManager.getVt5Directory() ?: return
         binding.btnAliasPrecompute.isEnabled = false
         binding.btnAliasPrecompute.alpha = 0.5f
-
         lifecycleScope.launch {
             val progressDialog = dialogManager.showProgress("Forceer heropbouw alias index...")
-            
             try {
-                val timestamp = authManager.generateIsoTimestamp()
-                val result = aliasManager.forceRebuildIndex(vt5Dir, timestamp)
-                
+                val result = aliasManager.forceRebuildIndex(vt5Dir, authManager.generateIsoTimestamp())
                 progressDialog.dismiss()
-                
-                when (result) {
-                    is AliasIndexManager.RegenerationResult.Success -> {
-                        binding.tvStatus.text = "Alias index succesvol opnieuw opgebouwd"
-                        dialogManager.showInfo("Succes", "Alias index is succesvol opnieuw opgebouwd")
-                    }
-                    is AliasIndexManager.RegenerationResult.Failure -> {
-                        binding.tvStatus.text = "Fout bij forceer rebuild: ${result.error}"
-                        dialogManager.showError("Fout bij forceer rebuild", result.error)
-                    }
-                    else -> {
-                        // AlreadyUpToDate should not happen in force rebuild
-                        binding.tvStatus.text = "Alias index rebuild voltooid"
-                    }
-                }
+                if (result is AliasIndexManager.RegenerationResult.Success) dialogManager.showInfo("Succes", "Alias index is succesvol opnieuw opgebouwd")
+                else if (result is AliasIndexManager.RegenerationResult.Failure) dialogManager.showError("Fout bij forceer rebuild", result.error)
             } catch (e: Exception) {
-                Log.e(TAG, "Exception in handleForceRebuildAliasIndex: ${e.message}", e)
                 dialogManager.showError("Fout bij forceer rebuild", e.message ?: "Onbekende fout")
                 progressDialog.dismiss()
-            } finally {
-                updatePrecomputeButtonState()
-            }
+            } finally { updatePrecomputeButtonState() }
         }
     }
 
-    /**
-     * Preload data in background if SAF is configured.
-     */
     private fun preloadDataIfExists() {
         if (dataPreloaded) return
-        
         lifecycleScope.launch {
             try {
-                withContext(Dispatchers.IO) {
-                    ServerDataCache.preload(applicationContext)
-                }
+                withContext(Dispatchers.IO) { ServerDataCache.preload(applicationContext) }
                 dataPreloaded = true
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during data preloading: ${e.message}")
-            } finally {
-                updatePrecomputeButtonState()
-            }
+            } catch (_: Exception) {
+            } finally { updatePrecomputeButtonState() }
         }
     }
 
-    /**
-     * Navigate back to HoofdActiviteit.
-     */
     private fun navigateToOpstart() {
         try {
             val intent = Intent(this, HoofdActiviteit::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(intent)
             finish()
-        } catch (ex: Exception) {
-            Log.e(TAG, "Failed to navigate to OpstartScherm: ${ex.message}", ex)
-            finish()
-        }
+        } catch (_: Exception) { finish() }
     }
 
-    /**
-     * Restore credentials from secure storage.
-     */
     private fun restoreCreds() {
         binding.etLogin.setText(creds.getUsername().orEmpty())
         binding.etPass.setText(creds.getPassword().orEmpty())
     }
 
-    /**
-     * Refresh SAF status text.
-     */
     private fun refreshSafStatus() {
         val uri = saf.getRootUri()
         val ok = uri != null && saf.foldersExist()
@@ -590,9 +390,6 @@ class InstallatieScherm : AppCompatActivity() {
         }
     }
 
-    /**
-     * Update precompute button state (disabled if index already present).
-     */
     private fun updatePrecomputeButtonState() = with(binding) {
         val vt5Dir = safManager.getVt5Directory()
         val present = vt5Dir != null && aliasManager.isIndexPresent(vt5Dir)

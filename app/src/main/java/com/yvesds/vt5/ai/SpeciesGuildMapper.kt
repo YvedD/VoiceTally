@@ -34,14 +34,16 @@ object SpeciesGuildMapper {
         val genus = latinName.split(" ")[0].trim()
 
         return when (genus) {
-            // 1. Waterfowl (Anseriformes - Geese & Dabbling Ducks)
+            // 1. Waterfowl (Anseriformes, Suliformes, Podicipediformes)
             "Anser", "Branta", "Cygnus", "Anas", "Spatula", "Mareca", "Netta", "Aythya", 
-            "Tadorna", "Aix", "Alopochen", "Oxyura"
+            "Tadorna", "Aix", "Alopochen", "Oxyura",
+            "Phalacrocorax", "Microcarbo", // Aalscholvers (nu bij watervogels)
+            "Podiceps", "Tachybaptus"      // Futen (nu bij watervogels)
             -> Guild.WATERFOWL
 
-            // 2. Coastal Birds (Sea Ducks, Divers, Grebes)
+            // 2. Coastal Birds (Sea Ducks, Divers)
             "Somateria", "Melanitta", "Clangula", "Bucephala", "Mergellus", "Mergus", "Polysticta", "Histrionicus",
-            "Gavia", "Podiceps", "Tachybaptus"
+            "Gavia"
             -> Guild.COASTAL_BIRDS
 
             // 3. Raptors - Thermal
@@ -71,7 +73,7 @@ object SpeciesGuildMapper {
             -> Guild.GULLS_TERNS
 
             // 9. Pelagics (True open sea birds)
-            "Fulmarus", "Puffinus", "Calonectris", "Hydrobates", "Oceanodroma", "Morus", "Phalacrocorax", "Microcarbo", "Stercorarius", "Uria", "Alca", "Fratercula", "Ardenna" 
+            "Fulmarus", "Puffinus", "Calonectris", "Hydrobates", "Oceanodroma", "Morus", "Stercorarius", "Uria", "Alca", "Fratercula", "Ardenna" 
             -> Guild.PELAGICS
 
             // 10. Landbirds Special

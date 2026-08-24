@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="45dp"
-    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:fillViewport="true">
 
@@ -12,7 +11,6 @@
         android:id="@+id/root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="45dp"
         android:orientation="vertical"
         android:paddingLeft="20dp"
         android:paddingTop="50dp"
@@ -130,21 +128,39 @@
             android:text="@string/hoofd_telpost_beheer"
             android:textSize="14sp" />
 
-        <!-- AI sectie met knoppen in een grid-achtige opzet -->
+        <!-- AI sectie -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:orientation="horizontal">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAiUpdate"
-                style="@style/Widget.VT5.Button.Outlined"
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/hoofd_ai_update"
-                android:textSize="13sp" />
+                android:layout_weight="1">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAiUpdate"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hoofd_ai_update"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/badgeAiUpdate"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/vt5_badge_red"
+                    android:gravity="center"
+                    android:text="@string/badge_warning"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAiForecast3Days"
@@ -163,24 +179,60 @@
             android:layout_marginTop="8dp"
             android:orientation="horizontal">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAiDailyReports"
-                style="@style/Widget.VT5.Button.Outlined"
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Teldag Verslagen"
-                android:textSize="13sp" />
+                android:layout_weight="1">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAiDailyReports"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Teldag Verslagen"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/badgeAiDailyReports"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/vt5_badge_red"
+                    android:gravity="center"
+                    android:text="@string/badge_warning"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAiTrain"
-                style="@style/Widget.VT5.Button.Outlined"
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="AI Trainen"
-                android:textSize="13sp" />
+                android:layout_weight="1">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAiTrain"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="BSI Trainen"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/badgeAiTrain"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/vt5_badge_red"
+                    android:gravity="center"
+                    android:text="@string/badge_warning"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
@@ -195,4 +247,3 @@
     </LinearLayout>
 
 </ScrollView>
-

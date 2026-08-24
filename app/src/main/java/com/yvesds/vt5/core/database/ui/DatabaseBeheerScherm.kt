@@ -394,8 +394,13 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             database.tellingDao().clearAllHeaders()
             database.tellingDao().clearAllWaarnemingen()
             database.tellingDao().clearAllAiLogs()
-            AppDataStore.resetTellingId(this@DatabaseBeheerScherm) // Reset teller in DataStore
-            com.yvesds.vt5.core.opslag.EffortStore.resetAll(this@DatabaseBeheerScherm) // Reset tel-inspanning
+            database.tellingDao().clearWeatherArchive()
+            database.tellingDao().clearDailyAnalysis()
+            database.tellingDao().clearPhenologyVault()
+            database.tellingDao().clearSpeciesImages()
+            database.tellingDao().clearSyncLogs()
+            AppDataStore.resetTellingId(this@DatabaseBeheerScherm) 
+            com.yvesds.vt5.core.opslag.EffortStore.resetAll(this@DatabaseBeheerScherm) 
             withContext(Dispatchers.Main) { refreshTableList(); setupChartData() }
         }
     }
@@ -406,6 +411,11 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             val wCount = database.tellingDao().countWaarnemingen()
             val aCount = database.tellingDao().countAiLogs()
             val weCount = database.tellingDao().countWeatherArchive()
+            val vCount = database.tellingDao().countPhenologyVault()
+            val rCount = database.tellingDao().countDailyAnalysis()
+            val iCount = database.tellingDao().countSpeciesImages()
+            val sCount = database.tellingDao().countSyncLogs()
+
             withContext(Dispatchers.Main) {
                 container.removeAllViews()
                 addTableCard("Sessies", hCount) { 
@@ -417,8 +427,12 @@ class DatabaseBeheerScherm : AppCompatActivity() {
                     } 
                 }
                 addTableCard("Waarnemingen", wCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearAllWaarnemingen(); withContext(Dispatchers.Main) { refreshTableList(); setupChartData() } } }
+                addTableCard("BSI Vault", vCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearPhenologyVault(); withContext(Dispatchers.Main) { refreshTableList() } } }
+                addTableCard("Dag Verslagen", rCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearDailyAnalysis(); withContext(Dispatchers.Main) { refreshTableList() } } }
                 addTableCard("AI Logs", aCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearAllAiLogs(); withContext(Dispatchers.Main) { refreshTableList() } } }
                 addTableCard("Weer", weCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearWeatherArchive(); withContext(Dispatchers.Main) { refreshTableList() } } }
+                addTableCard("Vogel Beelden", iCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearSpeciesImages(); withContext(Dispatchers.Main) { refreshTableList() } } }
+                addTableCard("Sync Logs", sCount) { lifecycleScope.launch(Dispatchers.IO) { database.tellingDao().clearSyncLogs(); withContext(Dispatchers.Main) { refreshTableList() } } }
             }
         }
     }

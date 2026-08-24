@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="50dp"
-    android:layout_marginBottom="80dp"
     android:background="@color/vt5_black"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:orientation="vertical">
 
     <!-- Header -->
     <LinearLayout
@@ -15,7 +13,7 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingBottom="16dp">
+        android:padding="16dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTerug"
@@ -47,18 +45,18 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clipToPadding="false"
-        android:paddingTop="20dp">
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:padding="16dp">
 
-            <!-- Weer & Omstandigheden Kaart (Breder op tablet) -->
+            <!-- Weer & Omstandigheden Kaart -->
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="900dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="8dp"
                 app:cardBackgroundColor="@color/vt5_dark_gray"
@@ -100,13 +98,12 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Soorten Lijst in Grid op tablet -->
-            <GridLayout
-                android:id="@+id/speciesGrid"
-                android:layout_width="950dp"
+            <!-- Soorten Lijst (ID hersteld naar speciesContainer) -->
+            <LinearLayout
+                android:id="@+id/speciesContainer"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:alignmentMode="alignMargins"
-                android:columnCount="2"
+                android:orientation="vertical"
                 android:paddingTop="16dp" />
 
         </LinearLayout>

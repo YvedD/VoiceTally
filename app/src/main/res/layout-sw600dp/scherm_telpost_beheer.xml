@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="45dp"
-    android:layout_marginBottom="60dp"
+    android:fitsSystemWindows="true"
     android:background="@color/vt5_black"
     android:orientation="vertical"
     android:paddingTop="30dp">
@@ -115,6 +114,16 @@
                 android:layout_marginBottom="16dp"
                 android:text="@string/telpost_beheer_btn_save"
                 app:icon="@android:drawable/ic_menu_save" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:alpha="0.7"
+                android:text="De eerste telpost die u bewaart, wordt automatisch de 'hoofdtelpost' voor uw regionale 35km-cluster. Dit is cruciaal voor de nauwkeurigheid van de biologische data: weergegevens en trek-curves worden namelijk per cluster berekend, omdat lokale omstandigheden bepalend zijn voor de trek-intensiteit in uw regio."
+                android:textColor="@color/vt5_white"
+                android:textSize="14sp"
+                android:textStyle="italic" />
 
         </LinearLayout>
 

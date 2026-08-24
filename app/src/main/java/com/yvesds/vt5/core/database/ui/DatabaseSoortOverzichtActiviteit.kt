@@ -247,18 +247,24 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
                 CartesianChartModelProducer(),
                 view.findViewById(R.id.cbShowReturn),
                 view.findViewById(R.id.cbShowTrek),
+                view.findViewById(R.id.cbShowWind), // NU TOEGEVOEGD
                 view.findViewById(R.id.rgSeason)
             )
             binding.headerView.text = dir
             
             val colorAantal = VicoLineChartHelper.getColorTrek(this)
             val colorTerug = VicoLineChartHelper.getColorTerug(this)
+            val colorWind = VicoLineChartHelper.getColorWind(this)
             
+            // DYNAMISCHE KLEUREN TOEPASSEN OP CHECKBOXEN
             binding.cbShowTrek.buttonTintList = android.content.res.ColorStateList.valueOf(colorAantal)
             binding.cbShowTrek.setTextColor(colorAantal)
             
             binding.cbShowReturn.buttonTintList = android.content.res.ColorStateList.valueOf(colorTerug)
             binding.cbShowReturn.setTextColor(colorTerug)
+
+            binding.cbShowWind.buttonTintList = android.content.res.ColorStateList.valueOf(colorWind)
+            binding.cbShowWind.setTextColor(colorWind)
 
             setupSingleChart(binding.chartView, binding.producer)
             
@@ -270,6 +276,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             val listener = { _: View? -> prepareAndShowCharts() }
             binding.cbShowTrek.setOnClickListener(listener)
             binding.cbShowReturn.setOnClickListener(listener)
+            binding.cbShowWind.setOnClickListener(listener) // LUISTER NAAR WIND TOGGLE
             binding.rgSeason.setOnCheckedChangeListener { _, _ -> prepareAndShowCharts() }
             
             chartBindings[dir] = binding
@@ -322,7 +329,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     private fun updateChart(binding: WindChartBinding, aantal: FloatArray, terug: FloatArray, wind: FloatArray) {
         val seriesAantal = if (binding.cbShowTrek.isChecked) aantal.toList() else List(53) { 0f }
         val seriesTerug = if (binding.cbShowReturn.isChecked) terug.toList() else List(53) { 0f }
-        val seriesWind = wind.toList()
+        val seriesWind = if (binding.cbShowWind.isChecked) wind.toList() else List(53) { 0f }
         
         lifecycleScope.launch {
             binding.producer.runTransaction {
@@ -373,6 +380,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         val producer: CartesianChartModelProducer,
         val cbShowReturn: CheckBox,
         val cbShowTrek: CheckBox,
+        val cbShowWind: CheckBox,
         val rgSeason: RadioGroup
     )
 }

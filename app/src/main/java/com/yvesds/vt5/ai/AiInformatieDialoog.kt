@@ -152,10 +152,10 @@ object AiInformatieDialoog {
             guildName.contains("Zang") -> Color.CYAN
             guildName.contains("Roof") -> Color.YELLOW
             guildName.contains("Reiger") -> Color.GREEN
-            guildName.contains("Zee") -> Color.MAGENTA
+            guildName.contains("Zeevogels") -> Color.MAGENTA // Specifieker maken
             guildName.contains("Stelt") -> Color.parseColor("#FF9800")
             guildName.contains("Water") -> Color.parseColor("#4FC3F7")
-            guildName.contains("Kust") -> Color.parseColor("#009688") // Teal voor kustvogels
+            guildName.contains("Kust") -> Color.parseColor("#009688")
             else -> Color.LTGRAY
         }
     }

@@ -10,7 +10,12 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "telling_headers",
-    indices = [Index(value = ["windrichting"]), Index(value = ["begintijd"]), Index(value = ["onlineid"])]
+    indices = [
+        Index(value = ["windrichting"]), 
+        Index(value = ["begintijd"]), 
+        Index(value = ["onlineid"]),
+        Index(value = ["telpostid"]) // NU TOEGEVOEGD
+    ]
 )
 data class TellingHeader(
     @PrimaryKey val tellingid: String, // Numeriek volgnummer (1, 2, 3...)

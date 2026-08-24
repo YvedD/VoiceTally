@@ -6,87 +6,120 @@
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
     app:cardBackgroundColor="#1A1A1A"
-    app:cardCornerRadius="10dp"
+    app:cardCornerRadius="12dp"
     app:strokeColor="#333333"
     app:strokeWidth="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="8dp">
+        android:orientation="vertical">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivSpecies"
-            android:layout_width="55dp"
-            android:layout_height="55dp"
-            android:scaleType="centerCrop"
-            android:src="@android:drawable/ic_menu_gallery"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
-
+        <!-- BOVENSTE BLOK: Info & Foto -->
         <LinearLayout
-            android:id="@+id/llTextContainer"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:padding="8dp">
 
-            <TextView
-                android:id="@+id/tvSpeciesName"
-                android:layout_width="match_parent"
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivSpecies"
+                android:layout_width="65dp"
+                android:layout_height="65dp"
+                android:scaleType="centerCrop"
+                android:src="@android:drawable/ic_menu_gallery"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
+
+            <LinearLayout
+                android:id="@+id/llTextContainer"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/vt5_white"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvSiteBreakdown"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:alpha="0.6"
-                android:textColor="@color/vt5_white"
-                android:textSize="11sp" />
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/tvScientificInfo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/vt5_green"
-                android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/tvSpeciesName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/tvTotalCount"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
 
-            <!-- Fenologische Sparkline (Klok-curve) -->
+                    <TextView
+                        android:id="@+id/tvTotalCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_toStartOf="@+id/tvStars"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStars"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:textSize="12sp" />
+                </RelativeLayout>
+
+                <TextView
+                    android:id="@+id/tvSiteBreakdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvScientificInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/vt5_green"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvHistoric"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:textColor="@color/vt5_orange"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ONDERSTE BLOK: Grafiek zone -->
+        <FrameLayout
+            android:id="@+id/clGraphContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#222222"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
             <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
                 android:id="@+id/sparklinePhenology"
-                android:layout_width="match_parent"
-                android:layout_height="32dp"
-                android:layout_marginTop="4dp"
-                android:alpha="0.8" />
-        </LinearLayout>
+                android:layout_width="366dp"
+                android:layout_height="45dp"
+                android:layout_gravity="center_horizontal" />
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:gravity="end"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tvStars"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="14sp" />
-
-            <TextView
-                android:id="@+id/tvTotalCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/vt5_white"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+            <View
+                android:id="@+id/viewDateIndicator"
+                android:layout_width="1.5dp"
+                android:layout_height="45dp"
+                android:background="#FF0000"
+                android:elevation="4dp"
+                android:visibility="gone" />
+        </FrameLayout>
 
     </LinearLayout>
 

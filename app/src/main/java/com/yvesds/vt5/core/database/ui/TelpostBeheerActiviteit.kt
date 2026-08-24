@@ -1,6 +1,7 @@
 package com.yvesds.vt5.core.database.ui
 
 import android.Manifest
+import android.graphics.Color
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -173,10 +174,25 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
     }
 
     private fun drawAllMarkers() {
-        overviewMarkers.values.forEach { binding.mapView.overlays.remove(it) }
+        binding.mapView.overlays.removeAll { it is Marker || it is org.osmdroid.views.overlay.Polygon }
         overviewMarkers.clear()
 
-        allLocaties.forEach { (id, loc) ->
+        val siteList = allLocaties.values.toList()
+        val anchorSite = siteList.firstOrNull()
+
+        // 1. Teken de 35km cirkel rond de hoofdtelpost
+        anchorSite?.let { loc ->
+            val circle = org.osmdroid.views.overlay.Polygon(binding.mapView)
+            circle.points = org.osmdroid.views.overlay.Polygon.pointsAsCircle(GeoPoint(loc.latitude, loc.longitude), 35000.0)
+            circle.fillPaint.color = Color.parseColor("#3000BCD4") // Meer uitgesproken vulling
+            circle.outlinePaint.color = Color.parseColor("#FF00BCD4") // Heldere ononderbroken rand
+            circle.outlinePaint.strokeWidth = 3f
+            binding.mapView.overlays.add(circle)
+        }
+
+        // 2. Teken de markers (Originele stijl hersteld)
+        siteList.forEach { loc ->
+            val id = loc.telpostid
             val marker = Marker(binding.mapView)
             marker.position = GeoPoint(loc.latitude, loc.longitude)
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
@@ -186,8 +202,10 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
             overviewMarkers[id] = marker
         }
 
-        // Center op alle markers als er geen selectie is
-        if (allLocaties.isNotEmpty() && selectedTelpostId == null) {
+        // Center op de hoofdtelpost of gemiddelde
+        if (anchorSite != null && selectedTelpostId == null) {
+            binding.mapView.controller.setCenter(GeoPoint(anchorSite.latitude, anchorSite.longitude))
+        } else if (allLocaties.isNotEmpty() && selectedTelpostId == null) {
             val avgLat = allLocaties.values.map { it.latitude }.average()
             val avgLon = allLocaties.values.map { it.longitude }.average()
             binding.mapView.controller.setCenter(GeoPoint(avgLat, avgLon))

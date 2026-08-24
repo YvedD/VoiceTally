@@ -22,7 +22,13 @@ import androidx.room.Index
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["tellingid"]), Index(value = ["soortid"]), Index(value = ["onlineid"]) ]
+    indices = [
+        Index(value = ["tellingid"]), 
+        Index(value = ["soortid"]), 
+        Index(value = ["onlineid"]),
+        Index(value = ["tijdstip"]), // NU TOEGEVOEGD
+        Index(value = ["soortid", "tijdstip"]) // NU TOEGEVOEGD
+    ]
 )
 data class Waarneming(
     val idLocal: String,

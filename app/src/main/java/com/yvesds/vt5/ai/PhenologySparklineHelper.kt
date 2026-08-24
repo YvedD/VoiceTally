@@ -10,11 +10,13 @@ import com.patrykandpatrick.vico.views.cartesian.CartesianChartView
 import com.yvesds.vt5.core.database.dao.MonthCountRow
 
 /**
+ * [STABLE_GOLDEN_STATE_V2 - 23 AUG 2026]
  * PhenologySparklineHelper - Modulaire helper voor het tekenen van de dubbele klok-curve.
+ * NIET WIJZIGEN ZONDER MANIFEST CHECK.
  */
 object PhenologySparklineHelper {
 
-    suspend fun setup(chartView: CartesianChartView, distribution: List<MonthCountRow>, currentMonth: Int) {
+    suspend fun setup(chartView: CartesianChartView, distribution: List<MonthCountRow>, teldagMonthX: Float) {
         val modelProducer = CartesianChartModelProducer()
         
         val fullYear = (1..12).map { month ->

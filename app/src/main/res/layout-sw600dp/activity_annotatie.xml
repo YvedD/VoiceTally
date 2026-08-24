@@ -4,8 +4,7 @@
     android:id="@+id/annot_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="45dp"
-    android:layout_marginBottom="60dp"
+    android:fitsSystemWindows="true"
     android:background="@color/vt5_black"
     android:fillViewport="true">
 
@@ -103,11 +102,15 @@
 
                     <!-- Age -->
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:orientation="vertical"
                         android:padding="8dp">
 
                         <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
                             android:text="@string/annotation_age"
                             android:textColor="@android:color/white"
@@ -172,11 +175,15 @@
 
                     <!-- Plumage -->
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:orientation="vertical"
                         android:padding="8dp">
 
                         <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
                             android:text="@string/annotation_plumage"
                             android:textColor="@android:color/white"
@@ -241,11 +248,15 @@
 
                     <!-- Height -->
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:orientation="vertical"
                         android:padding="8dp">
 
                         <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
                             android:text="@string/annotation_height"
                             android:textColor="@android:color/white"
@@ -310,11 +321,15 @@
 
                     <!-- Gender (Row 2) -->
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:orientation="vertical"
                         android:padding="8dp">
 
                         <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
                             android:text="@string/annotation_gender"
                             android:textColor="@android:color/white"
@@ -355,11 +370,15 @@
 
                     <!-- Location (Row 2) -->
                     <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
                         android:orientation="vertical"
                         android:padding="8dp">
 
                         <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
                             android:text="@string/annotation_location"
                             android:textColor="@android:color/white"

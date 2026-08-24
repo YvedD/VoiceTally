@@ -174,12 +174,38 @@ class WeatherEnrichmentManager(context: Context) {
 
     private fun isFieldMissing(v: String?): Boolean = v.isNullOrBlank() || v.trim().lowercase() in listOf("null", "0", "nan", "onbekend", "-", "?", "nan")
 
-    private fun clusterTelpostYears(all: List<com.yvesds.vt5.core.database.dao.TelpostYear>, map: Map<String, com.yvesds.vt5.core.database.entities.TelpostLocatie>): Map<Triple<String, Double, Double>, Set<String>> {
+    private fun clusterTelpostYears(
+        all: List<com.yvesds.vt5.core.database.dao.TelpostYear>, 
+        map: Map<String, com.yvesds.vt5.core.database.entities.TelpostLocatie>
+    ): Map<Triple<String, Double, Double>, Set<String>> {
         val res = mutableMapOf<Triple<String, Double, Double>, MutableSet<String>>()
+        
+        // Sorteer 'all' zodat telposten die eerder in de JSON staan (via map keys volgorde of index)
+        // Maar beter: we halen de volgorde uit de JSON zelf.
+        val orderedSiteIds = map.keys.toList()
+
         all.forEach { (tid, year) ->
             val loc = map[tid] ?: return@forEach
+            
+            // Zoek of deze telpost al in een cluster zit (35km)
             val ex = res.keys.find { calculateDistance(loc.latitude, loc.longitude, it.second, it.third) <= 35.0 }
-            if (ex != null) res[ex]?.add(year) else res[Triple(tid, loc.latitude, loc.longitude)] = mutableSetOf(year)
+            
+            if (ex != null) {
+                // Check of de huidige 'tid' EERDER in de JSON staat dan de huidige cluster-key 'ex.first'
+                val currentPrimaryIndex = orderedSiteIds.indexOf(ex.first)
+                val newCandidateIndex = orderedSiteIds.indexOf(tid)
+                
+                if (newCandidateIndex >= 0 && newCandidateIndex < currentPrimaryIndex) {
+                    // Deze telpost is 'hoger' in rang (eerder in JSON), maak deze de nieuwe Hoofdtelpost voor de cluster
+                    val years = res.remove(ex)!!
+                    years.add(year)
+                    res[Triple(tid, loc.latitude, loc.longitude)] = years
+                } else {
+                    res[ex]?.add(year)
+                }
+            } else {
+                res[Triple(tid, loc.latitude, loc.longitude)] = mutableSetOf(year)
+            }
         }
         return res
     }
@@ -187,11 +213,16 @@ class WeatherEnrichmentManager(context: Context) {
     private suspend fun findArchiveLocationId(lat: Double, lon: Double): String? {
         val locations = db.tellingDao().getWeatherAvailableLocations()
         val locatiesJson = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
-        val locMap = try { VT5App.json.decodeFromString<TelpostLocatiesRoot>(locatiesJson).locaties.associateBy { it.telpostid } } catch (_: Exception) { emptyMap() }
-        return locations.find { id ->
-            val loc = locMap[id] ?: return@find false
-            calculateDistance(lat, lon, loc.latitude, lon) <= 35.0
-        }
+        val locRoot = try { VT5App.json.decodeFromString<TelpostLocatiesRoot>(locatiesJson) } catch (_: Exception) { TelpostLocatiesRoot() }
+        val locList = locRoot.locaties
+        
+        // Zoek alle bekende telposten in de buurt van deze coördinaten
+        val nearbySites = locList.filter { calculateDistance(lat, lon, it.latitude, it.longitude) <= 35.0 }
+        
+        // Retourneer de telpostid die het HOOGST (eerste) in de JSON lijst staat
+        // en waarvoor we weergegevens in het archief hebben.
+        return nearbySites.find { site -> locations.contains(site.telpostid) }?.telpostid
+            ?: nearbySites.firstOrNull()?.telpostid // Fallback naar eerste in buurt
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

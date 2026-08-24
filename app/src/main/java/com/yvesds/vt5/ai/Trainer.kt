@@ -3,11 +3,13 @@ package com.yvesds.vt5.ai
 import android.content.Context
 import android.util.Log
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.database.ui.SpeciesNameResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.*
+import kotlin.math.*
 
 /**
  * Trainer - Plan B: Bio-Statistische Intelligentie (BSI) Profiler.
@@ -98,6 +100,10 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 }
             }
 
+            // 8. VUL DE SCIENTIFIC VAULT (HD-Curves & Pieken)
+            onProgress("Wetenschappelijke kluis verzegelen...", 99, 100)
+            fillScientificVault(onProgress)
+
             onProgress("Training succesvol voltooid!", 100, 100)
             Log.i(TAG, "Neural training voltooid.")
             delay(1000)
@@ -106,6 +112,76 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             Log.e(TAG, "Training mislukt: ${e.message}", e)
             onProgress("Fout bij trainen: ${e.message}", 0, 0)
         }
+    }
+
+    private suspend fun fillScientificVault(onProgress: (String, Int, Int) -> Unit) = withContext(Dispatchers.IO) {
+        try {
+            val db = VoiceTallyDatabase.getDatabase(context)
+            val dao = db.tellingDao()
+            val saf = SaFStorageHelper(context)
+            
+            val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
+            val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
+            
+            // BEPAAL HOOFDTELPOST (De allereerste in het JSON bestand)
+            val primarySite = root.locaties.firstOrNull() ?: return@withContext
+            val clusterIds = getLocalSiteClusterIds(saf, primarySite.latitude, primarySite.longitude) ?: listOf(primarySite.telpostid)
+            val primaryClusterId = primarySite.telpostid
+            
+            val speciesIds = dao.getAllSpeciesIds()
+            val total = speciesIds.size
+
+            speciesIds.forEachIndexed { index, sid ->
+                if (index % 10 == 0) {
+                    onProgress("Vault verzegelen: Soort ${index+1}/$total...", 99, 100)
+                }
+
+                // Gebruik de volledige cluster voor de distributie
+                val distribution = dao.getSpeciesDailyDistribution(sid, clusterIds)
+                val rawCurve = FloatArray(366)
+                distribution.forEach { if (it.day in 1..366) rawCurve[it.day - 1] = it.count.toFloat() }
+                
+                // GEEN SMOOTHING: Sla ruwe data op voor maximale eerlijkheid
+                val curveString = rawCurve.joinToString("|") { String.format(Locale.US, "%.4f", it) }
+
+                // Piek berekening
+                val peakSpring = findPeakInPeriod(rawCurve, 1, 166)
+                val peakAutumn = findPeakInPeriod(rawCurve, 167, 366)
+
+                dao.insertDailyAnalysisVault(com.yvesds.vt5.core.database.entities.SpeciesPhenologyVault(
+                    speciesId = sid,
+                    clusterId = primaryClusterId, // Altijd gekoppeld aan de hoofdtelpost
+                    dailyBphSeries = curveString,
+                    peakSpring = peakSpring,
+                    peakAutumn = peakAutumn
+                ))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Vault failure: ${e.message}")
+        }
+    }
+
+    private fun findPeakInPeriod(curve: FloatArray, startDay: Int, endDay: Int): String {
+        var maxVal = -1f; var peakDay = -1
+        for (i in (startDay - 1) until kotlin.math.min(endDay, curve.size)) {
+            if (curve[i] > maxVal) { maxVal = curve[i]; peakDay = i + 1 }
+        }
+        if (peakDay == -1 || maxVal <= 0f) return "[onbekend]"
+        val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_YEAR, peakDay) }
+        return java.text.SimpleDateFormat("d MMMM", Locale("nl", "BE")).format(cal.time)
+    }
+
+    private fun getLocalSiteClusterIds(saf: SaFStorageHelper, lat: Double, lon: Double): List<String>? {
+        return try {
+            val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: return null
+            val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
+            root.locaties.filter { 
+                val r = 6371.0
+                val dLat = Math.toRadians(it.latitude - lat); val dLon = Math.toRadians(it.longitude - lon)
+                val a = kotlin.math.sin(dLat/2).pow(2) + kotlin.math.cos(Math.toRadians(lat)) * kotlin.math.cos(Math.toRadians(it.latitude)) * kotlin.math.sin(dLon/2).pow(2)
+                r * 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a)) <= 35.0 
+            }.map { it.telpostid }
+        } catch (_: Exception) { null }
     }
 
     // Placeholder voor data-modellen die elders gebruikt worden

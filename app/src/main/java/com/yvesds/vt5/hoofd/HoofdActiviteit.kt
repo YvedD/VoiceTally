@@ -77,6 +77,9 @@ class HoofdActiviteit : AppCompatActivity() {
     private var pendingTellingDialogShown = false
     private var pendingAiUpdateAfterSaF: Boolean = false
     private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
+    
+    private var isDataEnriched = false
+    private var isAiTrained = false
 
     private val clientQrScanLauncher = registerForActivityResult(ScanContract()) { result ->
         val raw = result.contents?.trim().orEmpty()
@@ -275,9 +278,13 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         btnAiDailyReports.setOnClickListener {
-            it.isEnabled = false
-            startActivity(Intent(this, com.yvesds.vt5.ai.AiReportListActiviteit::class.java))
-            it.isEnabled = true
+            if (!isDataEnriched || !isAiTrained) {
+                showAiPrerequisiteWarning()
+            } else {
+                it.isEnabled = false
+                startActivity(Intent(this, com.yvesds.vt5.ai.AiReportListActiviteit::class.java))
+                it.isEnabled = true
+            }
         }
 
         btnAiForecast?.setOnClickListener {
@@ -312,6 +319,7 @@ class HoofdActiviteit : AppCompatActivity() {
                 }
 
                 progress.dismiss()
+                checkAiStateAndShowBadges()
 
                 AlertDialog.Builder(this@HoofdActiviteit)
                     .setTitle("BSI-Training Voltooid")
@@ -359,6 +367,7 @@ class HoofdActiviteit : AppCompatActivity() {
                 }
 
                 progress.dismiss()
+                checkAiStateAndShowBadges()
 
                 if (success) {
                     AlertDialog.Builder(this@HoofdActiviteit)
@@ -642,6 +651,47 @@ class HoofdActiviteit : AppCompatActivity() {
         // Update status wanneer we terugkomen naar dit scherm
         updateAlarmStatus()
         maybeShowPendingTellingDialog()
+        // Ververs de UI badges direct bij terugkeer
+        checkAiStateAndShowBadges()
+    }
+
+    /**
+     * Controleert of data verrijkt is en AI getraind is, en toont badges indien nodig.
+     */
+    private fun checkAiStateAndShowBadges() {
+        lifecycleScope.launch {
+            val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+            val modelStore = com.yvesds.vt5.ai.ModelStore(this@HoofdActiviteit)
+
+            isDataEnriched = withContext(Dispatchers.IO) { db.tellingDao().countWeatherArchive() > 0 }
+            isAiTrained = withContext(Dispatchers.IO) { 
+                val modelDir = modelStore.getModelDir()
+                modelDir?.findFile("neural_engine.bin") != null && modelDir.findFile("expert_knowledge.json") != null
+            }
+
+            withContext(Dispatchers.Main) {
+                findViewById<TextView>(R.id.badgeAiUpdate)?.visibility = if (isDataEnriched) android.view.View.GONE else android.view.View.VISIBLE
+                findViewById<TextView>(R.id.badgeAiTrain)?.visibility = if (isAiTrained) android.view.View.GONE else android.view.View.VISIBLE
+                findViewById<TextView>(R.id.badgeAiDailyReports)?.visibility = if (isDataEnriched && isAiTrained) android.view.View.GONE else android.view.View.VISIBLE
+            }
+        }
+    }
+
+    private fun showAiPrerequisiteWarning() {
+        val msg = if (!isDataEnriched && !isAiTrained) {
+            "De teldag verslagen kunnen nog niet geraadpleegd worden. U moet eerst de gegevens verrijken en de BSI trainen."
+        } else if (!isDataEnriched) {
+            "De teldag verslagen kunnen nog niet geraadpleegd worden. U moet eerst de gegevens verrijken."
+        } else {
+            "De teldag verslagen kunnen nog niet geraadpleegd worden. U moet eerst de BSI trainen."
+        }
+
+        val dlg = AlertDialog.Builder(this)
+            .setTitle("AI Actie Vereist")
+            .setMessage(msg)
+            .setPositiveButton("OK", null)
+            .show()
+        DialogStyler.apply(dlg)
     }
     
     /**

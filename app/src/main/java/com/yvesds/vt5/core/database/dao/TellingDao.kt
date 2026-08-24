@@ -446,6 +446,17 @@ interface TellingDao {
     """)
     suspend fun getSpeciesMonthlyDistribution(speciesId: String, siteIds: List<String>): List<MonthCountRow>
 
+    @Query("""
+        SELECT 
+            CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) as day,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE w.soortid = :speciesId AND h.telpostid IN (:siteIds) AND h.telpostid != '5177'
+        GROUP BY day ORDER BY day ASC
+    """)
+    suspend fun getSpeciesDailyDistribution(speciesId: String, siteIds: List<String>): List<DayCountRowClean>
+
     @Query("SELECT dayEpoch, type FROM daily_analysis")
     suspend fun getAllAnalyzedDays(): List<AnalyzedDayRow>
 
@@ -468,6 +479,27 @@ interface TellingDao {
     suspend fun insertDailyAnalysis(analysis: DailyAnalysis)
 
     /**
+     * BSI Vault operaties
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyAnalysisVault(entry: SpeciesPhenologyVault)
+
+    @Query("SELECT * FROM species_phenology_vault WHERE speciesId = :sid AND clusterId = :cid LIMIT 1")
+    suspend fun getDailyAnalysisVault(sid: String, cid: String): SpeciesPhenologyVault?
+
+    @Query("DELETE FROM species_phenology_vault")
+    suspend fun clearPhenologyVault()
+
+    @Query("SELECT COUNT(*) FROM species_phenology_vault")
+    suspend fun countPhenologyVault(): Int
+
+    @Query("DELETE FROM sync_logs")
+    suspend fun clearSyncLogs()
+
+    @Query("SELECT COUNT(*) FROM sync_logs")
+    suspend fun countSyncLogs(): Int
+
+    /**
      * Vogelbeeld-cache (SpeciesImage) operaties
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -475,6 +507,12 @@ interface TellingDao {
 
     @Query("SELECT * FROM species_images WHERE latinName = :latin LIMIT 1")
     suspend fun getSpeciesImage(latin: String): SpeciesImage?
+
+    @Query("DELETE FROM species_images")
+    suspend fun clearSpeciesImages()
+
+    @Query("SELECT COUNT(*) FROM species_images")
+    suspend fun countSpeciesImages(): Int
 }
 
 data class SpeciesCountRow(val soortid: String, val count: Int)
@@ -486,6 +524,7 @@ data class SpeciesMassaRow(val soortid: String, val observationCount: Int, val t
 data class SpeciesClusterIndex(val soortid: String, val clusterIndex: Float, val activePosts: Int)
 data class TelpostYear(val telpostid: String, val year: String)
 data class DayCountRow(val dayEpoch: Long, val count: Long)
+data class DayCountRowClean(val day: Int, val count: Long)
 data class PeakDayRow(val dayEpoch: Long, val totalCount: Long)
 data class BsiSpeciesProfile(
     val soortid: String,

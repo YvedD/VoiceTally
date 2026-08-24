@@ -52,7 +52,20 @@ object AiInferenceEngine {
         val loc = WeatherManager.getLastKnownLocation(context)
         val lat = loc?.latitude ?: 51.0
         val lon = loc?.longitude ?: 3.0
-        val cluster = getLocalSiteCluster(saf, lat, lon)
+        
+        // BEPAAL CLUSTER GEANKERD AAN DE HOOFDTELPOST (Eerste in JSON)
+        val cluster = withContext(Dispatchers.IO) {
+            val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
+            val root = VT5App.json.decodeFromString<TelpostLocatiesRoot>(jsonStr)
+            val primarySite = root.locaties.firstOrNull()
+            if (primarySite != null) {
+                root.locaties.filter { calculateDistance(primarySite.latitude, primarySite.longitude, it.latitude, it.longitude) <= 35.0 }
+                    .map { it.telpostid }
+            } else {
+                getLocalSiteCluster(saf, lat, lon)
+            }
+        }
+        
         val phase = SolarTimeEngine.getSolarPhase(lat, lon, cal)
 
         // 1. LIVE REGIONALE CORRIDOR CHECK (Tenzij boost al gegeven is)

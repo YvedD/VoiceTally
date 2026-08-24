@@ -48,7 +48,10 @@ object UiColorPrefs {
         ColorOption("Geel", Color.parseColor("#FFEB3B")),
         ColorOption("Cyaan", Color.parseColor("#00BCD4")),
         ColorOption("Oranje", Color.parseColor("#FF9800")),
-        ColorOption("Lichtgroen", Color.parseColor("#8BC34A"))
+        ColorOption("Felgroen", Color.parseColor("#00FF00")),
+        ColorOption("Felrood", Color.parseColor("#FF0000")),
+        ColorOption("Felblauw", Color.parseColor("#00A2FF")),
+        ColorOption("Magenta", Color.parseColor("#FF00FF"))
     )
 
     /** Resource-defined presets van res/values/popup_colors.xml. */

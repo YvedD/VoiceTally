@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:fitsSystemWindows="true"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="50dp"
-    android:layout_marginBottom="60dp"
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
@@ -150,5 +149,17 @@
             android:text="@string/telpost_beheer_btn_save"
             app:icon="@android:drawable/ic_menu_save" />
     </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="20dp"
+        android:alpha="0.8"
+        android:text="De eerste telpost die u bewaart, wordt automatisch de 'hoofdtelpost' voor uw regionale 35km-cluster. Dit is cruciaal voor de verwerking van weergegevens: de trek-intensiteit wordt namelijk per cluster berekend, omdat lokale omstandigheden zoals wind en temperatuur in uw specifieke regio bepalend zijn voor het trekgedrag."
+        android:textColor="@color/vt5_light_blue"
+        android:textSize="11sp"
+        android:textStyle="italic" />
 
 </LinearLayout>

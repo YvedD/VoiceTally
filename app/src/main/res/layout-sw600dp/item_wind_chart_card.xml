@@ -72,25 +72,31 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="8dp">
 
-            <CheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cbShowTrek"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/chart_show_trek"
-                android:textColor="@color/grafiek_lijnkleur"
-                android:buttonTint="@color/grafiek_lijnkleur"
                 android:checked="true"
                 android:paddingStart="12dp"
                 android:textSize="16sp" />
 
-            <CheckBox
+            <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/cbShowReturn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="24dp"
                 android:text="@string/chart_show_return"
-                android:textColor="@color/grafiek_lijnkleur_terug"
-                android:buttonTint="@color/grafiek_lijnkleur_terug"
+                android:checked="true"
+                android:paddingStart="12dp"
+                android:textSize="16sp" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbShowWind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:text="@string/chart_show_wind"
                 android:checked="true"
                 android:paddingStart="12dp"
                 android:textSize="16sp" />
@@ -105,4 +111,3 @@
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
-
