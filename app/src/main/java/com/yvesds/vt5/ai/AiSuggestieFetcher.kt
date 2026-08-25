@@ -32,9 +32,11 @@ object AiSuggestieFetcher {
                 val suggesties = AiInferenceEngine.getSuggesties(context, cur, hourOverride = hour)
                 
                 withContext(Dispatchers.Main) {
-                    // Only show dialog if we actually found useful suggestions
-                    if (suggesties.guildResults.isNotEmpty()) {
-                        AiInformatieDialoog.show(context, suggesties)
+                    // Start de nieuwe Prognose Activity
+                    if (suggesties.guildResults.isNotEmpty() || suggesties.rareHighlights.isNotEmpty()) {
+                        val intent = android.content.Intent(context, AiPrognoseActiviteit::class.java)
+                        intent.putExtra("prognose_data", suggesties)
+                        context.startActivity(intent)
                     } else {
                         Toast.makeText(context, "AI: Geen specifieke trekpieken gevonden.", Toast.LENGTH_SHORT).show()
                     }

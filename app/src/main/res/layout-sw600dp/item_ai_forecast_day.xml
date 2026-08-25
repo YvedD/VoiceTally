@@ -1,29 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="280dp"
-    android:layout_height="match_parent"
-    android:layout_marginTop="45dp"
-    android:layout_marginBottom="60dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="24dp"
+    android:layout_marginBottom="16dp"
     app:cardBackgroundColor="@color/vt5_dark_gray"
-    app:cardCornerRadius="12dp"
-    app:strokeColor="@color/vt5_outline"
-    app:strokeWidth="1dp">
+    app:cardCornerRadius="16dp"
+    app:strokeColor="@color/vt5_green"
+    app:strokeWidth="3dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="24dp">
 
         <TextView
             android:id="@+id/tvDayTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Maandag 22 Juli"
-            android:textAlignment="center"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="20sp"
+            android:textSize="24sp"
             android:textStyle="bold" />
 
         <TextView
@@ -32,28 +30,24 @@
             android:layout_height="wrap_content"
             android:alpha="0.8"
             android:paddingTop="8dp"
-            android:text="Wind: ZO 4bft | Temp: 22°C"
-            android:textAlignment="center"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="16sp" />
+            android:textSize="18sp" />
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:alpha="0.3"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:alpha="0.2"
             android:background="@color/vt5_on_surface" />
 
-        <TextView
-            android:id="@+id/tvSpeciesList"
+        <!-- Container voor de soorten-kaarten (Nu met het juiste ID voor de Activity) -->
+        <GridLayout
+            android:id="@+id/speciesGrid"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:lineSpacingExtra="6dp"
-            android:text="• Soort A (80% kans)\n• Soort B (45% kans)"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="17sp" />
+            android:layout_height="wrap_content"
+            android:alignmentMode="alignMargins"
+            android:columnCount="2" />
 
     </LinearLayout>
 

@@ -163,6 +163,12 @@
             tools:ignore="LockedOrientationActivity" />
 
         <activity
+            android:name=".ai.AiPrognoseActiviteit"
+            android:exported="false"
+            android:screenOrientation="fullUser"
+            tools:ignore="LockedOrientationActivity" />
+
+        <activity
             android:name=".ai.AiForecastScherm"
             android:exported="false"
             android:screenOrientation="sensorPortrait"

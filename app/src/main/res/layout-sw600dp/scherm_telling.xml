@@ -193,20 +193,30 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSaveClose"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="64dp"
-                    android:text="Status"
-                    app:icon="@drawable/ic_action_sum" />
+                    style="@style/Widget.VT5.Button.Outlined.IconOnly"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    app:icon="@drawable/ic_action_sum"
+                    app:iconTint="@null" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddSoorten"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="64dp"
+                    style="@style/Widget.VT5.Button.Outlined.IconOnly"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
                     android:layout_marginStart="12dp"
-                    android:text="Voeg Soorten"
-                    app:icon="@drawable/ic_action_add" />
+                    app:icon="@drawable/ic_action_add"
+                    app:iconTint="@null" />
+
+                <!-- De knop nu netjes in de groep -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAfronden"
+                    style="@style/Widget.VT5.Button.Outlined.IconOnly"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="12dp"
+                    app:icon="@drawable/ic_action_upload"
+                    app:iconTint="@null" />
 
                 <ImageButton
                     android:id="@+id/btnBirdNet"
@@ -223,7 +233,7 @@
                     android:layout_height="1dp"
                     android:layout_weight="1" />
 
-                <!-- Totals Display -->
+                <!-- Totals Display helemaal rechts -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -258,16 +268,6 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAfronden"
-                    android:layout_width="wrap_content"
-                    android:layout_height="64dp"
-                    android:layout_marginStart="12dp"
-                    android:text="Afronden"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:backgroundTint="@color/vt5_light_blue"
-                    app:icon="@drawable/ic_action_upload" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView

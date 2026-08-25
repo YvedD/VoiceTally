@@ -30,7 +30,7 @@ object AiInferenceEngine {
         cur: Current, 
         hourOverride: Int? = null,
         providedRegBoost: Double? = null
-    ): AiInformatieDialoog.AiSuggesties = withContext(Dispatchers.IO) {
+    ): AiSuggestieData = withContext(Dispatchers.IO) {
         Log.i(TAG, "=========================================================")
         Log.i(TAG, "START SCIENTIFIC AI ANALYSIS")
         
@@ -152,8 +152,8 @@ object AiInferenceEngine {
         }
 
         // 4. Gilde selectie & Krenten-Highlights
-        val finalResults = mutableListOf<AiInformatieDialoog.GuildSuggestie>()
-        val rareHighlights = mutableListOf<AiInformatieDialoog.GuildSuggestie>()
+        val finalResults = mutableListOf<VogelSuggestie>()
+        val rareHighlights = mutableListOf<VogelSuggestie>()
         val idealScore = 5.0 
 
         SpeciesGuildMapper.Guild.entries.filter { it != SpeciesGuildMapper.Guild.OTHER }.forEach { guild ->
@@ -167,7 +167,7 @@ object AiInferenceEngine {
 
                 if (prob >= 10) {
                     val latin = snapshot?.speciesById?.get(w.soortid)?.latin
-                    val suggestion = AiInformatieDialoog.GuildSuggestie(
+                    val suggestion = VogelSuggestie(
                         guildName = guild.displayName, 
                         soortnaam = w.soortnaam, 
                         kans = prob, 
@@ -193,7 +193,7 @@ object AiInferenceEngine {
 
         logForecast(context, db, cur, currentHour, phase, finalResults)
 
-        return@withContext AiInformatieDialoog.AiSuggesties(
+        return@withContext AiSuggestieData(
             guildResults = finalResults.sortedByDescending { it.kans },
             rareHighlights = rareHighlights.sortedByDescending { it.kans }.take(3),
             weerBeschrijving = "$currentWindLabel-wind / ${WeatherManager.msToBeaufort(cur.windSpeed10m)}bft"
@@ -206,7 +206,7 @@ object AiInferenceEngine {
         cur: Current, 
         hour: Int, 
         phase: SolarTimeEngine.SolarPhase,
-        results: List<AiInformatieDialoog.GuildSuggestie>
+        results: List<VogelSuggestie>
     ) {
         try {
             val conditionJson = org.json.JSONObject().apply {

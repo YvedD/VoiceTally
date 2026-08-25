@@ -5,40 +5,48 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/vt5_black"
-    android:orientation="vertical"
-    android:padding="32dp">
+    android:orientation="vertical">
 
+    <!-- Header -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="24dp"
-        android:text="BSI Expert Prognose Dashboard"
+        android:padding="24dp"
+        android:text="BSI Prognose komende 3 dagen"
         android:textAlignment="center"
-        android:textColor="@color/vt5_light_blue"
+        android:textColor="@color/vt5_white"
         android:textSize="32sp"
         android:textStyle="bold" />
 
-    <ScrollView
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:alpha="0.3"
+        android:background="@color/vt5_on_surface" />
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false">
 
+        <!-- Dagen onder elkaar -->
         <LinearLayout
             android:id="@+id/forecastContainer"
-            android:layout_width="900dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:orientation="vertical" />
-    </ScrollView>
+            android:orientation="vertical"
+            android:padding="16dp" />
+    </androidx.core.widget.NestedScrollView>
 
+    <!-- Footer actie -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnClose"
         style="@style/Widget.VT5.Button.Outlined"
         android:layout_width="300dp"
         android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="24dp"
+        android:layout_margin="24dp"
         android:text="Sluiten"
         android:textSize="18sp"
         app:cornerRadius="12dp" />

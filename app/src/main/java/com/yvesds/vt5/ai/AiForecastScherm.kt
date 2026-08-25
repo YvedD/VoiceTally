@@ -1,9 +1,12 @@
 package com.yvesds.vt5.ai
 
+import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -12,6 +15,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.dao.DayCountRowClean
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.utils.weather.WeatherManager
 import com.yvesds.vt5.utils.weather.Current
@@ -20,16 +26,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 /**
- * Scherm voor het tonen van de 3-daagse AI-prognose met een professionele top-15 lijst.
+ * [STABLE_AI_FORECAST_V2 - 24 AUG 2026]
+ * Scherm voor het tonen van de 3-daagse AI-prognose.
+ * Gebruikt de wetenschappelijke standaard (BSI Kans, Norm, Pieken & Sparklines).
  */
 class AiForecastScherm : AppCompatActivity() {
+
+    private lateinit var database: VoiceTallyDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_ai_forecast)
+
+        database = VoiceTallyDatabase.getDatabase(this)
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClose).setOnClickListener {
             finish()
@@ -45,28 +57,57 @@ class AiForecastScherm : AppCompatActivity() {
             try {
                 val loc = WeatherManager.getLastKnownLocation(this@AiForecastScherm)
                 if (loc == null) {
-                    showError("Geen locatie beschikbaar")
-                    return@launch
+                    showError("Geen locatie beschikbaar"); progress.dismiss(); return@launch
                 }
 
+                // 1. HAAL WEERSVERWACHTING OP
                 val hourlyData = WeatherManager.fetch72HourForecast(loc.latitude, loc.longitude)
                 if (hourlyData == null || hourlyData.isEmpty()) {
-                    showError("Kon weersverwachting niet ophalen")
-                    return@launch
+                    showError("Kon weersverwachting niet ophalen"); progress.dismiss(); return@launch
                 }
 
-                val container = findViewById<LinearLayout>(R.id.forecastContainer)
+                // BEPAAL CLUSTER ÉÉN KEER (Analoog aan verslagen)
+                val saf = SaFStorageHelper(this@AiForecastScherm)
+                val clusterIds = withContext(Dispatchers.IO) {
+                    try {
+                        val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
+                        val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
+                        val primarySite = root.locaties.firstOrNull()
+                        if (primarySite != null) {
+                            root.locaties.filter { 
+                                val r = 6371.0
+                                val dLat = Math.toRadians(it.latitude - primarySite.latitude)
+                                val dLon = Math.toRadians(it.longitude - primarySite.longitude)
+                                val a = sin(dLat/2).pow(2) + cos(Math.toRadians(primarySite.latitude)) * cos(Math.toRadians(it.latitude)) * sin(dLon/2).pow(2)
+                                r * 2 * atan2(sqrt(a), sqrt(1 - a)) <= 35.0 
+                            }.map { it.telpostid }
+                        } else emptyList()
+                    } catch(_: Exception) { emptyList() }
+                }
+
+                val container = findViewById<ViewGroup>(R.id.forecastContainer)
                 container.removeAllViews()
 
                 val sdf = SimpleDateFormat("EEEE d MMMM", Locale("nl", "BE"))
                 val dailySnapshots = hourlyData.filter { it.time.endsWith("T10:00") }
 
-                // Bepaal of we op een tablet zitten voor de grid layout
-                val isTablet = resources.configuration.smallestScreenWidthDp >= 600
+                // 2. CORRIDOR VOORSPELLING OPHALEN
+                val calNow = Calendar.getInstance()
+                val isAutumn = (calNow.get(Calendar.MONTH) + 1) in 7..11
+                val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
+                val corridorForecast = withContext(Dispatchers.IO) { WeatherManager.fetchCorridorForecast(points) }
 
                 for (snapshot in dailySnapshots) {
-                    val dayView = LayoutInflater.from(this@AiForecastScherm)
-                        .inflate(R.layout.item_ai_forecast_day, container, false)
+                    val dayView = LayoutInflater.from(this@AiForecastScherm).inflate(R.layout.item_ai_forecast_day, container, false)
+                    
+                    // TABLET OPTIMALISATIE: Breedte verdelen in het raster
+                    if (container is android.widget.GridLayout) {
+                        val gridParams = android.widget.GridLayout.LayoutParams()
+                        gridParams.width = 0
+                        gridParams.columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
+                        gridParams.setMargins(8, 8, 8, 8)
+                        dayView.layoutParams = gridParams
+                    }
                     
                     val dateParts = snapshot.time.split("T")[0].split("-")
                     val snapshotCal = Calendar.getInstance().apply {
@@ -74,75 +115,42 @@ class AiForecastScherm : AppCompatActivity() {
                     }
                     
                     dayView.findViewById<TextView>(R.id.tvDayTitle).text = sdf.format(snapshotCal.time).replaceFirstChar { it.uppercase() }
-                    
                     val bft = WeatherManager.msToBeaufort(snapshot.windSpeed)
                     val windLabel = WeatherManager.degTo16WindLabel(snapshot.windDeg)
                     val temp = snapshot.temp?.roundToInt() ?: "?"
-                    val weatherSummary = "Verwachting 10:00u | Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
-                    dayView.findViewById<TextView>(R.id.tvWeatherSummary).text = weatherSummary
+                    dayView.findViewById<TextView>(R.id.tvWeatherSummary).text = "Verwachting 10:00u | Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
                     
-                    // 1. Haal corridor boost op
-                    val calNow = Calendar.getInstance()
-                    val isAutumn = (calNow.get(Calendar.MONTH) + 1) in 7..11
-                    val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
-                    val corridorForecast = withContext(Dispatchers.IO) { WeatherManager.fetchCorridorForecast(points) }
+                    // Bepaal corridor boost voor deze specifieke toekomstige dag
                     val regBoost = calculateCorridorBoostAtTime(snapshot.time, corridorForecast, isAutumn)
 
-                    // 2. Voer AI Inference uit
+                    // Voer AI Inference uit voor deze dag
                     val pseudoCurrent = Current(temperature2m = snapshot.temp, windSpeed10m = snapshot.windSpeed, windDirection10m = snapshot.windDeg)
-                    val suggestions = AiInferenceEngine.getSuggesties(
-                        context = this@AiForecastScherm, 
-                        cur = pseudoCurrent, 
-                        hourOverride = 10,
-                        providedRegBoost = regBoost
-                    )
+                    val aiData = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, 10, providedRegBoost = regBoost)
                     
-                    // 3. Vul de soorten-grid
                     val speciesGrid = dayView.findViewById<GridLayout>(R.id.speciesGrid)
-                    speciesGrid.columnCount = if (isTablet) 2 else 1
-                    
-                    val top15 = suggestions.guildResults.sortedByDescending { it.kans }.take(15)
-                    
-                    for (item in top15) {
-                        val specView = LayoutInflater.from(this@AiForecastScherm)
-                            .inflate(R.layout.item_forecast_species, speciesGrid, false)
+                    val isTablet = resources.configuration.smallestScreenWidthDp >= 600
+                    if (speciesGrid != null) {
+                        speciesGrid.columnCount = if (isTablet) 2 else 1
                         
-                        val card = specView.findViewById<MaterialCardView>(R.id.cardSpecies)
-                        val tvName = specView.findViewById<TextView>(R.id.tvSpeciesName)
-                        val tvBph = specView.findViewById<TextView>(R.id.tvSpeciesBph)
-                        val tvProb = specView.findViewById<TextView>(R.id.tvProbability)
-                        val ivIcon = specView.findViewById<ImageView>(R.id.ivSpecies)
-                        
-                        tvName.text = item.soortnaam
-                        tvProb.text = "${item.kans}%"
-                        
-                        if (item.expectedIndex != null && item.expectedIndex > 0) {
-                            tvBph.text = "BpH index: ${"%.2f".format(item.expectedIndex)} ex/h"
-                            tvBph.visibility = View.VISIBLE
-                        } else {
-                            tvBph.visibility = View.GONE
-                        }
-                        
-                        val guildColor = getGuildColor(item.guildName)
-                        card.strokeColor = guildColor
-                        
-                        // Foto laden op de achtergrond
-                        if (!item.latinName.isNullOrBlank()) {
-                            val latin = item.latinName
-                            ivIcon.tag = latin
-                            lifecycleScope.launch {
-                                val bitmap = withContext(Dispatchers.IO) { SpeciesImageHelper.getThumbnail(latin) }
-                                if (bitmap != null && ivIcon.tag == latin) ivIcon.setImageBitmap(bitmap)
+                        // NIEUW: Filter op > 25% kans en neem de Top-12
+                        val topBirds = aiData.guildResults
+                            .filter { it.kans > 25 }
+                            .sortedByDescending { it.kans }
+                            .take(12)
+
+                        for (vogel in topBirds) {
+                            val specView = createSpeciesCard(vogel, snapshotCal, clusterIds)
+                            
+                            // Voor GridLayout op tablet: verdeel de ruimte over 2 kolommen
+                            if (isTablet) {
+                                val gridParams = GridLayout.LayoutParams()
+                                gridParams.width = 0
+                                gridParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                                specView.layoutParams = gridParams
                             }
+                            
+                            speciesGrid.addView(specView)
                         }
-                        
-                        // Layout params voor grid om breedte goed te verdelen
-                        val params = GridLayout.LayoutParams()
-                        params.width = 0
-                        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                        specView.layoutParams = params
-                        
-                        speciesGrid.addView(specView)
                     }
                     
                     container.addView(dayView)
@@ -154,6 +162,72 @@ class AiForecastScherm : AppCompatActivity() {
                 progress.dismiss()
             }
         }
+    }
+
+    private suspend fun createSpeciesCard(item: VogelSuggestie, targetDate: Calendar, clusterIds: List<String>): View {
+        val view = LayoutInflater.from(this).inflate(R.layout.item_forecast_species, null)
+        
+        val tvName = view.findViewById<TextView>(R.id.tvSpeciesName)
+        val tvScientific = view.findViewById<TextView>(R.id.tvScientificInfo)
+        val tvHistoric = view.findViewById<TextView>(R.id.tvHistoric)
+        val ivIcon = view.findViewById<ImageView>(R.id.ivSpecies)
+        val chartView = view.findViewById<com.patrykandpatrick.vico.views.cartesian.CartesianChartView>(R.id.sparklinePhenology)
+        val viewIndicator = view.findViewById<View>(R.id.viewDateIndicator)
+        val clGraph = view.findViewById<View>(R.id.clGraphContainer)
+        
+        view.findViewById<TextView>(R.id.tvGuild).text = item.guildName
+        tvName.text = item.soortnaam
+        
+        // BSI Kans & Norm
+        val norm = item.expectedIndex ?: 0f
+        view.findViewById<TextView>(R.id.tvProbability).text = "${item.kans}%"
+        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: ${"%.5f".format(norm)} ex/h"
+        
+        // Foto
+        if (!item.latinName.isNullOrBlank()) {
+            val bitmap = withContext(Dispatchers.IO) { SpeciesImageHelper.getThumbnail(item.latinName) }
+            if (bitmap != null) ivIcon.setImageBitmap(bitmap)
+        }
+
+        // Data & Grafiek (Identiek aan verslagen en live prognose)
+        val distMonths = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesMonthlyDistribution(item.soortid, clusterIds) }
+        val distDays = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesDailyDistribution(item.soortid, clusterIds) }
+
+        if (distMonths.isNotEmpty()) {
+            clGraph.visibility = View.VISIBLE
+            PhenologySparklineHelper.setup(chartView, distMonths, (targetDate.get(Calendar.MONTH) + 1).toFloat())
+            
+            // Indicator op de voorspelde dag
+            val dayOfYear = targetDate.get(Calendar.DAY_OF_YEAR)
+            val bias = (dayOfYear - 0.5f) / 366f
+            chartView.post {
+                viewIndicator.x = chartView.left + (chartView.width * bias)
+                viewIndicator.visibility = View.VISIBLE; viewIndicator.bringToFront()
+            }
+
+            // Pieken
+            val spring = calculatePeak(distDays.filter { it.day <= 166 })
+            val autumn = calculatePeak(distDays.filter { it.day > 166 })
+            tvHistoric.text = "Historische Pieken: [$spring] [$autumn]"
+            tvHistoric.visibility = View.VISIBLE
+        } else {
+            clGraph.visibility = View.GONE; tvHistoric.visibility = View.GONE
+        }
+        
+        view.findViewById<MaterialCardView>(R.id.cardSpecies).strokeColor = getGuildColor(item.guildName)
+        return view
+    }
+
+    private fun calculatePeak(dayCounts: List<DayCountRowClean>): String {
+        if (dayCounts.isEmpty()) return "onbekend"
+        val maxRow = dayCounts.maxByOrNull { it.count } ?: return "onbekend"
+        if (maxRow.count <= 0L) return "onbekend"
+        val threshold = maxRow.count * 0.5
+        val window = dayCounts.filter { it.count >= threshold }
+        val sdf = SimpleDateFormat("d MMM", Locale("nl", "BE"))
+        val calS = Calendar.getInstance().apply { set(Calendar.DAY_OF_YEAR, window.first().day) }
+        val calE = Calendar.getInstance().apply { set(Calendar.DAY_OF_YEAR, window.last().day) }
+        return if (window.first().day == window.last().day) sdf.format(calS.time) else "${sdf.format(calS.time)} - ${sdf.format(calE.time)}"
     }
 
     private fun getGuildColor(guildName: String): Int {
@@ -193,8 +267,7 @@ class AiForecastScherm : AppCompatActivity() {
     private fun showError(msg: String) {
         val container = findViewById<LinearLayout>(R.id.forecastContainer)
         val tv = TextView(this)
-        tv.text = msg
-        tv.setTextColor(getColor(R.color.vt5_red))
+        tv.text = msg; tv.setTextColor(getColor(R.color.vt5_red))
         container.addView(tv)
     }
 }

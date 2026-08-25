@@ -105,7 +105,7 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSpeechPartials"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="150dp"
             android:layout_margin="1dp"
             app:cardCornerRadius="4dp"
             app:strokeColor="@color/vt5_light_blue"
@@ -121,7 +121,7 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSpeechFinals"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="150dp"
             android:layout_margin="1dp"
             android:layout_weight="1.2"
             app:cardCornerRadius="4dp"

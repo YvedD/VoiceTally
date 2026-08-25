@@ -127,7 +127,7 @@ object AiEvaluator {
             val gigaIndices = dao.getSpeciesGigaBaseline(clusterIds, clusterEffortHours).associateBy { it.soortid }
             
             // 3. AI Inference Loop (Prognose)
-            val predictedSpecies = mutableMapOf<String, AiInformatieDialoog.GuildSuggestie>()
+            val predictedSpecies = mutableMapOf<String, VogelSuggestie>()
             dayHeaders.forEach { h ->
                 val bt = h.begintijd.toLongOrNull() ?: 0L
                 val hour = (((bt + 1800) / 3600) % 24).toInt()
