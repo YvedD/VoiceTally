@@ -189,19 +189,18 @@ class AiForecastScherm : AppCompatActivity() {
             if (bitmap != null) ivIcon.setImageBitmap(bitmap)
         }
 
-        // Data & Grafiek (Identiek aan verslagen en live prognose)
-        val distMonths = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesMonthlyDistribution(item.soortid, clusterIds) }
+        // Data & Grafiek (52-weken distributie)
+        val distWeeks = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesWeeklyDistribution(item.soortid, clusterIds) }
         val distDays = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesDailyDistribution(item.soortid, clusterIds) }
 
-        if (distMonths.isNotEmpty()) {
+        if (distWeeks.isNotEmpty()) {
             clGraph.visibility = View.VISIBLE
-            PhenologySparklineHelper.setup(chartView, distMonths, (targetDate.get(Calendar.MONTH) + 1).toFloat())
+            PhenologySparklineHelper.setupWeekly(chartView, distWeeks)
             
-            // Indicator op de voorspelde dag
-            val dayOfYear = targetDate.get(Calendar.DAY_OF_YEAR)
-            val bias = (dayOfYear - 0.5f) / 366f
+            // Indicator op de voorspelde week
+            val weekOfYear = targetDate.get(Calendar.WEEK_OF_YEAR)
             chartView.post {
-                viewIndicator.x = chartView.left + (chartView.width * bias)
+                viewIndicator.x = chartView.left + (chartView.width * (weekOfYear / 53f))
                 viewIndicator.visibility = View.VISIBLE; viewIndicator.bringToFront()
             }
 

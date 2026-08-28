@@ -91,16 +91,16 @@
             android:layout_height="wrap_content"
             android:background="#222222"
             android:paddingTop="12dp"
-            android:paddingBottom="12dp">
+            android:paddingBottom="16dp">
             <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
                 android:id="@+id/sparklinePhenology"
                 android:layout_width="732dp"
-                android:layout_height="60dp"
+                android:layout_height="85dp"
                 android:layout_gravity="center_horizontal" />
             <View
                 android:id="@+id/viewDateIndicator"
                 android:layout_width="2dp"
-                android:layout_height="60dp"
+                android:layout_height="65dp"
                 android:background="#FF0000"
                 android:elevation="4dp"
                 android:visibility="gone" />

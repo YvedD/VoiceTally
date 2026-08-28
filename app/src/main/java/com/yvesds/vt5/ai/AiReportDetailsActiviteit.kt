@@ -195,22 +195,22 @@ class AiReportDetailsActiviteit : AppCompatActivity() {
         val viewIndicator = view.findViewById<View>(R.id.viewDateIndicator)
         val clGraph = view.findViewById<View>(R.id.clGraphContainer)
 
-        // HAAL DATA OP UIT DE VOLLEDIGE REGIONALE CLUSTER (Geankerd aan de Hoofdtelpost)
-        val distMonths = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesMonthlyDistribution(sid, reportClusterIds) }
+        // HAAL DATA OP UIT DE VOLLEDIGE REGIONALE CLUSTER (Week-aggregatie uit de cluster)
+        val distWeeks = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesWeeklyDistribution(sid, reportClusterIds) }
         val distDays = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesDailyDistribution(sid, reportClusterIds) }
         
-        if (distMonths.isNotEmpty()) {
+        if (distWeeks.isNotEmpty()) {
             val cal = Calendar.getInstance().apply { timeInMillis = dateMillis }
-            val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
-            val bias = (dayOfYear - 0.5f) / 366f
             
-            // 3. Teken curve (12-maands basis voor visuele pracht)
+            // 3. Teken curve (52-weken basis met maand-as)
             clGraph.visibility = View.VISIBLE
-            PhenologySparklineHelper.setup(chartView, distMonths, (cal.get(Calendar.MONTH) + 1).toFloat())
+            PhenologySparklineHelper.setupWeekly(chartView, distWeeks)
             
+            // Marker positie op basis van week (1 op 53 schaal)
+            val weekOfYear = cal.get(Calendar.WEEK_OF_YEAR)
             chartView.post {
                 val graphWidth = chartView.width
-                viewIndicator.x = chartView.left + (graphWidth * bias)
+                viewIndicator.x = chartView.left + (graphWidth * (weekOfYear / 53f))
                 viewIndicator.visibility = View.VISIBLE
                 viewIndicator.bringToFront()
             }

@@ -448,6 +448,17 @@ interface TellingDao {
 
     @Query("""
         SELECT 
+            CAST(strftime('%W', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) as week,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE w.soortid = :speciesId AND h.telpostid IN (:siteIds) AND h.telpostid != '5177'
+        GROUP BY week ORDER BY week ASC
+    """)
+    suspend fun getSpeciesWeeklyDistribution(speciesId: String, siteIds: List<String>): List<WeekCountRow>
+
+    @Query("""
+        SELECT 
             CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) as day,
             SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER) + CAST(w.aantal_plus AS INTEGER) + CAST(w.aantalterug_plus AS INTEGER)) as count
         FROM waarnemingen w

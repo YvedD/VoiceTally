@@ -97,25 +97,24 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ONDERSTE BLOK: Grafiek zone -->
         <FrameLayout
             android:id="@+id/clGraphContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#222222"
             android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingBottom="12dp">
 
             <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
                 android:id="@+id/sparklinePhenology"
                 android:layout_width="366dp"
-                android:layout_height="45dp"
+                android:layout_height="65dp"
                 android:layout_gravity="center_horizontal" />
 
             <View
                 android:id="@+id/viewDateIndicator"
                 android:layout_width="1.5dp"
-                android:layout_height="45dp"
+                android:layout_height="50dp"
                 android:background="#FF0000"
                 android:elevation="4dp"
                 android:visibility="gone" />
