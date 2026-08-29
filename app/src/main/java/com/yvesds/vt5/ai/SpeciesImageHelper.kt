@@ -22,11 +22,15 @@ object SpeciesImageHelper {
     private const val REST_API_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/"
     private const val SEARCH_API_URL = "https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=1&srsearch="
 
+    fun cleanLatinName(latinName: String): String {
+        return latinName.split("/")[0].split("spec.")[0].trim().replace(" ", "_")
+    }
+
     suspend fun getThumbnail(latinName: String?): Bitmap? = withContext(Dispatchers.IO) {
         if (latinName.isNullOrBlank()) return@withContext null
         
         // Opschonen Latijnse naam
-        val cleanLatin = latinName.split("/")[0].split("spec.")[0].trim().replace(" ", "_")
+        val cleanLatin = cleanLatinName(latinName)
         if (cleanLatin.isEmpty()) return@withContext null
         
         val db = VoiceTallyDatabase.getDatabase(VT5App.instance)

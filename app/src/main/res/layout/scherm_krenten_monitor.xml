@@ -43,20 +43,48 @@
             app:icon="@android:drawable/ic_menu_save" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Zoek soort..."
+            app:hintTextColor="@color/vt5_light_blue"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etZoek"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/vt5_white"
+                android:imeOptions="actionSearch"
+                android:singleLine="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchShowAll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Alles"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="14sp" />
+    </LinearLayout>
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:alpha="0.3"
         android:background="@color/vt5_on_surface" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Bevestig de soorten die de BSI als 'Birds of Interest' moet markeren voor jouw regio. Deze soorten krijgen een boost in de prognoses."
-        android:textColor="@color/vt5_on_surface"
-        android:alpha="0.7"
-        android:textSize="13sp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvKrenten"

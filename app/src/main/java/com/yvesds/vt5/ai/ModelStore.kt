@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
@@ -51,6 +52,7 @@ class ModelStore(private val context: Context) {
     /**
      * Slaat de Neurale Motor op in beide formaten in de 'models' submap.
      */
+    @OptIn(ExperimentalSerializationApi::class)
     fun saveNeuralEngine(engine: LiteNeuralEngine): Boolean {
         ensureModelDir()
         return try {
@@ -71,6 +73,7 @@ class ModelStore(private val context: Context) {
     /**
      * Laadt de Neurale Motor (geeft voorkeur aan binair).
      */
+    @OptIn(ExperimentalSerializationApi::class)
     fun loadNeuralEngine(numSpecies: Int): LiteNeuralEngine {
         val dir = getModelDir() ?: return LiteNeuralEngine(outputSize = numSpecies)
         val binFile = dir.findFile("neural_engine.bin")
@@ -94,6 +97,7 @@ class ModelStore(private val context: Context) {
     /**
      * Slaat de Expert Knowledge Base op.
      */
+    @OptIn(ExperimentalSerializationApi::class)
     fun saveExpertKnowledge(kb: ExpertKnowledgeBase): Boolean {
         ensureModelDir()
         return try {
@@ -106,6 +110,7 @@ class ModelStore(private val context: Context) {
         }
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     fun loadExpertKnowledge(): ExpertKnowledgeBase? {
         val dir = getModelDir() ?: return null
         val binFile = dir.findFile("expert_knowledge.bin")

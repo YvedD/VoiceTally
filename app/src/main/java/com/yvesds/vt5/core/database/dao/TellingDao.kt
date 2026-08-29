@@ -519,11 +519,77 @@ interface TellingDao {
     @Query("SELECT * FROM species_images WHERE latinName = :latin LIMIT 1")
     suspend fun getSpeciesImage(latin: String): SpeciesImage?
 
+    @Query("SELECT latinName FROM species_images")
+    suspend fun getAllCachedLatinNames(): List<String>
+
     @Query("DELETE FROM species_images")
     suspend fun clearSpeciesImages()
 
     @Query("SELECT COUNT(*) FROM species_images")
     suspend fun countSpeciesImages(): Int
+
+    /**
+     * BSI 4.0: Zoekt "Weather Twins" in de historie.
+     */
+    @Query("""
+        SELECT 
+            w.soortid,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count,
+            UPPER(h.windrichting) as windLabel
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE h.telpostid IN (:siteIds)
+        AND ((CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd))
+        GROUP BY w.soortid, windLabel
+    """)
+    suspend fun getWindEfficiencyStats(
+        siteIds: List<String>, 
+        dayStart: Int, 
+        dayEnd: Int
+    ): List<WindEfficiencyRow>
+
+    @Query("""
+        SELECT 
+            w.soortid, 
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count,
+            h.windrichting,
+            h.begintijd
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE h.telpostid IN (:siteIds)
+        AND ((CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) + 365 BETWEEN :dayStart AND :dayEnd)
+           OR (CAST(strftime('%j', datetime(CAST(h.begintijd AS INTEGER), 'unixepoch')) AS INTEGER) - 365 BETWEEN :dayStart AND :dayEnd))
+        AND h.windrichting = :targetWindLabel
+        GROUP BY w.soortid, h.begintijd
+    """)
+    suspend fun getWeatherTwinObservations(
+        siteIds: List<String>, 
+        dayStart: Int, 
+        dayEnd: Int, 
+        targetWindLabel: String
+    ): List<WeatherTwinRow>
+
+    /**
+     * BSI 4.0: Berekent het uurs-distributie profiel voor "Anchor Sites".
+     */
+    @Query("""
+        SELECT 
+            w.soortid,
+            strftime('%H', datetime(CAST(w.tijdstip AS INTEGER), 'unixepoch', 'localtime')) as hour,
+            SUM(CAST(w.aantal AS INTEGER) + CAST(w.aantalterug AS INTEGER)) as count
+        FROM waarnemingen w
+        INNER JOIN telling_headers h ON w.tellingid = h.tellingid
+        WHERE h.telpostid IN (:anchorSiteIds)
+        AND w.soortid = :speciesId
+        GROUP BY hour
+    """)
+    suspend fun getSpeciesHourlyDistribution(
+        anchorSiteIds: List<String>,
+        speciesId: String
+    ): List<HourlyDistributionRow>
 }
 
 data class SpeciesCountRow(val soortid: String, val count: Int)
@@ -537,6 +603,9 @@ data class TelpostYear(val telpostid: String, val year: String)
 data class DayCountRow(val dayEpoch: Long, val count: Long)
 data class DayCountRowClean(val day: Int, val count: Long)
 data class PeakDayRow(val dayEpoch: Long, val totalCount: Long)
+data class WeatherTwinRow(val soortid: String, val count: Int, val windrichting: String, val begintijd: String)
+data class WindEfficiencyRow(val soortid: String, val count: Long, val windLabel: String)
+data class HourlyDistributionRow(val soortid: String, val hour: String, val count: Long)
 data class BsiSpeciesProfile(
     val soortid: String,
     val count: Long,

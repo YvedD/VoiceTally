@@ -36,6 +36,20 @@ object AiConfig {
         RefPoint("Messina (IT)", 38.19, 15.55)
     )
 
+    // BSI 4.0: Anchor Sites met uurs-precisie (Lijst van telpostid's)
+    val ANCHOR_SITE_IDS = listOf("site_1", "site_2") // Wordt dynamisch aangevuld of via settings
+
+    // BSI 4.0: Drempels voor Birds-of-Interest
+    const val BOI_THRESHOLD_OBSERVATIONS = 50 // Minder dan 50 waarnemingen in 23 jaar = BoI
+    const val BOI_FLOATING_WINDOW_DAYS = 9
+    const val NORMAL_FLOATING_WINDOW_DAYS = 7
+    const val WIND_TOLERANCE_DEGREES = 5.25
+
+    // BSI 4.1: Kust-status & Drempels
+    const val IS_COASTAL_SITE = true // TODO: Dynamisch maken op basis van siteId
+    const val MIN_BSI_QUALITY_THRESHOLD = 35 // Soorten onder de 35% worden gefilterd
+    const val EFFICIENCY_BOOST_PELAGIC_BFT = 5 // Vanaf 5bft boost voor zeevogels
+
     fun getSampleWeightForSpecies(soortid: String?): Int {
         if (soortid == null) return 1
         return 1

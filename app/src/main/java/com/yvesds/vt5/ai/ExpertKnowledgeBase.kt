@@ -8,7 +8,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ExpertKnowledgeBase(
     val signatures: List<GuildPeakSignature> = emptyList(),
-    val discoveredKrenten: List<String> = emptyList(), // IDs van soorten met < 100 exemplaren
+    val discoveredKrenten: List<String> = emptyList(), // Dynamisch ontdekt door AI
+    val pinnedSpecies: List<String> = emptyList(),   // Handmatig toegevoegd door gebruiker
+    val excludedSpecies: List<String> = emptyList(), // Handmatig uitgesloten door gebruiker
+    val hourlyProfiles: Map<String, List<Float>> = emptyMap(), // BSI 4.0: Gouden Mal (uurs-distributie)
     val lastUpdated: Long = 0
 )
 

@@ -53,6 +53,10 @@ object AiInferenceEngine {
         val lat = loc?.latitude ?: 51.0
         val lon = loc?.longitude ?: 3.0
         
+        val currentWindDeg = cur.windDirection10m ?: 0.0
+        val currentWindLabel = WeatherManager.degTo16WindLabel(currentWindDeg)
+        val currentTemp = (cur.temperature2m ?: 15.0).toFloat()
+
         // BEPAAL CLUSTER GEANKERD AAN DE HOOFDTELPOST (Eerste in JSON)
         val cluster = withContext(Dispatchers.IO) {
             val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
@@ -71,17 +75,28 @@ object AiInferenceEngine {
         // 1. LIVE REGIONALE CORRIDOR CHECK (Tenzij boost al gegeven is)
         val regBoost = providedRegBoost ?: getLiveCorridorBoost(month)
 
-        // 2. Data ophalen (Nu met de persistente Giga-Baseline)
+        // 2. Data ophalen: BSI 4.0 Dynamic Mining
         val effortHours = EffortManager.getClusterEffortHours(context, cluster ?: emptyList())
-        val profiles = dao.getSpeciesPhenologyProfile(dayOfYear - 10, dayOfYear + 10, cluster ?: emptyList(), if (cluster == null) 0 else 1)
+        
+        // Bepaal venster grootte (BoI's krijgen 9 dagen, anderen 7)
+        // Voor de initiële fetch gebruiken we 9 dagen om zeker te zijn
+        val window = AiConfig.BOI_FLOATING_WINDOW_DAYS
+        val dayStart = dayOfYear - (window / 2)
+        val dayEnd = dayOfYear + (window / 2)
+
+        // Weather Twin Mining: Zoek uren met exact dezelfde wind-signatuur (+/- 5.25 graden)
+        // Omdat we in de DAO op Label matchen (N, NO), mappen we de huidige graden naar label
+        val weatherTwins = dao.getWeatherTwinObservations(cluster ?: emptyList(), dayStart, dayEnd, currentWindLabel)
+        
+        // BSI 4.1: Haal wind-efficiëntie data op (alle windstreken in dit venster)
+        val windStats = dao.getWindEfficiencyStats(cluster ?: emptyList(), dayStart, dayEnd)
+            .groupBy { it.soortid }
+
+        val profiles = dao.getSpeciesPhenologyProfile(dayStart, dayEnd, cluster ?: emptyList(), if (cluster == null) 0 else 1)
         
         val clusterIndices = if (cluster != null) {
             dao.getSpeciesGigaBaseline(cluster, effortHours).associateBy { it.soortid }
         } else emptyMap()
-
-        val currentWindDeg = cur.windDirection10m ?: 0.0
-        val currentWindLabel = WeatherManager.degTo16WindLabel(currentWindDeg)
-        val currentTemp = (cur.temperature2m ?: 15.0).toFloat()
 
         // 3. Score berekening
         val scoredList = profiles.mapNotNull { p ->
@@ -96,24 +111,55 @@ object AiInferenceEngine {
             val guild = SpeciesGuildMapper.getGuildByLatin(latin)
             if (guild == SpeciesGuildMapper.Guild.OTHER) return@mapNotNull null
             val strategy = guild.strategy
+
+            // BSI 4.0: BoI Check & Window
+            val totalObs = clusterIndices[p.soortid]?.activePosts ?: 0
+            val isBoI = totalObs < AiConfig.BOI_THRESHOLD_OBSERVATIONS
             
-            // F1: Massa (Log)
+            // F1: Massa (Log) - Geoptimaliseerd voor BSI 4.0
             val fMassaRaw = log10(p.count.toDouble().coerceAtLeast(1.0))
             val fMassa = 1.0 + (fMassaRaw * 0.4)
             
-            // F2: Harde Wind-DNA Match (Kwadratische afstraffing bij mismatch)
+            // BSI 4.1: Wind-Efficiency Ratio (Dynamisch & Gradueel)
+            val speciesWindData = windStats[p.soortid]
+            val currentWindCount = speciesWindData?.find { it.windLabel == currentWindLabel }?.count ?: 0L
+            val bestWindCount = speciesWindData?.maxOfOrNull { it.count } ?: 1L
+            
+            // De ratio: hoe goed is de wind van vandaag t.o.v. de beste wind voor deze soort?
+            // We gebruiken een kleine ondergrens (0.01) om totale uitsluiting te voorkomen tenzij veto
+            val efficiencyRatio = (currentWindCount.toDouble() / bestWindCount.toDouble()).coerceIn(0.01, 1.0)
+            
+            // F2: High-Precision Wind-DNA (BSI 4.0: 5.25 graden tolerantie)
             val histWindDeg = parseWindLabelToDegrees(p.mainWind) ?: currentWindDeg
-            val diffRad = Math.toRadians(currentWindDeg - histWindDeg)
-            val fWind = (cos(diffRad / 2.0).pow(4.0) * 1.8) + 0.1
+            val diff = abs(currentWindDeg - histWindDeg)
+            val normalizedDiff = if (diff > 180) 360 - diff else diff
             
-            // F3: Special / Remarkable / Discovery
+            // Scherpe kwadratische afstraffing buiten de 5.25 graden
+            val fWind = if (normalizedDiff <= AiConfig.WIND_TOLERANCE_DEGREES) {
+                1.8 // Volle bak match
+            } else {
+                max(0.1, 1.8 * exp(-(normalizedDiff * normalizedDiff) / 400.0))
+            }
+            
+            // F3: Special / Remarkable / BoI Boost
             var fSpecial = 1.0
-            if (p.isRemarkable == 1) fSpecial = 4.0
-            else if (expertKB?.discoveredKrenten?.contains(p.soortid) == true) fSpecial = 2.5
+            val isKrent = (expertKB?.discoveredKrenten?.contains(p.soortid) == true || 
+                          expertKB?.pinnedSpecies?.contains(p.soortid) == true) &&
+                          expertKB?.excludedSpecies?.contains(p.soortid) != true
+
+            if (p.isRemarkable == 1) fSpecial = 4.5 // Verhoogd in 4.0
+            else if (isKrent || isBoI) fSpecial = 3.0 // BoI krijgt meer gewicht
             
-            // F4: Tijd & Strategie
+            // F4: Tijd & Strategie - Nu met "Temporal Blueprinting" voor dag-totalen
             var fTime = 1.0
             val bft = WeatherManager.msToBeaufort(cur.windSpeed10m)
+            
+            // BSI 4.0: Temporal Blueprinting (Gouden Mal)
+            val hourlyProfile = expertKB?.hourlyProfiles?.get(p.soortid)
+            val blueprintFactor = hourlyProfile?.getOrNull(currentHour) ?: -1f
+            
+            val targetHour = p.avgHour ?: 10f
+            val hourDiff = abs(currentHour - targetHour)
             
             when (strategy) {
                 SpeciesGuildMapper.FlightStrategy.THERMAL -> {
@@ -122,12 +168,26 @@ object AiInferenceEngine {
                 }
                 SpeciesGuildMapper.FlightStrategy.ACTIVE -> {
                     if (phase == SolarTimeEngine.SolarPhase.NIGHT && guild != SpeciesGuildMapper.Guild.PELAGICS) fTime = 0.01 
-                    else fTime = exp(-(abs(currentHour - (p.avgHour ?: 10f)) * abs(currentHour - (p.avgHour ?: 10f))) / 40.0)
+                    else {
+                        fTime = if (blueprintFactor >= 0) blueprintFactor.toDouble() * 2.0
+                                else exp(-(hourDiff * hourDiff) / 40.0)
+                    }
                 }
                 SpeciesGuildMapper.FlightStrategy.VISMIG -> {
                     if (phase == SolarTimeEngine.SolarPhase.NIGHT) fTime = 0.0001
-                    else fTime = exp(-(abs(currentHour - (p.avgHour ?: 08f)) * abs(currentHour - (p.avgHour ?: 08f))) / 25.0)
+                    else {
+                        fTime = if (blueprintFactor >= 0) blueprintFactor.toDouble() * 2.5
+                                else exp(-(hourDiff * hourDiff) / 25.0)
+                    }
                 }
+            }
+
+            // BSI 4.0: 72-uurs Corridor Correlation voor BoI's
+            var boiCorridorFactor = 1.0
+            if (isBoI) {
+                // Hier zouden we de historische corridor condities vergelijken
+                // Voor nu implementeren we een placeholder die de corridor-druk van de laatste 72u meeweegt
+                boiCorridorFactor = 1.0 + (regBoost * 0.5) 
             }
 
             // F5: Local Wind Gatekeeper (The Veto)
@@ -137,16 +197,31 @@ object AiInferenceEngine {
             
             if (guild == SpeciesGuildMapper.Guild.PELAGICS) {
                 if (isOffShore) fGatekeeper = 0.001 
-                else if (isOnShore) fGatekeeper = 2.0 
-            } else if (guild == SpeciesGuildMapper.Guild.RAPTORS_THERMAL || guild == SpeciesGuildMapper.Guild.RAPTORS_ACTIVE) {
-                if (currentWindLabel in listOf("O", "ONO", "NO")) fGatekeeper = 1.5
-                else if (isOnShore && bft >= 5) fGatekeeper = 0.1 
+                else if (isOnShore) {
+                    // BSI 4.1: Exponentiële boost bij harde aanlandige wind
+                    fGatekeeper = if (bft >= AiConfig.EFFICIENCY_BOOST_PELAGIC_BFT) {
+                        2.0 * (1.0 + (bft - 4) * 0.5)
+                    } else 2.0
+                }
+            } else if (guild in listOf(SpeciesGuildMapper.Guild.RAPTORS_ACTIVE, SpeciesGuildMapper.Guild.RAPTORS_THERMAL, SpeciesGuildMapper.Guild.PASSERINES, SpeciesGuildMapper.Guild.HERONS)) {
+                // BSI 4.1: Coastal Landvogel Veto
+                if (AiConfig.IS_COASTAL_SITE && isOnShore) {
+                    fGatekeeper = if (bft >= 4) 0.1 else 0.4
+                } else if (currentWindLabel in listOf("O", "ONO", "NO")) {
+                    fGatekeeper = 1.5
+                }
             }
 
-            val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * (1.0 + regBoost)
+            // BSI 4.0: Weather Twin Bonus
+            // Als de soort voorkomt in de weatherTwins lijst, verhogen we de score
+            val twinCount = weatherTwins.filter { it.soortid == p.soortid }.sumOf { it.count }
+            val fTwin = 1.0 + (log10(twinCount.toDouble().coerceAtLeast(1.0)) * 0.5)
+
+            // BSI 4.1: Finale aggregatie met Efficiency Ratio
+            val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * fTwin * boiCorridorFactor * efficiencyRatio * (1.0 + regBoost)
             
-            Log.d(TAG, "RAW: %-20s | S:%5.2f | M:%d | W:%.2f | T:%.2f | G:%.2f | Krent:%s".format(
-                name, total, p.count, fWind, fTime, fGatekeeper, if (fSpecial > 1.0) "JA" else "NEE"))
+            Log.d(TAG, "RAW BSI 4.1: %-20s | S:%5.2f | Ratio:%.2f | W:%.2f | T:%.2f | G:%.2f".format(
+                name, total, efficiencyRatio, fWind, fTime, fGatekeeper))
 
             ScoredSpecies(p.soortid, name, total, guild, clusterIndices[p.soortid]?.clusterIndex)
         }
@@ -165,7 +240,8 @@ object AiInferenceEngine {
                 val avgRating = AiFeedbackManager.getCorrectionFactor(context, w.soortid, currentWindLabel)
                 val prob = (probRaw * (0.5f + avgRating * 0.5f)).toInt() 
 
-                if (prob >= 10) {
+                // BSI 4.1: Dynamic Quality Cutoff (Drempelwaarde)
+                if (prob >= AiConfig.MIN_BSI_QUALITY_THRESHOLD) {
                     val latin = snapshot?.speciesById?.get(w.soortid)?.latin
                     val suggestion = VogelSuggestie(
                         guildName = guild.displayName, 
@@ -178,11 +254,13 @@ object AiInferenceEngine {
                     finalResults.add(suggestion)
                     
                     // EXTRA: KRENTEN HIGHLIGHTS ("Uitkijken voor")
-                    if (guild.isSpecial || expertKB?.discoveredKrenten?.contains(w.soortid) == true) {
-                        if (prob >= 12) { // Lagere drempel voor kwaliteits-waarschuwingen
-                            Log.i(TAG, "HIGHLIGHT FOUND: ${w.soortnaam} (${prob}%)")
-                            rareHighlights.add(suggestion)
-                        }
+                    val isKrentHighlight = (expertKB?.discoveredKrenten?.contains(w.soortid) == true || 
+                                          expertKB?.pinnedSpecies?.contains(w.soortid) == true) &&
+                                          expertKB?.excludedSpecies?.contains(w.soortid) != true
+                    
+                    if (guild.isSpecial || isKrentHighlight) {
+                        Log.i(TAG, "HIGHLIGHT FOUND: ${w.soortnaam} (${prob}%)")
+                        rareHighlights.add(suggestion)
                     }
                 }
             }

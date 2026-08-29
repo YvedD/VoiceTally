@@ -77,6 +77,9 @@ class ExpertKnowledgeManager(private val context: Context) {
             // 7. Zelf-ontdekkende Krenten-motor (Gefilterd op VisMig relevantie)
             onProgress("Zeldzaamheden identificeren uit database...", 90, 100)
             
+            // Laad bestaande KB om pinned/excluded te behouden
+            val existingKb = modelStore.loadExpertKnowledge()
+            
             // Haal de dynamische drempelwaarde op uit de instellingen
             val threshold = com.yvesds.vt5.core.opslag.AppDataStore.getKrentenThreshold(context)
             
@@ -108,7 +111,13 @@ class ExpertKnowledgeManager(private val context: Context) {
             Log.i(TAG, "AI heeft ${discoveredKrenten.size} zuivere vogel-krenten ontdekt.")
 
             // Sla de kennis op in SAF (beide formaten via ModelStore)
-            val kb = ExpertKnowledgeBase(guildSignatures, discoveredKrenten, System.currentTimeMillis())
+            val kb = ExpertKnowledgeBase(
+                signatures = guildSignatures,
+                discoveredKrenten = discoveredKrenten,
+                pinnedSpecies = existingKb?.pinnedSpecies ?: emptyList(),
+                excludedSpecies = existingKb?.excludedSpecies ?: emptyList(),
+                lastUpdated = System.currentTimeMillis()
+            )
             modelStore.saveExpertKnowledge(kb)
 
             onProgress("Expert Knowledge Base bijgewerkt!", 100, 100)

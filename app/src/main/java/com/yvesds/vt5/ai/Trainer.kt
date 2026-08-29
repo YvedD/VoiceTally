@@ -73,30 +73,43 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 onProgress(msg, curr, total)
             }
 
+            // BSI 4.0: Bouw uurs-distributie profielen (Gouden Mal)
+            onProgress("Uurs-distributie profielen (Gouden Mal) berekenen...", 97, 100)
+            buildHourlyProfiles(allSpecies)
+
             // 7. Genereer Wetenschappelijke Taxonomie JSON
             onProgress("Wetenschappelijke taxonomie bijwerken...", 98, 100)
             val taxonomyManager = TaxonomyManager(context)
             taxonomyManager.generateActiveTaxonomyJson()
 
-            // 8. Vogelbeelden archiveren (PROACTIEF)
+            // 8. Vogelbeelden archiveren (PROACTIEF & GEOPTIMALISEERD)
             val snapshot = try { com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(context) } catch(_: Exception) { null }
             if (snapshot != null) {
+                val cachedLatinNames = dao.getAllCachedLatinNames().toSet()
                 val uniqueSids = trainingSamples.map { allSpecies[it.labelIndex] }.distinct()
-                val totalSids = uniqueSids.size
                 
-                uniqueSids.forEachIndexed { i, sid ->
-                    val latin = snapshot.speciesById[sid]?.latin
-                    val name = snapshot.speciesById[sid]?.soortnaam ?: sid
-                    
-                    if (!latin.isNullOrBlank()) {
-                        if (i % 5 == 0) {
-                            onProgress("Beelden archiveren: $name (${i+1}/$totalSids)...", 99, 100)
+                // Bepaal welke beelden we echt nog missen
+                val toFetch = uniqueSids.mapNotNull { sid ->
+                    val latin = snapshot.speciesById[sid]?.latin ?: return@mapNotNull null
+                    val clean = SpeciesImageHelper.cleanLatinName(latin)
+                    if (clean.isNotEmpty() && !cachedLatinNames.contains(clean)) {
+                        Pair(sid, latin)
+                    } else null
+                }
+
+                val totalToFetch = toFetch.size
+                if (totalToFetch > 0) {
+                    toFetch.forEachIndexed { i, (sid, latin) ->
+                        val name = snapshot.speciesById[sid]?.soortnaam ?: sid
+                        if (i % 2 == 0 || i == totalToFetch - 1) { // Iets vaker updates voor nieuwe beelden
+                            onProgress("Nieuwe beelden archiveren: $name (${i+1}/$totalToFetch)...", 99, 100)
                         }
-                        // Alleen ophalen als het nog niet in de DB staat
                         SpeciesImageHelper.getThumbnail(latin)
-                        // Kleine adempauze voor de API
-                        delay(50)
+                        delay(60) // Iets meer adempauze voor nieuwe fetches
                     }
+                } else {
+                    Log.i(TAG, "Alle vogelbeelden (${uniqueSids.size}) zijn reeds aanwezig in de cache.")
+                    onProgress("Vogelbeelden cache is up-to-date.", 99, 100)
                 }
             }
 
@@ -182,6 +195,38 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 r * 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a)) <= 35.0 
             }.map { it.telpostid }
         } catch (_: Exception) { null }
+    }
+
+    /**
+     * BSI 4.0: Berekent de uurs-distributie profielen op basis van de "Anchor Sites".
+     */
+    private suspend fun buildHourlyProfiles(allSpecies: List<String>) = withContext(Dispatchers.IO) {
+        val db = VoiceTallyDatabase.getDatabase(context)
+        val dao = db.tellingDao()
+        val anchorSites = AiConfig.ANCHOR_SITE_IDS
+        
+        val currentKb = modelStore.loadExpertKnowledge() ?: ExpertKnowledgeBase()
+        val newProfiles = mutableMapOf<String, List<Float>>()
+        
+        allSpecies.forEach { sid ->
+            val dist = dao.getSpeciesHourlyDistribution(anchorSites, sid)
+            if (dist.isNotEmpty()) {
+                val hourlyArray = FloatArray(24)
+                var total = 0L
+                dist.forEach { row ->
+                    val h = row.hour.toIntOrNull() ?: return@forEach
+                    if (h in 0..23) {
+                        hourlyArray[h] = row.count.toFloat()
+                        total += row.count
+                    }
+                }
+                if (total > 0) {
+                    newProfiles[sid] = hourlyArray.map { it / total }
+                }
+            }
+        }
+        
+        modelStore.saveExpertKnowledge(currentKb.copy(hourlyProfiles = newProfiles))
     }
 
     // Placeholder voor data-modellen die elders gebruikt worden
