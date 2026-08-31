@@ -57,6 +57,7 @@ naar de heuristiek alleen (als je de extra signalen uitzet).
 ## Visueel overzicht (flowchart)
 
 Hieronder vind je een eenvoudige flowchart van de beslisstroom voor een prognose. Je kunt deze in een Markdown‑viewer die Mermaid ondersteunt plakken en renderen.
+---
 flowchart TD
     A[Start: Vraag prognose] --> B[Bepaal context]
     B --> C[Laad historische signalen]
