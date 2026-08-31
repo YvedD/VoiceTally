@@ -82,16 +82,59 @@ class ModelStore(private val context: Context) {
         try {
             if (binFile != null) {
                 val bytes = context.contentResolver.openInputStream(binFile.uri)?.use { it.readBytes() }
-                if (bytes != null) return ProtoBuf.decodeFromByteArray<LiteNeuralEngine>(bytes)
+                if (bytes != null) {
+                    val loaded = ProtoBuf.decodeFromByteArray<LiteNeuralEngine>(bytes)
+                    if (loaded.outputSize != numSpecies) {
+                        Log.w(TAG, "Persisted model outputSize (${loaded.outputSize}) != required ($numSpecies). Reinitializing engine.")
+                        return LiteNeuralEngine(outputSize = numSpecies)
+                    }
+                    return loaded
+                }
             }
             if (jsonFile != null) {
                 val jsonStr = context.contentResolver.openInputStream(jsonFile.uri)?.use { it.bufferedReader().readText() }
-                if (!jsonStr.isNullOrBlank()) return json.decodeFromString<LiteNeuralEngine>(jsonStr)
+                if (!jsonStr.isNullOrBlank()) {
+                    val loaded = json.decodeFromString<LiteNeuralEngine>(jsonStr)
+                    if (loaded.outputSize != numSpecies) {
+                        Log.w(TAG, "Persisted JSON model outputSize (${loaded.outputSize}) != required ($numSpecies). Reinitializing engine.")
+                        return LiteNeuralEngine(outputSize = numSpecies)
+                    }
+                    return loaded
+                }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Load Neural failed: ${e.message}")
         }
         return LiteNeuralEngine(outputSize = numSpecies)
+    }
+
+    /**
+     * Slaat de lijst met labels op die bij het model hoort.
+     */
+    fun saveModelLabels(labels: List<String>): Boolean {
+        ensureModelDir()
+        return try {
+            val payload = json.encodeToString(labels)
+            saveFileToModelDir("model_labels.json", payload.toByteArray(Charsets.UTF_8))
+        } catch (e: Exception) {
+            Log.e(TAG, "Kon model labels niet opslaan: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Laadt de geexporteerde labels (indien aanwezig).
+     */
+    fun loadModelLabels(): List<String>? {
+        val dir = getModelDir() ?: return null
+        val f = dir.findFile("model_labels.json") ?: return null
+        return try {
+            val jsonStr = context.contentResolver.openInputStream(f.uri)?.use { it.bufferedReader().readText() } ?: return null
+            return json.decodeFromString(jsonStr)
+        } catch (e: Exception) {
+            Log.w(TAG, "Kon model labels niet laden: ${e.message}")
+            null
+        }
     }
 
     /**

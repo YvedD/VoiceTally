@@ -664,6 +664,22 @@
                         android:textColor="@color/vt5_on_surface" />
 
                     <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbUseNeuralInference"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Gebruik neurale prognose (Neural inference)"
+                        android:textColor="@color/vt5_on_surface" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbUseDailyAnalysisWeights"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Gebruik teldag-verslagen in AI (Daily analysis weights)"
+                        android:textColor="@color/vt5_on_surface" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
                         android:id="@+id/cbServerResponseLogging"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

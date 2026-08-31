@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.math.*
+import com.yvesds.vt5.core.opslag.AppDataStore
 
 /**
  * AiInferenceEngine - Expert Deep Diagnostic & Live Corridor Edition.
@@ -26,10 +27,11 @@ object AiInferenceEngine {
     private const val TAG = "AiInference"
 
     suspend fun getSuggesties(
-        context: Context, 
-        cur: Current, 
+        context: Context,
+        cur: Current,
         hourOverride: Int? = null,
-        providedRegBoost: Double? = null
+        providedRegBoost: Double? = null,
+        useNeural: Boolean? = null
     ): AiSuggestieData = withContext(Dispatchers.IO) {
         Log.i(TAG, "=========================================================")
         Log.i(TAG, "START SCIENTIFIC AI ANALYSIS")
@@ -97,6 +99,54 @@ object AiInferenceEngine {
         val clusterIndices = if (cluster != null) {
             dao.getSpeciesGigaBaseline(cluster, effortHours).associateBy { it.soortid }
         } else emptyMap()
+
+        // Neural model: probeer labels en model te laden en maak één predictie voor de huidige context
+        val effectiveUseNeural = if (useNeural != null) {
+            useNeural
+        } else {
+            // Read runtime override from DataStore (default true)
+            try { AppDataStore.isUseNeuralInference(context) } catch (e: Exception) { AiConfig.USE_NEURAL_INFERENCE }
+        }
+        Log.i(TAG, "Neural inference enabled (effective): $effectiveUseNeural")
+
+        // Daily-analysis based weighting: read runtime override and compute species weights if enabled
+        val effectiveUseDailyWeights = try { AppDataStore.isUseDailyAnalysisWeights(context) } catch (e: Exception) { AiConfig.USE_DAILY_ANALYSIS_WEIGHTS }
+        var dailySpeciesWeights: Map<String, Float> = emptyMap()
+        if (effectiveUseDailyWeights) {
+            try {
+                val preparer = TrainingDataPreparer(context)
+                dailySpeciesWeights = preparer.computeSpeciesWeightsFromDailyAnalysis()
+                Log.i(TAG, "Computed daily-analysis species weights: ${dailySpeciesWeights.size} entries")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to compute daily-analysis weights: ${e.message}")
+                dailySpeciesWeights = emptyMap()
+            }
+        }
+        val modelLabels = modelStore.loadModelLabels()
+        var neuralPredictions: FloatArray? = null
+        if (!modelLabels.isNullOrEmpty() && effectiveUseNeural) {
+            try {
+                val neural = modelStore.loadNeuralEngine(modelLabels.size)
+                // Bouw feature-vector voor de huidige situatie (best effort)
+                val siteId = cluster?.firstOrNull()
+                val preparer = TrainingDataPreparer(context)
+                val epochSec = cal.timeInMillis / 1000L
+                val features = preparer.buildFeatureVectorForContext(
+                    epoch = epochSec,
+                    telpostId = siteId,
+                    temperature = cur.temperature2m,
+                    windDeg = cur.windDirection10m,
+                    windForce = cur.windSpeed10m,
+                    cloudCover = null,
+                    hpa = cur.pressureMsl,
+                    precipitationFlag = null
+                )
+                neuralPredictions = neural.predict(features)
+                Log.i(TAG, "Neural integration: loaded model with ${neuralPredictions.size} outputs.")
+            } catch (e: Exception) {
+                Log.w(TAG, "Neural integration failed: ${e.message}")
+            }
+        }
 
         // 3. Score berekening
         val scoredList = profiles.mapNotNull { p ->
@@ -217,13 +267,39 @@ object AiInferenceEngine {
             val twinCount = weatherTwins.filter { it.soortid == p.soortid }.sumOf { it.count }
             val fTwin = 1.0 + (log10(twinCount.toDouble().coerceAtLeast(1.0)) * 0.5)
 
-            // BSI 4.1: Finale aggregatie met Efficiency Ratio
+            // BSI 4.1: Finale aggregatie met Efficiency Ratio (basis)
             val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * fTwin * boiCorridorFactor * efficiencyRatio * (1.0 + regBoost)
-            
-            Log.d(TAG, "RAW BSI 4.1: %-20s | S:%5.2f | Ratio:%.2f | W:%.2f | T:%.2f | G:%.2f".format(
-                name, total, efficiencyRatio, fWind, fTime, fGatekeeper))
 
-            ScoredSpecies(p.soortid, name, total, guild, clusterIndices[p.soortid]?.clusterIndex)
+            // Apply daily-analysis weight (if available) as multiplicative factor so real reconstructed days influence the score
+            var combinedScore = total
+            try {
+                val rawDaily = dailySpeciesWeights[p.soortid] ?: 1.0f
+                val dailyW = rawDaily.coerceAtLeast(0.1f).coerceAtMost(AiConfig.DAILY_ANALYSIS_WEIGHT_MAX).toDouble()
+                if (dailyW != 1.0) {
+                    combinedScore = combinedScore * dailyW
+                    Log.d(TAG, "DAILY-WEIGHT: ${p.soortid} weight=${String.format(Locale.US, "%.3f", dailyW)}")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Daily weight application failed: ${e.message}")
+            }
+
+            // Neural boost: als we een voorspelling hebben, map species-id naar label-index en pas een multiplicatieve factor toe
+            try {
+                if (neuralPredictions != null && modelLabels != null) {
+                    val idx = modelLabels.indexOf(p.soortid)
+                    if (idx >= 0 && idx < neuralPredictions.size) {
+                        val prob = neuralPredictions[idx].toDouble()
+                        val nnFactor = 1.0 + (AiConfig.NEURAL_INTEGRATION_WEIGHT * prob)
+                        combinedScore = combinedScore * nnFactor
+                        Log.d(TAG, "NN BOOST: ${p.soortid} prob=${String.format(Locale.US, "%.4f", prob)} factor=${String.format(Locale.US, "%.3f", nnFactor)}")
+                    }
+                }
+            } catch (_: Exception) { /* best-effort */ }
+
+            Log.d(TAG, "RAW BSI 4.1: %-20s | BASE:%5.2f | COMBINED:%5.2f | Ratio:%.2f | W:%.2f | T:%.2f | G:%.2f".format(
+                name, total, combinedScore, efficiencyRatio, fWind, fTime, fGatekeeper))
+
+            ScoredSpecies(p.soortid, name, combinedScore, guild, clusterIndices[p.soortid]?.clusterIndex)
         }
 
         // 4. Gilde selectie & Krenten-Highlights

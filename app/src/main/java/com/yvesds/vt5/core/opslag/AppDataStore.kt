@@ -18,6 +18,8 @@ object AppDataStore {
     private val KEY_NEXT_TELLING_ID = longPreferencesKey("next_telling_id")
     private val KEY_AI_ENABLED = booleanPreferencesKey("ai_enabled")
     private val KEY_AI_MODEL_DIR_URI = stringPreferencesKey("ai_model_dir_uri")
+    private val KEY_USE_NEURAL_INFERENCE = booleanPreferencesKey("use_neural_inference")
+    private val KEY_USE_DAILY_ANALYSIS_WEIGHTS = booleanPreferencesKey("use_daily_analysis_weights")
     private val KEY_KRENTEN_THRESHOLD = intPreferencesKey("ai_krenten_threshold")
     private const val PREFIX_RECORD_ID = "next_record_id_"
 
@@ -102,5 +104,33 @@ object AppDataStore {
 
     suspend fun getKrentenThreshold(context: Context): Int {
         return context.dataStore.data.map { it[KEY_KRENTEN_THRESHOLD] ?: 100 }.first()
+    }
+
+    /**
+     * Enable/disable use of the on-device neural inference (global override).
+     * Default is TRUE for backwards-on behavior requested by product.
+     */
+    suspend fun setUseNeuralInference(context: Context, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_USE_NEURAL_INFERENCE] = enabled
+        }
+    }
+
+    suspend fun isUseNeuralInference(context: Context): Boolean {
+        return context.dataStore.data.map { it[KEY_USE_NEURAL_INFERENCE] ?: true }.first()
+    }
+
+    /**
+     * Enable/disable usage of daily-analysis-based sample weights (prototype experiment).
+     * Default is TRUE so that effective teldag-verslagen meetellen in training & inference.
+     */
+    suspend fun setUseDailyAnalysisWeights(context: Context, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_USE_DAILY_ANALYSIS_WEIGHTS] = enabled
+        }
+    }
+
+    suspend fun isUseDailyAnalysisWeights(context: Context): Boolean {
+        return context.dataStore.data.map { it[KEY_USE_DAILY_ANALYSIS_WEIGHTS] ?: true }.first()
     }
 }

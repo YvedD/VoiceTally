@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.*
 import kotlin.math.*
+import com.yvesds.vt5.core.opslag.AppDataStore
 
 /**
  * Trainer - Plan B: Bio-Statistische Intelligentie (BSI) Profiler.
@@ -47,13 +48,28 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 return@withContext
             }
 
-            // 4. De Trainings-lus (De AI leert nu echt!)
+            // 4. Bereken optionele samplegewichten op basis van Teldag Verslagen
+            val useDailyWeights = try { AppDataStore.isUseDailyAnalysisWeights(context) } catch (e: Exception) { AiConfig.USE_DAILY_ANALYSIS_WEIGHTS }
+            val speciesWeights = if (useDailyWeights) {
+                try {
+                    preparer.computeSpeciesWeightsFromDailyAnalysis()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Kon species weights niet berekenen: ${e.message}")
+                    emptyMap<String, Float>()
+                }
+            } else emptyMap()
+
+            // 5. De Trainings-lus (De AI leert nu echt!)
             val total = trainingSamples.size
             var count = 0
             
             trainingSamples.forEachIndexed { index, sample ->
-                engine.train(sample.features, sample.labelIndex)
-                
+                val sid = allSpecies.getOrNull(sample.labelIndex)
+                val rawW = speciesWeights[sid] ?: 1.0f
+                // veilig afkappen
+                val weight = rawW.coerceAtLeast(0.1f).coerceAtMost(AiConfig.DAILY_ANALYSIS_WEIGHT_MAX)
+                engine.train(sample.features, sample.labelIndex, learningRate = 0.01f, sampleWeight = weight)
+
                 // Minder frequente updates om de Main thread te ontlasten (was 500)
                 if (index % 2500 == 0 || index == total - 1) {
                     count = index
@@ -65,6 +81,10 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             // 5. Sla de nieuwe gewichten op
             onProgress("Nieuwe ervaringen opslaan...", 95, 100)
             modelStore.saveNeuralEngine(engine)
+            // Persistente labels zodat label-index mapping reproduceerbaar is
+            try {
+                modelStore.saveModelLabels(allSpecies)
+            } catch (_: Exception) { /* Best effort - niet kritisch */ }
 
             // 6. Voer Retroactieve Piek-Analyse uit (Knowledge Base)
             onProgress("Meteorologische vingerafdrukken berekenen...", 96, 100)

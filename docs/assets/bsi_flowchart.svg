@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <style>
+    .box { fill:#0f1720; stroke:#38bdf8; stroke-width:2px; rx:8; }
+    .diamond { fill:#071124; stroke:#f59e0b; stroke-width:2px; }
+    .text { fill:#e6eef6; font-family:Segoe UI, Arial, sans-serif; font-size:14px; }
+    .small { font-size:12px; fill:#cfeefe }
+    .arrow { stroke:#9fbfd0; stroke-width:2px; fill:none; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9fbfd0" />
+    </marker>
+  </defs>
+
+  <!-- Nodes -->
+  <rect x="50" y="40" width="180" height="40" class="box" />
+  <text x="140" y="65" text-anchor="middle" class="text">Start: Vraag prognose</text>
+
+  <rect x="270" y="40" width="180" height="40" class="box" />
+  <text x="360" y="65" text-anchor="middle" class="text">Bepaal context</text>
+
+  <rect x="490" y="40" width="220" height="40" class="box" />
+  <text x="600" y="65" text-anchor="middle" class="text">Laad historische signalen</text>
+
+  <rect x="270" y="120" width="220" height="40" class="box" />
+  <text x="380" y="145" text-anchor="middle" class="text">Bereken heuristische basis‑score</text>
+
+  <rect x="270" y="200" width="220" height="40" class="diamond" rx="6" ry="6"/>
+  <text x="380" y="225" text-anchor="middle" class="text">Daily weights ingeschakeld?</text>
+
+  <rect x="60" y="300" width="220" height="40" class="box" />
+  <text x="170" y="325" text-anchor="middle" class="text">Bereken per‑soort daily weight</text>
+
+  <rect x="340" y="300" width="220" height="40" class="box" />
+  <text x="450" y="325" text-anchor="middle" class="text">Daily weight = 1 (geen effect)</text>
+
+  <rect x="270" y="380" width="220" height="40" class="box" />
+  <text x="380" y="405" text-anchor="middle" class="text">Pas daily weight toe (score ×= weight)</text>
+
+  <rect x="270" y="460" width="220" height="40" class="diamond" rx="6" ry="6" />
+  <text x="380" y="485" text-anchor="middle" class="text">Neurale inference ingeschakeld?</text>
+
+  <rect x="60" y="540" width="220" height="40" class="box" />
+  <text x="170" y="565" text-anchor="middle" class="text">Laad lokaal NN en predicties</text>
+
+  <rect x="340" y="540" width="220" height="40" class="box" />
+  <text x="450" y="565" text-anchor="middle" class="text">Skip NN (geen inferentie)</text>
+
+  <rect x="270" y="620" width="220" height="40" class="box" />
+  <text x="380" y="645" text-anchor="middle" class="text">Pas neurale boost toe (score ×= 1 + w×p)</text>
+
+  <rect x="530" y="540" width="280" height="40" class="box" />
+  <text x="670" y="565" text-anchor="middle" class="text">Sorteren & filteren op kwaliteit</text>
+
+  <rect x="530" y="620" width="280" height="40" class="box" />
+  <text x="670" y="645" text-anchor="middle" class="text">Toon prognose (met provenance badges)</text>
+
+  <!-- Arrows -->
+  <path d="M230,60 L270,60" class="arrow" />
+  <path d="M450,60 L490,60" class="arrow" />
+  <path d="M600,80 L470,120" class="arrow" />
+  <path d="M380,160 L380,200" class="arrow" />
+  <path d="M380,240 L170,300" class="arrow" />
+  <path d="M380,240 L450,300" class="arrow" />
+  <path d="M280,340 L280,380" class="arrow" />
+  <path d="M420,340 L420,380" class="arrow" />
+  <path d="M380,420 L380,460" class="arrow" />
+  <path d="M380,500 L170,540" class="arrow" />
+  <path d="M380,500 L450,540" class="arrow" />
+  <path d="M280,580 L280,620" class="arrow" />
+  <path d="M460,620 L530,620" class="arrow" />
+  <path d="M670,660 L670,700" class="arrow" />
+
+  <!-- Small note -->
+  <text x="50" y="720" class="small">Legenda: [H]=Heuristiek [D]=Daily‑weights [N]=Neural</text>
+</svg>
+
