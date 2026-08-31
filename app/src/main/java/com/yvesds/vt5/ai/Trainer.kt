@@ -65,6 +65,10 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             // 5. Sla de nieuwe gewichten op
             onProgress("Nieuwe ervaringen opslaan...", 95, 100)
             modelStore.saveNeuralEngine(engine)
+            // Persistente labels zodat label-index mapping reproduceerbaar is
+            try {
+                modelStore.saveModelLabels(allSpecies)
+            } catch (_: Exception) { /* Best effort - niet kritisch */ }
 
             // 6. Voer Retroactieve Piek-Analyse uit (Knowledge Base)
             onProgress("Meteorologische vingerafdrukken berekenen...", 96, 100)

@@ -140,4 +140,52 @@ class TrainingDataPreparer(private val context: Context) {
         eng[t]?.let { return it }
         return null
     }
+
+    /**
+     * Bouwt dezelfde 21-features vector als gebruikt tijdens training, maar dan voor een
+     * arbitraire context (bijvoorbeeld tijdens een prognose-aanvraag).
+     * Alle waarden zijn optioneel en vallen terug op veilige defaults.
+     */
+    fun buildFeatureVectorForContext(
+        epoch: Long,
+        telpostId: String?,
+        temperature: Double?,
+        windDeg: Double?,
+        windForce: Double?,
+        cloudCover: Double?,
+        hpa: Double?,
+        precipitationFlag: Boolean?
+    ): FloatArray {
+        val features = FloatArray(21)
+        val zdt = ZonedDateTime.ofInstant(Instant.ofEpochSecond(epoch), ZoneId.systemDefault())
+        val dayOfYear = zdt.dayOfYear.toDouble()
+        val hourOfDay = zdt.hour.toDouble()
+
+        features[0] = sin(2.0 * PI * dayOfYear / 365.25).toFloat()
+        features[1] = cos(2.0 * PI * dayOfYear / 365.25).toFloat()
+        features[2] = sin(2.0 * PI * hourOfDay / 24.0).toFloat()
+        features[3] = cos(2.0 * PI * hourOfDay / 24.0).toFloat()
+
+        features[4] = temperature?.toFloat() ?: 15f
+        val wdeg = windDeg ?: 0.0
+        features[5] = sin(Math.toRadians(wdeg)).toFloat()
+        features[6] = cos(Math.toRadians(wdeg)).toFloat()
+        features[7] = windForce?.toFloat() ?: 0f
+        features[8] = (cloudCover?.toFloat() ?: 0f) / 8.0f
+
+        features[9] = hpa?.toFloat() ?: 1013f
+        features[10] = 0f
+
+        // Geen betrouwbare gisteren-factor beschikbaar in live-call -> 0
+        features[11] = 0f
+
+        features[12] = calculateMoonPhase(epoch).toFloat()
+        features[13] = if (precipitationFlag == true) 1f else 0f
+
+        val hash = telpostId?.hashCode()?.let { kotlin.math.abs(it) % 1000 } ?: 0
+        features[14] = hash / 1000f
+
+        for (i in 15..20) features[i] = 0f
+        return features
+    }
 }

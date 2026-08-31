@@ -98,6 +98,33 @@ object AiInferenceEngine {
             dao.getSpeciesGigaBaseline(cluster, effortHours).associateBy { it.soortid }
         } else emptyMap()
 
+        // Neural model: probeer labels en model te laden en maak één predictie voor de huidige context
+        val modelLabels = modelStore.loadModelLabels()
+        var neuralPredictions: FloatArray? = null
+        if (!modelLabels.isNullOrEmpty() && AiConfig.USE_NEURAL_INFERENCE) {
+            try {
+                val neural = modelStore.loadNeuralEngine(modelLabels.size)
+                // Bouw feature-vector voor de huidige situatie (best effort)
+                val siteId = cluster?.firstOrNull()
+                val preparer = TrainingDataPreparer(context)
+                val epochSec = cal.timeInMillis / 1000L
+                val features = preparer.buildFeatureVectorForContext(
+                    epoch = epochSec,
+                    telpostId = siteId,
+                    temperature = cur.temperature2m,
+                    windDeg = cur.windDirection10m,
+                    windForce = cur.windSpeed10m,
+                    cloudCover = null,
+                    hpa = cur.pressureMsl,
+                    precipitationFlag = null
+                )
+                neuralPredictions = neural.predict(features)
+                Log.i(TAG, "Neural integration: loaded model with ${neuralPredictions.size} outputs.")
+            } catch (e: Exception) {
+                Log.w(TAG, "Neural integration failed: ${e.message}")
+            }
+        }
+
         // 3. Score berekening
         val scoredList = profiles.mapNotNull { p ->
             val speciesData = snapshot?.speciesById?.get(p.soortid)
@@ -217,13 +244,27 @@ object AiInferenceEngine {
             val twinCount = weatherTwins.filter { it.soortid == p.soortid }.sumOf { it.count }
             val fTwin = 1.0 + (log10(twinCount.toDouble().coerceAtLeast(1.0)) * 0.5)
 
-            // BSI 4.1: Finale aggregatie met Efficiency Ratio
+            // BSI 4.1: Finale aggregatie met Efficiency Ratio (basis)
             val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * fTwin * boiCorridorFactor * efficiencyRatio * (1.0 + regBoost)
-            
-            Log.d(TAG, "RAW BSI 4.1: %-20s | S:%5.2f | Ratio:%.2f | W:%.2f | T:%.2f | G:%.2f".format(
-                name, total, efficiencyRatio, fWind, fTime, fGatekeeper))
 
-            ScoredSpecies(p.soortid, name, total, guild, clusterIndices[p.soortid]?.clusterIndex)
+            // Neural boost: als we een voorspelling hebben, map species-id naar label-index en pas een multiplicatieve factor toe
+            var combinedScore = total
+            try {
+                if (neuralPredictions != null && modelLabels != null) {
+                    val idx = modelLabels.indexOf(p.soortid)
+                    if (idx >= 0 && idx < neuralPredictions.size) {
+                        val prob = neuralPredictions[idx].toDouble()
+                        val nnFactor = 1.0 + (AiConfig.NEURAL_INTEGRATION_WEIGHT * prob)
+                        combinedScore = total * nnFactor
+                        Log.d(TAG, "NN BOOST: ${p.soortid} prob=${String.format(Locale.US, "%.4f", prob)} factor=${String.format(Locale.US, "%.3f", nnFactor)}")
+                    }
+                }
+            } catch (_: Exception) { /* best-effort */ }
+
+            Log.d(TAG, "RAW BSI 4.1: %-20s | BASE:%5.2f | COMBINED:%5.2f | Ratio:%.2f | W:%.2f | T:%.2f | G:%.2f".format(
+                name, total, combinedScore, efficiencyRatio, fWind, fTime, fGatekeeper))
+
+            ScoredSpecies(p.soortid, name, combinedScore, guild, clusterIndices[p.soortid]?.clusterIndex)
         }
 
         // 4. Gilde selectie & Krenten-Highlights
