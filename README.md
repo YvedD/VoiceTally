@@ -1,4 +1,4 @@
-# Voor ontwikkelaars: zie [DEVELOPER.md](DEVELOPER.md) voor build- en ontwikkelinstructies (Windows PowerShell, paden, BirdNET-info).
+# Voor ontwikkelaars: zie [DEVELOPER.md](docs/DEVELOPER.md) voor build- en ontwikkelinstructies (Windows PowerShell, paden, BirdNET-info).
 
 # Moderne Android-versies (vooral vanaf Android 12–14) en de aangepaste beveiligingslaag Samsung Knox op Samsung-toestellen tonen vaak waarschuwingen wanneer je een APK buiten de officiële store installeert. Dat is normaal gedrag van Google Play Protect en het systeem voor “Unknown Apps”.
 

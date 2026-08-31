@@ -66,11 +66,11 @@ flowchart TD
     D --> E{Daily weights ingeschakeld?}
     E -- Ja --> F[Bereken per‑soort daily weight]
     E -- Nee --> G[Zet daily weight = 1]
-    F --> H[Pas daily weight toe (score *= weight)]
+    F --> H[Pas daily weight toe\n(score = score × gewicht)]
     G --> H
     H --> I{Neurale inference ingeschakeld?}
     I -- Ja --> J[Laad lokaal NN‑model en predicties]
-    J --> K[Bereken neurale factor en pas toe (score *= 1 + w * p)]
+    J --> K[Bereken neurale factor\nen pas toe\n(score = score × (1 + w × p))]
     I -- Nee --> K
     K --> L[Sorteren & filteren op kwaliteit]
     L --> M[Toon prognose (met provenance labels)]
