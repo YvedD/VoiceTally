@@ -66,14 +66,14 @@ flowchart TD
     D --> E{Daily weights ingeschakeld?}
     E -- Ja --> F[Bereken per‑soort daily weight]
     E -- Nee --> G[Zet daily weight = 1]
-    F --> H[Pas daily weight toe\n(score = score × gewicht)]
+    F --> H["Pas daily weight toe<br/>(score = score × gewicht)"]
     G --> H
     H --> I{Neurale inference ingeschakeld?}
     I -- Ja --> J[Laad lokaal NN‑model en predicties]
-    J --> K[Bereken neurale factor\nen pas toe\n(score = score × (1 + w × p))]
+    J --> K["Bereken neurale factor<br/>en pas toe<br/>(score = score × (1 + w × p))"]
     I -- Nee --> K
     K --> L[Sorteren & filteren op kwaliteit]
-    L --> M[Toon prognose (met provenance labels)]
+    L --> M["Toon prognose (met provenance labels)"]
     M --> Z[End]
 ```
 
@@ -155,4 +155,3 @@ versterkers.
 
 Als je wilt kan ik deze handleiding uitbreiden met een korte sectie over wat je precies in Logcat zoekt voor debug/QA of
 een checklist om experimenten systematisch uit te voeren.
-
