@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" font-family="Arial, sans-serif">
+  <defs>
+    <style>
+      .pcb-board { fill: #1a6b3a; stroke: #0d4a25; stroke-width: 3; }
+      .copper-trace { stroke: #d4a017; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .copper-trace-power { stroke: #e8b830; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .copper-trace-gnd { stroke: #c49a15; stroke-width: 5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .copper-trace-signal { stroke: #d4a017; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .pad { fill: #d4a017; stroke: #b8900f; stroke-width: 1.5; }
+      .pad-hole { fill: #111; }
+      .drill { fill: #0d4a25; }
+      .silkscreen { font-size: 10px; fill: #ffffff; font-weight: bold; }
+      .silkscreen-val { font-size: 8px; fill: #ddd; }
+      .silkscreen-sm { font-size: 7px; fill: #ccc; }
+      .component-body { stroke: #ffffff; stroke-width: 1; fill: none; }
+      .component-smd { fill: #2a2a2a; stroke: #444; stroke-width: 1; rx: 1; }
+      .resistor-body { fill: #d2b48c; stroke: #8b6914; stroke-width: 1.5; rx: 2; }
+      .cap-body { fill: #3366aa; stroke: #224488; stroke-width: 1.5; rx: 2; }
+      .inductor-body { fill: #555; stroke: #333; stroke-width: 1.5; rx: 2; }
+      .connector-body { fill: #333; stroke: #555; stroke-width: 1.5; }
+      .mounting-hole { fill: none; stroke: #d4a017; stroke-width: 2; }
+      .title-text { font-size: 16px; fill: #1a1a1a; font-weight: bold; }
+      .subtitle-text { font-size: 11px; fill: #555; }
+      .legend-text { font-size: 10px; fill: #333; }
+      .dimension { font-size: 9px; fill: #666; font-style: italic; }
+      .outline-dim { stroke: #999; stroke-width: 1; fill: none; stroke-dasharray: 4,3; }
+    </style>
+    <!-- Pad with through-hole -->
+    <g id="th-pad">
+      <circle r="5" class="pad"/>
+      <circle r="2" class="pad-hole"/>
+    </g>
+    <!-- Mounting hole -->
+    <g id="mount-hole">
+      <circle r="5" class="mounting-hole"/>
+      <circle r="2" class="drill"/>
+    </g>
+  </defs>
+
+  <!-- ==================== BACKGROUND ==================== -->
+  <rect width="900" height="700" fill="#f5f5f0"/>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" class="title-text">EM272Z1 Hulpprintje – PCB Layout (bovenaanzicht)</text>
+  <text x="450" y="48" text-anchor="middle" class="subtitle-text">Afmetingen: 60 × 40 mm | Enkelzijdig (1-layer) | Schaal ≈ 4:1</text>
+
+  <!-- ==================== PCB BOARD ==================== -->
+  <!-- Board outline -->
+  <rect x="120" y="80" width="600" height="400" rx="8" class="pcb-board"/>
+
+  <!-- Board edge markers / mounting holes -->
+  <use href="#mount-hole" x="145" y="105"/>
+  <use href="#mount-hole" x="695" y="105"/>
+  <use href="#mount-hole" x="145" y="455"/>
+  <use href="#mount-hole" x="695" y="455"/>
+  <text x="145" y="95" text-anchor="middle" class="silkscreen-sm">M1</text>
+  <text x="695" y="95" text-anchor="middle" class="silkscreen-sm">M2</text>
+  <text x="145" y="470" text-anchor="middle" class="silkscreen-sm">M3</text>
+  <text x="695" y="470" text-anchor="middle" class="silkscreen-sm">M4</text>
+
+  <!-- ==================== J1: USB-C/MICRO CONNECTOR (links) ==================== -->
+  <rect x="125" y="200" width="55" height="80" class="connector-body" rx="3"/>
+  <text x="152" y="220" text-anchor="middle" class="silkscreen">J1</text>
+  <text x="152" y="235" text-anchor="middle" class="silkscreen-val">USB-C</text>
+  <!-- USB connector pins -->
+  <use href="#th-pad" x="160" y="250"/>
+  <text x="160" y="270" text-anchor="middle" class="silkscreen-sm">VBUS</text>
+  <use href="#th-pad" x="145" y="250"/>
+  <text x="145" y="270" text-anchor="middle" class="silkscreen-sm">G</text>
+  <!-- Small indicator arrow -->
+  <text x="128" y="243" class="silkscreen-sm" fill="#fff">◄USB</text>
+
+  <!-- ==================== L1: INDUCTOR ==================== -->
+  <rect x="210" y="190" width="60" height="25" class="inductor-body"/>
+  <text x="240" y="187" text-anchor="middle" class="silkscreen">L1</text>
+  <text x="240" y="225" text-anchor="middle" class="silkscreen-val">10µH</text>
+  <!-- L1 pads -->
+  <use href="#th-pad" x="220" y="202"/>
+  <use href="#th-pad" x="260" y="202"/>
+
+  <!-- ==================== C2: FILTER CAP ==================== -->
+  <rect x="280" y="235" width="25" height="45" class="cap-body"/>
+  <text x="293" y="230" text-anchor="middle" class="silkscreen">C2</text>
+  <text x="293" y="292" text-anchor="middle" class="silkscreen-val">100µF</text>
+  <!-- C2 pads -->
+  <use href="#th-pad" x="293" y="245"/>
+  <use href="#th-pad" x="293" y="270"/>
+  <!-- Polarity marking -->
+  <text x="310" y="250" class="silkscreen-sm">+</text>
+
+  <!-- ==================== POWER RAIL TRACE (VBUS → L1 → distribution) ==================== -->
+  <!-- VBUS to L1 input -->
+  <polyline points="160,250 160,202 220,202" class="copper-trace-power"/>
+  <!-- L1 output to power distribution node -->
+  <polyline points="260,202 293,202 293,245" class="copper-trace-power"/>
+  <!-- Power node continues right to resistors -->
+  <line x1="293" y1="202" x2="350" y2="202" class="copper-trace-power"/>
+  <!-- Power distribution vertical bus -->
+  <line x1="350" y1="202" x2="350" y2="410" class="copper-trace-power"/>
+  <!-- Junction dot -->
+  <circle cx="293" cy="202" r="4" fill="#e8b830"/>
+  <circle cx="350" cy="202" r="4" fill="#e8b830"/>
+
+  <!-- ==================== R1-R4: BIAS RESISTORS ==================== -->
+  <!-- R1 -->
+  <rect x="380" y="148" width="55" height="18" class="resistor-body"/>
+  <text x="407" y="145" text-anchor="middle" class="silkscreen">R1</text>
+  <text x="407" y="176" text-anchor="middle" class="silkscreen-val">2k2</text>
+  <use href="#th-pad" x="390" y="157"/>
+  <use href="#th-pad" x="425" y="157"/>
+  <!-- Trace from power bus to R1 -->
+  <polyline points="350,202 350,157 390,157" class="copper-trace-power"/>
+  <circle cx="350" cy="157" r="3" fill="#e8b830"/>
+
+  <!-- R2 -->
+  <rect x="380" y="218" width="55" height="18" class="resistor-body"/>
+  <text x="407" y="215" text-anchor="middle" class="silkscreen">R2</text>
+  <text x="407" y="246" text-anchor="middle" class="silkscreen-val">2k2</text>
+  <use href="#th-pad" x="390" y="227"/>
+  <use href="#th-pad" x="425" y="227"/>
+  <!-- Trace from power bus to R2 -->
+  <line x1="350" y1="227" x2="390" y2="227" class="copper-trace-power"/>
+  <circle cx="350" cy="227" r="3" fill="#e8b830"/>
+
+  <!-- R3 -->
+  <rect x="380" y="288" width="55" height="18" class="resistor-body"/>
+  <text x="407" y="285" text-anchor="middle" class="silkscreen">R3</text>
+  <text x="407" y="316" text-anchor="middle" class="silkscreen-val">2k2</text>
+  <use href="#th-pad" x="390" y="297"/>
+  <use href="#th-pad" x="425" y="297"/>
+  <!-- Trace from power bus to R3 -->
+  <line x1="350" y1="297" x2="390" y2="297" class="copper-trace-power"/>
+  <circle cx="350" cy="297" r="3" fill="#e8b830"/>
+
+  <!-- R4 -->
+  <rect x="380" y="358" width="55" height="18" class="resistor-body"/>
+  <text x="407" y="355" text-anchor="middle" class="silkscreen">R4</text>
+  <text x="407" y="386" text-anchor="middle" class="silkscreen-val">2k2</text>
+  <use href="#th-pad" x="390" y="367"/>
+  <use href="#th-pad" x="425" y="367"/>
+  <!-- Trace from power bus to R4 -->
+  <line x1="350" y1="367" x2="390" y2="367" class="copper-trace-power"/>
+  <circle cx="350" cy="367" r="3" fill="#e8b830"/>
+
+  <!-- ==================== MIC CONNECTOR PADS (rechts) ==================== -->
+  <!-- Each mic gets 2 pads: signal (+) and GND -->
+
+  <!-- MIC1 connector -->
+  <rect x="530" y="130" width="100" height="50" rx="4" class="component-body" style="stroke-width:1.5"/>
+  <text x="580" y="148" text-anchor="middle" class="silkscreen">MIC 1</text>
+  <text x="580" y="165" text-anchor="middle" class="silkscreen-val">EM272Z1</text>
+  <use href="#th-pad" x="550" y="173"/>
+  <use href="#th-pad" x="610" y="173"/>
+  <text x="550" y="193" text-anchor="middle" class="silkscreen-sm">SIG+</text>
+  <text x="610" y="193" text-anchor="middle" class="silkscreen-sm">GND</text>
+
+  <!-- MIC2 connector -->
+  <rect x="530" y="200" width="100" height="50" rx="4" class="component-body" style="stroke-width:1.5"/>
+  <text x="580" y="218" text-anchor="middle" class="silkscreen">MIC 2</text>
+  <text x="580" y="235" text-anchor="middle" class="silkscreen-val">EM272Z1</text>
+  <use href="#th-pad" x="550" y="243"/>
+  <use href="#th-pad" x="610" y="243"/>
+  <text x="550" y="263" text-anchor="middle" class="silkscreen-sm">SIG+</text>
+  <text x="610" y="263" text-anchor="middle" class="silkscreen-sm">GND</text>
+
+  <!-- MIC3 connector -->
+  <rect x="530" y="270" width="100" height="50" rx="4" class="component-body" style="stroke-width:1.5"/>
+  <text x="580" y="288" text-anchor="middle" class="silkscreen">MIC 3</text>
+  <text x="580" y="305" text-anchor="middle" class="silkscreen-val">EM272Z1</text>
+  <use href="#th-pad" x="550" y="313"/>
+  <use href="#th-pad" x="610" y="313"/>
+  <text x="550" y="333" text-anchor="middle" class="silkscreen-sm">SIG+</text>
+  <text x="610" y="333" text-anchor="middle" class="silkscreen-sm">GND</text>
+
+  <!-- MIC4 connector -->
+  <rect x="530" y="340" width="100" height="50" rx="4" class="component-body" style="stroke-width:1.5"/>
+  <text x="580" y="358" text-anchor="middle" class="silkscreen">MIC 4</text>
+  <text x="580" y="375" text-anchor="middle" class="silkscreen-val">EM272Z1</text>
+  <use href="#th-pad" x="550" y="383"/>
+  <use href="#th-pad" x="610" y="383"/>
+  <text x="550" y="403" text-anchor="middle" class="silkscreen-sm">SIG+</text>
+  <text x="610" y="403" text-anchor="middle" class="silkscreen-sm">GND</text>
+
+  <!-- ==================== SIGNAL TRACES (R → MIC signal pads) ==================== -->
+  <!-- R1 out → MIC1 SIG+ -->
+  <polyline points="425,157 490,157 490,173 550,173" class="copper-trace-signal"/>
+  <!-- R2 out → MIC2 SIG+ -->
+  <polyline points="425,227 490,227 490,243 550,243" class="copper-trace-signal"/>
+  <!-- R3 out → MIC3 SIG+ -->
+  <polyline points="425,297 490,297 490,313 550,313" class="copper-trace-signal"/>
+  <!-- R4 out → MIC4 SIG+ -->
+  <polyline points="425,367 490,367 490,383 550,383" class="copper-trace-signal"/>
+
+  <!-- ==================== SIGNAL SUMMING BUS ==================== -->
+  <!-- Vertical bus collecting all signal nodes -->
+  <line x1="490" y1="157" x2="490" y2="410" class="copper-trace-signal" style="stroke-width:3"/>
+  <circle cx="490" cy="157" r="3" fill="#d4a017"/>
+  <circle cx="490" cy="227" r="3" fill="#d4a017"/>
+  <circle cx="490" cy="297" r="3" fill="#d4a017"/>
+  <circle cx="490" cy="367" r="3" fill="#d4a017"/>
+  <!-- Label -->
+  <text x="500" y="420" class="silkscreen-sm" fill="#d4a017">Σ SIG</text>
+
+  <!-- Signal bus goes down and left to C1 -->
+  <polyline points="490,410 490,435 380,435" class="copper-trace-signal"/>
+
+  <!-- ==================== C1: COUPLING CAPACITOR ==================== -->
+  <rect x="340" y="420" width="40" height="25" class="cap-body"/>
+  <text x="360" y="418" text-anchor="middle" class="silkscreen">C1</text>
+  <text x="360" y="456" text-anchor="middle" class="silkscreen-val">10µF</text>
+  <use href="#th-pad" x="375" y="433"/>
+  <use href="#th-pad" x="345" y="433"/>
+
+  <!-- Trace from C1 output to signal output / R5 junction -->
+  <line x1="345" y1="433" x2="270" y2="433" class="copper-trace-signal"/>
+  <circle cx="270" cy="433" r="4" fill="#d4a017"/>
+
+  <!-- ==================== R5: DISCHARGE RESISTOR ==================== -->
+  <rect x="255" y="365" width="18" height="50" class="resistor-body"/>
+  <text x="245" y="385" text-anchor="end" class="silkscreen">R5</text>
+  <text x="245" y="400" text-anchor="end" class="silkscreen-val">10k</text>
+  <use href="#th-pad" x="264" y="375"/>
+  <use href="#th-pad" x="264" y="405"/>
+  <!-- R5 top to signal node -->
+  <polyline points="264,405 264,433 270,433" class="copper-trace-signal"/>
+  <!-- R5 bottom to GND -->
+  <polyline points="264,375 264,350 225,350 225,440" class="copper-trace-gnd"/>
+
+  <!-- ==================== J2: 3.5mm TRS JACK (links-onder) ==================== -->
+  <rect x="135" y="390" width="70" height="60" class="connector-body" rx="4"/>
+  <text x="170" y="412" text-anchor="middle" class="silkscreen">J2</text>
+  <text x="170" y="427" text-anchor="middle" class="silkscreen-val">3,5mm</text>
+  <text x="170" y="440" text-anchor="middle" class="silkscreen-val">TRS Jack</text>
+  <!-- Jack pads -->
+  <use href="#th-pad" x="155" y="400"/>
+  <use href="#th-pad" x="190" y="400"/>
+  <use href="#th-pad" x="170" y="445"/>
+  <text x="155" y="393" text-anchor="middle" class="silkscreen-sm">T</text>
+  <text x="190" y="393" text-anchor="middle" class="silkscreen-sm">R</text>
+  <text x="170" y="460" text-anchor="middle" class="silkscreen-sm">S(G)</text>
+  <!-- Small indicator arrow -->
+  <text x="128" y="425" class="silkscreen-sm" fill="#fff">◄OUT</text>
+
+  <!-- Trace from signal node to TIP pad -->
+  <polyline points="270,433 230,433 230,400 190,400" class="copper-trace-signal"/>
+  <!-- Jumper: TIP and RING shorted (mono) -->
+  <line x1="155" y1="400" x2="190" y2="400" class="copper-trace-signal" style="stroke-dasharray:3,2"/>
+  <text x="173" y="385" text-anchor="middle" class="silkscreen-sm" fill="#d4a017">T=R</text>
+
+  <!-- SLEEVE (GND) to GND bus -->
+  <line x1="170" y1="445" x2="225" y2="445" class="copper-trace-gnd"/>
+
+  <!-- ==================== GND PLANE / TRACES ==================== -->
+  <!-- GND bus (thick trace across bottom area) -->
+  <line x1="145" y1="440" x2="660" y2="440" class="copper-trace-gnd" style="stroke-width:6; opacity:0.4"/>
+  <!-- Actual GND trace -->
+  <line x1="225" y1="440" x2="660" y2="440" class="copper-trace-gnd"/>
+
+  <!-- USB GND to GND bus -->
+  <polyline points="145,250 145,300 200,300 200,440 225,440" class="copper-trace-gnd"/>
+  <circle cx="225" cy="440" r="4" fill="#c49a15"/>
+
+  <!-- C2 GND to GND bus -->
+  <polyline points="293,270 293,310 250,310 250,440" class="copper-trace-gnd"/>
+  <circle cx="250" cy="440" r="4" fill="#c49a15"/>
+
+  <!-- MIC GND pads to GND bus -->
+  <line x1="610" y1="173" x2="660" y2="173" class="copper-trace-gnd"/>
+  <line x1="660" y1="173" x2="660" y2="440" class="copper-trace-gnd"/>
+  <line x1="610" y1="243" x2="660" y2="243" class="copper-trace-gnd"/>
+  <line x1="610" y1="313" x2="660" y2="313" class="copper-trace-gnd"/>
+  <line x1="610" y1="383" x2="660" y2="383" class="copper-trace-gnd"/>
+  <circle cx="660" cy="243" r="3" fill="#c49a15"/>
+  <circle cx="660" cy="313" r="3" fill="#c49a15"/>
+  <circle cx="660" cy="383" r="3" fill="#c49a15"/>
+
+  <!-- GND label -->
+  <text x="450" y="455" text-anchor="middle" class="silkscreen" fill="#c49a15">── GND BUS ──</text>
+
+  <!-- ==================== SILKSCREEN LABELS ==================== -->
+  <!-- Board title silkscreen -->
+  <text x="420" y="108" text-anchor="middle" class="silkscreen" style="font-size:12px">EM272Z1 BIAS BOARD v1.0</text>
+  <text x="420" y="122" text-anchor="middle" class="silkscreen-val">VoiceTally Project</text>
+
+  <!-- Pin 1 indicators -->
+  <circle cx="160" cy="240" r="3" fill="#fff" opacity="0.6"/>
+  <circle cx="155" cy="393" r="3" fill="#fff" opacity="0.6"/>
+
+  <!-- ==================== DIMENSIONS ==================== -->
+  <!-- Width dimension -->
+  <line x1="120" y1="505" x2="720" y2="505" class="outline-dim"/>
+  <line x1="120" y1="480" x2="120" y2="515" class="outline-dim"/>
+  <line x1="720" y1="480" x2="720" y2="515" class="outline-dim"/>
+  <text x="420" y="520" text-anchor="middle" class="dimension">60 mm</text>
+
+  <!-- Height dimension -->
+  <line x1="745" y1="80" x2="745" y2="480" class="outline-dim"/>
+  <line x1="720" y1="80" x2="755" y2="80" class="outline-dim"/>
+  <line x1="720" y1="480" x2="755" y2="480" class="outline-dim"/>
+  <text x="762" y="285" class="dimension" transform="rotate(90, 762, 285)">40 mm</text>
+
+  <!-- ==================== LEGEND ==================== -->
+  <rect x="120" y="545" width="600" height="140" fill="#fafafa" stroke="#ddd" stroke-width="1" rx="8"/>
+  <text x="140" y="570" class="title-text" style="font-size:13px">Legenda &amp; Componentenlijst</text>
+
+  <!-- Color legend -->
+  <line x1="140" y1="590" x2="175" y2="590" stroke="#e8b830" stroke-width="4"/>
+  <text x="180" y="594" class="legend-text">Voedingsspoor (+5V bias)</text>
+
+  <line x1="140" y1="610" x2="175" y2="610" stroke="#d4a017" stroke-width="3"/>
+  <text x="180" y="614" class="legend-text">Signaalspoor (audio)</text>
+
+  <line x1="140" y1="630" x2="175" y2="630" stroke="#c49a15" stroke-width="5"/>
+  <text x="180" y="634" class="legend-text">Massa (GND)</text>
+
+  <rect x="140" y="647" width="35" height="12" class="resistor-body"/>
+  <text x="180" y="658" class="legend-text">Weerstand (through-hole)</text>
+
+  <rect x="140" y="667" width="35" height="12" class="cap-body"/>
+  <text x="180" y="678" class="legend-text">Condensator</text>
+
+  <!-- Component list -->
+  <text x="420" y="594" class="legend-text" font-weight="bold">Component</text>
+  <text x="560" y="594" class="legend-text" font-weight="bold">Waarde</text>
+  <text x="660" y="594" class="legend-text" font-weight="bold">Footprint</text>
+
+  <text x="420" y="612" class="legend-text">J1 – USB-C connector</text>
+  <text x="560" y="612" class="legend-text">—</text>
+  <text x="660" y="612" class="legend-text">THT</text>
+
+  <text x="420" y="627" class="legend-text">L1 – Spoel</text>
+  <text x="560" y="627" class="legend-text">10 µH</text>
+  <text x="660" y="627" class="legend-text">Axiaal</text>
+
+  <text x="420" y="642" class="legend-text">C2 – Filtercondensator</text>
+  <text x="560" y="642" class="legend-text">100 µF / 10V</text>
+  <text x="660" y="642" class="legend-text">Radiaal</text>
+
+  <text x="420" y="657" class="legend-text">R1–R4 – Biasweerstand</text>
+  <text x="560" y="657" class="legend-text">2,2 kΩ</text>
+  <text x="660" y="657" class="legend-text">Axiaal</text>
+
+  <text x="420" y="672" class="legend-text">C1 – Koppelcondensator</text>
+  <text x="560" y="672" class="legend-text">10 µF</text>
+  <text x="660" y="672" class="legend-text">Film/radiaal</text>
+</svg>
