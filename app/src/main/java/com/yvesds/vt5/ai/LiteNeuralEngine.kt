@@ -54,7 +54,7 @@ class LiteNeuralEngine(
     /**
      * De AI leert van een waarneming (Backpropagation).
      */
-    fun train(inputs: FloatArray, targetIndex: Int, learningRate: Float = 0.01f) {
+    fun train(inputs: FloatArray, targetIndex: Int, learningRate: Float = 0.01f, sampleWeight: Float = 1.0f) {
         if (targetIndex < 0 || targetIndex >= outputSize) return
 
         // 1. Voorwaartse pass (onthouden voor backprop)
@@ -76,8 +76,9 @@ class LiteNeuralEngine(
         val predictions = softmax(outputLayer)
 
         // 2. Fout berekenen
+        // Schaal de output-error met sampleWeight zodat sommige voorbeelden zwaarder doorwegen
         val outputErrors = FloatArray(outputSize) { k -> 
-            predictions[k] - (if (k == targetIndex) 1f else 0f) 
+            (predictions[k] - (if (k == targetIndex) 1f else 0f)) * sampleWeight
         }
 
         val hiddenErrors = FloatArray(hiddenSize)

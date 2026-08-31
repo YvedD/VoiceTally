@@ -54,6 +54,10 @@ object AiConfig {
     const val USE_NEURAL_INFERENCE = true
     const val NEURAL_INTEGRATION_WEIGHT = 0.5 // Hoe sterk de NN voorspelling weegt t.o.v. heuristiek (0.0 - 1.0)
 
+    // Gebruik teldag-verslagen om trainings-voorvallen te wegen (voor prototype/experiment)
+    const val USE_DAILY_ANALYSIS_WEIGHTS = true
+    const val DAILY_ANALYSIS_LOOKBACK_DAYS = 365 // Kijk terug over deze many days bij berekenen van gewichten
+    const val DAILY_ANALYSIS_WEIGHT_MAX = 3.0f // Maximale multiplicatieve boost per soort (>=1.0)
     fun getSampleWeightForSpecies(soortid: String?): Int {
         if (soortid == null) return 1
         return 1

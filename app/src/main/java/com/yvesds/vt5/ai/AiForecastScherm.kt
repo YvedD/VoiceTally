@@ -123,32 +123,43 @@ class AiForecastScherm : AppCompatActivity() {
                     // Bepaal corridor boost voor deze specifieke toekomstige dag
                     val regBoost = calculateCorridorBoostAtTime(snapshot.time, corridorForecast, isAutumn)
 
-                    // Voer AI Inference uit voor deze dag
+                    // Voer AI Inference uit voor deze dag (Twee modi: Baseline zonder Neural, En met Neural)
                     val pseudoCurrent = Current(temperature2m = snapshot.temp, windSpeed10m = snapshot.windSpeed, windDirection10m = snapshot.windDeg)
-                    val aiData = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, 10, providedRegBoost = regBoost)
-                    
+                    val aiBaseline = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, 10, providedRegBoost = regBoost, useNeural = false)
+                    val aiWithNeural = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, 10, providedRegBoost = regBoost, useNeural = true)
+
+                    val baselineMap = aiBaseline.guildResults.associateBy { it.soortid }
+                    val withMap = aiWithNeural.guildResults.associateBy { it.soortid }
+                    val allIds = (baselineMap.keys + withMap.keys).toList()
+
                     val speciesGrid = dayView.findViewById<GridLayout>(R.id.speciesGrid)
                     val isTablet = resources.configuration.smallestScreenWidthDp >= 600
                     if (speciesGrid != null) {
                         speciesGrid.columnCount = if (isTablet) 2 else 1
-                        
-                        // NIEUW: Filter op > 25% kans en neem de Top-12
-                        val topBirds = aiData.guildResults
-                            .filter { it.kans > 25 }
-                            .sortedByDescending { it.kans }
+
+                        // Combineer en sorteer op de hoogste van beide kansen, filter > 5% in minstens één model en neem Top-12
+                        val combined = allIds.map { id ->
+                            val b = baselineMap[id]
+                            val w = withMap[id]
+                            val maxProb = max(b?.kans ?: 0, w?.kans ?: 0)
+                            Triple(id, maxProb, Pair(b, w))
+                        }
+                            .filter { it.second > 5 }
+                            .sortedByDescending { it.second }
                             .take(12)
 
-                        for (vogel in topBirds) {
-                            val specView = createSpeciesCard(vogel, snapshotCal, clusterIds)
-                            
-                            // Voor GridLayout op tablet: verdeel de ruimte over 2 kolommen
+                        for ((id, _, pair) in combined) {
+                            val b = pair.first
+                            val w = pair.second
+                            val specView = createComparativeSpeciesCard(b, w, snapshotCal, clusterIds)
+
                             if (isTablet) {
                                 val gridParams = GridLayout.LayoutParams()
                                 gridParams.width = 0
                                 gridParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                                 specView.layoutParams = gridParams
                             }
-                            
+
                             speciesGrid.addView(specView)
                         }
                     }
@@ -214,6 +225,77 @@ class AiForecastScherm : AppCompatActivity() {
         }
         
         view.findViewById<MaterialCardView>(R.id.cardSpecies).strokeColor = getGuildColor(item.guildName)
+        return view
+    }
+
+    /**
+     * Creëert een vergelijkende kaart die laat zien welke kansen elk model gaf.
+     */
+    private suspend fun createComparativeSpeciesCard(
+        baseline: VogelSuggestie?,
+        experimental: VogelSuggestie?,
+        targetDate: Calendar,
+        clusterIds: List<String>
+    ): View {
+        val primary = experimental ?: baseline ?: return createSpeciesCard(baseline ?: experimental!!, targetDate, clusterIds)
+        val view = LayoutInflater.from(this).inflate(R.layout.item_forecast_species, null)
+
+        val tvName = view.findViewById<TextView>(R.id.tvSpeciesName)
+        val tvScientific = view.findViewById<TextView>(R.id.tvScientificInfo)
+        val tvHistoric = view.findViewById<TextView>(R.id.tvHistoric)
+        val tvSources = view.findViewById<TextView>(R.id.tvModelSources)
+        val ivIcon = view.findViewById<ImageView>(R.id.ivSpecies)
+        val chartView = view.findViewById<com.patrykandpatrick.vico.views.cartesian.CartesianChartView>(R.id.sparklinePhenology)
+        val viewIndicator = view.findViewById<View>(R.id.viewDateIndicator)
+        val clGraph = view.findViewById<View>(R.id.clGraphContainer)
+
+        view.findViewById<TextView>(R.id.tvGuild).text = primary.guildName
+        tvName.text = primary.soortnaam
+
+        val norm = primary.expectedIndex ?: 0f
+        // Compose probability display
+        val bProb = baseline?.kans ?: 0
+        val eProb = experimental?.kans ?: 0
+        view.findViewById<TextView>(R.id.tvProbability).text = "H:${bProb}%   P:${eProb}%"
+        tvScientific.text = "BSI Kans: ${max(bProb, eProb)}% | Norm: ${"%.5f".format(norm)} ex/h"
+
+        // Sources line (clear labels)
+        val sources = mutableListOf<String>()
+        if (baseline != null) sources.add("Heuristiek")
+        if (experimental != null) sources.add("Prototype")
+        tvSources.text = "Bronnen: ${sources.joinToString(" / ")}"
+
+        // Foto
+        if (!primary.latinName.isNullOrBlank()) {
+            val bitmap = withContext(Dispatchers.IO) { SpeciesImageHelper.getThumbnail(primary.latinName) }
+            if (bitmap != null) ivIcon.setImageBitmap(bitmap)
+        }
+
+        // Data & Grafiek (52-weken distributie)
+        val distWeeks = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesWeeklyDistribution(primary.soortid, clusterIds) }
+        val distDays = withContext(Dispatchers.IO) { database.tellingDao().getSpeciesDailyDistribution(primary.soortid, clusterIds) }
+
+        if (distWeeks.isNotEmpty()) {
+            clGraph.visibility = View.VISIBLE
+            PhenologySparklineHelper.setupWeekly(chartView, distWeeks)
+
+            // Indicator op de voorspelde week
+            val weekOfYear = targetDate.get(Calendar.WEEK_OF_YEAR)
+            chartView.post {
+                viewIndicator.x = chartView.left + (chartView.width * (weekOfYear / 53f))
+                viewIndicator.visibility = View.VISIBLE; viewIndicator.bringToFront()
+            }
+
+            // Pieken
+            val spring = calculatePeak(distDays.filter { it.day <= 166 })
+            val autumn = calculatePeak(distDays.filter { it.day > 166 })
+            tvHistoric.text = "Historische Pieken: [$spring] [$autumn]"
+            tvHistoric.visibility = View.VISIBLE
+        } else {
+            clGraph.visibility = View.GONE; tvHistoric.visibility = View.GONE
+        }
+
+        view.findViewById<MaterialCardView>(R.id.cardSpecies).strokeColor = getGuildColor(primary.guildName)
         return view
     }
 

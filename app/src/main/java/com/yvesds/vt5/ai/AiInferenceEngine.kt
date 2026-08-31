@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.util.*
 import kotlin.math.*
+import com.yvesds.vt5.core.opslag.AppDataStore
 
 /**
  * AiInferenceEngine - Expert Deep Diagnostic & Live Corridor Edition.
@@ -26,10 +27,11 @@ object AiInferenceEngine {
     private const val TAG = "AiInference"
 
     suspend fun getSuggesties(
-        context: Context, 
-        cur: Current, 
+        context: Context,
+        cur: Current,
         hourOverride: Int? = null,
-        providedRegBoost: Double? = null
+        providedRegBoost: Double? = null,
+        useNeural: Boolean? = null
     ): AiSuggestieData = withContext(Dispatchers.IO) {
         Log.i(TAG, "=========================================================")
         Log.i(TAG, "START SCIENTIFIC AI ANALYSIS")
@@ -99,9 +101,30 @@ object AiInferenceEngine {
         } else emptyMap()
 
         // Neural model: probeer labels en model te laden en maak één predictie voor de huidige context
+        val effectiveUseNeural = if (useNeural != null) {
+            useNeural
+        } else {
+            // Read runtime override from DataStore (default true)
+            try { AppDataStore.isUseNeuralInference(context) } catch (e: Exception) { AiConfig.USE_NEURAL_INFERENCE }
+        }
+        Log.i(TAG, "Neural inference enabled (effective): $effectiveUseNeural")
+
+        // Daily-analysis based weighting: read runtime override and compute species weights if enabled
+        val effectiveUseDailyWeights = try { AppDataStore.isUseDailyAnalysisWeights(context) } catch (e: Exception) { AiConfig.USE_DAILY_ANALYSIS_WEIGHTS }
+        var dailySpeciesWeights: Map<String, Float> = emptyMap()
+        if (effectiveUseDailyWeights) {
+            try {
+                val preparer = TrainingDataPreparer(context)
+                dailySpeciesWeights = preparer.computeSpeciesWeightsFromDailyAnalysis()
+                Log.i(TAG, "Computed daily-analysis species weights: ${dailySpeciesWeights.size} entries")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to compute daily-analysis weights: ${e.message}")
+                dailySpeciesWeights = emptyMap()
+            }
+        }
         val modelLabels = modelStore.loadModelLabels()
         var neuralPredictions: FloatArray? = null
-        if (!modelLabels.isNullOrEmpty() && AiConfig.USE_NEURAL_INFERENCE) {
+        if (!modelLabels.isNullOrEmpty() && effectiveUseNeural) {
             try {
                 val neural = modelStore.loadNeuralEngine(modelLabels.size)
                 // Bouw feature-vector voor de huidige situatie (best effort)
@@ -247,15 +270,27 @@ object AiInferenceEngine {
             // BSI 4.1: Finale aggregatie met Efficiency Ratio (basis)
             val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * fTwin * boiCorridorFactor * efficiencyRatio * (1.0 + regBoost)
 
-            // Neural boost: als we een voorspelling hebben, map species-id naar label-index en pas een multiplicatieve factor toe
+            // Apply daily-analysis weight (if available) as multiplicative factor so real reconstructed days influence the score
             var combinedScore = total
+            try {
+                val rawDaily = dailySpeciesWeights[p.soortid] ?: 1.0f
+                val dailyW = rawDaily.coerceAtLeast(0.1f).coerceAtMost(AiConfig.DAILY_ANALYSIS_WEIGHT_MAX).toDouble()
+                if (dailyW != 1.0) {
+                    combinedScore = combinedScore * dailyW
+                    Log.d(TAG, "DAILY-WEIGHT: ${p.soortid} weight=${String.format(Locale.US, "%.3f", dailyW)}")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Daily weight application failed: ${e.message}")
+            }
+
+            // Neural boost: als we een voorspelling hebben, map species-id naar label-index en pas een multiplicatieve factor toe
             try {
                 if (neuralPredictions != null && modelLabels != null) {
                     val idx = modelLabels.indexOf(p.soortid)
                     if (idx >= 0 && idx < neuralPredictions.size) {
                         val prob = neuralPredictions[idx].toDouble()
                         val nnFactor = 1.0 + (AiConfig.NEURAL_INTEGRATION_WEIGHT * prob)
-                        combinedScore = total * nnFactor
+                        combinedScore = combinedScore * nnFactor
                         Log.d(TAG, "NN BOOST: ${p.soortid} prob=${String.format(Locale.US, "%.4f", prob)} factor=${String.format(Locale.US, "%.3f", nnFactor)}")
                     }
                 }

@@ -407,6 +407,31 @@ class InstellingenScherm : AppCompatActivity() {
                 setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setAiEnabled(this@InstellingenScherm, checked) } }
             }
         }
+
+        // Toggle to enable/disable neural inference (global override)
+        findViewById<MaterialCheckBox>(R.id.cbUseNeuralInference)?.apply {
+            lifecycleScope.launch {
+                try {
+                    isChecked = AppDataStore.isUseNeuralInference(this@InstellingenScherm)
+                } catch (e: Exception) {
+                    // fallback to AiConfig default if datastore unavailable
+                    isChecked = com.yvesds.vt5.ai.AiConfig.USE_NEURAL_INFERENCE
+                }
+                setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setUseNeuralInference(this@InstellingenScherm, checked) } }
+            }
+        }
+
+        // Toggle to enable/disable daily-analysis-based weights
+        findViewById<MaterialCheckBox>(R.id.cbUseDailyAnalysisWeights)?.apply {
+            lifecycleScope.launch {
+                try {
+                    isChecked = AppDataStore.isUseDailyAnalysisWeights(this@InstellingenScherm)
+                } catch (e: Exception) {
+                    isChecked = com.yvesds.vt5.ai.AiConfig.USE_DAILY_ANALYSIS_WEIGHTS
+                }
+                setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setUseDailyAnalysisWeights(this@InstellingenScherm, checked) } }
+            }
+        }
     }
 
     private fun setupKrentenFilterSettings() {
