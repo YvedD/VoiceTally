@@ -815,6 +815,34 @@
                 android:id="@+id/spChartColorTerug"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="6dp"
+                android:text="Database &amp; Onderhoud"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMirrorDb"
+                style="@style/Widget.VT5.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp"
+                android:text="Spiegel Database naar SAF (VT5/database)"
+                app:icon="@android:drawable/ic_menu_save" />
         </LinearLayout>
 
     </ScrollView>

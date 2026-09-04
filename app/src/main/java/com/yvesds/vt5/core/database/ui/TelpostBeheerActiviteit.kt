@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.R
-import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.database.entities.TelpostLocatie
 import com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
@@ -35,7 +34,7 @@ import org.osmdroid.views.overlay.Marker
 import java.util.*
 
 /**
- * TelpostBeheerActiviteit - Robuuste kaart-implementatie voor telpost-locaties.
+ * TelpostBeheerActiviteit - Herstelde en robuuste kaart-implementatie.
  */
 class TelpostBeheerActiviteit : AppCompatActivity() {
 
@@ -55,7 +54,6 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Dwingende Osmdroid initialisatie
         val ctx = applicationContext
         Configuration.getInstance().load(ctx, getSharedPreferences("osmdroid", MODE_PRIVATE))
         Configuration.getInstance().userAgentValue = packageName
@@ -65,10 +63,7 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         
         saf = SaFStorageHelper(this)
         
-        // 2. Kaart direct instellen
         setupMap()
-        
-        // 3. Start data-laden
         loadData()
         
         binding.btnTerug.setOnClickListener { finish() }
@@ -82,9 +77,7 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(R.string.telpost_beheer_reset_confirm_title)
             .setMessage(R.string.telpost_beheer_reset_confirm_msg)
-            .setPositiveButton(R.string.beheer_verwijderen) { _, _ ->
-                resetAllLocaties()
-            }
+            .setPositiveButton(R.string.beheer_verwijderen) { _, _ -> resetAllLocaties() }
             .setNegativeButton(R.string.annuleer, null)
             .show()
     }
@@ -109,7 +102,7 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         binding.mapView.setTileSource(TileSourceFactory.MAPNIK)
         binding.mapView.setMultiTouchControls(true)
         binding.mapView.controller.setZoom(9.0)
-        binding.mapView.controller.setCenter(GeoPoint(51.2, 4.4)) // Midden v/h land
+        binding.mapView.controller.setCenter(GeoPoint(51.2, 4.4))
         
         val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -126,50 +119,40 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
     }
 
     private fun loadData() {
-        // 1. Laad telposten voor de dropdown (Parallel)
         lifecycleScope.launch(Dispatchers.Main) {
-            try {
+            // 1. Namen laden
+            val sites = try {
                 val snapshot = withContext(Dispatchers.IO) { ServerDataCache.getOrLoad(this@TelpostBeheerActiviteit) }
-                val sites = snapshot.sitesById.values.sortedBy { it.telpostnaam.lowercase() }
-                telpostNames = sites.associate { it.telpostid to it.telpostnaam }
-                
-                val adapter = ArrayAdapter(this@TelpostBeheerActiviteit, android.R.layout.simple_list_item_1, sites.map { it.telpostnaam })
-                binding.acTelpost.setAdapter(adapter)
-                binding.acTelpost.setOnItemClickListener { _, _, pos, _ ->
-                    selectedTelpostId = sites[pos].telpostid
-                    showLocatieForSelected()
-                }
-                // Update titels van markers die al getekend zijn
-                overviewMarkers.forEach { (id, marker) -> marker.title = telpostNames[id] ?: id }
-            } catch (e: Exception) { Log.e("TelpostBeheer", "Names load failed: ${e.message}") }
-        }
+                snapshot.sitesById.values.sortedBy { it.telpostnaam.lowercase(Locale.getDefault()) }
+            } catch (e: Exception) {
+                Log.e("TelpostBeheer", "Names load failed: ${e.message}")
+                emptyList()
+            }
 
-        // 2. Laad opgeslagen locaties (Parallel & Tolerant)
-        lifecycleScope.launch(Dispatchers.Main) {
+            telpostNames = sites.associate { it.telpostid to it.telpostnaam }
+            
+            val adapter = ArrayAdapter(this@TelpostBeheerActiviteit, android.R.layout.simple_list_item_1, sites.map { it.telpostnaam })
+            binding.acTelpost.setAdapter(adapter)
+            binding.acTelpost.setOnItemClickListener { parent, _, pos, _ ->
+                val selectedName = parent.getItemAtPosition(pos).toString()
+                selectedTelpostId = sites.find { it.telpostnaam == selectedName }?.telpostid
+                showLocatieForSelected()
+            }
+
+            // 2. Locaties laden
             val json = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") }
+            allLocaties.clear()
             if (!json.isNullOrBlank()) {
                 try {
-                    val lenientJson = Json { ignoreUnknownKeys = true; isLenient = true }
-                    
-                    // Reparatie voor het geval van dubbele JSON-blokken
-                    val cleanJson = if (json.count { it == '{' } > json.count { it == '}' } || json.contains("} {")) {
-                        Log.w("TelpostBeheer", "Corrupt JSON detected, attempting structural repair...")
-                        val firstEnd = json.indexOf("} {")
-                        if (firstEnd != -1) json.substring(0, firstEnd + 1) else json
-                    } else json
-
-                    val root = lenientJson.decodeFromString<TelpostLocatiesRoot>(cleanJson)
-                    allLocaties.clear()
+                    val root = Json { ignoreUnknownKeys = true }.decodeFromString<TelpostLocatiesRoot>(json)
                     root.locaties.forEach { allLocaties[it.telpostid] = it }
-                    
-                    delay(200)
-                    drawAllMarkers()
-                    Log.i("TelpostBeheer", "Loaded ${allLocaties.size} locations.")
                 } catch (e: Exception) {
-                    Log.e("TelpostBeheer", "Fatal parse error: ${e.message}")
-                    Toast.makeText(this@TelpostBeheerActiviteit, "Fout in locatiebestand. Sla een nieuwe locatie op om te herstellen.", Toast.LENGTH_LONG).show()
+                    Log.e("TelpostBeheer", "JSON load failed: ${e.message}")
                 }
             }
+            
+            // 3. ALTIJD tekenen, ook bij lege lijst
+            drawAllMarkers()
         }
     }
 
@@ -180,29 +163,37 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         val siteList = allLocaties.values.toList()
         val anchorSite = siteList.firstOrNull()
 
-        // 1. Teken de 35km cirkel rond de hoofdtelpost
+        // 1. 35km cirkel
         anchorSite?.let { loc ->
             val circle = org.osmdroid.views.overlay.Polygon(binding.mapView)
             circle.points = org.osmdroid.views.overlay.Polygon.pointsAsCircle(GeoPoint(loc.latitude, loc.longitude), 35000.0)
-            circle.fillPaint.color = Color.parseColor("#3000BCD4") // Meer uitgesproken vulling
-            circle.outlinePaint.color = Color.parseColor("#FF00BCD4") // Heldere ononderbroken rand
+            circle.fillPaint.color = Color.parseColor("#3000BCD4")
+            circle.outlinePaint.color = Color.parseColor("#FF00BCD4")
             circle.outlinePaint.strokeWidth = 3f
             binding.mapView.overlays.add(circle)
         }
 
-        // 2. Teken de markers (Originele stijl hersteld)
+        // 2. Markers
         siteList.forEach { loc ->
             val id = loc.telpostid
             val marker = Marker(binding.mapView)
             marker.position = GeoPoint(loc.latitude, loc.longitude)
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            marker.title = telpostNames[id] ?: id
-            marker.alpha = if (id == selectedTelpostId) 1.0f else 0.6f
+            marker.title = telpostNames[id] ?: "Telpost $id"
+            
+            if (id == selectedTelpostId) {
+                marker.alpha = 1.0f
+                marker.showInfoWindow()
+                // Probeer tint, maar negeer fouten (niet kritiek voor werking)
+                try { marker.icon?.setTint(ContextCompat.getColor(this, R.color.vt5_green)) } catch (_: Exception) {}
+            } else {
+                marker.alpha = 0.6f
+            }
+            
             binding.mapView.overlays.add(marker)
             overviewMarkers[id] = marker
         }
 
-        // Center op de hoofdtelpost of gemiddelde
         if (anchorSite != null && selectedTelpostId == null) {
             binding.mapView.controller.setCenter(GeoPoint(anchorSite.latitude, anchorSite.longitude))
         } else if (allLocaties.isNotEmpty() && selectedTelpostId == null) {
@@ -216,8 +207,6 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
     private fun showLocatieForSelected() {
         val id = selectedTelpostId ?: return
         val loc = allLocaties[id]
-        
-        // 1. Zoom en vlieg naar de locatie (als die er is)
         if (loc != null) {
             val point = GeoPoint(loc.latitude, loc.longitude)
             binding.mapView.controller.animateTo(point)
@@ -225,20 +214,8 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
             binding.tvCoords.text = String.format(Locale.getDefault(), "Locatie: %.6f, %.6f", loc.latitude, loc.longitude)
         } else {
             binding.tvCoords.text = "Locatie: -"
-            Toast.makeText(this, "Geen opgeslagen locatie. Tik op de kaart!", Toast.LENGTH_SHORT).show()
         }
-
-        // 2. Highlight de bijbehorende marker
-        overviewMarkers.forEach { (mid, marker) ->
-            if (mid == id) {
-                marker.alpha = 1.0f
-                marker.showInfoWindow()
-            } else {
-                marker.alpha = 0.6f
-                marker.closeInfoWindow()
-            }
-        }
-        binding.mapView.invalidate()
+        drawAllMarkers() // Refresh alle markers en de geselecteerde
     }
 
     private fun updateMarkerAtPoint(p: GeoPoint) {
@@ -247,13 +224,14 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         if (marker == null) {
             marker = Marker(binding.mapView)
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            marker.title = telpostNames[id] ?: id
             binding.mapView.overlays.add(marker)
             overviewMarkers[id] = marker
         }
         marker.position = p
+        marker.title = telpostNames[id] ?: "Telpost $id"
         marker.alpha = 1.0f
         marker.showInfoWindow()
+        try { marker.icon?.setTint(ContextCompat.getColor(this, R.color.vt5_green)) } catch (_: Exception) {}
         binding.mapView.invalidate()
         binding.tvCoords.text = String.format(Locale.getDefault(), "Locatie: %.6f, %.6f", p.latitude, p.longitude)
     }
@@ -263,15 +241,15 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         val marker = overviewMarkers[id] ?: return
         val p = marker.position
         
-        val newLoc = TelpostLocatie(id, p.latitude, p.longitude)
-        allLocaties[id] = newLoc
+        allLocaties[id] = TelpostLocatie(id, p.latitude, p.longitude)
         
         lifecycleScope.launch(Dispatchers.IO) {
             val root = TelpostLocatiesRoot(allLocaties.values.toList().sortedBy { it.telpostid })
             val jsonStr = Json { prettyPrint = true; encodeDefaults = true }.encodeToString(root)
             val ok = saf.writeServerDataFile("telpost_locaties.json", jsonStr)
             withContext(Dispatchers.Main) {
-                if (ok) Toast.makeText(this@TelpostBeheerActiviteit, "Locatie opgeslagen", Toast.LENGTH_SHORT).show()
+                if (ok) Toast.makeText(this@TelpostBeheerActiviteit, "Opgeslagen: ${telpostNames[id]}", Toast.LENGTH_SHORT).show()
+                else Toast.makeText(this@TelpostBeheerActiviteit, "Opslaan mislukt!", Toast.LENGTH_SHORT).show()
             }
         }
     }

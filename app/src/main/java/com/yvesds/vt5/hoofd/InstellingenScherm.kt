@@ -31,6 +31,9 @@ import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.UiColorPrefs
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * InstellingenScherm - Scherm voor app-instellingen met volledige tablet-synchronisatie.
@@ -158,6 +161,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupAiSettings()
             setupKrentenFilterSettings()
             setupChartSettings()
+            setupDatabaseMirroringButton()
         } catch (t: Throwable) {
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
             Toast.makeText(this, "Fout in instellingen: ${t.message}", Toast.LENGTH_LONG).show()
@@ -541,5 +545,67 @@ class InstellingenScherm : AppCompatActivity() {
             .setPositiveButton(R.string.perm_disable_confirm) { _, _ -> onResult(true) }
             .setNegativeButton(R.string.perm_disable_cancel) { _, _ -> onResult(false) }.setCancelable(false).create()
         DialogStyler.apply(d); d.show()
+    }
+
+    private fun setupDatabaseMirroringButton() {
+        findViewById<MaterialButton>(R.id.btnMirrorDb)?.setOnClickListener {
+            mirrorDatabaseToSaf()
+        }
+    }
+
+    private fun mirrorDatabaseToSaf() {
+        val saf = SaFStorageHelper(this)
+        val rootUri = saf.getRootUri()
+        if (rootUri == null) {
+            Toast.makeText(this, "Selecteer eerst een SAF map in de installatie", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Bepaal bronlocatie (gelijk aan VoiceTallyDatabase.getDatabaseFile)
+                val externalRoot = getExternalFilesDir(null) ?: filesDir
+                val vt5RootLocal = File(externalRoot, "VT5")
+                val dbDirLocal = File(vt5RootLocal, "database")
+                val dbName = "voicetally.db"
+                
+                val filesToCopy = listOf(dbName, "$dbName-shm", "$dbName-wal")
+
+                // 2. Zoek/maak doelmap in SAF
+                val vt5DirSaf = saf.getVt5DirIfExists() ?: run {
+                    withContext(Dispatchers.Main) { Toast.makeText(this@InstellingenScherm, "VT5 map niet gevonden in SAF", Toast.LENGTH_SHORT).show() }
+                    return@launch
+                }
+                
+                val targetDirSaf = saf.findOrCreateDirectory(vt5DirSaf, "database") ?: run {
+                    withContext(Dispatchers.Main) { Toast.makeText(this@InstellingenScherm, "Kon database map niet maken in SAF", Toast.LENGTH_SHORT).show() }
+                    return@launch
+                }
+
+                var count = 0
+                for (fileName in filesToCopy) {
+                    val srcFile = File(dbDirLocal, fileName)
+                    if (srcFile.exists()) {
+                        val mimeType = "application/octet-stream"
+                        val targetFile = targetDirSaf.findFile(fileName) ?: targetDirSaf.createFile(mimeType, fileName)
+                        
+                        if (targetFile != null) {
+                            contentResolver.openOutputStream(targetFile.uri, "wt")?.use { out ->
+                                srcFile.inputStream().use { it.copyTo(out) }
+                            }
+                            count++
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@InstellingenScherm, "$count database bestanden gespiegeld naar SAF (VT5/database)", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@InstellingenScherm, "Fout bij spiegelen: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 }

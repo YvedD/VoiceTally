@@ -43,12 +43,12 @@ object AiConfig {
     const val BOI_THRESHOLD_OBSERVATIONS = 50 // Minder dan 50 waarnemingen in 23 jaar = BoI
     const val BOI_FLOATING_WINDOW_DAYS = 9
     const val NORMAL_FLOATING_WINDOW_DAYS = 7
-    const val WIND_TOLERANCE_DEGREES = 5.25
+    const val WIND_TOLERANCE_DEGREES = 11.25
 
     // BSI 4.1: Kust-status & Drempels
     const val IS_COASTAL_SITE = true // TODO: Dynamisch maken op basis van siteId
-    const val MIN_BSI_QUALITY_THRESHOLD = 35 // Soorten onder de 35% worden gefilterd
-    const val EFFICIENCY_BOOST_PELAGIC_BFT = 5 // Vanaf 5bft boost voor zeevogels
+    const val MIN_BSI_QUALITY_THRESHOLD = 30 // Verlaagd van 35. Soorten onder de 30% worden gefilterd
+    const val EFFICIENCY_BOOST_PELAGIC_BFT = 4 // Vanaf 4bft (WNW) al lichte boost voor zeevogels, sterker bij 5+
 
     // Neural model integration
     const val USE_NEURAL_INFERENCE = true
