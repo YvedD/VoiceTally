@@ -44,6 +44,8 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
     private val allLocaties = mutableMapOf<String, TelpostLocatie>()
     private val overviewMarkers = mutableMapOf<String, Marker>()
     private var telpostNames = mapOf<String, String>()
+    // Reuse Json format to avoid repeated allocation (warnings and performance)
+    private val jsonFormat = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -86,7 +88,7 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         allLocaties.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             val emptyRoot = TelpostLocatiesRoot(emptyList())
-            val jsonStr = Json { prettyPrint = true }.encodeToString(emptyRoot)
+            val jsonStr = jsonFormat.encodeToString(emptyRoot)
             val ok = saf.writeServerDataFile("telpost_locaties.json", jsonStr)
             withContext(Dispatchers.Main) {
                 if (ok) {
@@ -144,7 +146,7 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
             allLocaties.clear()
             if (!json.isNullOrBlank()) {
                 try {
-                    val root = Json { ignoreUnknownKeys = true }.decodeFromString<TelpostLocatiesRoot>(json)
+                    val root = jsonFormat.decodeFromString<TelpostLocatiesRoot>(json)
                     root.locaties.forEach { allLocaties[it.telpostid] = it }
                 } catch (e: Exception) {
                     Log.e("TelpostBeheer", "JSON load failed: ${e.message}")
@@ -245,7 +247,7 @@ class TelpostBeheerActiviteit : AppCompatActivity() {
         
         lifecycleScope.launch(Dispatchers.IO) {
             val root = TelpostLocatiesRoot(allLocaties.values.toList().sortedBy { it.telpostid })
-            val jsonStr = Json { prettyPrint = true; encodeDefaults = true }.encodeToString(root)
+            val jsonStr = jsonFormat.encodeToString(root)
             val ok = saf.writeServerDataFile("telpost_locaties.json", jsonStr)
             withContext(Dispatchers.Main) {
                 if (ok) Toast.makeText(this@TelpostBeheerActiviteit, "Opgeslagen: ${telpostNames[id]}", Toast.LENGTH_SHORT).show()

@@ -137,18 +137,63 @@ class AiForecastScherm : AppCompatActivity() {
                     if (speciesGrid != null) {
                         speciesGrid.columnCount = if (isTablet) 2 else 1
 
-                        // Combineer en sorteer op de hoogste van beide kansen, filter > 5% in minstens één model en neem Top-12
-                        val combined = allIds.map { id ->
+                        // Combineer en sorteer op de hoogste van beide kansen.
+                        // Prioriteiten en limieten zijn centraal configureerbaar via AiConfig:
+                        // - Top BOI (krenten) eerst (AiConfig.BOI_TOP_N)
+                        // - Maximaal AiConfig.MAX_SPECIES_PER_DAY per dag
+                        val maxPerDay = AiConfig.MAX_SPECIES_PER_DAY
+
+                        val candidates = allIds.map { id ->
                             val b = baselineMap[id]
                             val w = withMap[id]
                             val maxProb = max(b?.kans ?: 0, w?.kans ?: 0)
                             Triple(id, maxProb, Pair(b, w))
-                        }
-                            .filter { it.second > 5 }
-                            .sortedByDescending { it.second }
-                            .take(12)
+                        }.filter { it.second > 0 }
 
-                        for ((id, _, pair) in combined) {
+                        // BOI (krenten) ids from both models
+                        val boiIds = (aiBaseline.rareHighlights.map { it.soortid } + aiWithNeural.rareHighlights.map { it.soortid }).distinct()
+
+                        // Map for quick lookup
+                        val candidateById = candidates.associateBy { it.first }
+
+                        // Build BOI triples (fall back to rareHighlights values if absent in candidateById)
+                        val boiTriples = boiIds.mapNotNull { id ->
+                            candidateById[id] ?: run {
+                                // try to recover probability from the rareHighlights lists
+                                val r = aiBaseline.rareHighlights.find { it.soortid == id } ?: aiWithNeural.rareHighlights.find { it.soortid == id }
+                                if (r != null) Triple(id, r.kans, Pair(null, null)) else null
+                            }
+                        }.sortedByDescending { it.second }
+
+                        // Determine whether passerines should be included (only if at least one passerine is >= threshold)
+                        val passersAllowed = candidates.any { triple ->
+                            val guildName = triple.third.first?.guildName ?: triple.third.second?.guildName ?: ""
+                            guildName.contains("Zang") && triple.second >= AiConfig.PASSERINES_MIN_PERCENT_TO_INCLUDE
+                        }
+
+                        val finalList = mutableListOf<Triple<String, Int, Pair<VogelSuggestie?, VogelSuggestie?>>>()
+
+                        // Add BOIs first (always included)
+                        for (t in boiTriples) {
+                            if (finalList.size >= maxPerDay) break
+                            finalList.add(t)
+                        }
+
+                        // Add remaining candidates sorted by probability, skipping duplicates and optionally passerines
+                        val remaining = candidates.sortedByDescending { it.second }
+                        for (t in remaining) {
+                            if (finalList.size >= maxPerDay) break
+                            if (boiIds.contains(t.first)) continue // already added
+
+                            val guildName = t.third.first?.guildName ?: t.third.second?.guildName ?: ""
+                            val isPasserine = guildName.contains("Zang")
+                            if (isPasserine && !passersAllowed) continue
+
+                            finalList.add(t)
+                        }
+
+                        // Render final list
+                        for ((id, _, pair) in finalList) {
                             val b = pair.first
                             val w = pair.second
                             val specView = createComparativeSpeciesCard(b, w, snapshotCal, clusterIds)

@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+import android.os.Build
 import kotlin.math.*
 
 /**
@@ -37,7 +38,12 @@ class AiPrognoseActiviteit : AppCompatActivity() {
         database = VoiceTallyDatabase.getDatabase(this)
         container = findViewById(R.id.prognoseContainer)
 
-        val data = intent.getParcelableExtra<AiSuggestieData>("prognose_data")
+        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("prognose_data", AiSuggestieData::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<AiSuggestieData>("prognose_data")
+        }
         if (data == null) {
             finish(); return
         }
@@ -69,20 +75,44 @@ class AiPrognoseActiviteit : AppCompatActivity() {
                 } catch(_: Exception) { emptyList() }
             }
 
-            // 2. VOEG HIGHLIGHTS TOE (Serieel)
+            // 2. VOEG HIGHLIGHTS TOE (Serieel) + bouw gecombineerde lijst voor live weergave
+            val boiIds = data.rareHighlights.map { it.soortid }.distinct()
+
+            // Determine whether passerines should be included (only if at least one passerine is >= threshold)
+            val passersAllowed = data.guildResults.any { it.guildName.contains("Zang") && it.kans >= AiConfig.PASSERINES_MIN_PERCENT_TO_INCLUDE }
+
+            // Build candidate map from guildResults
+            val candidateMap = data.guildResults.associateBy { it.soortid }
+
+            // Start final list with BOIs (always included, limited by AiConfig.BOI_TOP_N)
+            val finalList = mutableListOf<VogelSuggestie>()
+            for (bh in data.rareHighlights.sortedByDescending { it.kans }.take(AiConfig.BOI_TOP_N)) {
+                finalList.add(bh)
+            }
+
+            // Then add remaining guildResults sorted by kans, skipping duplicates and optionally passerines
+            for (it in data.guildResults.sortedByDescending { it.kans }) {
+                if (finalList.size >= AiConfig.MAX_SPECIES_PER_DAY) break
+                if (boiIds.contains(it.soortid)) continue
+                val isPasserine = it.guildName.contains("Zang")
+                if (isPasserine && !passersAllowed) continue
+                finalList.add(it)
+            }
+
+            // Render BOI section (if any)
             if (data.rareHighlights.isNotEmpty()) {
                 addSectionHeader("UITKIJKEN VOOR (KRENTEN):", getColor(R.color.vt5_orange))
-                data.rareHighlights.forEach { item ->
+                data.rareHighlights.sortedByDescending { it.kans }.take(AiConfig.BOI_TOP_N).forEach { item ->
                     val view = createSpeciesCard(item, isHighlight = true, clusterIds = clusterIds)
                     container.addView(view)
                 }
                 addDivider()
             }
 
-            // 3. VOEG ALGEMENE PROGNOSE TOE (Serieel)
-            if (data.guildResults.isNotEmpty()) {
+            // 3. VOEG ALGEMENE PROGNOSE TOE (Serieel) - gereduceerd / gefilterd volgens AiConfig
+            if (finalList.isNotEmpty()) {
                 addSectionHeader("ALGEMENE PROGNOSE:", Color.WHITE)
-                data.guildResults.forEach { item ->
+                finalList.forEach { item ->
                     val view = createSpeciesCard(item, isHighlight = false, clusterIds = clusterIds)
                     container.addView(view)
                 }

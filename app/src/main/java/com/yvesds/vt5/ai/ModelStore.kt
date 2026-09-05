@@ -174,6 +174,46 @@ class ModelStore(private val context: Context) {
         }
     }
 
+    /**
+     * Slaat / laadt de BSI response tensor (geprefereerd binair, fallback JSON).
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    fun saveBsiResponseTensor(tensor: BsiResponseTensor): Boolean {
+        ensureModelDir()
+        return try {
+            val bin = ProtoBuf.encodeToByteArray(tensor)
+            saveFileToModelDir("bsi_response_tensor.bin", bin)
+            val jsonStr = json.encodeToString(tensor)
+            saveFileToModelDir("bsi_response_tensor.json", jsonStr.toByteArray(Charsets.UTF_8))
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Kon BSI tensor niet opslaan: ${e.message}")
+            false
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    fun loadBsiResponseTensor(): BsiResponseTensor? {
+        val dir = getModelDir() ?: return null
+        val binFile = dir.findFile("bsi_response_tensor.bin")
+        val jsonFile = dir.findFile("bsi_response_tensor.json")
+
+        return try {
+            if (binFile != null) {
+                val bytes = context.contentResolver.openInputStream(binFile.uri)?.use { it.readBytes() }
+                if (bytes != null) return ProtoBuf.decodeFromByteArray<BsiResponseTensor>(bytes)
+            }
+            if (jsonFile != null) {
+                val jsonStr = context.contentResolver.openInputStream(jsonFile.uri)?.use { it.bufferedReader().readText() }
+                if (!jsonStr.isNullOrBlank()) return json.decodeFromString<BsiResponseTensor>(jsonStr)
+            }
+            null
+        } catch (e: Exception) {
+            Log.w(TAG, "Load BSI tensor failed: ${e.message}")
+            null
+        }
+    }
+
     fun saveFileToModelDir(name: String, bytes: ByteArray): Boolean {
         val ai = getModelDir() ?: return false
         val existing = ai.findFile(name)

@@ -307,8 +307,9 @@ object AiInferenceEngine {
         val rareHighlights = mutableListOf<VogelSuggestie>()
         val idealScore = 5.0 
 
+        // Take top-N per guild (configurable)
         SpeciesGuildMapper.Guild.entries.filter { it != SpeciesGuildMapper.Guild.OTHER }.forEach { guild ->
-            val winners = scoredList.filter { it.guild == guild }.sortedByDescending { it.score }.take(3)
+            val winners = scoredList.filter { it.guild == guild }.sortedByDescending { it.score }.take(AiConfig.GUILD_TOP_N)
             winners.forEach { w ->
                 val probRaw = (min(0.98, w.score / idealScore) * 100).toInt()
                 
@@ -327,8 +328,8 @@ object AiInferenceEngine {
                         latinName = latin,
                         expectedIndex = w.expectedIndex
                     )
-                    finalResults.add(suggestion)
-                    
+                                    finalResults.add(suggestion)
+
                     // EXTRA: KRENTEN HIGHLIGHTS ("Uitkijken voor")
                     val isKrentHighlight = (expertKB?.discoveredKrenten?.contains(w.soortid) == true || 
                                           expertKB?.pinnedSpecies?.contains(w.soortid) == true) &&
@@ -349,7 +350,7 @@ object AiInferenceEngine {
 
         return@withContext AiSuggestieData(
             guildResults = finalResults.sortedByDescending { it.kans },
-            rareHighlights = rareHighlights.sortedByDescending { it.kans }.take(3),
+            rareHighlights = rareHighlights.sortedByDescending { it.kans }.take(AiConfig.BOI_TOP_N),
             weerBeschrijving = "$currentWindLabel-wind / ${WeatherManager.msToBeaufort(cur.windSpeed10m)}bft"
         )
     }

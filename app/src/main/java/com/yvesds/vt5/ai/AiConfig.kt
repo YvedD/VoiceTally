@@ -62,4 +62,19 @@ object AiConfig {
         if (soortid == null) return 1
         return 1
     }
+
+    // Display & selection limits (centralized configuration)
+    // Top-N per guild to expose in suggestions and reports
+    const val GUILD_TOP_N = 5 // Top-5 per guild
+
+    // Birds-of-Interest (krenten) shown above all and limited to this many
+    const val BOI_TOP_N = 3 // Top-3 krenten
+
+    // Maximum species to show per day in the +3 day forecast UI
+    const val MAX_SPECIES_PER_DAY = 30
+    const val MAX_SPECIES_FOR_3DAY = MAX_SPECIES_PER_DAY * 3
+
+    // Passerine (zangvogels) inclusion guard: if no passerine has a probability
+    // >= this value, do not force/include passerines in the forecast lists
+    const val PASSERINES_MIN_PERCENT_TO_INCLUDE = 30
 }
