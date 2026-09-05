@@ -47,7 +47,7 @@ object AiConfig {
 
     // BSI 4.1: Kust-status & Drempels
     const val IS_COASTAL_SITE = true // TODO: Dynamisch maken op basis van siteId
-    const val MIN_BSI_QUALITY_THRESHOLD = 30 // Verlaagd van 35. Soorten onder de 30% worden gefilterd
+    const val MIN_BSI_QUALITY_THRESHOLD = 25 // Verlaagd van 35 naar. Soorten onder de 25% worden gefilterd
     const val EFFICIENCY_BOOST_PELAGIC_BFT = 4 // Vanaf 4bft (WNW) al lichte boost voor zeevogels, sterker bij 5+
 
     // Neural model integration

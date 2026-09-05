@@ -179,16 +179,24 @@ object AiInferenceEngine {
             // We gebruiken een kleine ondergrens (0.01) om totale uitsluiting te voorkomen tenzij veto
             val efficiencyRatio = (currentWindCount.toDouble() / bestWindCount.toDouble()).coerceIn(0.01, 1.0)
             
-            // F2: High-Precision Wind-DNA (BSI 4.0: 5.25 graden tolerantie)
+            // F2: Von Mises Circular Wind-DNA (BSI 4.2)
             val histWindDeg = parseWindLabelToDegrees(p.mainWind) ?: currentWindDeg
-            val diff = abs(currentWindDeg - histWindDeg)
-            val normalizedDiff = if (diff > 180) 360 - diff else diff
-            
-            // Scherpe kwadratische afstraffing buiten de 5.25 graden
-            val fWind = if (normalizedDiff <= AiConfig.WIND_TOLERANCE_DEGREES) {
-                1.8 // Volle bak match
+            val isOffShore = currentWindLabel in listOf("O","OZO","ZO","ZZO","Z")
+            val isOnShore = currentWindLabel in listOf("N","NNW","NW","WNW","W","WZW","NNO","ZW")
+            val bft = WeatherManager.msToBeaufort(cur.windSpeed10m)
+
+            // Bereken hoekverschil in radialen voor Von Mises
+            val radCurrent = Math.toRadians(currentWindDeg)
+            val radOptimal = Math.toRadians(histWindDeg)
+            val kappa = 1.5 // Spreiding van de wind-tolerantie (hoe lager, hoe breder)
+
+            val fWind = if (guild == SpeciesGuildMapper.Guild.PELAGICS && isOnShore && bft >= AiConfig.EFFICIENCY_BOOST_PELAGIC_BFT) {
+                // Pelagic bypass: bij aanlandige wind vanaf 4bft altijd max wind score
+                1.8
             } else {
-                max(0.1, 1.8 * exp(-(normalizedDiff * normalizedDiff) / 400.0))
+                // Von Mises distributie: vloeiende afbouw over de 360-graden kompasroos
+                // max score = 1.8 bij exacte match (cos(0) - 1 = 0 -> exp(0) = 1)
+                max(0.15, 1.8 * exp(kappa * (cos(radCurrent - radOptimal) - 1.0)))
             }
             
             // F3: Special / Remarkable / BoI Boost
@@ -200,36 +208,66 @@ object AiInferenceEngine {
             if (p.isRemarkable == 1) fSpecial = 4.5 // Verhoogd in 4.0
             else if (isKrent || isBoI) fSpecial = 3.0 // BoI krijgt meer gewicht
             
-            // F4: Tijd & Strategie - Nu met "Temporal Blueprinting" voor dag-totalen
+            // BSI 4.2: Tijd & Strategie via Gauss Curve (Bel-curve)
             var fTime = 1.0
-            val bft = WeatherManager.msToBeaufort(cur.windSpeed10m)
             
-            // BSI 4.0: Temporal Blueprinting (Gouden Mal)
             val hourlyProfile = expertKB?.hourlyProfiles?.get(p.soortid)
             val blueprintFactor = hourlyProfile?.getOrNull(currentHour) ?: -1f
             
-            val targetHour = p.avgHour ?: 10f
+            val targetHour = p.avgHour ?: 9f // Standaard 09:00u (ochtendpiek) voor veel soorten
             val hourDiff = abs(currentHour - targetHour)
+            
+            // Bepaal de 'Sigma' (spreiding) van de Gausscurve per strategie
+            val sigmaHour = when (strategy) {
+                SpeciesGuildMapper.FlightStrategy.THERMAL -> 3.0 // Smalle piek, voornamelijk op de heetste uren
+                SpeciesGuildMapper.FlightStrategy.ACTIVE -> 4.5  // Bredere spreiding doorheen de dag
+                SpeciesGuildMapper.FlightStrategy.VISMIG -> 2.0  // VISMIG (Zangvogels): Zeer scherpe piek in de ochtend, sterke drop in de middag!
+            }
             
             when (strategy) {
                 SpeciesGuildMapper.FlightStrategy.THERMAL -> {
                     if (currentHour < 9 || currentHour > 18 || phase == SolarTimeEngine.SolarPhase.NIGHT || bft >= 6) fTime = 0.0001
-                    else fTime = 0.5 + ((currentTemp - 10.0).coerceIn(0.1, 10.0) / 10.0)
+                    else {
+                        val gauss = exp(-(hourDiff * hourDiff) / (2 * sigmaHour * sigmaHour))
+                        fTime = gauss * (0.5 + ((currentTemp - 10.0).coerceIn(0.1, 10.0) / 10.0))
+                    }
                 }
                 SpeciesGuildMapper.FlightStrategy.ACTIVE -> {
                     if (phase == SolarTimeEngine.SolarPhase.NIGHT && guild != SpeciesGuildMapper.Guild.PELAGICS) fTime = 0.01 
                     else {
                         fTime = if (blueprintFactor >= 0) blueprintFactor.toDouble() * 2.0
-                                else exp(-(hourDiff * hourDiff) / 40.0)
+                                else exp(-(hourDiff * hourDiff) / (2 * sigmaHour * sigmaHour))
                     }
                 }
                 SpeciesGuildMapper.FlightStrategy.VISMIG -> {
                     if (phase == SolarTimeEngine.SolarPhase.NIGHT) fTime = 0.0001
                     else {
-                        fTime = if (blueprintFactor >= 0) blueprintFactor.toDouble() * 2.5
-                                else exp(-(hourDiff * hourDiff) / 25.0)
+                        // Voor VISMIG: Als we na 11:30u zitten (middag/avond), drukken we de score extra hard naar beneden (tenzij de soort specifieke middag-blueprint heeft)
+                        val baselineGauss = exp(-(hourDiff * hourDiff) / (2 * sigmaHour * sigmaHour))
+                        fTime = if (blueprintFactor >= 0) {
+                             blueprintFactor.toDouble() * 2.5
+                        } else {
+                             if (currentHour >= 12) baselineGauss * 0.1 else baselineGauss // Enorme penalty na 12u!
+                        }
                     }
                 }
+            }
+            
+            // F4.1: Datum/Fenologie Gauss (BSI 4.2)
+            // We bepalen hoe dicht de huidige dag ligt bij de historische piekdagen (peakDay1 = voorjaar, peakDay2 = najaar)
+            val giga = clusterIndices[p.soortid]
+            if (giga != null && (giga.peakDay1 > 0 || giga.peakDay2 > 0)) {
+                // Bereken de kortste afstand in dagen tot een piekdag (rekening houdend met 365-dagen cyclisch)
+                val dist1 = if (giga.peakDay1 > 0) min(abs(dayOfYear - giga.peakDay1), 365 - abs(dayOfYear - giga.peakDay1)) else 365
+                val dist2 = if (giga.peakDay2 > 0) min(abs(dayOfYear - giga.peakDay2), 365 - abs(dayOfYear - giga.peakDay2)) else 365
+                val bestDist = min(dist1, dist2)
+                
+                // Gauss curve voor seizoens-fenologie met sigma = 12 dagen
+                val sigmaDays = 12.0
+                val phenologyFactor = exp(-(bestDist * bestDist) / (2 * sigmaDays * sigmaDays))
+                
+                // We vermenigvuldigen de factor zachtjes (minimaal 0.3) om soorten buiten de piek niet totaal weg te vegen
+                fTime *= max(0.3, phenologyFactor)
             }
 
             // BSI 4.0: 72-uurs Corridor Correlation voor BoI's
@@ -242,16 +280,15 @@ object AiInferenceEngine {
 
             // F5: Local Wind Gatekeeper (The Veto)
             var fGatekeeper = 1.0
-            val isOffShore = currentWindLabel in listOf("O","OZO","ZO","ZZO","Z")
-            val isOnShore = currentWindLabel in listOf("NW","WNW","W","ZW","NNW")
             
             if (guild == SpeciesGuildMapper.Guild.PELAGICS) {
                 if (isOffShore) fGatekeeper = 0.001 
                 else if (isOnShore) {
                     // BSI 4.1: Exponentiële boost bij harde aanlandige wind
                     fGatekeeper = if (bft >= AiConfig.EFFICIENCY_BOOST_PELAGIC_BFT) {
-                        2.0 * (1.0 + (bft - 4) * 0.5)
-                    } else 2.0
+                        // Vanaf 4bft een basis boost, extra krachtig bij 5+
+                        2.0 * (1.0 + (bft - 3) * 0.5) 
+                    } else 1.5 // Bij 1-3 bft aanlandig toch een kleine verhoging
                 }
             } else if (guild in listOf(SpeciesGuildMapper.Guild.RAPTORS_ACTIVE, SpeciesGuildMapper.Guild.RAPTORS_THERMAL, SpeciesGuildMapper.Guild.PASSERINES, SpeciesGuildMapper.Guild.HERONS)) {
                 // BSI 4.1: Coastal Landvogel Veto
@@ -464,7 +501,8 @@ object AiInferenceEngine {
         val w = WeatherManager.degTo16WindLabel(cur.windDirection10m)
         val p = cur.pressureMsl ?: 1013.0
         return if (isAutumn) {
-            if (w in listOf("N","NNO","NO","ONO","O") && p > 1014.0) 1.0 else 0.0
+            // Najaarstrek: Ook ZO en ZZO zijn uitstekende winden (rug/flank)
+            if (w in listOf("N","NNO","NO","ONO","O","OZO","ZO","ZZO","Z") && p > 1014.0) 1.0 else 0.0
         } else {
             if (w in listOf("Z","ZZW","ZW","WZW") && p > 1010.0) 1.0 else 0.0
         }

@@ -89,7 +89,8 @@ class AiForecastScherm : AppCompatActivity() {
                 container.removeAllViews()
 
                 val sdf = SimpleDateFormat("EEEE d MMMM", Locale("nl", "BE"))
-                val dailySnapshots = hourlyData.filter { it.time.endsWith("T10:00") }
+                // BSI 4.2: Groepeer weersverwachting per dag
+                val groupedByDay = hourlyData.groupBy { it.time.split("T")[0] }.toSortedMap()
 
                 // 2. CORRIDOR VOORSPELLING OPHALEN
                 val calNow = Calendar.getInstance()
@@ -97,8 +98,16 @@ class AiForecastScherm : AppCompatActivity() {
                 val points = if (isAutumn) AiConfig.REFERENCE_POINTS.take(6) else AiConfig.REFERENCE_POINTS.takeLast(6)
                 val corridorForecast = withContext(Dispatchers.IO) { WeatherManager.fetchCorridorForecast(points) }
 
-                for (snapshot in dailySnapshots) {
+                for ((dateStr, dayHours) in groupedByDay) {
+                    // Haal de specifieke tijdsblokken op (Ochtend, Middag, Avond)
+                    val targetTimes = listOf("07:00" to "Vroege Ochtend", "13:00" to "Middag (Thermiek)", "18:00" to "Avondspurt")
+                    val blocks = targetTimes.mapNotNull { (time, label) -> 
+                        dayHours.find { it.time.endsWith("T$time") }?.let { Pair(it, label) }
+                    }
+                    if (blocks.isEmpty()) continue
+
                     val dayView = LayoutInflater.from(this@AiForecastScherm).inflate(R.layout.item_ai_forecast_day, container, false)
+                    val blocksContainer = dayView.findViewById<LinearLayout>(R.id.dayBlocksContainer)
                     
                     // TABLET OPTIMALISATIE: Breedte verdelen in het raster
                     if (container is android.widget.GridLayout) {
@@ -109,44 +118,70 @@ class AiForecastScherm : AppCompatActivity() {
                         dayView.layoutParams = gridParams
                     }
                     
-                    val dateParts = snapshot.time.split("T")[0].split("-")
+                    val dateParts = dateStr.split("-")
                     val snapshotCal = Calendar.getInstance().apply {
                         set(dateParts[0].toInt(), dateParts[1].toInt() - 1, dateParts[2].toInt())
                     }
                     
                     dayView.findViewById<TextView>(R.id.tvDayTitle).text = sdf.format(snapshotCal.time).replaceFirstChar { it.uppercase() }
-                    val bft = WeatherManager.msToBeaufort(snapshot.windSpeed)
-                    val windLabel = WeatherManager.degTo16WindLabel(snapshot.windDeg)
-                    val temp = snapshot.temp?.roundToInt() ?: "?"
-                    dayView.findViewById<TextView>(R.id.tvWeatherSummary).text = "Verwachting 10:00u | Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
                     
-                    // Bepaal corridor boost voor deze specifieke toekomstige dag
-                    val regBoost = calculateCorridorBoostAtTime(snapshot.time, corridorForecast, isAutumn)
-
-                    // Voer AI Inference uit voor deze dag (Twee modi: Baseline zonder Neural, En met Neural)
-                    val pseudoCurrent = Current(temperature2m = snapshot.temp, windSpeed10m = snapshot.windSpeed, windDirection10m = snapshot.windDeg)
-                    val aiBaseline = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, 10, providedRegBoost = regBoost, useNeural = false)
-                    val aiWithNeural = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, 10, providedRegBoost = regBoost, useNeural = true)
-
-                    val baselineMap = aiBaseline.guildResults.associateBy { it.soortid }
-                    val withMap = aiWithNeural.guildResults.associateBy { it.soortid }
-                    val allIds = (baselineMap.keys + withMap.keys).toList()
-
-                    val speciesGrid = dayView.findViewById<GridLayout>(R.id.speciesGrid)
                     val isTablet = resources.configuration.smallestScreenWidthDp >= 600
-                    if (speciesGrid != null) {
-                        speciesGrid.columnCount = if (isTablet) 2 else 1
 
-                        // Combineer en sorteer op de hoogste van beide kansen, filter > 5% in minstens één model en neem Top-12
+                    for ((snapshot, label) in blocks) {
+                        val bft = WeatherManager.msToBeaufort(snapshot.windSpeed)
+                        val windLabel = WeatherManager.degTo16WindLabel(snapshot.windDeg)
+                        val temp = snapshot.temp?.roundToInt() ?: "?"
+                        
+                        // Header voor dit tijdsblok
+                        val blockHeader = TextView(this@AiForecastScherm).apply {
+                            text = "$label | ${snapshot.time.split("T")[1]} | Wind: $windLabel ${bft}bft | Temp: ${temp}°C"
+                            textSize = 14f
+                            alpha = 0.8f
+                            setTextColor(getColor(R.color.vt5_on_surface))
+                            setPadding(0, 24, 0, 8)
+                            setTypeface(null, Typeface.BOLD)
+                        }
+                        blocksContainer.addView(blockHeader)
+                        
+                        // Scheidingslijn
+                        val divider = View(this@AiForecastScherm).apply {
+                            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
+                                setMargins(0, 0, 0, 16)
+                            }
+                            setBackgroundColor(getColor(R.color.vt5_on_surface))
+                            alpha = 0.2f
+                        }
+                        blocksContainer.addView(divider)
+                        
+                        // Grid voor de soorten
+                        val speciesGrid = GridLayout(this@AiForecastScherm).apply {
+                            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                            alignmentMode = GridLayout.ALIGN_MARGINS
+                            columnCount = if (isTablet) 2 else 1
+                        }
+                        blocksContainer.addView(speciesGrid)
+
+                        // AI Inferentie per tijdsblok
+                        val hourInt = snapshot.time.split("T")[1].substringBefore(":").toInt()
+                        val regBoost = calculateCorridorBoostAtTime(snapshot.time, corridorForecast, isAutumn)
+
+                        val pseudoCurrent = Current(temperature2m = snapshot.temp, windSpeed10m = snapshot.windSpeed, windDirection10m = snapshot.windDeg)
+                        val aiBaseline = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, hourInt, providedRegBoost = regBoost, useNeural = false)
+                        val aiWithNeural = AiInferenceEngine.getSuggesties(this@AiForecastScherm, pseudoCurrent, hourInt, providedRegBoost = regBoost, useNeural = true)
+
+                        val baselineMap = aiBaseline.guildResults.associateBy { it.soortid }
+                        val withMap = aiWithNeural.guildResults.associateBy { it.soortid }
+                        val allIds = (baselineMap.keys + withMap.keys).toList()
+
                         val combined = allIds.map { id ->
                             val b = baselineMap[id]
                             val w = withMap[id]
                             val maxProb = max(b?.kans ?: 0, w?.kans ?: 0)
                             Triple(id, maxProb, Pair(b, w))
                         }
-                            .filter { it.second > 5 }
+                            .filter { it.second > 10 } // BSI 4.2: Drempel iets verhoogd om clutter per blok te vermijden
                             .sortedByDescending { it.second }
-                            .take(12)
+                            .take(8) // BSI 4.2: Top 8 per tijdsblok ipv 12 globaal
 
                         for ((id, _, pair) in combined) {
                             val b = pair.first
