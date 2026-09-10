@@ -101,6 +101,18 @@ class TellingAnnotationHandler(
                 putExtra(AnnotatieScherm.EXTRA_RECORD_AANTAL, matchingRecord.aantal)
                 putExtra(AnnotatieScherm.EXTRA_RECORD_AANTALTERUG, matchingRecord.aantalterug)
                 putExtra(AnnotatieScherm.EXTRA_LOKAAL, matchingRecord.lokaal)
+                
+                // Existing annotations
+                putExtra("extra_leeftijd", matchingRecord.leeftijd)
+                putExtra("extra_geslacht", matchingRecord.geslacht)
+                putExtra("extra_kleed", matchingRecord.kleed)
+                putExtra("extra_location", matchingRecord.location)
+                putExtra("extra_height", matchingRecord.height)
+                putExtra("extra_markeren", matchingRecord.markeren)
+                putExtra("extra_markerenlokaal", matchingRecord.markerenlokaal)
+                putExtra("extra_teltype", matchingRecord.teltype)
+                putExtra("extra_sightingdirection", matchingRecord.sightingdirection)
+                putExtra("extra_opmerkingen", matchingRecord.opmerkingen)
             } else {
                 // Fallback: parse count from text (e.g., "Buizerd 5" -> 5)
                 val countFromText = parseCountFromText(text)

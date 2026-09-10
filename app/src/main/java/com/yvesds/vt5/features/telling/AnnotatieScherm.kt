@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
@@ -184,6 +186,9 @@ class AnnotatieScherm : AppCompatActivity() {
 
                 // Prefill count fields with existing record values if provided
                 prefillCountFields()
+                
+                // Prefill UI with existing annotations (checkboxes, toggles, compass, tags)
+                prefillExistingAnnotations()
             } finally {
                 progress.dismiss()
             }
@@ -202,6 +207,42 @@ class AnnotatieScherm : AppCompatActivity() {
                 removeTagFromRemarks("Handteller")
             }
         }
+
+        // Wire Schatting checkbox to add/remove [Schatting] tag in remarks
+        findViewById<CheckBox>(R.id.cb_schatting)?.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                addTagToRemarks("Schatting")
+            } else {
+                removeTagFromRemarks("Schatting")
+            }
+        }
+
+        // Wire Leeftijd onbepaald checkbox to add/remove [Leeftijd niet te bepalen] tag in remarks
+        findViewById<CheckBox>(R.id.cb_leeftijd_onbepaald)?.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                addTagToRemarks("Leeftijd niet te bepalen")
+            } else {
+                removeTagFromRemarks("Leeftijd niet te bepalen")
+            }
+        }
+
+        // Wire Adult count
+        findViewById<EditText>(R.id.et_adult_count)?.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                updateCountTagInRemarks("Ad", s?.toString()?.trim() ?: "")
+            }
+        })
+
+        // Wire Niet-adult count
+        findViewById<EditText>(R.id.et_non_adult_count)?.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                updateCountTagInRemarks("ñ-Ad", s?.toString()?.trim() ?: "")
+            }
+        })
 
         // Wire action buttons
         findViewById<Button>(R.id.btn_cancel).setOnClickListener {
@@ -439,6 +480,40 @@ class AnnotatieScherm : AppCompatActivity() {
         etOpmerkingen.setText(newText)
     }
 
+    /**
+     * Update a dynamic count tag like [Ad 3ex] or [ñ-Ad 10ex]
+     */
+    private fun updateCountTagInRemarks(prefix: String, countStr: String) {
+        var current = etOpmerkingen.text.toString()
+        val escapedPrefix = Regex.escape(prefix)
+        val regex = Regex("\\[$escapedPrefix \\d+ex]")
+
+        if (countStr.isBlank()) {
+            current = current.replace(regex, "")
+        } else {
+            val newTag = "[$prefix ${countStr}ex]"
+            if (current.contains(regex)) {
+                current = current.replace(regex, newTag)
+            } else {
+                current = if (current.isBlank()) newTag else "$current$newTag"
+            }
+        }
+        
+        // Save the selection if the remarks field currently has focus
+        val hasFocus = etOpmerkingen.hasFocus()
+        val selectionStart = etOpmerkingen.selectionStart
+        val selectionEnd = etOpmerkingen.selectionEnd
+        
+        etOpmerkingen.setText(current)
+        
+        if (hasFocus) {
+            etOpmerkingen.setSelection(
+                selectionStart.coerceAtMost(current.length),
+                selectionEnd.coerceAtMost(current.length)
+            )
+        }
+    }
+
     private fun setToggleColor(btn: AppCompatToggleButton?) {
         if (btn == null) return
         // Ensure the button uses the selector background (preserve the blue border)
@@ -477,6 +552,65 @@ class AnnotatieScherm : AppCompatActivity() {
         // Prefill lokaal count field (this is direction-independent)
         lokaal?.takeIf { it.isNotBlank() && it != "0" }?.let { value ->
             findViewById<EditText>(R.id.et_aantal_lokaal)?.setText(value)
+        }
+    }
+
+    /**
+     * Prefill UI with existing annotations from the record.
+     */
+    private fun prefillExistingAnnotations() {
+        val opmerkingen = intent.getStringExtra("extra_opmerkingen") ?: ""
+        etOpmerkingen.setText(opmerkingen)
+
+        // Groups
+        prefillGroup("leeftijd", intent.getStringExtra("extra_leeftijd"))
+        prefillGroup("geslacht", intent.getStringExtra("extra_geslacht"))
+        prefillGroup("kleed", intent.getStringExtra("extra_kleed"))
+        prefillGroup("location", intent.getStringExtra("extra_location"))
+        prefillGroup("height", intent.getStringExtra("extra_height"))
+
+        // Checkboxes
+        findViewById<CheckBox>(R.id.cb_markeren)?.isChecked = intent.getStringExtra("extra_markeren") == "1"
+        findViewById<CheckBox>(R.id.cb_markeren_lokaal)?.isChecked = intent.getStringExtra("extra_markerenlokaal") == "1"
+        findViewById<CheckBox>(R.id.cb_tally)?.isChecked = intent.getStringExtra("extra_teltype") == "C"
+
+        // Compass / Sighting Direction
+        val direction = intent.getStringExtra("extra_sightingdirection")
+        if (!direction.isNullOrBlank()) {
+            selectedSightingDirection = direction
+            updateSightingDirectionDisplay()
+        }
+
+        // Parse custom tags from opmerkingen to populate checkboxes and counters
+        if (opmerkingen.contains("[Schatting]")) {
+            findViewById<CheckBox>(R.id.cb_schatting)?.isChecked = true
+        }
+        if (opmerkingen.contains("[Leeftijd niet te bepalen]")) {
+            findViewById<CheckBox>(R.id.cb_leeftijd_onbepaald)?.isChecked = true
+        }
+
+        val adMatch = Regex("\\[Ad (\\d+)ex]").find(opmerkingen)
+        if (adMatch != null) {
+            findViewById<EditText>(R.id.et_adult_count)?.setText(adMatch.groupValues[1])
+        }
+
+        val nadMatch = Regex("\\[ñ-Ad (\\d+)ex]").find(opmerkingen)
+        if (nadMatch != null) {
+            findViewById<EditText>(R.id.et_non_adult_count)?.setText(nadMatch.groupValues[1])
+        }
+    }
+
+    private fun prefillGroup(group: String, savedValue: String?) {
+        if (savedValue.isNullOrBlank()) return
+        val btns = groupButtons[group] ?: return
+        for (btn in btns) {
+            val opt = btn.tag as? AnnotationOption
+            if (opt != null && opt.waarde == savedValue) {
+                btn.isChecked = true
+                setToggleColor(btn)
+                // We do not call addTagToRemarks here because if it was a location/height,
+                // the tag is already present in the opmerkingen text loaded from the DB.
+            }
         }
     }
 
