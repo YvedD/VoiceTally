@@ -27,7 +27,6 @@ class TellingAnnotationHandler(
     companion object {
         private const val TAG = "TellingAnnotationHandler"
         private const val PREF_TELLING_ID = "pref_telling_id"
-        private const val EXTRA_RECORD_LOCAL_ID = "extra_record_local_id"
         
         // Direction constants based on seasonal patterns
         private const val RICHTING_ZW = "w"  // West/Southwest (seasonal direction)
@@ -49,6 +48,10 @@ class TellingAnnotationHandler(
     // Activity result launcher
     private lateinit var annotationLauncher: ActivityResultLauncher<Intent>
 
+    // Queue for auto-annotations
+    private val autoAnnotationQueue = mutableListOf<Pair<String, String>>() // Pair of <recordLocalId, displayText>
+    private var isAnnotatieSchermOpen = false
+
     /**
      * Register the activity result launcher.
      * Must be called during Activity onCreate before super.onCreate().
@@ -57,7 +60,42 @@ class TellingAnnotationHandler(
         annotationLauncher = activity.registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
+            isAnnotatieSchermOpen = false
             handleAnnotationResult(result.resultCode, result.data)
+            processNextAutoAnnotation()
+        }
+    }
+
+    /**
+     * Enqueues a record for auto-annotation if it matches the auto-annotate configuration.
+     */
+    fun enqueueAutoAnnotation(recordLocalId: String, displayText: String) {
+        autoAnnotationQueue.add(Pair(recordLocalId, displayText))
+        processNextAutoAnnotation()
+    }
+
+    private fun processNextAutoAnnotation() {
+        if (isAnnotatieSchermOpen) return
+        if (autoAnnotationQueue.isEmpty()) return
+        
+        val (nextId, queueText) = autoAnnotationQueue.removeAt(0)
+        
+        val finalsList = onGetFinalsList?.invoke() ?: emptyList()
+        val rowPos = finalsList.indexOfFirst { it.recordLocalId == nextId }
+        val row = if (rowPos >= 0) finalsList[rowPos] else null
+        
+        // Prefer the text passed from the queue over the row text (since the row might not exist yet)
+        val text = queueText.ifBlank { row?.tekst ?: "Auto-Annotatie" }
+        val ts = row?.ts ?: System.currentTimeMillis()
+        val pos = if (rowPos >= 0) rowPos else -1
+        
+        isAnnotatieSchermOpen = true
+        try {
+            launchAnnotatieSchermInternal(text, ts, pos, nextId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch AnnotatieScherm from queue", e)
+            isAnnotatieSchermOpen = false
+            processNextAutoAnnotation() // proceed with the next one
         }
     }
 
@@ -67,6 +105,17 @@ class TellingAnnotationHandler(
      * Falls back to parsing the count from the text if no record is found.
      */
     fun launchAnnotatieScherm(text: String, timestamp: Long, rowPosition: Int) {
+        if (isAnnotatieSchermOpen) return // Prevent overlapping screens
+        isAnnotatieSchermOpen = true
+        try {
+            launchAnnotatieSchermInternal(text, timestamp, rowPosition, null)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch AnnotatieScherm", e)
+            isAnnotatieSchermOpen = false
+        }
+    }
+
+    private fun launchAnnotatieSchermInternal(text: String, timestamp: Long, rowPosition: Int, explicitRecordLocalId: String?) {
         val intent = Intent(activity, AnnotatieScherm::class.java).apply {
             putExtra(AnnotatieScherm.EXTRA_TEXT, text)
             putExtra(AnnotatieScherm.EXTRA_TS, timestamp)
@@ -81,12 +130,12 @@ class TellingAnnotationHandler(
             // Find matching pending record to prefill count fields
             val pendingRecords = onGetPendingRecords?.invoke() ?: emptyList()
             val finalsList = onGetFinalsList?.invoke() ?: emptyList()
-            val rowRecordLocalId = finalsList.getOrNull(rowPosition)?.recordLocalId
+            val rowRecordLocalId = explicitRecordLocalId ?: finalsList.getOrNull(rowPosition)?.recordLocalId
             
             // Find matching record by position
             val finalRowTs = finalsList.getOrNull(rowPosition)?.ts
             val matchingRecord = if (!rowRecordLocalId.isNullOrBlank()) {
-                putExtra(EXTRA_RECORD_LOCAL_ID, rowRecordLocalId)
+                putExtra(AnnotatieScherm.EXTRA_RECORD_LOCAL_ID, rowRecordLocalId)
                 pendingRecords.firstOrNull { it.idLocal == rowRecordLocalId }
             } else if (finalRowTs != null) {
                 pendingRecords.firstOrNull { it.tijdstip == finalRowTs.toString() }
@@ -142,7 +191,7 @@ class TellingAnnotationHandler(
         val legacyText = data.getStringExtra(AnnotatieScherm.EXTRA_TEXT)
         val legacyTs = data.getLongExtra(AnnotatieScherm.EXTRA_TS, 0L)
         val rowPos = data.getIntExtra("extra_row_pos", -1)
-        val recordLocalId = data.getStringExtra(EXTRA_RECORD_LOCAL_ID)
+        val recordLocalId = data.getStringExtra(AnnotatieScherm.EXTRA_RECORD_LOCAL_ID)
 
         if (!annotationsJson.isNullOrBlank()) {
             try {

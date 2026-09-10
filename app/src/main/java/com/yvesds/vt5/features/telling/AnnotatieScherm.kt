@@ -63,6 +63,8 @@ class AnnotatieScherm : AppCompatActivity() {
         const val EXTRA_RECORD_AANTALTERUG = "extra_record_aantalterug" // record.aantalterug (opposite direction)
         const val EXTRA_LOKAAL = "extra_lokaal"
         
+        const val EXTRA_RECORD_LOCAL_ID = "extra_record_local_id"
+        
         // Key for telpostid to get site-specific direction labels
         const val EXTRA_TELPOSTID = "extra_telpostid"
 
@@ -162,6 +164,11 @@ class AnnotatieScherm : AppCompatActivity() {
 
         // DEBUG: Log incoming Intent extras
         val rowPosition = intent.getIntExtra("extra_row_pos", -1)
+        val recordLocalId = intent.getStringExtra(EXTRA_RECORD_LOCAL_ID)
+        val explicitTitleText = intent.getStringExtra(EXTRA_TEXT) ?: "Annotatie"
+
+        // Update Title if provided (useful for queue)
+        findViewById<TextView>(R.id.title)?.text = explicitTitleText
 
         // Show progress while loading cache and populating UI
         lifecycleScope.launch {
@@ -261,23 +268,26 @@ class AnnotatieScherm : AppCompatActivity() {
                     val storeKey = if (selectedOpt.veld.isNotBlank()) selectedOpt.veld else group
                     resultMap[storeKey] = selectedOpt.waarde
                     selectedLabels.add(selectedOpt.tekst)
-
-                    // DEBUG: Log each selected option
+                } else {
+                    // Expliciet leegmaken als niets geselecteerd is, zodat eerdere waarden overschreven worden
+                    resultMap[group] = ""
                 }
             }
-            // Checkboxes
-            findViewById<CheckBox>(R.id.cb_markeren)?.takeIf { it.isChecked }?.let {
-                resultMap["markeren"] = "1"
+            // Checkboxes (explicitly send "0" if unchecked so we can clear existing annotations)
+            resultMap["markeren"] = if (findViewById<CheckBox>(R.id.cb_markeren)?.isChecked == true) {
                 selectedLabels.add("Markeren")
-            }
-            findViewById<CheckBox>(R.id.cb_markeren_lokaal)?.takeIf { it.isChecked }?.let {
-                resultMap["markerenlokaal"] = "1"
+                "1"
+            } else "0"
+            
+            resultMap["markerenlokaal"] = if (findViewById<CheckBox>(R.id.cb_markeren_lokaal)?.isChecked == true) {
                 selectedLabels.add("Markeren Lokaal")
-            }
-            findViewById<CheckBox>(R.id.cb_tally)?.takeIf { it.isChecked }?.let {
-                resultMap["teltype_C"] = "C"
+                "1"
+            } else "0"
+            
+            resultMap["teltype_C"] = if (findViewById<CheckBox>(R.id.cb_tally)?.isChecked == true) {
                 selectedLabels.add("Handteller")
-            }
+                "C"
+            } else ""
 
             // Manual count inputs - direct mapping (labels are adjusted based on season and site)
             // et_aantal always maps to record.aantal (main direction)
@@ -340,6 +350,7 @@ class AnnotatieScherm : AppCompatActivity() {
                 putExtra(EXTRA_TS, tsSeconds)
                 // CRITICAL FIX: Preserve row position so handler can match the correct record
                 putExtra("extra_row_pos", rowPosition)
+                putExtra(EXTRA_RECORD_LOCAL_ID, recordLocalId)
             }
 
             setResult(RESULT_OK, out)

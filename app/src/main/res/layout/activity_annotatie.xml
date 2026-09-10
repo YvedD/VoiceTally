@@ -658,6 +658,31 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:orientation="horizontal"
+                    android:padding="2dp">
+
+                    <CheckBox
+                        android:id="@+id/cb_schatting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:padding="1dp"
+                        android:text="Schatting"
+                        android:textSize="11sp" />
+
+                    <CheckBox
+                        android:id="@+id/cb_leeftijd_onbepaald"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="12dp"
+                        android:padding="1dp"
+                        android:text="Leeftijd niet te bepalen"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="4dp">
@@ -786,6 +811,62 @@
                             android:layout_height="40dp"
                             android:layout_margin="1dp"
                             android:contentDescription="@string/annotation_count_local"
+                            android:hint="0"
+                            android:inputType="number"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:singleLine="false"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <!-- Adult -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="1dp">
+
+                        <TextView
+                            android:layout_width="120dp"
+                            android:layout_height="wrap_content"
+                            android:text="Adult"
+                            android:textSize="16sp" />
+
+                        <EditText
+                            android:id="@+id/et_adult_count"
+                            android:layout_width="100dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="1dp"
+                            android:contentDescription="Adult count"
+                            android:hint="0"
+                            android:inputType="number"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:singleLine="false"
+                            android:textSize="16sp" />
+                    </LinearLayout>
+
+                    <!-- Niet-adult -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="1dp">
+
+                        <TextView
+                            android:layout_width="120dp"
+                            android:layout_height="wrap_content"
+                            android:text="Niet-adult"
+                            android:textSize="16sp" />
+
+                        <EditText
+                            android:id="@+id/et_non_adult_count"
+                            android:layout_width="100dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="1dp"
+                            android:contentDescription="Niet-adult count"
                             android:hint="0"
                             android:inputType="number"
                             android:paddingStart="8dp"

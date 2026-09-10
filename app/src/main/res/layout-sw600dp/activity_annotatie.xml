@@ -486,6 +486,31 @@
                         android:textColor="@android:color/white"
                         android:textSize="18sp" />
                 </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="16dp">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cb_schatting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Schatting"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cb_leeftijd_onbepaald"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:text="Leeftijd niet te bepalen"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- RIGHT PANEL: Counts, Compass & Confirm -->
@@ -574,6 +599,58 @@
 
                     <EditText
                         android:id="@+id/et_aantal_lokaal"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:background="@drawable/vt5_input_background"
+                        android:inputType="number"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
+                </LinearLayout>
+
+                <!-- Adult count -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="140dp"
+                        android:layout_height="wrap_content"
+                        android:text="Adult"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
+
+                    <EditText
+                        android:id="@+id/et_adult_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:background="@drawable/vt5_input_background"
+                        android:inputType="number"
+                        android:textAlignment="center"
+                        android:textColor="@android:color/white"
+                        android:textSize="24sp" />
+                </LinearLayout>
+
+                <!-- Niet-adult count -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="32dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="140dp"
+                        android:layout_height="wrap_content"
+                        android:text="Niet-adult"
+                        android:textColor="@android:color/white"
+                        android:textSize="18sp" />
+
+                    <EditText
+                        android:id="@+id/et_non_adult_count"
                         android:layout_width="match_parent"
                         android:layout_height="64dp"
                         android:background="@drawable/vt5_input_background"

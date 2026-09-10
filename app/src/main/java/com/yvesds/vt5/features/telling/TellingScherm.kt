@@ -263,6 +263,12 @@ class TellingScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = SchermTellingBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // Laad in-memory auto-annotatie config in op achtergrond
+        lifecycleScope.launch(Dispatchers.IO) {
+            AutoAnnotationConfigManager.loadConfig(this@TellingScherm)
+        }
+        
         birdNetPendingTickerView = binding.tvBirdNetPendingTicker
         birdNetPendingTickerView?.isSelected = true
         setupBackPressedCallback()
@@ -521,6 +527,13 @@ class TellingScherm : AppCompatActivity() {
         }
         speciesManager.onRecordCollected = { item ->
             addOrReplacePendingRecord(item)
+            
+            if (AutoAnnotationConfigManager.isAutoAnnotate(item.soortid)) {
+                val displayName = resolveSpeciesName(item.soortid)
+                val countDisplay = if ((item.aantalterug.toIntOrNull() ?: 0) > 0) "+${item.aantalterug} (terug)" else "+${item.aantal}"
+                annotationHandler.enqueueAutoAnnotation(item.idLocal, "$displayName $countDisplay")
+            }
+            
             queueClientObservationIfNeeded(item)
             updateClientFinalObservationRow(
                 item,
@@ -3210,6 +3223,13 @@ class TellingScherm : AppCompatActivity() {
 
         if (record != null) {
             addOrReplacePendingRecord(record)
+            
+            if (AutoAnnotationConfigManager.isAutoAnnotate(record.soortid)) {
+                val displayName = resolveSpeciesName(record.soortid)
+                val countDisplay = if ((record.aantalterug.toIntOrNull() ?: 0) > 0) "+${record.aantalterug} (terug)" else "+${record.aantal}"
+                annotationHandler.enqueueAutoAnnotation(record.idLocal, "$displayName $countDisplay")
+            }
+            
             backupObservationRecord(record)
             queueClientObservationIfNeeded(record)
             val deliveryState = if (isClientFlowLocked()) {

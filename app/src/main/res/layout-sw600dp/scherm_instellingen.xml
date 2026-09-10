@@ -695,7 +695,44 @@
                         android:alpha="0.1"
                         android:background="@android:color/white" />
 
-                    <!-- NIEUW: Krentenfilter (Birds of Interest) -->
+                    <!-- NIEUW: Auto-Annotatie Beheer -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="12dp"
+                android:paddingBottom="8dp"
+                android:text="Auto-Annotatie Popup Beheer"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="12dp"
+                android:text="Selecteer voor welke vogelsoorten het annotatiescherm automatisch moet opspringen direct na invoer (bijv. Roofvogels of Reigers)."
+                android:textColor="@color/vt5_on_surface"
+                android:alpha="0.8"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenAutoAnnotation"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="BEHEER AUTO-ANNOTATIE SOORTEN"
+                android:textSize="16sp"
+                app:icon="@android:drawable/ic_menu_edit" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <!-- NIEUW: Krentenfilter (Birds of Interest) -->
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

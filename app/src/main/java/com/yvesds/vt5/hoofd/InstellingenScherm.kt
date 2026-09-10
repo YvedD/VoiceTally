@@ -152,6 +152,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupTileTapGroupWindowButtons()
             setupDynamicTileSortingToggle()
             setupServerResponseLoggingToggle()
+            setupAutoAnnotationButton()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
             setupUnmatchedPartialsTextColorSpinner()
@@ -180,7 +181,14 @@ class InstellingenScherm : AppCompatActivity() {
     private fun setupTerugKnop() {
         findViewById<MaterialButton>(R.id.btnTerug)?.setOnClickListener { finish() }
     }
-    
+
+    private fun setupAutoAnnotationButton() {
+        findViewById<MaterialButton>(R.id.btnOpenAutoAnnotation)?.setOnClickListener {
+            val intent = Intent(this, com.yvesds.vt5.features.telling.AutoAnnotatieBeheerScherm::class.java)
+            startActivity(intent)
+        }
+    }
+
     private fun setupLettergrootteNumberPickers() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 

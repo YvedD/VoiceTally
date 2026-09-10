@@ -111,6 +111,14 @@
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />
 
+        <!-- AutoAnnotatieBeheerScherm -->
+        <activity
+            android:name=".features.telling.AutoAnnotatieBeheerScherm"
+            android:exported="false"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
         <!-- TellingBeheerScherm -->
         <activity
             android:name=".features.telling.TellingBeheerScherm"
