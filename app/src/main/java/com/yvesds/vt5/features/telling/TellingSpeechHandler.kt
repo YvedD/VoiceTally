@@ -36,7 +36,7 @@ class TellingSpeechHandler(
     companion object {
         private const val TAG = "TellingSpeechHandler"
         private const val PREF_ASR_SILENCE_MS = "pref_asr_silence_ms"
-        private const val DEFAULT_SILENCE_MS = 1000
+        private const val DEFAULT_SILENCE_MS = 1400
     }
 
     // Speech components
@@ -66,7 +66,9 @@ class TellingSpeechHandler(
             speechRecognitionManager.initialize()
 
             val savedMs = prefs.getInt(PREF_ASR_SILENCE_MS, DEFAULT_SILENCE_MS)
-            speechRecognitionManager.setSilenceStopMillis(savedMs.toLong())
+            val effectiveSilenceMs = maxOf(savedMs, DEFAULT_SILENCE_MS)
+            speechRecognitionManager.setSilenceStopMillis(effectiveSilenceMs.toLong())
+            Log.i(TAG, "ASR silence window set to ${effectiveSilenceMs}ms (saved=$savedMs)")
 
             // Ensure alias parser is ready
             if (!::aliasParser.isInitialized) {

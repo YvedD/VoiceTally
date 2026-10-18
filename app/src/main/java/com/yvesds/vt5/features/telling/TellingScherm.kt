@@ -156,6 +156,8 @@ class TellingScherm : AppCompatActivity() {
     private var lastPartialUiUpdateMs: Long = 0L
     private val PARTIAL_UI_DEBOUNCE_MS = 200L
     private val parseJobsByUtteranceId = linkedMapOf<String, Job>()
+    private val committedSpeechMatchesByUtteranceId = linkedMapOf<String, MutableSet<String>>()
+    private val MAX_TRACKED_UTTERANCE_MATCHES = 128
 
     // Local pendingRecords (legacy) — we mirror to ViewModel for persistence but keep this for compatibility
     private val pendingRecords = mutableListOf<ServerTellingDataItem>()
@@ -500,15 +502,17 @@ class TellingScherm : AppCompatActivity() {
 
         // Match result handler callbacks
         matchResultHandler.onAutoAccept = { utteranceId, candidate, amount, isReturn ->
-            handleRecognizedCandidate(utteranceId, candidate, amount, isReturn)
+            handleRecognizedCandidateOnce(utteranceId, candidate, amount, isReturn)
         }
         matchResultHandler.onAutoAcceptWithPopup = { utteranceId, candidate, amount, isReturn ->
-            handleRecognizedCandidate(utteranceId, candidate, amount, isReturn)
+            handleRecognizedCandidateOnce(utteranceId, candidate, amount, isReturn)
         }
         matchResultHandler.onMultiMatch = { utteranceId, matches, unmatchedFragments ->
-            matches.forEach { match ->
-                handleRecognizedCandidate(utteranceId, match.candidate, match.amount, match.isReturn)
-            }
+            matches
+                .distinctBy { speechMatchSignature(it.candidate.speciesId, it.amount, it.isReturn) }
+                .forEach { match ->
+                    handleRecognizedCandidateOnce(utteranceId, match.candidate, match.amount, match.isReturn)
+                }
             unmatchedFragments
                 .map(String::trim)
                 .filter(String::isNotBlank)
@@ -793,6 +797,41 @@ class TellingScherm : AppCompatActivity() {
                 // Reconnect delay
                 delay(if (receivedConnectedEvent) 2_000L else 5_000L)
             }
+        }
+    }
+
+    private fun handleRecognizedCandidateOnce(
+        utteranceId: String?,
+        candidate: Candidate,
+        count: Int,
+        isReturn: Boolean = false
+    ) {
+        val signature = speechMatchSignature(candidate.speciesId, count, isReturn)
+        if (isSpeechMatchAlreadyCommitted(utteranceId, signature)) {
+            Log.d(TAG, "Skipping duplicate speech final for utteranceId=$utteranceId signature=$signature")
+            return
+        }
+        handleRecognizedCandidate(utteranceId, candidate, count, isReturn)
+    }
+
+    private fun isSpeechMatchAlreadyCommitted(utteranceId: String?, signature: String): Boolean {
+        if (utteranceId.isNullOrBlank()) return false
+        synchronized(committedSpeechMatchesByUtteranceId) {
+            val signatures = committedSpeechMatchesByUtteranceId.getOrPut(utteranceId) { linkedSetOf() }
+            val added = signatures.add(signature)
+            pruneCommittedSpeechMatchesLocked()
+            return !added
+        }
+    }
+
+    private fun speechMatchSignature(speciesId: String, amount: Int, isReturn: Boolean): String {
+        return "$speciesId|$amount|$isReturn"
+    }
+
+    private fun pruneCommittedSpeechMatchesLocked() {
+        while (committedSpeechMatchesByUtteranceId.size > MAX_TRACKED_UTTERANCE_MATCHES) {
+            val oldestKey = committedSpeechMatchesByUtteranceId.entries.iterator().next().key
+            committedSpeechMatchesByUtteranceId.remove(oldestKey)
         }
     }
 
@@ -1658,6 +1697,9 @@ class TellingScherm : AppCompatActivity() {
     override fun onDestroy() {
         stopBirdNetPendingTicker()
         dismissMasterPairingDialog()
+        synchronized(committedSpeechMatchesByUtteranceId) {
+            committedSpeechMatchesByUtteranceId.clear()
+        }
         try {
             unregisterReceiver(aliasReloadReceiver)
         } catch (_: Exception) {}
