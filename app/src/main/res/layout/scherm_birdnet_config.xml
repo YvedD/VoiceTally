@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/vt5_dark_gray"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="start">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="BirdNET-GO Configuratie"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTerug"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Terug" />
+        </LinearLayout>
+
+        <!-- Status Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/tvBirdNetStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Niet geconfigureerd"
+            android:textSize="14sp"
+            android:textColor="#FFC0C0C0"
+            android:background="#22FFFFFF"
+            android:padding="12dp"
+            android:layout_marginTop="8dp" />
+
+        <!-- Auto-Discovery Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Netwerk &amp; IP Auto-Discovery"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBirdNetAutoDiscover"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Scan Netwerk &amp; IP-adressen (Subnet Scan)"
+            android:layout_marginTop="8dp" />
+
+        <ProgressBar
+            android:id="@+id/progressBirdNetDiscovery"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"
+            style="?android:attr/progressBarStyleHorizontal" />
+
+        <TextView
+            android:id="@+id/tvBirdNetDiscoveryResults"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="13sp"
+            android:textColor="#FFE0E0E0"
+            android:background="#22FFFFFF"
+            android:padding="12dp"
+            android:layout_marginTop="8dp" />
+
+        <!-- Dynamic Container for Discovered IP Addresses -->
+        <LinearLayout
+            android:id="@+id/llDiscoveryList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnApplyDiscoveryResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pas Geselecteerde Server Toe"
+            android:enabled="false"
+            android:layout_marginTop="8dp" />
+
+        <!-- Quick IP Presets for Telpost / Hotspots -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Snelle IP-Snelkoppelingen (Telpost Hotspots)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FF4CAF50"
+            android:layout_marginTop="16dp" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPresetBirdNetLocal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="birdnet.local"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPresetHotspot"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="192.168.43.1 (Hotspot)"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPresetPiAp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10.42.0.1 (Pi AP)"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPresetLan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="192.168.1.100 (LAN)"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Recently Used IP Addresses -->
+        <TextView
+            android:id="@+id/tvHistoryHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Eerder Gebruikte IP-adressen (Historie)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FF64B5F6"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/llHistoryContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="4dp" />
+
+        <!-- Manual Configuration Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Handmatige Configuratie"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="16dp" />
+
+        <!-- Protocol Selection -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Protocol"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="12dp" />
+
+        <RadioGroup
+            android:id="@+id/rgBirdNetProtocol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <RadioButton
+                android:id="@+id/rbHttp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="HTTP"
+                android:textColor="@android:color/white"
+                android:buttonTint="@android:color/white" />
+
+            <RadioButton
+                android:id="@+id/rbHttps"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="HTTPS"
+                android:textColor="@android:color/white"
+                android:buttonTint="@android:color/white" />
+        </RadioGroup>
+
+        <!-- Host Input -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Host / IP-adres"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="12dp" />
+
+        <EditText
+            android:id="@+id/etBirdNetHost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="bijv. 192.168.1.50, 192.168.43.1 of birdnet.local"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:textColorHint="#FF808080"
+            android:background="#22FFFFFF"
+            android:inputType="text"
+            android:padding="12dp"
+            android:layout_marginTop="4dp" />
+
+        <!-- Port Input -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Poort"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="12dp" />
+
+        <NumberPicker
+            android:id="@+id/npBirdNetPort"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="4dp" />
+
+        <!-- Min Confidence Input -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Minimale Betrouwbaarheid Filter (%)"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="12dp" />
+
+        <NumberPicker
+            android:id="@+id/npBirdNetMinConfidence"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="4dp" />
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBirdNetTestConnection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Verbinding Testen" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBirdNetSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Configuratie Opslaan"
+                android:layout_marginTop="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBirdNetClear"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Configuratie Wissen"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- Info Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ℹ Informatie &amp; Telpost Advies"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="24dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Waarom werkt Chrome wel met 'birdnet.local' en de app niet?\n• Chrome heeft een eigen mDNS-resolver ingebouwd. Veel Android-toestellen ondersteunen geen .local domeinnamen in normale apps.\n\nOplossing op de telpost:\n1. Klik op 'Scan Netwerk &amp; IP-adressen'. De app scant nu automatisch alle IP-adressen (1..254) in je netwerk op zoek naar BirdNET-GO.\n2. Klik op het gevonden IP-adres (bijv. 192.168.1.42 of 192.168.43.1) om dit direct toe te passen.\n3. Als de Pi op een smartphone hotspot draait, is het IP-adres meestal 192.168.43.1 of 10.42.0.1.\n4. Sla de configuratie op en test de verbinding!"
+            android:textSize="12sp"
+            android:textColor="#FFB0B0B0"
+            android:background="#22FFFFFF"
+            android:padding="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+
+</ScrollView>
