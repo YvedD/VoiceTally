@@ -52,6 +52,11 @@ class TellingUploadCore(
         private val uploadMutex = Mutex()
 
         internal fun sanitizeRecordForUpload(record: ServerTellingDataItem): ServerTellingDataItem {
+            val mainCount = record.aantal.toIntOrNull() ?: 0
+            val returnCount = record.aantalterug.toIntOrNull() ?: 0
+            val localCount = record.lokaal.toIntOrNull() ?: 0
+            val calculatedTotal = (mainCount + returnCount + localCount).toString()
+
             return record.copy(
                 aantal = record.aantal.ifBlank { "0" },
                 aantalterug = record.aantalterug.ifBlank { "0" },
@@ -61,25 +66,21 @@ class TellingUploadCore(
                 lokaal_plus = record.lokaal_plus.ifBlank { "0" },
                 markeren = record.markeren.ifBlank { "0" },
                 markerenlokaal = record.markerenlokaal.ifBlank { "0" },
-                totaalaantal = record.totaalaantal.ifBlank {
-                    ((record.aantal.toIntOrNull() ?: 0) +
-                        (record.aantalterug.toIntOrNull() ?: 0) +
-                        (record.lokaal.toIntOrNull() ?: 0)).toString()
-                },
-                richting = record.richting,
-                richtingterug = record.richtingterug,
-                sightingdirection = record.sightingdirection,
-                geslacht = record.geslacht,
-                leeftijd = record.leeftijd,
-                kleed = record.kleed,
-                opmerkingen = record.opmerkingen,
-                trektype = record.trektype,
-                teltype = record.teltype,
-                location = record.location,
-                height = record.height,
-                tijdstip = record.tijdstip,
-                groupid = record.groupid,
-                uploadtijdstip = record.uploadtijdstip
+                totaalaantal = record.totaalaantal.ifBlank { calculatedTotal },
+                richting = record.richting.orEmpty(),
+                richtingterug = record.richtingterug.orEmpty(),
+                sightingdirection = record.sightingdirection.orEmpty(),
+                geslacht = record.geslacht.orEmpty(),
+                leeftijd = record.leeftijd.orEmpty(),
+                kleed = record.kleed.orEmpty(),
+                opmerkingen = record.opmerkingen.orEmpty(),
+                trektype = record.trektype.orEmpty(),
+                teltype = record.teltype.orEmpty(),
+                location = record.location.orEmpty(),
+                height = record.height.orEmpty(),
+                tijdstip = record.tijdstip.ifBlank { (System.currentTimeMillis() / 1000L).toString() },
+                groupid = record.groupid.orEmpty(),
+                uploadtijdstip = record.uploadtijdstip.orEmpty()
             )
         }
     }
@@ -222,7 +223,8 @@ class TellingUploadCore(
             Log.i(TAG, "Server response log saved (${request.mode}): ${loggedPath ?: "unavailable"}")
         }
 
-        if (!ok) {
+        val isServerOk = ok || isServerResponseOk(resp)
+        if (!isServerOk) {
             return@withContext UploadResult(
                 success = false,
                 preparedEnvelope = request.preparedEnvelope,
@@ -245,18 +247,6 @@ class TellingUploadCore(
             request.preparedEnvelope
         }
 
-        if (
-            request.keepPreparedOnlineIdOnSuccess &&
-            !returnedOnlineId.isNullOrBlank() &&
-            returnedOnlineId != request.preparedEnvelope.onlineid
-        ) {
-            Log.w(
-                TAG,
-                "Server returned afwijkend onlineId tijdens ${request.mode}; bestaande sessie-id behouden " +
-                    "(server=$returnedOnlineId, session=${request.preparedEnvelope.onlineid})"
-            )
-        }
-
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (request.persistReturnedOnlineId && !effectiveOnlineId.isNullOrBlank()) {
             prefs.edit { putString(PREF_ONLINE_ID, effectiveOnlineId) }
@@ -264,9 +254,9 @@ class TellingUploadCore(
         if (request.persistPreparedEnvelopeToPrefs) {
             persistPreparedEnvelopeToPrefs(persistedEnvelope)
         }
-        if (request.markTellingSent) {
-            TellingUploadFlags.markSent(context, persistedEnvelope.tellingid, effectiveOnlineId ?: persistedEnvelope.onlineid)
-        }
+        
+        // Zorg dat de telling altijd direct op 'verzonden' staat bij een geslaagde server-OK
+        TellingUploadFlags.markSent(context, persistedEnvelope.tellingid, effectiveOnlineId ?: persistedEnvelope.onlineid)
         when (request.mode) {
             Mode.START,
             Mode.FINALIZE,
@@ -305,6 +295,16 @@ class TellingUploadCore(
         return if (storedOnlineId.isBlank()) envelope else envelope.copy(onlineid = storedOnlineId)
     }
 
+
+    private fun isServerResponseOk(resp: String): Boolean {
+        if (resp.isBlank()) return false
+        val lower = resp.lowercase()
+        return lower.contains("\"result\":\"ok\"") ||
+               lower.contains("\"status\":\"ok\"") ||
+               lower.contains("\"status\":\"healthy\"") ||
+               lower.contains("onlineid") ||
+               lower.contains("online_id")
+    }
 
     private fun parseOnlineIdFromResponse(resp: String): String? {
         try {

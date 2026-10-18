@@ -163,6 +163,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupKrentenFilterSettings()
             setupChartSettings()
             setupDatabaseMirroringButton()
+            setupBirdNetConfigButton()
         } catch (t: Throwable) {
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
             Toast.makeText(this, "Fout in instellingen: ${t.message}", Toast.LENGTH_LONG).show()
@@ -558,6 +559,13 @@ class InstellingenScherm : AppCompatActivity() {
     private fun setupDatabaseMirroringButton() {
         findViewById<MaterialButton>(R.id.btnMirrorDb)?.setOnClickListener {
             mirrorDatabaseToSaf()
+        }
+    }
+
+    private fun setupBirdNetConfigButton() {
+        findViewById<MaterialButton>(R.id.btnOpenBirdNetConfig)?.setOnClickListener {
+            val intent = Intent(this, com.yvesds.vt5.features.birdnet.BirdNetConfigActivity::class.java)
+            startActivity(intent)
         }
     }
 

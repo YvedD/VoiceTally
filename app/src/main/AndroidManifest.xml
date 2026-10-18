@@ -30,6 +30,7 @@
         android:name=".VT5App"
         android:allowBackup="false"
         android:largeHeap="true"
+        android:usesCleartextTraffic="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_vt5"
@@ -60,6 +61,13 @@
         <!-- InstellingenScherm -->
         <activity
             android:name=".hoofd.InstellingenScherm"
+            android:exported="false"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <!-- BirdNET-GO Configuration Screen -->
+        <activity
+            android:name=".features.birdnet.BirdNetConfigActivity"
             android:exported="false"
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />

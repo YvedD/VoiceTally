@@ -341,8 +341,10 @@
     <string name="telling_birdnet_pending_connecting">BirdNET-GO verbinden met %1$s…</string>
     <string name="telling_birdnet_pending_reconnecting">BirdNET-GO herverbinden…</string>
     <string name="telling_birdnet_pending_waiting">Geen lopende fast detections</string>
+    <string name="telling_birdnet_disabled">BirdNET-GO uitgeschakeld</string>
     <string name="telling_birdnet_pending_item">%1$s %2$d%% ×%3$d</string>
     <string name="telling_birdnet_open">BirdNET-GO openen</string>
+    <string name="telling_birdnet_switch_description">BirdNET-GO Aan/Uit</string>
     <string name="telling_birdnet_dialog_title">BirdNET-GO</string>
     <string name="telling_birdnet_dialog_not_configured">Nog geen BirdNET-GO host ingesteld.</string>
     <string name="telling_birdnet_dialog_current">Huidige host: %1$s</string>
@@ -355,6 +357,7 @@
     <string name="telling_birdnet_host_online">BirdNET-GO bereikbaar: %1$s</string>
     <string name="telling_birdnet_host_offline">BirdNET-GO niet bereikbaar: %1$s</string>
     <string name="telling_birdnet_cleared">BirdNET-GO configuratie gewist</string>
+    <string name="telling_birdnet_enable_first">Schakel BirdNET-GO eerst in om te zoeken of te verbinden</string>
 
     <string name="soort_species_name_placeholder">Soortnaam (id: ...)</string>
     <string name="soort_selection_info">%1$d soorten • geselecteerd: %2$d</string>

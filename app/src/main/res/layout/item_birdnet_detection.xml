@@ -6,9 +6,9 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="4dp"
-    android:paddingTop="3dp"
+    android:paddingTop="4dp"
     android:paddingEnd="4dp"
-    android:paddingBottom="3dp">
+    android:paddingBottom="4dp">
 
     <!-- Tijdstip links (HH:mm:ss) -->
     <TextView
@@ -58,5 +58,16 @@
         android:textSize="12sp"
         android:textStyle="bold" />
 
-</LinearLayout>
+    <!-- Checkbox om de detectie direct toe te voegen aan de telling -->
+    <CheckBox
+        android:id="@+id/cbAddToCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:buttonTint="#00E676"
+        android:contentDescription="Toevoegen aan telling"
+        android:minWidth="40dp"
+        android:minHeight="40dp"
+        android:padding="4dp" />
 
+</LinearLayout>

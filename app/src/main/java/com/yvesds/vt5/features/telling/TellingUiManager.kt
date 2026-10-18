@@ -29,6 +29,7 @@ class TellingUiManager(
     private lateinit var partialsAdapter: SpeechLogAdapter
     private lateinit var finalsAdapter: SpeechLogAdapter
     private lateinit var tilesAdapter: SpeciesTileAdapter
+    private lateinit var birdNetAdapter: BirdNetDetectionAdapter
 
     // Callbacks
     var onPartialTapCallback: ((Int, TellingScherm.SpeechLogRow) -> Unit)? = null
@@ -140,11 +141,47 @@ class TellingUiManager(
     }
 
     /**
-     * Expose the tiles adapter so the Activity can reuse the exact instance
-     * attached to the RecyclerView (prevents having multiple adapters with
-     * different backing lists).
+     * Setup BirdNet detections RecyclerView (stackFromEnd = true, nieuwste onderaan).
+     */
+    fun setupBirdNetRecyclerView() {
+        val layoutManager = LinearLayoutManager(activity)
+        layoutManager.stackFromEnd = true
+        binding.recyclerViewBirdNetDetections.layoutManager = layoutManager
+        binding.recyclerViewBirdNetDetections.setHasFixedSize(true)
+        
+        birdNetAdapter = BirdNetDetectionAdapter()
+        binding.recyclerViewBirdNetDetections.adapter = birdNetAdapter
+    }
+
+    /**
+     * Scrollt de BirdNET-GO detectielijst automatisch naar het meest recente item onderaan.
+     */
+    fun scrollBirdNetToBottom() {
+        val count = birdNetAdapter.itemCount
+        if (count > 0) {
+            binding.recyclerViewBirdNetDetections.post {
+                binding.recyclerViewBirdNetDetections.smoothScrollToPosition(count - 1)
+            }
+        }
+    }
+
+    /**
+     * Expose adapters so the Activity can reuse the exact instances
+     * attached to the RecyclerViews.
      */
     fun getTilesAdapter(): SpeciesTileAdapter = tilesAdapter
+    fun getPartialsAdapter(): SpeechLogAdapter = partialsAdapter
+    fun getFinalsAdapter(): SpeechLogAdapter = finalsAdapter
+    fun getBirdNetAdapter(): BirdNetDetectionAdapter = birdNetAdapter
+
+    /**
+     * Toggles visibility of the BirdNet detections card and label.
+     */
+    fun setBirdNetDetectionsVisible(visible: Boolean) {
+        val visibility = if (visible) android.view.View.VISIBLE else android.view.View.GONE
+        binding.cardBirdNetDetections.visibility = visibility
+        binding.labelBirdNet?.visibility = visibility
+    }
 
     /**
      * Setup button click handlers.

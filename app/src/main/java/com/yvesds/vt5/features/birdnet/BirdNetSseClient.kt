@@ -3,9 +3,10 @@ package com.yvesds.vt5.features.birdnet
 import android.util.Log
 import com.yvesds.vt5.VT5App
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -18,167 +19,125 @@ import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 /**
- * Client voor de BirdNET-GO SSE live-stream (`/api/v2/detections/stream`).
+ * Modern BirdNET-GO SSE Client using Kotlin Flow.
  *
- * - Leest de `text/event-stream`-respons regel per regel via OkHttp blocking I/O,
- *   uitgevoerd op Dispatchers.IO via [withContext].
- * - Parsed events: `connected`, `detection`, `heartbeat`, `pending`.
- * - Annuleert automatisch de OkHttp-call via `invokeOnCompletion` zodra de
- *   coroutine gecanceld wordt, waardoor de blokkerende `readUtf8Line()` vrijkomt.
- *
- * Gebruik (in een coroutine):
- * ```kotlin
- * BirdNetSseClient.streamEvents(config) { event ->
- *     when (event) {
- *         is SseEvent.Detection -> handleDetection(event.detection)
- *         is SseEvent.Heartbeat -> { /* keep-alive, negeer */ }
- *         else -> {}
- *     }
- * }
- * ```
- * De functie keert terug wanneer de verbinding wordt verbroken of de coroutine
- * gecanceld wordt. De aanroeper is verantwoordelijk voor reconnect-logica.
+ * - Provides a robust [Flow] of [SseEvent].
+ * - Automatically handles cleanup when the flow collection stops.
+ * - Dispatches events on [Dispatchers.IO].
  */
 object BirdNetSseClient {
 
     private const val TAG = "BirdNetSseClient"
 
-    // ─── Event types ──────────────────────────────────────────────────────────
-
     sealed class SseEvent {
-        /** Server bevestigt verbinding (eerste event na connect). */
         data object Connected : SseEvent()
-
-        /** Nieuwe vogel gedetecteerd. */
         data class Detection(val detection: BirdNetDetection) : SseEvent()
-
-        /** Snelle pending-detecties, nog vóór definitieve goedkeuring. */
         data class Pending(val detections: List<BirdNetPendingDetection>) : SseEvent()
-
-        /** Keep-alive heartbeat (elke ~30 s). */
         data object Heartbeat : SseEvent()
-
-        /** Verbindingsfout of parse-fout. */
         data class ConnectionError(val message: String) : SseEvent()
     }
 
-    // ─── OkHttpClient ─────────────────────────────────────────────────────────
-
-    /**
-     * Dedicated OkHttpClient voor SSE met langere readTimeout.
-     * De readTimeout moet > heartbeat-interval (30 s) zijn zodat de verbinding
-     * niet vroegtijdig gesloten wordt bij een korte stilte.
-     */
     private val sseHttp: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(90, TimeUnit.SECONDS) // > heartbeat-interval (30 s)
-            .retryOnConnectionFailure(false)   // reconnect-logica zit bij de aanroeper
+            .readTimeout(90, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 
-    // ─── Publieke API ─────────────────────────────────────────────────────────
-
     /**
-     * Verbind met de SSE-stream en verwerk events totdat de verbinding verbroken
-     * wordt of de coroutine gecanceld wordt.
-     *
-     * @param config   BirdNET-GO hostconfiguratie (host, poort, protocol).
-     * @param onEvent  callback die voor elk event geroepen wordt **op de IO-thread**;
-     *                 gebruik [android.app.Activity.runOnUiThread] voor UI-updates.
+     * Creates a Flow of SSE events from the BirdNET-GO server.
      */
-    suspend fun streamEvents(config: BirdNetConfig, onEvent: (SseEvent) -> Unit) {
-        withContext(Dispatchers.IO) {
-            val request = Request.Builder()
-                .url(config.streamUrl)
-                .addHeader("Accept", "text/event-stream")
-                .addHeader("Cache-Control", "no-cache")
-                .addHeader("Connection", "keep-alive")
-                .build()
+    fun streamEvents(config: BirdNetConfig): Flow<SseEvent> = callbackFlow {
+        Log.i(TAG, "Start BirdNET-GO SSE stream: ${config.streamUrl}")
+        
+        val request = Request.Builder()
+            .url(config.streamUrl)
+            .addHeader("Accept", "text/event-stream")
+            .addHeader("Cache-Control", "no-cache")
+            .addHeader("Connection", "keep-alive")
+            .build()
 
-            val call = sseHttp.newCall(request)
+        val call = sseHttp.newCall(request)
 
-            // Annuleer OkHttp-call zodra de coroutine gecanceld wordt.
-            // Dit zorgt ervoor dat de blokkerende readUtf8Line() een IOException
-            // gooit en de lus eindigt, ook al is de thread bezet.
-            coroutineContext.job.invokeOnCompletion {
-                call.cancel()
+        try {
+            val response = call.execute()
+            
+            if (!response.isSuccessful) {
+                Log.e(TAG, "SSE verbinding mislukt (HTTP ${response.code})")
+                trySend(SseEvent.ConnectionError("HTTP ${response.code}"))
+                close()
+                return@callbackFlow
             }
 
-            val response = try {
-                call.execute()
-            } catch (e: Exception) {
-                if (isActive) {
-                    Log.w(TAG, "Verbinding mislukt: ${e.message}")
-                    onEvent(SseEvent.ConnectionError(e.message ?: "Verbindingsfout"))
-                }
-                return@withContext
+            val body = response.body
+            if (body == null) {
+                Log.e(TAG, "SSE verbinding mislukt (Lege respons)")
+                trySend(SseEvent.ConnectionError("Lege respons"))
+                close()
+                return@callbackFlow
             }
 
-            response.use {
-                val body = response.body
-                if (body == null) {
-                    Log.w(TAG, "Lege respons van server")
-                    onEvent(SseEvent.ConnectionError("Lege respons van server"))
-                    return@use
-                }
+            Log.i(TAG, "SSE stream verbonden, luisteren naar events...")
+            val source = body.source()
+            var currentEventType = ""
+            val dataBuffer = StringBuilder()
 
-                val source = body.source()
-                var currentEventType = ""
-                val dataBuffer = StringBuilder()
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
 
-                try {
-                    while (isActive) {
-                        val line = source.readUtf8Line() ?: break  // EOF / verbinding gesloten
-
-                        when {
-                            line.startsWith("event:") -> {
-                                currentEventType = line.removePrefix("event:").trim()
-                            }
-                            line.startsWith("data:") -> {
-                                dataBuffer.append(line.removePrefix("data:").trim())
-                            }
-                            line.isEmpty() -> {
-                                // Lege regel = eventgrens
-                                if (dataBuffer.isNotEmpty()) {
-                                    dispatchEvent(currentEventType, dataBuffer.toString(), onEvent)
-                                    dataBuffer.clear()
+                when {
+                    line.startsWith("event:") -> {
+                        currentEventType = line.removePrefix("event:").trim()
+                    }
+                    line.startsWith("data:") -> {
+                        dataBuffer.append(line.removePrefix("data:").trim())
+                    }
+                    line.isEmpty() -> {
+                        if (dataBuffer.isNotEmpty()) {
+                            val event = dispatchEvent(currentEventType, dataBuffer.toString())
+                            if (event != null) {
+                                if (event is SseEvent.Heartbeat) {
+                                    Log.v(TAG, "SSE Heartbeat ontvangen")
                                 }
-                                currentEventType = ""
+                                trySend(event)
                             }
-                            // `id:` en `retry:` velden worden genegeerd
+                            dataBuffer.clear()
                         }
-                    }
-                } catch (e: Exception) {
-                    if (isActive) {
-                        Log.w(TAG, "Stream-fout: ${e.message}")
-                        onEvent(SseEvent.ConnectionError(e.message ?: "Stream-fout"))
+                        currentEventType = ""
                     }
                 }
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "SSE stream fout: ${e.message}")
+            trySend(SseEvent.ConnectionError(e.message ?: "Stream fout"))
         }
-    }
 
-    // ─── Interne helpers ──────────────────────────────────────────────────────
+        awaitClose {
+            Log.d(TAG, "SSE stream afgesloten door collector")
+            call.cancel()
+        }
+    }.flowOn(Dispatchers.IO)
 
-    private fun dispatchEvent(eventType: String, data: String, onEvent: (SseEvent) -> Unit) {
-        when (eventType) {
+    private fun dispatchEvent(eventType: String, data: String): SseEvent? {
+        return when (eventType) {
             "connected" -> {
-                Log.d(TAG, "SSE verbonden: $data")
-                onEvent(SseEvent.Connected)
+                Log.d(TAG, "SSE Connected event ontvangen")
+                SseEvent.Connected
             }
             "detection" -> {
-                parseDetection(data)?.let { onEvent(SseEvent.Detection(it)) }
+                Log.i(TAG, "SSE Nieuwe detectie ontvangen")
+                parseDetection(data)?.let { SseEvent.Detection(it) }
             }
-            "heartbeat" -> {
-                Log.v(TAG, "SSE heartbeat ontvangen")
-                onEvent(SseEvent.Heartbeat)
-            }
+            "heartbeat" -> SseEvent.Heartbeat
             "pending" -> {
-                onEvent(SseEvent.Pending(parsePendingDetections(data)))
+                // Alleen loggen als debug aanstaat om Logcat niet te overspoelen
+                // Log.v(TAG, "SSE Pending detections ontvangen")
+                SseEvent.Pending(parsePendingDetections(data))
             }
             else -> {
-                Log.d(TAG, "Onbekend SSE-eventtype '$eventType': $data")
+                Log.d(TAG, "SSE Onbekend event type: $eventType")
+                null
             }
         }
     }
@@ -268,4 +227,3 @@ object BirdNetSseClient {
         } ?: 0
     }
 }
-

@@ -8,44 +8,35 @@
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
-    <!-- Header -->
+    <!-- Smalle Bovenbalk voor Tablet (Header) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="24dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTerug"
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="64dp"
+            android:layout_height="40dp"
+            android:minWidth="52dp"
+            android:padding="0dp"
             android:text="←"
-            android:textSize="24sp" />
+            android:textSize="20sp" />
 
         <TextView
             android:id="@+id/tvTitel"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
+            android:layout_marginStart="16dp"
             android:layout_weight="1"
             android:text="@string/beheer_titel"
             android:textColor="@color/vt5_on_surface"
-            android:textSize="28sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnDeleteSelected"
-            style="@style/Widget.VT5.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="64dp"
-            android:layout_marginStart="16dp"
-            android:enabled="false"
-            android:text="@string/beheer_verwijderen"
-            android:textSize="16sp"
-            app:strokeColor="@color/vt5_red" />
     </LinearLayout>
 
     <View
@@ -64,11 +55,62 @@
         <!-- Left Pane: Session List -->
         <LinearLayout
             android:id="@+id/layoutList"
-            android:layout_width="350dp"
+            android:layout_width="360dp"
             android:layout_height="match_parent"
             android:background="#111111"
             android:orientation="vertical"
             android:padding="8dp">
+
+            <!-- Compacte Actiebalk in Linkerpaneel voor Tablet -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="8dp"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSelectUnsent"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:padding="0dp"
+                    android:text="Niet-Verzonden"
+                    android:textSize="11sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnUploadSelected"
+                    style="@style/Widget.VT5.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:enabled="false"
+                    android:padding="0dp"
+                    android:text="Batch Upload"
+                    android:textSize="11sp"
+                    app:backgroundTint="#2E7D32" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDeleteSelected"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:padding="0dp"
+                    android:text="@string/beheer_verwijderen"
+                    android:textSize="11sp"
+                    app:strokeColor="@color/vt5_red" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:alpha="0.2"
+                android:background="@color/vt5_on_surface" />
 
             <!-- Loading indicator -->
             <TextView
@@ -158,6 +200,16 @@
                             android:textSize="16sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnHeropenenTelling"
+                    style="@style/Widget.VT5.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="↺ Telling Heropenen &amp; Hervatten"
+                    android:textSize="16sp"
+                    app:backgroundTint="#2E7D32" />
 
                 <GridLayout
                     android:layout_width="match_parent"

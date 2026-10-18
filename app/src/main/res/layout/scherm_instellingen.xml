@@ -783,103 +783,72 @@
                 android:alpha="0.3"
                 android:background="@color/vt5_on_surface" />
 
-            <!-- Grafiek-instellingen -->
+            <!-- BirdNET-GO Configuratie -->
             <TextView
-                android:id="@+id/tvChartTitel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="4dp"
-                android:paddingBottom="6dp"
-                android:text="@string/instellingen_chart_title"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"
+                android:text="BirdNET-GO Configuratie"
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/instellingen_chart_thickness"
-                    android:textColor="@color/vt5_on_surface" />
-
-                <NumberPicker
-                    android:id="@+id/npChartThickness"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
-
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Kleur Wind (Beaufort)"
+                android:paddingBottom="8dp"
+                android:text="Verbind met een BirdNET-GO server voor automatische geluidsherkenning van vogels. Ideaal voor gebruik in het veld met een lokale hotspot."
                 android:textColor="@color/vt5_on_surface"
+                android:alpha="0.8"
                 android:textSize="12sp" />
 
-            <Spinner
-                android:id="@+id/spChartColorWind"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenBirdNetConfig"
+                style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Kleur Aantal (Trek)"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="12sp" />
-
-            <Spinner
-                android:id="@+id/spChartColorTrek"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Kleur Aantal (Terug)"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="12sp" />
-
-            <Spinner
-                android:id="@+id/spChartColorTerug"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:text="CONFIGUREER BIRDNET-GO"
+                android:textSize="12sp"
+                app:icon="@android:drawable/ic_menu_manage" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="12dp"
                 android:alpha="0.3"
                 android:background="@color/vt5_on_surface" />
+
+            <!-- Database Spiegeling -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"
+                android:text="Database Spiegeling (SAF)"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="4dp"
-                android:paddingBottom="6dp"
-                android:text="Database &amp; Onderhoud"
+                android:paddingBottom="8dp"
+                android:text="Spiegel de interne SQLite database naar de SAF-map (VT5/database) voor externe back-up."
                 android:textColor="@color/vt5_on_surface"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                android:alpha="0.8"
+                android:textSize="12sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMirrorDb"
-                style="@style/Widget.VT5.Button"
+                style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="24dp"
-                android:text="Spiegel Database naar SAF (VT5/database)"
+                android:text="SPIEGEL DATABASE NAAR SAF"
+                android:textSize="12sp"
                 app:icon="@android:drawable/ic_menu_save" />
+
         </LinearLayout>
 
     </ScrollView>

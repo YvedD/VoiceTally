@@ -3,7 +3,10 @@ package com.yvesds.vt5.features.telling
 import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.Dialog
+import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -16,6 +19,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.NumberPicker
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -40,6 +44,7 @@ import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -82,11 +87,14 @@ class TellingBeheerScherm : AppCompatActivity() {
     private lateinit var tvDetailFilename: TextView
     private lateinit var tvDetailInfo: TextView
     private lateinit var tvDetailTelpost: TextView
+    private lateinit var btnHeropenenTelling: MaterialButton
     private lateinit var btnMetadataBewerken: MaterialButton
     private lateinit var btnRecordToevoegen: MaterialButton
     private lateinit var btnOpslaan: MaterialButton
     private lateinit var btnTellingVerwijderen: MaterialButton
     private lateinit var rvRecords: RecyclerView
+    private lateinit var btnSelectUnsent: MaterialButton
+    private lateinit var btnUploadSelected: MaterialButton
     private lateinit var btnDeleteSelected: MaterialButton
 
     // State
@@ -146,17 +154,20 @@ class TellingBeheerScherm : AppCompatActivity() {
         tvDetailFilename = findViewById(R.id.tvDetailFilename)
         tvDetailInfo = findViewById(R.id.tvDetailInfo)
         tvDetailTelpost = findViewById(R.id.tvDetailTelpost)
+        btnHeropenenTelling = findViewById(R.id.btnHeropenenTelling)
         btnMetadataBewerken = findViewById(R.id.btnMetadataBewerken)
         btnRecordToevoegen = findViewById(R.id.btnRecordToevoegen)
         btnOpslaan = findViewById(R.id.btnOpslaan)
         btnTellingVerwijderen = findViewById(R.id.btnTellingVerwijderen)
         rvRecords = findViewById(R.id.rvRecords)
+        btnSelectUnsent = findViewById(R.id.btnSelectUnsent)
+        btnUploadSelected = findViewById(R.id.btnUploadSelected)
         btnDeleteSelected = findViewById(R.id.btnDeleteSelected)
 
         // Setup RecyclerViews
         tellingenAdapter = TellingenAdapter(
             onClick = { info -> onTellingSelected(info) },
-            onSelectionChanged = { updateDeleteSelectedState() }
+            onSelectionChanged = { updateActionButtonsState() }
         )
         rvTellingen.layoutManager = LinearLayoutManager(this)
         rvTellingen.adapter = tellingenAdapter
@@ -179,6 +190,22 @@ class TellingBeheerScherm : AppCompatActivity() {
                 }
             } else {
                 finish()
+            }
+        }
+
+        btnSelectUnsent.setOnClickListener {
+            selectUnsentTellingen()
+        }
+
+        btnUploadSelected.setOnClickListener {
+            performBatchUpload()
+        }
+
+        btnHeropenenTelling.setOnClickListener {
+            val fileInfo = tellingenList.find { it.filename == currentFilename }
+            val env = currentEnvelope
+            if (fileInfo != null && env != null) {
+                reopenTelling(fileInfo, env)
             }
         }
 
@@ -1050,16 +1077,21 @@ class TellingBeheerScherm : AppCompatActivity() {
                     hasUnsavedChanges = false
                     clearPendingUpload()
 
-                    // Parse returned onlineId only if we don't already have one
                     val returnedOnlineId = uploadResult.effectiveOnlineId
-                    if (envelope.onlineid.isBlank() && !returnedOnlineId.isNullOrBlank()) {
-                        val updatedEnvelope = finalEnvelope.copy(onlineid = returnedOnlineId)
-                        currentEnvelope = updatedEnvelope
-                        withContext(Dispatchers.IO) {
+                    val effectiveOnline = returnedOnlineId ?: finalEnvelope.onlineid
+                    TellingUploadFlags.markSent(this@TellingBeheerScherm, finalEnvelope.tellingid, effectiveOnline)
+
+                    val updatedEnvelope = finalEnvelope.copy(onlineid = effectiveOnline)
+                    currentEnvelope = updatedEnvelope
+
+                    withContext(Dispatchers.IO) {
+                        if (filename == "active_telling.json") {
+                            TellingEnvelopePersistence(this@TellingBeheerScherm, safHelper).archiveSavedEnvelope(finalEnvelope.tellingid, effectiveOnline)
+                        } else {
                             toolset.saveTelling(updatedEnvelope, filename)
                         }
-                        updateDetailView(updatedEnvelope)
                     }
+                    updateDetailView(updatedEnvelope)
 
                     val dlg7 = AlertDialog.Builder(this@TellingBeheerScherm)
                         .setTitle(getString(R.string.beheer_upload_succes_titel))
@@ -1120,13 +1152,175 @@ class TellingBeheerScherm : AppCompatActivity() {
         )
     }
 
-    private fun updateDeleteSelectedState() {
-        val selectedCount = tellingenAdapter.getSelectedFilenames().size
+    private fun updateActionButtonsState() {
+        val selected = tellingenAdapter.getSelectedFilenames()
+        val selectedCount = selected.size
         btnDeleteSelected.isEnabled = selectedCount > 0
         btnDeleteSelected.text = if (selectedCount > 0) {
             getString(R.string.beheer_verwijderen) + " (" + selectedCount + ")"
         } else {
             getString(R.string.beheer_verwijderen)
+        }
+
+        val unsentSelected = tellingenList.filter {
+            selected.contains(it.filename) && !TellingUploadFlags.isSent(this, it.tellingId, it.onlineId)
+        }
+        btnUploadSelected.isEnabled = unsentSelected.isNotEmpty()
+    }
+
+    private fun selectUnsentTellingen() {
+        val unsentFilenames = tellingenList.filter {
+            !TellingUploadFlags.isSent(this, it.tellingId, it.onlineId)
+        }.map { it.filename }
+
+        tellingenAdapter.setSelectedFilenames(unsentFilenames)
+        Toast.makeText(this, "${unsentFilenames.size} niet-verzonden telling(en) geselecteerd", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun reopenTelling(info: TellingFileInfo, envelope: ServerTellingEnvelope) {
+        AlertDialog.Builder(this)
+            .setTitle("Telling Heropenen & Hervatten")
+            .setMessage("Wil je deze telling (${info.filename}) heropenen in het tellingscherm om waarnemingen te bewerken, toe te voegen of opnieuw te verzenden?")
+            .setPositiveButton("Heropenen") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        val uploadCore = TellingUploadCore(this@TellingBeheerScherm)
+                        val prepared = uploadCore.prepareEnvelopeForUpload(envelope)
+
+                        uploadCore.persistPreparedEnvelopeToPrefs(prepared)
+                        val persistence = TellingEnvelopePersistence(this@TellingBeheerScherm, safHelper)
+                        persistence.saveEnvelopeWithRecords(prepared.data)
+
+                        val intent = Intent(this@TellingBeheerScherm, TellingScherm::class.java).apply {
+                            putExtra(TellingScherm.EXTRA_RESTORE_PENDING_TELLING, true)
+                        }
+                        startActivity(intent)
+                        finish()
+                    } catch (e: Exception) {
+                        Toast.makeText(this@TellingBeheerScherm, "Fout bij heropenen: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Annuleren", null)
+            .show()
+            .also { DialogStyler.apply(it) }
+    }
+
+    private fun performBatchUpload() {
+        val selected = tellingenAdapter.getSelectedFilenames()
+        val unsentFiles = tellingenList.filter {
+            selected.contains(it.filename) && !TellingUploadFlags.isSent(this, it.tellingId, it.onlineId)
+        }
+
+        if (unsentFiles.isEmpty()) {
+            Toast.makeText(this, "Geen niet-verzonden tellingen geselecteerd", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogView = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 36, 48, 36)
+        }
+
+        val tvProgressTitle = TextView(this).apply {
+            text = "Batch Upload van Tellingen"
+            textSize = 18f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+        }
+
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = unsentFiles.size
+            progress = 0
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = 24
+                bottomMargin = 24
+            }
+        }
+
+        val tvLog = TextView(this).apply {
+            text = "Starten met uploaden van ${unsentFiles.size} telling(en)...\n"
+            textSize = 12f
+            setTextColor(Color.LTGRAY)
+            setBackgroundColor(Color.parseColor("#22FFFFFF"))
+            setPadding(16, 16, 16, 16)
+        }
+
+        dialogView.addView(tvProgressTitle)
+        dialogView.addView(progressBar)
+        dialogView.addView(tvLog)
+
+        val progressDialog = AlertDialog.Builder(this)
+            .setTitle("Tellingen Uploaden")
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+
+        DialogStyler.apply(progressDialog)
+        progressDialog.show()
+
+        lifecycleScope.launch {
+            val uploadCore = TellingUploadCore(this@TellingBeheerScherm)
+            var successCount = 0
+            var failCount = 0
+
+            unsentFiles.forEachIndexed { index, info ->
+                val currentNum = index + 1
+                progressBar.progress = currentNum
+                tvLog.append("\n[$currentNum/${unsentFiles.size}] Verwerken: ${info.filename}...")
+
+                val envelope = withContext(Dispatchers.IO) { toolset.loadTelling(info.filename) }
+                if (envelope == null) {
+                    tvLog.append("\n  ✗ Fout: Kon bestand niet laden.")
+                    failCount++
+                    return@forEachIndexed
+                }
+
+                val prepared = uploadCore.prepareEnvelopeForUpload(envelope)
+                val result = withContext(Dispatchers.IO) {
+                    uploadCore.uploadPrepared(
+                        TellingUploadCore.UploadRequest(
+                            mode = TellingUploadCore.Mode.EDITOR_UPLOAD,
+                            preparedEnvelope = prepared,
+                            markTellingSent = true,
+                            persistReturnedOnlineId = true
+                        )
+                    )
+                }
+
+                if (result.success) {
+                    successCount++
+                    val returnedOnlineId = result.effectiveOnlineId ?: prepared.onlineid
+                    TellingUploadFlags.markSent(this@TellingBeheerScherm, prepared.tellingid, returnedOnlineId)
+
+                    val updatedEnvelope = prepared.copy(onlineid = returnedOnlineId)
+                    withContext(Dispatchers.IO) {
+                        if (info.filename == "active_telling.json") {
+                            TellingEnvelopePersistence(this@TellingBeheerScherm, safHelper).archiveSavedEnvelope(prepared.tellingid, returnedOnlineId)
+                        } else {
+                            toolset.saveTelling(updatedEnvelope, info.filename)
+                        }
+                    }
+
+                    tvLog.append("\n  ✓ Geslaagd! (OnlineID: $returnedOnlineId)")
+                } else {
+                    failCount++
+                    tvLog.append("\n  ✗ Mislukt: ${result.errorMessage ?: result.responseText}")
+                }
+            }
+
+            progressBar.progress = unsentFiles.size
+            tvLog.append("\n\n=== Voltooid ===")
+            tvLog.append("\nGeslaagd: $successCount, Mislukt: $failCount")
+
+            delay(1500)
+            progressDialog.dismiss()
+
+            Toast.makeText(this@TellingBeheerScherm, "Batch Upload klaar! $successCount geüpload.", Toast.LENGTH_LONG).show()
+            loadTellingenList()
         }
     }
 
@@ -1193,7 +1387,14 @@ class TellingBeheerScherm : AppCompatActivity() {
 
         fun submitList(newItems: List<TellingFileInfo>) {
             items = newItems
-            selectedFilenames.retainAll(items.map { it.filename })
+            selectedFilenames.retainAll(items.map { it.filename }.toSet())
+            notifyDataSetChanged()
+            onSelectionChanged()
+        }
+
+        fun setSelectedFilenames(filenames: List<String>) {
+            selectedFilenames.clear()
+            selectedFilenames.addAll(filenames)
             notifyDataSetChanged()
             onSelectionChanged()
         }
@@ -1229,19 +1430,24 @@ class TellingBeheerScherm : AppCompatActivity() {
                 val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
                 tvTimestamp.text = dateFormat.format(Date(info.lastModified))
 
-                if (info.isActive) {
+                val isSent = TellingUploadFlags.isSent(itemView.context, info.tellingId, info.onlineId)
+
+                if (info.isActive && !isSent) {
                     tvBadge.visibility = View.VISIBLE
-                    tvBadge.text = getString(R.string.beheer_actieve_telling)
+                    tvBadge.text = "⚡ Onvolledig / Hersteld"
+                    tvBadge.setBackgroundColor(Color.parseColor("#FBC02D"))
+                    tvBadge.setTextColor(Color.BLACK)
                 } else {
                     tvBadge.visibility = View.GONE
                 }
 
-                val isSent = TellingUploadFlags.isSent(itemView.context, info.tellingId, info.onlineId)
                 tvStatus.visibility = View.VISIBLE
-                tvStatus.text = if (isSent) {
-                    getString(R.string.beheer_status_verzonden)
+                if (isSent) {
+                    tvStatus.text = "✓ Status: Verzonden"
+                    tvStatus.setTextColor(Color.parseColor("#4CAF50"))
                 } else {
-                    getString(R.string.beheer_status_niet_verzonden)
+                    tvStatus.text = "⚠ Status: Niet verzonden"
+                    tvStatus.setTextColor(Color.parseColor("#FF9800"))
                 }
 
                 cbSelect.setOnCheckedChangeListener(null)

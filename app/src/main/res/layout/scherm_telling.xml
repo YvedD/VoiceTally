@@ -8,86 +8,72 @@
     android:background="@color/vt5_black"
     android:orientation="vertical">
 
-    <!-- BirdNet-GO Area & Main Buttons -->
+    <!-- Top Action Bar -->
     <LinearLayout
-        android:id="@+id/birdnet_container"
+        android:id="@+id/top_action_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1A1A11"
-        android:orientation="vertical"
+        android:background="@color/vt5_black"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:padding="4dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvBirdNetPendingTicker"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="marquee"
-                android:marqueeRepeatLimit="marquee_forever"
-                android:paddingStart="8dp"
-                android:singleLine="true"
-                android:text="Wachten op BirdNet-GO..."
-                android:textColor="@color/vt5_orange"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:id="@+id/btnToggleAlarm"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_lock_idle_alarm"
-                app:tint="@android:color/white" />
-
-            <ImageButton
-                android:id="@+id/btnMasterClientConnection"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_mc_wifi"
-                app:tint="#808080" />
-
-            <ImageButton
-                android:id="@+id/btnShowMasterQr"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_qr_code"
-                android:visibility="gone"
-                app:tint="#808080" />
-
-            <ImageButton
-                android:id="@+id/btnOpenSettings"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_preferences"
-                app:tint="@android:color/white" />
-        </LinearLayout>
-
         <TextView
-            android:id="@+id/tvMasterClientStatus"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:paddingStart="8dp"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="11sp"
-            android:visibility="gone" />
+            android:text="VT5 - phone layout"
+            android:textColor="@color/vt5_green"
+            android:textStyle="bold" />
 
-        <FrameLayout
-            android:id="@+id/birdnet_detection_frame"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_marginTop="2dp" />
+        <ImageButton
+            android:id="@+id/btnBirdNet"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/favicon_32x32"
+            android:visibility="visible"
+            app:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/btnToggleAlarm"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_lock_idle_alarm"
+            app:tint="@android:color/white" />
+
+        <ImageButton
+            android:id="@+id/btnMasterClientConnection"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_mc_wifi"
+            app:tint="#808080" />
+
+        <ImageButton
+            android:id="@+id/btnShowMasterQr"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_qr_code"
+            android:visibility="gone"
+            app:tint="#808080" />
+
+        <ImageButton
+            android:id="@+id/btnOpenSettings"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_preferences"
+            app:tint="@android:color/white" />
     </LinearLayout>
 
     <View
@@ -96,17 +82,97 @@
         android:alpha="0.3"
         android:background="@color/vt5_outline" />
 
-    <!-- Speech Results -->
+    <!-- BirdNet-GO Area (Ticker + Switch) -->
     <LinearLayout
+        android:id="@+id/birdnet_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="#1A1A11"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="4dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvBirdNetPendingTicker"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:paddingStart="8dp"
+                android:text="Wachten op BirdNet-GO..."
+                android:textColor="@color/vt5_white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvMasterClientStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="8dp"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/swBirdNetEnabled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="4dp"
+            android:checked="true"
+            android:contentDescription="@string/telling_birdnet_switch_description"
+            android:minWidth="72dp"
+            android:visibility="visible"
+            app:thumbTint="@color/vt5_white"
+            app:trackTint="@color/grafiek_beheer_aantallen"
+            app:useMaterialThemeColors="true" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:alpha="0.3"
+        android:background="@color/vt5_outline" />
+
+    <!-- Results Area (BirdNet + Speech) -->
+    <LinearLayout
+        android:id="@+id/results_area"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
         android:orientation="vertical">
+
+        <!-- BirdNet Detections (Only visible when active) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardBirdNetDetections"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_margin="1dp"
+            android:layout_weight="1"
+            android:visibility="gone"
+            app:cardCornerRadius="4dp"
+            app:strokeColor="@color/vt5_orange"
+            app:strokeWidth="2dp">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerViewBirdNetDetections"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#111111" />
+        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSpeechPartials"
             android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_height="0dp"
             android:layout_margin="1dp"
+            android:layout_weight="1"
             app:cardCornerRadius="4dp"
             app:strokeColor="@color/vt5_light_blue"
             app:strokeWidth="2dp">
@@ -121,9 +187,9 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardSpeechFinals"
             android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_height="0dp"
             android:layout_margin="1dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1"
             app:cardCornerRadius="4dp"
             app:strokeColor="@color/vt5_green"
             app:strokeWidth="2dp">
@@ -161,16 +227,6 @@
             android:layout_margin="2dp"
             app:icon="@drawable/ic_action_add"
             app:iconTint="@null" />
-
-        <ImageButton
-            android:id="@+id/btnBirdNet"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_birdnet_go"
-            android:visibility="gone"
-            app:tint="@android:color/white" />
 
         <Space
             android:layout_width="0dp"
