@@ -65,6 +65,10 @@ object AliasPriorityMatcher {
             return@withContext resolved
         }
 
+        trySegmentedMultiSpeciesMatch(tokens, hyp, matchContext, context, saf)?.let { segmented ->
+            return@withContext segmented
+        }
+
         val matches = mutableListOf<MatchResult.MatchWithAmount>()
         val consumed = BooleanArray(tokens.size)
         var i = 0
@@ -169,6 +173,97 @@ object AliasPriorityMatcher {
 
         val match = matches.first()
         return@withContext toDirectMatchResult(match.candidate, hyp, match.amount, match.isReturn)
+    }
+
+    /**
+     * Safer path for utterances that contain multiple counted species in one sentence.
+     *
+     * It tries to split the token stream into repeated blocks of:
+     *   [species phrase] [amount]
+     *
+     * This is intentionally conservative:
+     * - it only activates when the utterance contains at least two numeric tokens
+     * - if a block cannot be matched confidently, the function returns null so the
+     *   existing greedy matcher can still handle the utterance as before
+     */
+    private suspend fun trySegmentedMultiSpeciesMatch(
+        tokens: List<String>,
+        rawHypothesis: String,
+        ctx: MatchContext,
+        appContext: Context,
+        saf: SaFStorageHelper
+    ): MatchResult? {
+        if (tokens.count { isNumberToken(it) } < 2) return null
+
+        val matches = mutableListOf<MatchResult.MatchWithAmount>()
+        val consumed = BooleanArray(tokens.size)
+
+        var i = 0
+        while (i < tokens.size) {
+            while (i < tokens.size && isNumberToken(tokens[i])) {
+                i++
+            }
+            if (i >= tokens.size) break
+
+            val nextNumberIndex = findNextNumberTokenIndex(tokens, i) ?: break
+            if (nextNumberIndex <= i) {
+                i++
+                continue
+            }
+
+            val phraseTokens = tokens.subList(i, nextNumberIndex)
+            if (phraseTokens.isEmpty() || phraseTokens.any { isNumberToken(it) }) {
+                i = nextNumberIndex + 1
+                continue
+            }
+
+            val phrase = phraseTokens.joinToString(" ").trim()
+            if (phrase.isBlank()) {
+                i = nextNumberIndex + 1
+                continue
+            }
+
+            val amountParse = NumberPatterns.parseNumberTokens(tokens, nextNumberIndex) ?: run {
+                i = nextNumberIndex + 1
+                continue
+            }
+
+            val resolved = tryExactMatch(phrase, ctx, appContext, saf)
+                ?: tryFuzzyMatch(phrase, ctx, appContext, saf)
+
+            if (resolved == null) {
+                i = nextNumberIndex + 1
+                continue
+            }
+
+            var consumedEndExclusive = nextNumberIndex + amountParse.consumedTokenCount
+            var isReturn = false
+            tryMatchDirection(tokens, consumedEndExclusive, appContext, saf)?.let { dirLen ->
+                isReturn = true
+                consumedEndExclusive += dirLen
+            }
+
+            markConsumed(consumed, i, consumedEndExclusive)
+            matches += MatchResult.MatchWithAmount(resolved.first, amountParse.value, resolved.second, isReturn)
+            i = consumedEndExclusive
+        }
+
+        if (matches.isEmpty()) return null
+
+        val unmatchedFragments = buildUnmatchedFragments(tokens, consumed)
+        return if (matches.size > 1 || unmatchedFragments.isNotEmpty()) {
+            MatchResult.MultiMatch(matches, unmatchedFragments, rawHypothesis, "segmented-multi-species")
+        } else {
+            val only = matches.first()
+            toDirectMatchResult(only.candidate, rawHypothesis, only.amount, only.isReturn)
+        }
+    }
+
+    private fun findNextNumberTokenIndex(tokens: List<String>, startIndex: Int): Int? {
+        for (idx in startIndex until tokens.size) {
+            if (isNumberToken(tokens[idx])) return idx
+        }
+        return null
     }
 
     private suspend fun tryExactMatch(
