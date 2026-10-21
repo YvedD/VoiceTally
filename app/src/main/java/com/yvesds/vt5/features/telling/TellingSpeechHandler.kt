@@ -36,7 +36,7 @@ class TellingSpeechHandler(
     companion object {
         private const val TAG = "TellingSpeechHandler"
         private const val PREF_ASR_SILENCE_MS = "pref_asr_silence_ms"
-        private const val DEFAULT_SILENCE_MS = 1400
+        private const val DEFAULT_SILENCE_MS = 1500
     }
 
     // Speech components

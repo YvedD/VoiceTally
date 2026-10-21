@@ -2,6 +2,7 @@ package com.yvesds.vt5.features.speech
 
 import android.content.Context
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN
 import com.yvesds.vt5.utils.LevenshteinUtils
 import com.yvesds.vt5.utils.TextUtils
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,10 @@ object AliasPriorityMatcher {
     private const val SUGGEST_THRESHOLD = 0.40
     private const val POPUP_MAX_CANDIDATES = 6
     private const val FUZZY_AMBIGUITY_GAP = 0.10
+    private const val DIRECTION_FUZZY_THRESHOLD = 0.85
+    private const val STRICT_SINGLE_TOKEN_FUZZY_MIN_SCORE = 0.92
+    private const val TILES_SINGLE_TOKEN_FUZZY_MIN_SCORE = 0.84
+    private const val TILES_SINGLE_TOKEN_FUZZY_MIN_GAP = 0.18
 
     // Scoring weights (sum <= 1)
     private const val W_TEXT = 0.45
@@ -73,6 +78,16 @@ object AliasPriorityMatcher {
         val consumed = BooleanArray(tokens.size)
         var i = 0
         while (i < tokens.size) {
+            // Treat direction/control aliases as non-species control tokens.
+            // This prevents words trained as direction from being parsed as birds.
+            val directionLenAtCursor = tryMatchDirection(tokens, i, context, saf)
+            if (directionLenAtCursor != null) {
+                markConsumed(consumed, i, i + directionLenAtCursor)
+                i += directionLenAtCursor
+                continue
+            }
+            if (i >= tokens.size) break
+
             val maxWindow = minOf(6, tokens.size - i)
             var matched = false
 
@@ -125,16 +140,26 @@ object AliasPriorityMatcher {
                     if (window.any { NumberPatterns.isNumberWord(it) }) continue
                     val phrase = window.joinToString(" ")
 
-                    val fuzzy = tryFuzzyMatch(phrase, matchContext, context, saf)
+                    val fuzzyPick = tryFuzzyMatch(phrase, matchContext, context, saf)
+                    val fuzzy = fuzzyPick?.candidate
                     if (fuzzy != null) {
                         val matchStart = i
                         val nextIndex = i + w
                         var consumedEndExclusive = nextIndex
                         var amount = 1
                         var isReturn = false
-                        
+                        val amountParse = if (nextIndex < tokens.size) {
+                            NumberPatterns.parseNumberTokens(tokens, nextIndex)
+                        } else {
+                            null
+                        }
+
+                        if (w == 1 && amountParse == null && !isSafeSingleTokenFuzzyWithoutAmount(fuzzyPick)) {
+                            continue
+                        }
+
                         if (nextIndex < tokens.size) {
-                            NumberPatterns.parseNumberTokens(tokens, nextIndex)?.let { parsed ->
+                            amountParse?.let { parsed ->
                                 amount = parsed.value
                                 consumedEndExclusive = nextIndex + parsed.consumedTokenCount
                                 
@@ -155,7 +180,7 @@ object AliasPriorityMatcher {
                         i = consumedEndExclusive
                         markConsumed(consumed, matchStart, consumedEndExclusive)
 
-                        matches += MatchResult.MatchWithAmount(fuzzy.first, amount, fuzzy.second, isReturn)
+                        matches += MatchResult.MatchWithAmount(fuzzy, amount, fuzzy.source, isReturn)
                         matched = true; break
                     }
                 }
@@ -230,6 +255,7 @@ object AliasPriorityMatcher {
 
             val resolved = tryExactMatch(phrase, ctx, appContext, saf)
                 ?: tryFuzzyMatch(phrase, ctx, appContext, saf)
+                    ?.let { it.candidate to it.candidate.source }
 
             if (resolved == null) {
                 i = nextNumberIndex + 1
@@ -293,13 +319,13 @@ object AliasPriorityMatcher {
 
             // Check for exact match with _DIR_RETURN_ aliases
             val records = AliasMatcher.findExact(normalized, appContext, saf)
-            if (records.any { it.speciesid == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN }) {
+            if (records.any { it.speciesid == SPECIES_ID_DIR_RETURN }) {
                 return w
             }
 
             // Fallback to fuzzy match for direction (high threshold to avoid false positives)
-            val fuzzy = AliasMatcher.findFuzzyCandidates(normalized, appContext, saf, topN = 3, threshold = 0.85)
-            if (fuzzy.any { it.first.speciesid == com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN }) {
+            val fuzzy = AliasMatcher.findFuzzyCandidates(normalized, appContext, saf, topN = 3, threshold = DIRECTION_FUZZY_THRESHOLD)
+            if (fuzzy.any { it.first.speciesid == SPECIES_ID_DIR_RETURN }) {
                 return w
             }
         }
@@ -328,6 +354,10 @@ object AliasPriorityMatcher {
                 currentTokens = currentTokens.dropLast(consumed)
                 break
             }
+        }
+
+        if (isReturn && currentTokens.isEmpty()) {
+            return MatchResult.NoMatch(rawHypothesis, "direction-only")
         }
 
         // 2. Try match number
@@ -456,14 +486,33 @@ object AliasPriorityMatcher {
         return results
     }
 
+    private data class FuzzyPick(
+        val candidate: Candidate,
+        val candidates: List<Candidate>
+    )
+
     private suspend fun tryFuzzyMatch(
         phrase: String,
         ctx: MatchContext,
         appContext: Context,
         saf: SaFStorageHelper
-    ): Pair<Candidate, String>? {
-        val candidate = buildFuzzyCandidates(phrase, ctx, appContext, saf).firstOrNull() ?: return null
-        return if (candidate.score >= SUGGEST_THRESHOLD) candidate to candidate.source else null
+    ): FuzzyPick? {
+        val candidates = buildFuzzyCandidates(phrase, ctx, appContext, saf)
+        val candidate = candidates.firstOrNull() ?: return null
+        return if (candidate.score >= SUGGEST_THRESHOLD) {
+            FuzzyPick(candidate = candidate, candidates = candidates)
+        } else {
+            null
+        }
+    }
+
+    private fun isSafeSingleTokenFuzzyWithoutAmount(pick: FuzzyPick): Boolean {
+        val top = pick.candidate
+        if (top.score >= STRICT_SINGLE_TOKEN_FUZZY_MIN_SCORE) return true
+        if (!top.isInTiles || top.score < TILES_SINGLE_TOKEN_FUZZY_MIN_SCORE) return false
+
+        val second = pick.candidates.getOrNull(1) ?: return true
+        return (top.score - second.score) >= TILES_SINGLE_TOKEN_FUZZY_MIN_GAP
     }
 
     private suspend fun buildFuzzyCandidates(
@@ -478,7 +527,7 @@ object AliasPriorityMatcher {
         if (shortlist.isEmpty()) return emptyList()
 
         val filteredShortlist = shortlist.filter { pair ->
-            !NumberPatterns.isNumberCandidate(pair.first)
+            pair.first.speciesid != SPECIES_ID_DIR_RETURN && !NumberPatterns.isNumberCandidate(pair.first)
         }
         if (filteredShortlist.isEmpty()) return emptyList()
 
