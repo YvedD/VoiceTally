@@ -1,0 +1,1033 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 870" width="1100" height="870" font-family="Arial, sans-serif">
+<defs>
+<style>
+
+      .board { fill: #1a7a3a; stroke: #0d5a25; stroke-width: 2.5; }
+      .strip { fill: #d4a020; opacity: 0.55; }
+      .strip-line { stroke: #c89818; stroke-width: 1; fill: none; opacity: 0.3; }
+      .hole-ring { fill: #c8a84e; stroke: #a08030; stroke-width: 0.8; }
+      .hole { fill: #0d5a25; }
+      .solder { fill: #c0c0c0; stroke: #999; stroke-width: 0.5; opacity: 0.9; }
+      .cut-x { stroke: #ff3333; stroke-width: 2.5; stroke-linecap: round; }
+      .cut-bg { fill: #0d5a25; stroke: #0d5a25; stroke-width: 1; }
+      .wire-red { stroke: #ee2222; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-black { stroke: #222; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .wire-blue { stroke: #2266ee; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .resistor-body { fill: #d2b48c; stroke: #8b6914; stroke-width: 1.2; }
+      .cap-elec { fill: #1a1a8a; stroke: #111166; stroke-width: 1.5; }
+      .cap-film { fill: #ccaa22; stroke: #aa8800; stroke-width: 1.2; }
+      .inductor-body { fill: #444; stroke: #333; stroke-width: 1.2; }
+      .label { font-size: 10px; fill: #fff; font-weight: bold; }
+      .label-sm { font-size: 7.5px; fill: #ccc; }
+      .label-dark { font-size: 10px; fill: #333; font-weight: bold; }
+      .label-val { font-size: 8px; fill: #eee; }
+      .pin-label { font-size: 7px; fill: #fff; font-weight: bold; }
+      .title { font-size: 16px; fill: #1a1a1a; font-weight: bold; }
+      .subtitle { font-size: 11px; fill: #555; }
+      .legend-text { font-size: 10px; fill: #333; }
+      .connector { fill: #222; stroke: #444; stroke-width: 1.5; }
+      .jack-body { fill: #555; stroke: #333; stroke-width: 1.5; }
+      .usb-body { fill: #bbb; stroke: #888; stroke-width: 1.2; }
+      .note { font-size: 9px; fill: #cc4444; font-style: italic; }
+    
+</style>
+</defs>
+<rect width="1100" height="870" fill="#f5f5f0"/>
+<text x="550" y="30" text-anchor="middle" class="title">EM272Z1 Hulpprintje – Prototype op Stripboard</text>
+<text x="550" y="48" text-anchor="middle" class="subtitle">Bovenaanzicht | Stripboard 22×15 gaten | Strips horizontaal | Raster 2,54 mm</text>
+<rect x="83" y="93" width="590" height="464" rx="6" class="board"/>
+<rect x="95" y="111" width="566" height="8" rx="2" class="strip"/>
+<rect x="95" y="141" width="124" height="8" rx="2" class="strip"/>
+<rect x="277" y="141" width="384" height="8" rx="2" class="strip"/>
+<rect x="95" y="171" width="566" height="8" rx="2" class="strip"/>
+<rect x="95" y="201" width="566" height="8" rx="2" class="strip"/>
+<rect x="95" y="231" width="202" height="8" rx="2" class="strip"/>
+<rect x="329" y="231" width="46" height="8" rx="2" class="strip"/>
+<rect x="433" y="231" width="98" height="8" rx="2" class="strip"/>
+<rect x="563" y="231" width="20" height="8" rx="2" class="strip"/>
+<rect x="615" y="231" width="46" height="8" rx="2" class="strip"/>
+<rect x="95" y="261" width="566" height="8" rx="2" class="strip"/>
+<rect x="95" y="291" width="202" height="8" rx="2" class="strip"/>
+<rect x="329" y="291" width="46" height="8" rx="2" class="strip"/>
+<rect x="433" y="291" width="98" height="8" rx="2" class="strip"/>
+<rect x="563" y="291" width="20" height="8" rx="2" class="strip"/>
+<rect x="615" y="291" width="46" height="8" rx="2" class="strip"/>
+<rect x="95" y="321" width="566" height="8" rx="2" class="strip"/>
+<rect x="95" y="351" width="202" height="8" rx="2" class="strip"/>
+<rect x="329" y="351" width="46" height="8" rx="2" class="strip"/>
+<rect x="433" y="351" width="98" height="8" rx="2" class="strip"/>
+<rect x="563" y="351" width="20" height="8" rx="2" class="strip"/>
+<rect x="615" y="351" width="46" height="8" rx="2" class="strip"/>
+<rect x="95" y="381" width="566" height="8" rx="2" class="strip"/>
+<rect x="95" y="411" width="202" height="8" rx="2" class="strip"/>
+<rect x="329" y="411" width="46" height="8" rx="2" class="strip"/>
+<rect x="433" y="411" width="98" height="8" rx="2" class="strip"/>
+<rect x="563" y="411" width="20" height="8" rx="2" class="strip"/>
+<rect x="615" y="411" width="46" height="8" rx="2" class="strip"/>
+<rect x="95" y="441" width="150" height="8" rx="2" class="strip"/>
+<rect x="277" y="441" width="202" height="8" rx="2" class="strip"/>
+<rect x="511" y="441" width="150" height="8" rx="2" class="strip"/>
+<rect x="95" y="471" width="20" height="8" rx="2" class="strip"/>
+<rect x="147" y="471" width="150" height="8" rx="2" class="strip"/>
+<rect x="329" y="471" width="332" height="8" rx="2" class="strip"/>
+<rect x="95" y="501" width="20" height="8" rx="2" class="strip"/>
+<rect x="147" y="501" width="72" height="8" rx="2" class="strip"/>
+<rect x="251" y="501" width="410" height="8" rx="2" class="strip"/>
+<rect x="95" y="531" width="566" height="8" rx="2" class="strip"/>
+<circle cx="105" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="115" r="1.5" class="hole"/>
+<circle cx="131" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="115" r="1.5" class="hole"/>
+<circle cx="157" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="115" r="1.5" class="hole"/>
+<circle cx="183" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="115" r="1.5" class="hole"/>
+<circle cx="209" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="115" r="1.5" class="hole"/>
+<circle cx="235" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="115" r="1.5" class="hole"/>
+<circle cx="261" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="115" r="1.5" class="hole"/>
+<circle cx="287" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="115" r="1.5" class="hole"/>
+<circle cx="313" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="115" r="1.5" class="hole"/>
+<circle cx="339" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="115" r="1.5" class="hole"/>
+<circle cx="365" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="115" r="1.5" class="hole"/>
+<circle cx="391" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="115" r="1.5" class="hole"/>
+<circle cx="417" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="115" r="1.5" class="hole"/>
+<circle cx="443" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="115" r="1.5" class="hole"/>
+<circle cx="469" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="115" r="1.5" class="hole"/>
+<circle cx="495" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="115" r="1.5" class="hole"/>
+<circle cx="521" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="115" r="1.5" class="hole"/>
+<circle cx="547" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="115" r="1.5" class="hole"/>
+<circle cx="573" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="115" r="1.5" class="hole"/>
+<circle cx="599" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="115" r="1.5" class="hole"/>
+<circle cx="625" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="115" r="1.5" class="hole"/>
+<circle cx="651" cy="115" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="115" r="1.5" class="hole"/>
+<circle cx="105" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="145" r="1.5" class="hole"/>
+<circle cx="131" cy="145" r="4.5" class="hole-ring"/>
+<circle cx="131" cy="145" r="3.8" class="solder"/>
+<circle cx="157" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="145" r="1.5" class="hole"/>
+<circle cx="183" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="145" r="1.5" class="hole"/>
+<circle cx="209" cy="145" r="4.5" class="hole-ring"/>
+<circle cx="209" cy="145" r="3.8" class="solder"/>
+<circle cx="235" cy="145" r="4" class="cut-bg"/>
+<line x1="231" y1="141" x2="239" y2="149" class="cut-x"/>
+<line x1="239" y1="141" x2="231" y2="149" class="cut-x"/>
+<circle cx="261" cy="145" r="4" class="cut-bg"/>
+<line x1="257" y1="141" x2="265" y2="149" class="cut-x"/>
+<line x1="265" y1="141" x2="257" y2="149" class="cut-x"/>
+<circle cx="287" cy="145" r="4.5" class="hole-ring"/>
+<circle cx="287" cy="145" r="3.8" class="solder"/>
+<circle cx="313" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="145" r="1.5" class="hole"/>
+<circle cx="339" cy="145" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="145" r="3.8" class="solder"/>
+<circle cx="365" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="145" r="1.5" class="hole"/>
+<circle cx="391" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="145" r="1.5" class="hole"/>
+<circle cx="417" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="145" r="1.5" class="hole"/>
+<circle cx="443" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="145" r="1.5" class="hole"/>
+<circle cx="469" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="145" r="1.5" class="hole"/>
+<circle cx="495" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="145" r="1.5" class="hole"/>
+<circle cx="521" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="145" r="1.5" class="hole"/>
+<circle cx="547" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="145" r="1.5" class="hole"/>
+<circle cx="573" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="145" r="1.5" class="hole"/>
+<circle cx="599" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="145" r="1.5" class="hole"/>
+<circle cx="625" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="145" r="1.5" class="hole"/>
+<circle cx="651" cy="145" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="145" r="1.5" class="hole"/>
+<circle cx="105" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="175" r="1.5" class="hole"/>
+<circle cx="131" cy="175" r="4.5" class="hole-ring"/>
+<circle cx="131" cy="175" r="3.8" class="solder"/>
+<circle cx="157" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="175" r="1.5" class="hole"/>
+<circle cx="183" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="175" r="1.5" class="hole"/>
+<circle cx="209" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="175" r="1.5" class="hole"/>
+<circle cx="235" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="175" r="1.5" class="hole"/>
+<circle cx="261" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="175" r="1.5" class="hole"/>
+<circle cx="287" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="175" r="1.5" class="hole"/>
+<circle cx="313" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="175" r="1.5" class="hole"/>
+<circle cx="339" cy="175" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="175" r="3.8" class="solder"/>
+<circle cx="365" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="175" r="1.5" class="hole"/>
+<circle cx="391" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="175" r="1.5" class="hole"/>
+<circle cx="417" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="175" r="1.5" class="hole"/>
+<circle cx="443" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="175" r="1.5" class="hole"/>
+<circle cx="469" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="175" r="1.5" class="hole"/>
+<circle cx="495" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="175" r="1.5" class="hole"/>
+<circle cx="521" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="175" r="1.5" class="hole"/>
+<circle cx="547" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="175" r="1.5" class="hole"/>
+<circle cx="573" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="175" r="1.5" class="hole"/>
+<circle cx="599" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="175" r="1.5" class="hole"/>
+<circle cx="625" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="175" r="1.5" class="hole"/>
+<circle cx="651" cy="175" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="175" r="1.5" class="hole"/>
+<circle cx="105" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="205" r="1.5" class="hole"/>
+<circle cx="131" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="205" r="1.5" class="hole"/>
+<circle cx="157" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="205" r="1.5" class="hole"/>
+<circle cx="183" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="205" r="1.5" class="hole"/>
+<circle cx="209" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="205" r="1.5" class="hole"/>
+<circle cx="235" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="205" r="1.5" class="hole"/>
+<circle cx="261" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="205" r="1.5" class="hole"/>
+<circle cx="287" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="205" r="1.5" class="hole"/>
+<circle cx="313" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="205" r="1.5" class="hole"/>
+<circle cx="339" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="205" r="1.5" class="hole"/>
+<circle cx="365" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="205" r="1.5" class="hole"/>
+<circle cx="391" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="205" r="1.5" class="hole"/>
+<circle cx="417" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="205" r="1.5" class="hole"/>
+<circle cx="443" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="205" r="1.5" class="hole"/>
+<circle cx="469" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="205" r="1.5" class="hole"/>
+<circle cx="495" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="205" r="1.5" class="hole"/>
+<circle cx="521" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="205" r="1.5" class="hole"/>
+<circle cx="547" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="205" r="1.5" class="hole"/>
+<circle cx="573" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="205" r="1.5" class="hole"/>
+<circle cx="599" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="205" r="1.5" class="hole"/>
+<circle cx="625" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="205" r="1.5" class="hole"/>
+<circle cx="651" cy="205" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="205" r="1.5" class="hole"/>
+<circle cx="105" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="235" r="1.5" class="hole"/>
+<circle cx="131" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="235" r="1.5" class="hole"/>
+<circle cx="157" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="235" r="1.5" class="hole"/>
+<circle cx="183" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="235" r="1.5" class="hole"/>
+<circle cx="209" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="235" r="1.5" class="hole"/>
+<circle cx="235" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="235" r="1.5" class="hole"/>
+<circle cx="261" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="235" r="1.5" class="hole"/>
+<circle cx="287" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="235" r="1.5" class="hole"/>
+<circle cx="313" cy="235" r="4" class="cut-bg"/>
+<line x1="309" y1="231" x2="317" y2="239" class="cut-x"/>
+<line x1="317" y1="231" x2="309" y2="239" class="cut-x"/>
+<circle cx="339" cy="235" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="235" r="3.8" class="solder"/>
+<circle cx="365" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="235" r="1.5" class="hole"/>
+<circle cx="391" cy="235" r="4" class="cut-bg"/>
+<line x1="387" y1="231" x2="395" y2="239" class="cut-x"/>
+<line x1="395" y1="231" x2="387" y2="239" class="cut-x"/>
+<circle cx="417" cy="235" r="4" class="cut-bg"/>
+<line x1="413" y1="231" x2="421" y2="239" class="cut-x"/>
+<line x1="421" y1="231" x2="413" y2="239" class="cut-x"/>
+<circle cx="443" cy="235" r="4.5" class="hole-ring"/>
+<circle cx="443" cy="235" r="3.8" class="solder"/>
+<circle cx="469" cy="235" r="4.5" class="hole-ring"/>
+<circle cx="469" cy="235" r="3.8" class="solder"/>
+<circle cx="495" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="235" r="1.5" class="hole"/>
+<circle cx="521" cy="235" r="4.5" class="hole-ring"/>
+<circle cx="521" cy="235" r="3.8" class="solder"/>
+<circle cx="547" cy="235" r="4" class="cut-bg"/>
+<line x1="543" y1="231" x2="551" y2="239" class="cut-x"/>
+<line x1="551" y1="231" x2="543" y2="239" class="cut-x"/>
+<circle cx="573" cy="235" r="4.5" class="hole-ring"/>
+<circle cx="573" cy="235" r="3.8" class="solder"/>
+<circle cx="599" cy="235" r="4" class="cut-bg"/>
+<line x1="595" y1="231" x2="603" y2="239" class="cut-x"/>
+<line x1="603" y1="231" x2="595" y2="239" class="cut-x"/>
+<circle cx="625" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="235" r="1.5" class="hole"/>
+<circle cx="651" cy="235" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="235" r="1.5" class="hole"/>
+<circle cx="105" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="265" r="1.5" class="hole"/>
+<circle cx="131" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="265" r="1.5" class="hole"/>
+<circle cx="157" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="265" r="1.5" class="hole"/>
+<circle cx="183" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="265" r="1.5" class="hole"/>
+<circle cx="209" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="265" r="1.5" class="hole"/>
+<circle cx="235" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="265" r="1.5" class="hole"/>
+<circle cx="261" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="265" r="1.5" class="hole"/>
+<circle cx="287" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="265" r="1.5" class="hole"/>
+<circle cx="313" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="265" r="1.5" class="hole"/>
+<circle cx="339" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="265" r="1.5" class="hole"/>
+<circle cx="365" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="265" r="1.5" class="hole"/>
+<circle cx="391" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="265" r="1.5" class="hole"/>
+<circle cx="417" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="265" r="1.5" class="hole"/>
+<circle cx="443" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="265" r="1.5" class="hole"/>
+<circle cx="469" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="265" r="1.5" class="hole"/>
+<circle cx="495" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="265" r="1.5" class="hole"/>
+<circle cx="521" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="265" r="1.5" class="hole"/>
+<circle cx="547" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="265" r="1.5" class="hole"/>
+<circle cx="573" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="265" r="1.5" class="hole"/>
+<circle cx="599" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="265" r="1.5" class="hole"/>
+<circle cx="625" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="265" r="1.5" class="hole"/>
+<circle cx="651" cy="265" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="265" r="1.5" class="hole"/>
+<circle cx="105" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="295" r="1.5" class="hole"/>
+<circle cx="131" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="295" r="1.5" class="hole"/>
+<circle cx="157" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="295" r="1.5" class="hole"/>
+<circle cx="183" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="295" r="1.5" class="hole"/>
+<circle cx="209" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="295" r="1.5" class="hole"/>
+<circle cx="235" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="295" r="1.5" class="hole"/>
+<circle cx="261" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="295" r="1.5" class="hole"/>
+<circle cx="287" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="295" r="1.5" class="hole"/>
+<circle cx="313" cy="295" r="4" class="cut-bg"/>
+<line x1="309" y1="291" x2="317" y2="299" class="cut-x"/>
+<line x1="317" y1="291" x2="309" y2="299" class="cut-x"/>
+<circle cx="339" cy="295" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="295" r="3.8" class="solder"/>
+<circle cx="365" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="295" r="1.5" class="hole"/>
+<circle cx="391" cy="295" r="4" class="cut-bg"/>
+<line x1="387" y1="291" x2="395" y2="299" class="cut-x"/>
+<line x1="395" y1="291" x2="387" y2="299" class="cut-x"/>
+<circle cx="417" cy="295" r="4" class="cut-bg"/>
+<line x1="413" y1="291" x2="421" y2="299" class="cut-x"/>
+<line x1="421" y1="291" x2="413" y2="299" class="cut-x"/>
+<circle cx="443" cy="295" r="4.5" class="hole-ring"/>
+<circle cx="443" cy="295" r="3.8" class="solder"/>
+<circle cx="469" cy="295" r="4.5" class="hole-ring"/>
+<circle cx="469" cy="295" r="3.8" class="solder"/>
+<circle cx="495" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="295" r="1.5" class="hole"/>
+<circle cx="521" cy="295" r="4.5" class="hole-ring"/>
+<circle cx="521" cy="295" r="3.8" class="solder"/>
+<circle cx="547" cy="295" r="4" class="cut-bg"/>
+<line x1="543" y1="291" x2="551" y2="299" class="cut-x"/>
+<line x1="551" y1="291" x2="543" y2="299" class="cut-x"/>
+<circle cx="573" cy="295" r="4.5" class="hole-ring"/>
+<circle cx="573" cy="295" r="3.8" class="solder"/>
+<circle cx="599" cy="295" r="4" class="cut-bg"/>
+<line x1="595" y1="291" x2="603" y2="299" class="cut-x"/>
+<line x1="603" y1="291" x2="595" y2="299" class="cut-x"/>
+<circle cx="625" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="295" r="1.5" class="hole"/>
+<circle cx="651" cy="295" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="295" r="1.5" class="hole"/>
+<circle cx="105" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="325" r="1.5" class="hole"/>
+<circle cx="131" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="325" r="1.5" class="hole"/>
+<circle cx="157" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="325" r="1.5" class="hole"/>
+<circle cx="183" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="325" r="1.5" class="hole"/>
+<circle cx="209" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="325" r="1.5" class="hole"/>
+<circle cx="235" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="325" r="1.5" class="hole"/>
+<circle cx="261" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="325" r="1.5" class="hole"/>
+<circle cx="287" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="325" r="1.5" class="hole"/>
+<circle cx="313" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="325" r="1.5" class="hole"/>
+<circle cx="339" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="325" r="1.5" class="hole"/>
+<circle cx="365" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="325" r="1.5" class="hole"/>
+<circle cx="391" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="325" r="1.5" class="hole"/>
+<circle cx="417" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="325" r="1.5" class="hole"/>
+<circle cx="443" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="325" r="1.5" class="hole"/>
+<circle cx="469" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="325" r="1.5" class="hole"/>
+<circle cx="495" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="325" r="1.5" class="hole"/>
+<circle cx="521" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="325" r="1.5" class="hole"/>
+<circle cx="547" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="325" r="1.5" class="hole"/>
+<circle cx="573" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="325" r="1.5" class="hole"/>
+<circle cx="599" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="325" r="1.5" class="hole"/>
+<circle cx="625" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="325" r="1.5" class="hole"/>
+<circle cx="651" cy="325" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="325" r="1.5" class="hole"/>
+<circle cx="105" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="355" r="1.5" class="hole"/>
+<circle cx="131" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="355" r="1.5" class="hole"/>
+<circle cx="157" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="355" r="1.5" class="hole"/>
+<circle cx="183" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="355" r="1.5" class="hole"/>
+<circle cx="209" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="355" r="1.5" class="hole"/>
+<circle cx="235" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="355" r="1.5" class="hole"/>
+<circle cx="261" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="355" r="1.5" class="hole"/>
+<circle cx="287" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="355" r="1.5" class="hole"/>
+<circle cx="313" cy="355" r="4" class="cut-bg"/>
+<line x1="309" y1="351" x2="317" y2="359" class="cut-x"/>
+<line x1="317" y1="351" x2="309" y2="359" class="cut-x"/>
+<circle cx="339" cy="355" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="355" r="3.8" class="solder"/>
+<circle cx="365" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="355" r="1.5" class="hole"/>
+<circle cx="391" cy="355" r="4" class="cut-bg"/>
+<line x1="387" y1="351" x2="395" y2="359" class="cut-x"/>
+<line x1="395" y1="351" x2="387" y2="359" class="cut-x"/>
+<circle cx="417" cy="355" r="4" class="cut-bg"/>
+<line x1="413" y1="351" x2="421" y2="359" class="cut-x"/>
+<line x1="421" y1="351" x2="413" y2="359" class="cut-x"/>
+<circle cx="443" cy="355" r="4.5" class="hole-ring"/>
+<circle cx="443" cy="355" r="3.8" class="solder"/>
+<circle cx="469" cy="355" r="4.5" class="hole-ring"/>
+<circle cx="469" cy="355" r="3.8" class="solder"/>
+<circle cx="495" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="355" r="1.5" class="hole"/>
+<circle cx="521" cy="355" r="4.5" class="hole-ring"/>
+<circle cx="521" cy="355" r="3.8" class="solder"/>
+<circle cx="547" cy="355" r="4" class="cut-bg"/>
+<line x1="543" y1="351" x2="551" y2="359" class="cut-x"/>
+<line x1="551" y1="351" x2="543" y2="359" class="cut-x"/>
+<circle cx="573" cy="355" r="4.5" class="hole-ring"/>
+<circle cx="573" cy="355" r="3.8" class="solder"/>
+<circle cx="599" cy="355" r="4" class="cut-bg"/>
+<line x1="595" y1="351" x2="603" y2="359" class="cut-x"/>
+<line x1="603" y1="351" x2="595" y2="359" class="cut-x"/>
+<circle cx="625" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="355" r="1.5" class="hole"/>
+<circle cx="651" cy="355" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="355" r="1.5" class="hole"/>
+<circle cx="105" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="385" r="1.5" class="hole"/>
+<circle cx="131" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="385" r="1.5" class="hole"/>
+<circle cx="157" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="385" r="1.5" class="hole"/>
+<circle cx="183" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="385" r="1.5" class="hole"/>
+<circle cx="209" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="385" r="1.5" class="hole"/>
+<circle cx="235" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="385" r="1.5" class="hole"/>
+<circle cx="261" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="385" r="1.5" class="hole"/>
+<circle cx="287" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="385" r="1.5" class="hole"/>
+<circle cx="313" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="385" r="1.5" class="hole"/>
+<circle cx="339" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="385" r="1.5" class="hole"/>
+<circle cx="365" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="385" r="1.5" class="hole"/>
+<circle cx="391" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="385" r="1.5" class="hole"/>
+<circle cx="417" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="385" r="1.5" class="hole"/>
+<circle cx="443" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="385" r="1.5" class="hole"/>
+<circle cx="469" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="385" r="1.5" class="hole"/>
+<circle cx="495" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="385" r="1.5" class="hole"/>
+<circle cx="521" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="385" r="1.5" class="hole"/>
+<circle cx="547" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="385" r="1.5" class="hole"/>
+<circle cx="573" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="385" r="1.5" class="hole"/>
+<circle cx="599" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="385" r="1.5" class="hole"/>
+<circle cx="625" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="385" r="1.5" class="hole"/>
+<circle cx="651" cy="385" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="385" r="1.5" class="hole"/>
+<circle cx="105" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="415" r="1.5" class="hole"/>
+<circle cx="131" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="415" r="1.5" class="hole"/>
+<circle cx="157" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="415" r="1.5" class="hole"/>
+<circle cx="183" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="415" r="1.5" class="hole"/>
+<circle cx="209" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="415" r="1.5" class="hole"/>
+<circle cx="235" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="415" r="1.5" class="hole"/>
+<circle cx="261" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="415" r="1.5" class="hole"/>
+<circle cx="287" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="415" r="1.5" class="hole"/>
+<circle cx="313" cy="415" r="4" class="cut-bg"/>
+<line x1="309" y1="411" x2="317" y2="419" class="cut-x"/>
+<line x1="317" y1="411" x2="309" y2="419" class="cut-x"/>
+<circle cx="339" cy="415" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="415" r="3.8" class="solder"/>
+<circle cx="365" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="415" r="1.5" class="hole"/>
+<circle cx="391" cy="415" r="4" class="cut-bg"/>
+<line x1="387" y1="411" x2="395" y2="419" class="cut-x"/>
+<line x1="395" y1="411" x2="387" y2="419" class="cut-x"/>
+<circle cx="417" cy="415" r="4" class="cut-bg"/>
+<line x1="413" y1="411" x2="421" y2="419" class="cut-x"/>
+<line x1="421" y1="411" x2="413" y2="419" class="cut-x"/>
+<circle cx="443" cy="415" r="4.5" class="hole-ring"/>
+<circle cx="443" cy="415" r="3.8" class="solder"/>
+<circle cx="469" cy="415" r="4.5" class="hole-ring"/>
+<circle cx="469" cy="415" r="3.8" class="solder"/>
+<circle cx="495" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="415" r="1.5" class="hole"/>
+<circle cx="521" cy="415" r="4.5" class="hole-ring"/>
+<circle cx="521" cy="415" r="3.8" class="solder"/>
+<circle cx="547" cy="415" r="4" class="cut-bg"/>
+<line x1="543" y1="411" x2="551" y2="419" class="cut-x"/>
+<line x1="551" y1="411" x2="543" y2="419" class="cut-x"/>
+<circle cx="573" cy="415" r="4.5" class="hole-ring"/>
+<circle cx="573" cy="415" r="3.8" class="solder"/>
+<circle cx="599" cy="415" r="4" class="cut-bg"/>
+<line x1="595" y1="411" x2="603" y2="419" class="cut-x"/>
+<line x1="603" y1="411" x2="595" y2="419" class="cut-x"/>
+<circle cx="625" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="415" r="1.5" class="hole"/>
+<circle cx="651" cy="415" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="415" r="1.5" class="hole"/>
+<circle cx="105" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="445" r="1.5" class="hole"/>
+<circle cx="131" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="131" cy="445" r="1.5" class="hole"/>
+<circle cx="157" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="445" r="1.5" class="hole"/>
+<circle cx="183" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="445" r="1.5" class="hole"/>
+<circle cx="209" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="209" cy="445" r="1.5" class="hole"/>
+<circle cx="235" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="445" r="1.5" class="hole"/>
+<circle cx="261" cy="445" r="4" class="cut-bg"/>
+<line x1="257" y1="441" x2="265" y2="449" class="cut-x"/>
+<line x1="265" y1="441" x2="257" y2="449" class="cut-x"/>
+<circle cx="287" cy="445" r="4.5" class="hole-ring"/>
+<circle cx="287" cy="445" r="3.8" class="solder"/>
+<circle cx="313" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="445" r="1.5" class="hole"/>
+<circle cx="339" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="445" r="1.5" class="hole"/>
+<circle cx="365" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="445" r="1.5" class="hole"/>
+<circle cx="391" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="445" r="1.5" class="hole"/>
+<circle cx="417" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="445" r="1.5" class="hole"/>
+<circle cx="443" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="445" r="1.5" class="hole"/>
+<circle cx="469" cy="445" r="4.5" class="hole-ring"/>
+<circle cx="469" cy="445" r="3.8" class="solder"/>
+<circle cx="495" cy="445" r="4" class="cut-bg"/>
+<line x1="491" y1="441" x2="499" y2="449" class="cut-x"/>
+<line x1="499" y1="441" x2="491" y2="449" class="cut-x"/>
+<circle cx="521" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="445" r="1.5" class="hole"/>
+<circle cx="547" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="445" r="1.5" class="hole"/>
+<circle cx="573" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="445" r="1.5" class="hole"/>
+<circle cx="599" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="445" r="1.5" class="hole"/>
+<circle cx="625" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="445" r="1.5" class="hole"/>
+<circle cx="651" cy="445" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="445" r="1.5" class="hole"/>
+<circle cx="105" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="475" r="1.5" class="hole"/>
+<circle cx="131" cy="475" r="4" class="cut-bg"/>
+<line x1="127" y1="471" x2="135" y2="479" class="cut-x"/>
+<line x1="135" y1="471" x2="127" y2="479" class="cut-x"/>
+<circle cx="157" cy="475" r="4.5" class="hole-ring"/>
+<circle cx="157" cy="475" r="3.8" class="solder"/>
+<circle cx="183" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="475" r="1.5" class="hole"/>
+<circle cx="209" cy="475" r="4.5" class="hole-ring"/>
+<circle cx="209" cy="475" r="3.8" class="solder"/>
+<circle cx="235" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="475" r="1.5" class="hole"/>
+<circle cx="261" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="475" r="1.5" class="hole"/>
+<circle cx="287" cy="475" r="4.5" class="hole-ring"/>
+<circle cx="287" cy="475" r="3.8" class="solder"/>
+<circle cx="313" cy="475" r="4" class="cut-bg"/>
+<line x1="309" y1="471" x2="317" y2="479" class="cut-x"/>
+<line x1="317" y1="471" x2="309" y2="479" class="cut-x"/>
+<circle cx="339" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="475" r="1.5" class="hole"/>
+<circle cx="365" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="475" r="1.5" class="hole"/>
+<circle cx="391" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="475" r="1.5" class="hole"/>
+<circle cx="417" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="475" r="1.5" class="hole"/>
+<circle cx="443" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="475" r="1.5" class="hole"/>
+<circle cx="469" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="475" r="1.5" class="hole"/>
+<circle cx="495" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="475" r="1.5" class="hole"/>
+<circle cx="521" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="475" r="1.5" class="hole"/>
+<circle cx="547" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="475" r="1.5" class="hole"/>
+<circle cx="573" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="475" r="1.5" class="hole"/>
+<circle cx="599" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="475" r="1.5" class="hole"/>
+<circle cx="625" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="475" r="1.5" class="hole"/>
+<circle cx="651" cy="475" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="475" r="1.5" class="hole"/>
+<circle cx="105" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="505" r="1.5" class="hole"/>
+<circle cx="131" cy="505" r="4" class="cut-bg"/>
+<line x1="127" y1="501" x2="135" y2="509" class="cut-x"/>
+<line x1="135" y1="501" x2="127" y2="509" class="cut-x"/>
+<circle cx="157" cy="505" r="4.5" class="hole-ring"/>
+<circle cx="157" cy="505" r="3.8" class="solder"/>
+<circle cx="183" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="183" cy="505" r="1.5" class="hole"/>
+<circle cx="209" cy="505" r="4.5" class="hole-ring"/>
+<circle cx="209" cy="505" r="3.8" class="solder"/>
+<circle cx="235" cy="505" r="4" class="cut-bg"/>
+<line x1="231" y1="501" x2="239" y2="509" class="cut-x"/>
+<line x1="239" y1="501" x2="231" y2="509" class="cut-x"/>
+<circle cx="261" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="505" r="1.5" class="hole"/>
+<circle cx="287" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="505" r="1.5" class="hole"/>
+<circle cx="313" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="505" r="1.5" class="hole"/>
+<circle cx="339" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="339" cy="505" r="1.5" class="hole"/>
+<circle cx="365" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="505" r="1.5" class="hole"/>
+<circle cx="391" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="505" r="1.5" class="hole"/>
+<circle cx="417" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="505" r="1.5" class="hole"/>
+<circle cx="443" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="505" r="1.5" class="hole"/>
+<circle cx="469" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="505" r="1.5" class="hole"/>
+<circle cx="495" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="505" r="1.5" class="hole"/>
+<circle cx="521" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="505" r="1.5" class="hole"/>
+<circle cx="547" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="505" r="1.5" class="hole"/>
+<circle cx="573" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="573" cy="505" r="1.5" class="hole"/>
+<circle cx="599" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="505" r="1.5" class="hole"/>
+<circle cx="625" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="505" r="1.5" class="hole"/>
+<circle cx="651" cy="505" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="505" r="1.5" class="hole"/>
+<circle cx="105" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="105" cy="535" r="1.5" class="hole"/>
+<circle cx="131" cy="535" r="4.5" class="hole-ring"/>
+<circle cx="131" cy="535" r="3.8" class="solder"/>
+<circle cx="157" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="157" cy="535" r="1.5" class="hole"/>
+<circle cx="183" cy="535" r="4.5" class="hole-ring"/>
+<circle cx="183" cy="535" r="3.8" class="solder"/>
+<circle cx="209" cy="535" r="4.5" class="hole-ring"/>
+<circle cx="209" cy="535" r="3.8" class="solder"/>
+<circle cx="235" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="235" cy="535" r="1.5" class="hole"/>
+<circle cx="261" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="261" cy="535" r="1.5" class="hole"/>
+<circle cx="287" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="287" cy="535" r="1.5" class="hole"/>
+<circle cx="313" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="313" cy="535" r="1.5" class="hole"/>
+<circle cx="339" cy="535" r="4.5" class="hole-ring"/>
+<circle cx="339" cy="535" r="3.8" class="solder"/>
+<circle cx="365" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="365" cy="535" r="1.5" class="hole"/>
+<circle cx="391" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="391" cy="535" r="1.5" class="hole"/>
+<circle cx="417" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="417" cy="535" r="1.5" class="hole"/>
+<circle cx="443" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="443" cy="535" r="1.5" class="hole"/>
+<circle cx="469" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="469" cy="535" r="1.5" class="hole"/>
+<circle cx="495" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="495" cy="535" r="1.5" class="hole"/>
+<circle cx="521" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="521" cy="535" r="1.5" class="hole"/>
+<circle cx="547" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="547" cy="535" r="1.5" class="hole"/>
+<circle cx="573" cy="535" r="4.5" class="hole-ring"/>
+<circle cx="573" cy="535" r="3.8" class="solder"/>
+<circle cx="599" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="599" cy="535" r="1.5" class="hole"/>
+<circle cx="625" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="625" cy="535" r="1.5" class="hole"/>
+<circle cx="651" cy="535" r="3.8" class="hole-ring"/>
+<circle cx="651" cy="535" r="1.5" class="hole"/>
+<text x="87" y="119" text-anchor="middle" class="label-sm" style="font-size:8px">A</text>
+<text x="87" y="149" text-anchor="middle" class="label-sm" style="font-size:8px">B</text>
+<text x="87" y="179" text-anchor="middle" class="label-sm" style="font-size:8px">C</text>
+<text x="87" y="209" text-anchor="middle" class="label-sm" style="font-size:8px">D</text>
+<text x="87" y="239" text-anchor="middle" class="label-sm" style="font-size:8px">E</text>
+<text x="87" y="269" text-anchor="middle" class="label-sm" style="font-size:8px">F</text>
+<text x="87" y="299" text-anchor="middle" class="label-sm" style="font-size:8px">G</text>
+<text x="87" y="329" text-anchor="middle" class="label-sm" style="font-size:8px">H</text>
+<text x="87" y="359" text-anchor="middle" class="label-sm" style="font-size:8px">I</text>
+<text x="87" y="389" text-anchor="middle" class="label-sm" style="font-size:8px">J</text>
+<text x="87" y="419" text-anchor="middle" class="label-sm" style="font-size:8px">K</text>
+<text x="87" y="449" text-anchor="middle" class="label-sm" style="font-size:8px">L</text>
+<text x="87" y="479" text-anchor="middle" class="label-sm" style="font-size:8px">M</text>
+<text x="87" y="509" text-anchor="middle" class="label-sm" style="font-size:8px">N</text>
+<text x="87" y="539" text-anchor="middle" class="label-sm" style="font-size:8px">O</text>
+<text x="105" y="101" text-anchor="middle" style="font-size:7px; fill:#555">1</text>
+<text x="131" y="101" text-anchor="middle" style="font-size:7px; fill:#555">2</text>
+<text x="157" y="101" text-anchor="middle" style="font-size:7px; fill:#555">3</text>
+<text x="183" y="101" text-anchor="middle" style="font-size:7px; fill:#555">4</text>
+<text x="209" y="101" text-anchor="middle" style="font-size:7px; fill:#555">5</text>
+<text x="235" y="101" text-anchor="middle" style="font-size:7px; fill:#555">6</text>
+<text x="261" y="101" text-anchor="middle" style="font-size:7px; fill:#555">7</text>
+<text x="287" y="101" text-anchor="middle" style="font-size:7px; fill:#555">8</text>
+<text x="313" y="101" text-anchor="middle" style="font-size:7px; fill:#555">9</text>
+<text x="339" y="101" text-anchor="middle" style="font-size:7px; fill:#555">10</text>
+<text x="365" y="101" text-anchor="middle" style="font-size:7px; fill:#555">11</text>
+<text x="391" y="101" text-anchor="middle" style="font-size:7px; fill:#555">12</text>
+<text x="417" y="101" text-anchor="middle" style="font-size:7px; fill:#555">13</text>
+<text x="443" y="101" text-anchor="middle" style="font-size:7px; fill:#555">14</text>
+<text x="469" y="101" text-anchor="middle" style="font-size:7px; fill:#555">15</text>
+<text x="495" y="101" text-anchor="middle" style="font-size:7px; fill:#555">16</text>
+<text x="521" y="101" text-anchor="middle" style="font-size:7px; fill:#555">17</text>
+<text x="547" y="101" text-anchor="middle" style="font-size:7px; fill:#555">18</text>
+<text x="573" y="101" text-anchor="middle" style="font-size:7px; fill:#555">19</text>
+<text x="599" y="101" text-anchor="middle" style="font-size:7px; fill:#555">20</text>
+<text x="625" y="101" text-anchor="middle" style="font-size:7px; fill:#555">21</text>
+<text x="651" y="101" text-anchor="middle" style="font-size:7px; fill:#555">22</text>
+<rect x="117" y="129" width="28" height="62" rx="3" class="usb-body"/>
+<rect x="123" y="133" width="16" height="8" fill="#555" rx="1"/>
+<text x="131" y="125" text-anchor="middle" class="label" fill="#ee4444">J1 USB</text>
+<text x="149" y="148" style="font-size:6px; fill:#444">+5V</text>
+<text x="149" y="178" style="font-size:6px; fill:#444">GND</text>
+<text x="111" y="163" style="font-size:9px; fill:#888">◄</text>
+<rect x="206" y="137" width="84" height="16" rx="4" class="inductor-body"/>
+<line x1="217" y1="140" x2="217" y2="150" stroke="#777" stroke-width="0.8"/>
+<line x1="231" y1="140" x2="231" y2="150" stroke="#777" stroke-width="0.8"/>
+<line x1="245" y1="140" x2="245" y2="150" stroke="#777" stroke-width="0.8"/>
+<line x1="259" y1="140" x2="259" y2="150" stroke="#777" stroke-width="0.8"/>
+<line x1="273" y1="140" x2="273" y2="150" stroke="#777" stroke-width="0.8"/>
+<text x="248" y="133" text-anchor="middle" class="label">L1 10µH</text>
+<circle cx="339" cy="160" r="13" class="cap-elec"/>
+<text x="339" y="158" text-anchor="middle" class="pin-label" style="font-size:8px">C2</text>
+<text x="339" y="168" text-anchor="middle" style="font-size:6px; fill:#bbb">100µF</text>
+<text x="330" y="147" style="font-size:9px; fill:#fff; font-weight:bold">+</text>
+<text x="345" y="177" style="font-size:7px; fill:#ddd">−</text>
+<line x1="339" y1="147" x2="339" y2="145" stroke="#888" stroke-width="1"/>
+<line x1="339" y1="175" x2="339" y2="173" stroke="#888" stroke-width="1"/>
+<rect x="343" y="228" width="96" height="14" rx="3" class="resistor-body"/>
+<rect x="351" y="230" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="367" y="230" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="383" y="230" width="7" height="10" rx="1" fill="#ff0000"/>
+<rect x="399" y="230" width="7" height="10" rx="1" fill="#d4a017"/>
+<text x="391" y="224" text-anchor="middle" class="label">R1 2k2</text>
+<rect x="343" y="288" width="96" height="14" rx="3" class="resistor-body"/>
+<rect x="351" y="290" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="367" y="290" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="383" y="290" width="7" height="10" rx="1" fill="#ff0000"/>
+<rect x="399" y="290" width="7" height="10" rx="1" fill="#d4a017"/>
+<text x="391" y="284" text-anchor="middle" class="label">R2 2k2</text>
+<rect x="343" y="348" width="96" height="14" rx="3" class="resistor-body"/>
+<rect x="351" y="350" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="367" y="350" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="383" y="350" width="7" height="10" rx="1" fill="#ff0000"/>
+<rect x="399" y="350" width="7" height="10" rx="1" fill="#d4a017"/>
+<text x="391" y="344" text-anchor="middle" class="label">R3 2k2</text>
+<rect x="343" y="408" width="96" height="14" rx="3" class="resistor-body"/>
+<rect x="351" y="410" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="367" y="410" width="7" height="10" rx="1" fill="#cc0000"/>
+<rect x="383" y="410" width="7" height="10" rx="1" fill="#ff0000"/>
+<rect x="399" y="410" width="7" height="10" rx="1" fill="#d4a017"/>
+<text x="391" y="404" text-anchor="middle" class="label">R4 2k2</text>
+<rect x="513" y="225" width="68" height="20" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+<text x="547" y="221" text-anchor="middle" class="label" fill="#44dd66">MIC1</text>
+<text x="521" y="253" text-anchor="middle" class="pin-label">S+</text>
+<text x="573" y="253" text-anchor="middle" class="pin-label">G</text>
+<rect x="513" y="285" width="68" height="20" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+<text x="547" y="281" text-anchor="middle" class="label" fill="#44dd66">MIC2</text>
+<text x="521" y="313" text-anchor="middle" class="pin-label">S+</text>
+<text x="573" y="313" text-anchor="middle" class="pin-label">G</text>
+<rect x="513" y="345" width="68" height="20" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+<text x="547" y="341" text-anchor="middle" class="label" fill="#44dd66">MIC3</text>
+<text x="521" y="373" text-anchor="middle" class="pin-label">S+</text>
+<text x="573" y="373" text-anchor="middle" class="pin-label">G</text>
+<rect x="513" y="405" width="68" height="20" rx="3" stroke="#fff" stroke-width="1" fill="none"/>
+<text x="547" y="401" text-anchor="middle" class="label" fill="#44dd66">MIC4</text>
+<text x="521" y="433" text-anchor="middle" class="pin-label">S+</text>
+<text x="573" y="433" text-anchor="middle" class="pin-label">G</text>
+<rect x="277" y="439" width="20" height="42" rx="3" class="cap-film"/>
+<text x="287" y="435" text-anchor="middle" class="label">C1 10µF</text>
+<text x="303" y="448" style="font-size:6px; fill:#555">in</text>
+<text x="303" y="478" style="font-size:6px; fill:#555">uit</text>
+<rect x="202" y="478" width="14" height="24" rx="2" class="resistor-body"/>
+<rect x="204" y="481" width="10" height="5" rx="1" fill="#8b4513"/>
+<rect x="204" y="488" width="10" height="5" rx="1" fill="#222"/>
+<rect x="204" y="495" width="10" height="5" rx="1" fill="#ff8c00"/>
+<text x="195" y="488" text-anchor="end" class="label">R5</text>
+<text x="195" y="500" text-anchor="end" class="label-val">10k</text>
+<rect x="143" y="463" width="28" height="54" rx="4" class="jack-body"/>
+<circle cx="157" cy="490" r="7" stroke="#888" stroke-width="1.5" fill="#666"/>
+<circle cx="157" cy="490" r="3" fill="#333"/>
+<text x="157" y="459" text-anchor="middle" class="label" fill="#44aaff">J2 3,5mm</text>
+<text x="175" y="478" style="font-size:6px; fill:#ccc">TIP</text>
+<text x="175" y="508" style="font-size:6px; fill:#ccc">SLV</text>
+<text x="137" y="493" style="font-size:9px; fill:#888">◄</text>
+<text x="157" y="525" text-anchor="middle" style="font-size:6px; fill:#aaa">→ SB Play! 3</text>
+<line x1="339" y1="145" x2="339" y2="415" class="wire-red" style="stroke-width:2; opacity:0.6"/>
+<circle cx="339" cy="145" r="3.5" fill="#ee2222" opacity="0.8"/>
+<circle cx="339" cy="235" r="3.5" fill="#ee2222" opacity="0.8"/>
+<circle cx="339" cy="295" r="3.5" fill="#ee2222" opacity="0.8"/>
+<circle cx="339" cy="355" r="3.5" fill="#ee2222" opacity="0.8"/>
+<circle cx="339" cy="415" r="3.5" fill="#ee2222" opacity="0.8"/>
+<text x="347" y="208" style="font-size:7px; fill:#ee2222; font-weight:bold" transform="rotate(90,347,208)">+5V bus</text>
+<path d="M131,134 L209,134" stroke="#ee2222" stroke-width="1.5" stroke-dasharray="3,2" fill="none"/>
+<text x="170" y="131" text-anchor="middle" style="font-size:6px; fill:#ee2222">strip B</text>
+<path d="M287,134 L339,134" stroke="#ee2222" stroke-width="1.5" stroke-dasharray="3,2" fill="none"/>
+<line x1="469" y1="235" x2="469" y2="445" class="wire-blue" style="stroke-width:2; opacity:0.6"/>
+<circle cx="469" cy="235" r="3.5" fill="#2266ee" opacity="0.8"/>
+<circle cx="469" cy="295" r="3.5" fill="#2266ee" opacity="0.8"/>
+<circle cx="469" cy="355" r="3.5" fill="#2266ee" opacity="0.8"/>
+<circle cx="469" cy="415" r="3.5" fill="#2266ee" opacity="0.8"/>
+<circle cx="469" cy="445" r="3.5" fill="#2266ee" opacity="0.8"/>
+<text x="477" y="268" style="font-size:7px; fill:#2266ee; font-weight:bold" transform="rotate(90,477,268)">Σ signaal</text>
+<path d="M443,246 L521,246" stroke="#2266ee" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+<path d="M443,306 L521,306" stroke="#2266ee" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+<path d="M443,366 L521,366" stroke="#2266ee" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+<path d="M443,426 L521,426" stroke="#2266ee" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+<rect x="93" y="530" width="570" height="10" rx="2" fill="#c49a15" opacity="0.7"/>
+<text x="378" y="555" text-anchor="middle" class="label" fill="#c49a15">━━━ GND BUS (rij O) ━━━</text>
+<line x1="573" y1="235" x2="573" y2="535" class="wire-black" style="stroke-width:2; opacity:0.5"/>
+<circle cx="573" cy="235" r="3" fill="#333" opacity="0.8"/>
+<circle cx="573" cy="295" r="3" fill="#333" opacity="0.8"/>
+<circle cx="573" cy="355" r="3" fill="#333" opacity="0.8"/>
+<circle cx="573" cy="415" r="3" fill="#333" opacity="0.8"/>
+<circle cx="573" cy="535" r="3" fill="#333" opacity="0.8"/>
+<text x="581" y="328" style="font-size:7px; fill:#333; font-weight:bold" transform="rotate(90,581,328)">MIC GND</text>
+<line x1="131" y1="175" x2="131" y2="535" class="wire-black" style="stroke-width:2; opacity:0.5"/>
+<circle cx="131" cy="175" r="3" fill="#333" opacity="0.8"/>
+<circle cx="131" cy="535" r="3" fill="#333" opacity="0.8"/>
+<path d="M131,186 L339,186" stroke="#333" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+<text x="235" y="195" text-anchor="middle" style="font-size:6px; fill:#666">strip C = GND</text>
+<line x1="183" y1="505" x2="183" y2="535" class="wire-black" style="stroke-width:2; opacity:0.5"/>
+<circle cx="183" cy="505" r="3" fill="#333" opacity="0.8"/>
+<circle cx="183" cy="535" r="3" fill="#333" opacity="0.8"/>
+<path d="M157,516 L209,516" stroke="#333" stroke-width="1" stroke-dasharray="2,2" fill="none"/>
+<text x="183" y="525" text-anchor="middle" style="font-size:6px; fill:#666">strip N → GND</text>
+<rect x="83" y="581" width="590" height="68" fill="#fafafa" stroke="#ddd" stroke-width="1" rx="6"/>
+<text x="93" y="597" class="legend-text" font-weight="bold">Legenda:</text>
+<rect x="163" y="588" width="30" height="8" rx="2" class="strip"/>
+<text x="198" y="597" class="legend-text">Koperbaan (strip)</text>
+<circle cx="333" cy="593" r="4" class="cut-bg"/>
+<line x1="329" y1="589" x2="337" y2="597" class="cut-x"/>
+<line x1="337" y1="589" x2="329" y2="597" class="cut-x"/>
+<text x="343" y="597" class="legend-text">Doorsnijding (strip cut)</text>
+<circle cx="503" cy="593" r="4" class="hole-ring"/>
+<circle cx="503" cy="593" r="3.5" class="solder"/>
+<text x="513" y="597" class="legend-text">Soldeerpad</text>
+<text x="93" y="619" class="legend-text" font-weight="bold">Jumperdraden:</text>
+<line x1="188" y1="615" x2="218" y2="615" class="wire-red"/>
+<text x="223" y="619" class="legend-text">+5V voeding (rood)</text>
+<line x1="358" y1="615" x2="388" y2="615" class="wire-blue"/>
+<text x="393" y="619" class="legend-text">Audiosignaal (blauw)</text>
+<line x1="533" y1="615" x2="563" y2="615" class="wire-black"/>
+<text x="568" y="619" class="legend-text">Massa/GND (zwart)</text>
+<text x="93" y="639" class="legend-text" font-weight="bold">Componenten:</text>
+<rect x="188" y="631" width="30" height="10" rx="3" class="resistor-body"/>
+<text x="223" y="639" class="legend-text">Weerstand</text>
+<circle cx="303" cy="636" r="6" class="cap-elec"/>
+<text x="313" y="639" class="legend-text">Elco</text>
+<rect x="353" y="631" width="22" height="10" rx="2" class="cap-film"/>
+<text x="379" y="639" class="legend-text">Filmcond.</text>
+<rect x="448" y="631" width="30" height="10" rx="3" class="inductor-body"/>
+<text x="483" y="639" class="legend-text">Spoel</text>
+<rect x="706" y="90" width="330" height="410" fill="#fafafa" stroke="#ddd" stroke-width="1" rx="8"/>
+<text x="871" y="112" text-anchor="middle" class="title" style="font-size:13px">Onderdelenlijst (BOM)</text>
+<text x="716" y="128" class="legend-text" font-weight="bold">Ref</text>
+<text x="761" y="128" class="legend-text" font-weight="bold">Waarde</text>
+<text x="861" y="128" class="legend-text" font-weight="bold">Positie</text>
+<text x="976" y="128" class="legend-text" font-weight="bold">LCSC</text>
+<line x1="711" y1="132" x2="1031" y2="132" stroke="#ccc" stroke-width="1"/>
+<text x="716" y="146" class="legend-text">R1</text>
+<text x="761" y="146" class="legend-text">2,2 kΩ</text>
+<text x="861" y="146" class="legend-text">E10–E14</text>
+<text x="976" y="146" class="legend-text" fill="#0066cc">C17521</text>
+<text x="716" y="164" class="legend-text">R2</text>
+<text x="761" y="164" class="legend-text">2,2 kΩ</text>
+<text x="861" y="164" class="legend-text">G10–G14</text>
+<text x="976" y="164" class="legend-text" fill="#0066cc">C17521</text>
+<text x="716" y="182" class="legend-text">R3</text>
+<text x="761" y="182" class="legend-text">2,2 kΩ</text>
+<text x="861" y="182" class="legend-text">I10–I14</text>
+<text x="976" y="182" class="legend-text" fill="#0066cc">C17521</text>
+<text x="716" y="200" class="legend-text">R4</text>
+<text x="761" y="200" class="legend-text">2,2 kΩ</text>
+<text x="861" y="200" class="legend-text">K10–K14</text>
+<text x="976" y="200" class="legend-text" fill="#0066cc">C17521</text>
+<text x="716" y="218" class="legend-text">R5</text>
+<text x="761" y="218" class="legend-text">10 kΩ</text>
+<text x="861" y="218" class="legend-text">M5–N5 ↕</text>
+<text x="976" y="218" class="legend-text" fill="#0066cc">C17414</text>
+<line x1="711" y1="230" x2="1031" y2="230" stroke="#eee" stroke-width="1"/>
+<text x="716" y="254" class="legend-text">C1</text>
+<text x="761" y="254" class="legend-text">10 µF film</text>
+<text x="861" y="254" class="legend-text">L8–M8 ↕</text>
+<text x="976" y="254" class="legend-text" fill="#0066cc">C29936</text>
+<text x="716" y="272" class="legend-text">C2</text>
+<text x="761" y="272" class="legend-text">100 µF elco</text>
+<text x="861" y="272" class="legend-text">B10–C10 ↕</text>
+<text x="976" y="272" class="legend-text" fill="#0066cc">C29946</text>
+<line x1="711" y1="284" x2="1031" y2="284" stroke="#eee" stroke-width="1"/>
+<text x="716" y="308" class="legend-text">L1</text>
+<text x="761" y="308" class="legend-text">10 µH</text>
+<text x="861" y="308" class="legend-text">B5–B8</text>
+<text x="976" y="308" class="legend-text" fill="#0066cc">C78828</text>
+<line x1="711" y1="320" x2="1031" y2="320" stroke="#eee" stroke-width="1"/>
+<text x="716" y="344" class="legend-text">J1</text>
+<text x="761" y="344" class="legend-text">USB voeding</text>
+<text x="861" y="344" class="legend-text">B2(+), C2(−)</text>
+<text x="976" y="344" class="legend-text" fill="#888">—</text>
+<text x="716" y="362" class="legend-text">J2</text>
+<text x="761" y="362" class="legend-text">3,5mm jack</text>
+<text x="861" y="362" class="legend-text">M3(T), N3(S)</text>
+<text x="976" y="362" class="legend-text" fill="#888">—</text>
+<line x1="711" y1="374" x2="1031" y2="374" stroke="#eee" stroke-width="1"/>
+<text x="716" y="398" class="legend-text">MIC1</text>
+<text x="761" y="398" class="legend-text">EM272Z1</text>
+<text x="861" y="398" class="legend-text">E17(S+), E19(G)</text>
+<text x="976" y="398" class="legend-text" fill="#888">extern</text>
+<text x="716" y="416" class="legend-text">MIC2</text>
+<text x="761" y="416" class="legend-text">EM272Z1</text>
+<text x="861" y="416" class="legend-text">G17(S+), G19(G)</text>
+<text x="976" y="416" class="legend-text" fill="#888">extern</text>
+<text x="716" y="434" class="legend-text">MIC3</text>
+<text x="761" y="434" class="legend-text">EM272Z1</text>
+<text x="861" y="434" class="legend-text">I17(S+), I19(G)</text>
+<text x="976" y="434" class="legend-text" fill="#888">extern</text>
+<text x="716" y="452" class="legend-text">MIC4</text>
+<text x="761" y="452" class="legend-text">EM272Z1</text>
+<text x="861" y="452" class="legend-text">K17(S+), K19(G)</text>
+<text x="976" y="452" class="legend-text" fill="#888">extern</text>
+<rect x="706" y="520" width="330" height="280" fill="#fffff5" stroke="#ddd" stroke-width="1" rx="8"/>
+<text x="871" y="540" text-anchor="middle" class="title" style="font-size:12px">Bouwinstructies</text>
+<text x="716" y="562" class="legend-text" font-weight="bold" fill="#cc3333">Strip cuts (✂ = doorsnijden):</text>
+<text x="716" y="576" class="legend-text">• Rij B: col 6 en 7 (tussen L1-pootjes)</text>
+<text x="716" y="590" class="legend-text">• Rij E,G,I,K: col 9,12,13,18,20</text>
+<text x="716" y="604" class="legend-text">  (isoleer R-input / R-output / MIC S+ / GND)</text>
+<text x="716" y="618" class="legend-text">• Rij L: col 7 en 16</text>
+<text x="716" y="632" class="legend-text">• Rij M: col 2 en 9</text>
+<text x="716" y="646" class="legend-text">• Rij N: col 2 en 6</text>
+<text x="716" y="664" class="legend-text" font-weight="bold" fill="#ee2222">Rode jumperdraad (+5V):</text>
+<text x="716" y="678" class="legend-text">• Verticaal col 10: van B10 → E10,G10,I10,K10</text>
+<text x="716" y="696" class="legend-text" font-weight="bold" fill="#2266ee">Blauwe jumperdraad (signaal):</text>
+<text x="716" y="710" class="legend-text">• Verticaal col 15: van E15 → G15,I15,K15,L15</text>
+<text x="716" y="728" class="legend-text" font-weight="bold" fill="#222">Zwarte jumperdraden (GND):</text>
+<text x="716" y="742" class="legend-text">• Col 2: van C2 → O2 (J1 GND + C2−)</text>
+<text x="716" y="756" class="legend-text">• Col 4: van N4 → O4 (J2 SLEEVE)</text>
+<text x="716" y="770" class="legend-text">• Col 19: van E19 → G19,I19,K19,O19</text>
+<text x="550" y="858" text-anchor="middle" class="subtitle">VoiceTally Project – EM272Z1 Bias Board op stripboard – v1.0</text>
+</svg>
