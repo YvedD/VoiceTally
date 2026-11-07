@@ -93,7 +93,7 @@ object TellingUploadFlags {
                 db.tellingDao().getHeader(tid)
             }
         }
-        return header?.status?.trim()?.lowercase() == "edited"
+        return TellingStatus.normalize(header?.status) == TellingStatus.EDITED
     }
 
     fun clearFlag(context: Context, tellingId: String?, onlineId: String?) {

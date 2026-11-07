@@ -18,9 +18,13 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.database.toServerEnvelope
 import com.yvesds.vt5.core.import.CsvImportPolicy
 import com.yvesds.vt5.core.opslag.FileLogger
+import com.yvesds.vt5.features.telling.RoomTellingReopenLauncher
+import com.yvesds.vt5.features.telling.TellingStatus
+import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.features.telling.TellingUploadCore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,6 +34,7 @@ import java.util.Date
 class DatabaseTellingDetailActiviteit : AppCompatActivity() {
 
     private lateinit var database: VoiceTallyDatabase
+    private val hybridRepository by lazy { HybridTellingRepository(this) }
     private lateinit var fileLogger: FileLogger
     private lateinit var containerMetadata: FlexboxLayout
     private lateinit var containerRecords: FlexboxLayout
@@ -48,6 +53,7 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
         findViewById<MaterialButton>(R.id.btnOpslaan).setOnClickListener { saveChanges() }
+        findViewById<MaterialButton>(R.id.btnHeropenInTelling)?.setOnClickListener { reopenInTellingScherm() }
         findViewById<MaterialButton>(R.id.btnUploadServer)?.setOnClickListener { uploadToServer() }
 
         loadData()
@@ -195,13 +201,14 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val updatedHeader = header.copy(
+                val candidateStatus = if (importLocked) header.status else (updatedMap["status"] ?: header.status)
+                val draftHeader = header.copy(
                     onlineid = updatedMap["onlineid"] ?: header.onlineid,
                     telpostid = updatedMap["telpostid"] ?: header.telpostid,
                     begintijd = updatedMap["begintijd"] ?: header.begintijd,
                     eindtijd = updatedMap["eindtijd"] ?: header.eindtijd,
                     opmerkingen = updatedMap["opmerkingen"] ?: header.opmerkingen,
-                    status = if (importLocked) header.status else (updatedMap["status"] ?: header.status),
+                    status = TellingStatus.normalize(candidateStatus),
                     nrec = updatedMap["nrec"] ?: header.nrec,
                     nsoort = updatedMap["nsoort"] ?: header.nsoort,
                     tellers = updatedMap["tellers"] ?: header.tellers,
@@ -224,7 +231,21 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                     equipment = updatedMap["equipment"] ?: header.equipment,
                     bron = if (importLocked) header.bron else "4" // Houd import-locked sessies onveranderlijk.
                 )
+
+                val metadataChanged = draftHeader.copy(status = header.status) != header
+                val finalStatus = if (
+                    !importLocked &&
+                    metadataChanged &&
+                    TellingStatus.normalize(candidateStatus) == TellingStatus.normalize(header.status)
+                ) {
+                    TellingStatus.EDITED
+                } else {
+                    draftHeader.status
+                }
+                val updatedHeader = draftHeader.copy(status = TellingStatus.normalize(finalStatus))
+
                 database.tellingDao().updateHeader(updatedHeader)
+                currentHeader = updatedHeader
                 fileLogger.info("GEBRUIKER: Metadata van telling [${header.tellingid}] volledig bijgewerkt in database")
                 
                 withContext(Dispatchers.Main) {
@@ -254,6 +275,10 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
             btn.text = "Bezig met uploaden..."
             
             try {
+                withContext(Dispatchers.IO) {
+                    hybridRepository.updateHeaderStatus(id, TellingStatus.UPLOADING, header.onlineid)
+                }
+
                 val records = withContext(Dispatchers.IO) {
                     database.tellingDao().getWaarnemingenList(id)
                 }
@@ -281,26 +306,70 @@ class DatabaseTellingDetailActiviteit : AppCompatActivity() {
                 }
                 
                 if (result.success) {
+                    val effectiveOnlineId = result.effectiveOnlineId ?: finalEnvelope.onlineid
+                    withContext(Dispatchers.IO) {
+                        hybridRepository.saveHeaderToRoom(
+                            result.preparedEnvelope.copy(onlineid = effectiveOnlineId),
+                            status = TellingStatus.GEUPLOAD,
+                            force = true
+                        )
+                    }
+                    TellingUploadFlags.markSent(this@DatabaseTellingDetailActiviteit, id, effectiveOnlineId)
+
                     Toast.makeText(this@DatabaseTellingDetailActiviteit, "Sync succesvol: Data op server bijgewerkt", Toast.LENGTH_LONG).show()
                     fileLogger.info("DATABASE SYNC: Telling [${header.tellingid}] succesvol gepushed naar server")
                     loadData() // Refresh voor eventuele nieuwe onlineid
                 } else {
+                    withContext(Dispatchers.IO) {
+                        hybridRepository.updateHeaderStatus(id, TellingStatus.RETRY_NEEDED, header.onlineid)
+                    }
+                    TellingUploadFlags.markNotSent(this@DatabaseTellingDetailActiviteit, id, header.onlineid)
                     Toast.makeText(this@DatabaseTellingDetailActiviteit, "Sync mislukt: ${result.errorMessage}", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
+                withContext(Dispatchers.IO) {
+                    hybridRepository.updateHeaderStatus(id, TellingStatus.RETRY_NEEDED, header.onlineid)
+                }
+                TellingUploadFlags.markNotSent(this@DatabaseTellingDetailActiviteit, id, header.onlineid)
                 Toast.makeText(this@DatabaseTellingDetailActiviteit, "Fout bij sync: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
-                updateUploadButtonState(currentHeader)
+                loadData()
             }
+        }
+    }
+
+    private fun reopenInTellingScherm() {
+        val header = currentHeader ?: return
+        val tellingId = currentTellingId ?: return
+
+        lifecycleScope.launch {
+            val records = withContext(Dispatchers.IO) {
+                database.tellingDao().getWaarnemingenList(tellingId)
+            }
+            if (records.isEmpty()) {
+                Toast.makeText(this@DatabaseTellingDetailActiviteit, getString(R.string.db_telling_reopen_no_records), Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            RoomTellingReopenLauncher.launch(
+                activity = this@DatabaseTellingDetailActiviteit,
+                header = header,
+                records = records,
+                finishCurrent = true
+            )
         }
     }
 
     private fun updateUploadButtonState(header: TellingHeader?) {
         val btn = findViewById<MaterialButton>(R.id.btnUploadServer) ?: return
         val blocked = header?.let { CsvImportPolicy.isUploadBlocked(it.status, it.bron) } ?: false
+        val normalizedStatus = TellingStatus.normalize(header?.status)
         if (blocked) {
             btn.isEnabled = false
             btn.text = "Upload geblokkeerd (geimporteerde data)"
+        } else if (normalizedStatus == TellingStatus.UPLOADING) {
+            btn.isEnabled = false
+            btn.text = "Bezig met uploaden..."
         } else {
             btn.isEnabled = true
             btn.text = "Sync: Alle wijzigingen naar Server pushen"

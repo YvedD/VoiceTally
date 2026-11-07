@@ -120,12 +120,24 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUploadServer"
+                android:id="@+id/btnHeropenInTelling"
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Sync: Alle wijzigingen naar Server pushen"
+                android:text="@string/db_telling_open_in_telling"
+                android:textColor="@color/vt5_light_blue"
+                app:icon="@android:drawable/ic_menu_revert"
+                app:iconTint="@color/vt5_light_blue"
+                app:strokeColor="@color/vt5_light_blue" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUploadServer"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/db_telling_detail_sync_button"
                 android:textColor="@color/vt5_orange"
                 app:icon="@android:drawable/stat_sys_upload"
                 app:iconTint="@color/vt5_orange"

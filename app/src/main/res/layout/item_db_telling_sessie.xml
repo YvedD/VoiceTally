@@ -83,6 +83,18 @@
             android:textColor="@color/vt5_on_surface"
             android:textSize="13sp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReopen"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="8dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="12dp"
+            android:text="@string/db_telling_reopen_button"
+            android:textSize="12sp" />
+
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

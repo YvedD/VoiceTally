@@ -5,6 +5,7 @@ import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.opslag.FileLogger
+import com.yvesds.vt5.features.telling.TellingStatus
 import com.yvesds.vt5.hoofd.InstellingenScherm
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
@@ -126,13 +127,37 @@ class HybridTellingRepository(private val context: Context) {
                     uploadtijdstip = envelope.uploadtijdstip,
                     nrec = envelope.nrec,
                     nsoort = envelope.nsoort,
-                    status = status
+                    status = TellingStatus.normalize(status)
                 )
                 tellingDao.insertHeader(header)
-                fileLogger.info("ROOM: Header voor telling [${envelope.tellingid}] opgeslagen (Status: $status)")
+                fileLogger.info("ROOM: Header voor telling [${envelope.tellingid}] opgeslagen (Status: ${header.status})")
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan header [${envelope.tellingid}]: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * Werkt enkel de status (en optioneel onlineId) van een bestaande header bij.
+     */
+    suspend fun updateHeaderStatus(
+        tellingId: String,
+        status: String,
+        onlineId: String? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (tellingId.isBlank()) return@withContext false
+        return@withContext try {
+            val current = tellingDao.getHeader(tellingId) ?: return@withContext false
+            val updated = current.copy(
+                status = TellingStatus.normalize(status),
+                onlineid = onlineId?.trim()?.takeIf { it.isNotBlank() } ?: current.onlineid
+            )
+            tellingDao.updateHeader(updated)
+            fileLogger.info("ROOM: Status van telling [$tellingId] bijgewerkt naar [${updated.status}]")
+            true
+        } catch (e: Exception) {
+            fileLogger.error("ROOM: Fout bij status-update [$tellingId]: ${e.message}")
+            false
         }
     }
 

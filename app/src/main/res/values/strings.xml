@@ -257,6 +257,17 @@
     <string name="db_telling_stats">%1$d rec • %2$d soorten</string>
     <string name="db_telling_delete_selected">Verwijderen</string>
     <string name="db_telling_delete_selected_with_count">Verwijderen (%1$d)</string>
+    <string name="db_telling_upload_selected">Uploaden</string>
+    <string name="db_telling_upload_selected_with_count">Uploaden (%1$d)</string>
+    <string name="db_telling_upload_none">Selecteer eerst sessies om te uploaden</string>
+    <string name="db_telling_upload_result_title">Uploadresultaat</string>
+    <string name="db_telling_upload_summary">Geslaagd: %1$d\nMislukt: %2$d\nOvergeslagen: %3$d</string>
+    <string name="db_telling_reopen_title">Telling heropenen</string>
+    <string name="db_telling_reopen_message">Wil je telling %1$s reconstrueren in het tellingscherm?</string>
+    <string name="db_telling_reopen_button">Heropenen</string>
+    <string name="db_telling_reopen_no_records">Deze telling heeft geen records om te reconstrueren.</string>
+    <string name="db_telling_open_in_telling">Openen in tellingscherm</string>
+    <string name="db_telling_detail_sync_button">Sync: Alle wijzigingen naar Server pushen</string>
     <string name="db_telling_delete_confirm_title">Sessies verwijderen?</string>
     <string name="db_telling_delete_confirm_msg">Weet je zeker dat je %1$d geselecteerde telling(en) uit de Room DB wilt verwijderen? Dit kan niet ongedaan worden gemaakt.</string>
     <string name="db_telling_delete_done">Geselecteerde telling(en) verwijderd</string>

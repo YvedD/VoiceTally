@@ -29,14 +29,15 @@ import com.yvesds.vt5.features.masterClient.MasterClientRuntimeStore
 import com.yvesds.vt5.features.masterClient.McQrPayloadCodec
 import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
-import com.yvesds.vt5.features.telling.TellingBeheerScherm
 import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
 import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingSessionManager
+import com.yvesds.vt5.features.telling.TellingStatus
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm.Companion.PREF_BATCH_IMPORT_ACTIVE
+import com.yvesds.vt5.core.database.ui.DatabaseTellingLijstActiviteit
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +61,7 @@ import android.view.View
  * 4. Afsluiten → Veilige app shutdown met cleanup
  * ------------------------------------------------
  * 5. Toggle uurlijks alarm aan/uit
- * 6. Bewerk tellingen → TellingBeheerScherm
+ * 6. Bewerk tellingen → Room sessielijst
  * 7. Opkuis exports → Verwijder oude bestanden uit exports map
  * 8. Instellingen bewerken
  * 9. Databasebeheer
@@ -240,7 +241,7 @@ class HoofdActiviteit : AppCompatActivity() {
         // Bewerk tellingen knop
         btnBewerkTellingen.setOnClickListener {
             it.isEnabled = false
-            startActivity(Intent(this, TellingBeheerScherm::class.java))
+            startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
             it.isEnabled = true
         }
         
@@ -419,9 +420,9 @@ class HoofdActiviteit : AppCompatActivity() {
                         val header = withContext(Dispatchers.IO) {
                             VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao().getHeader(tellingId) 
                         }
-                        // Sessie is pending als status 'actief' is en er records zijn
-                        if (header != null && header.status == "actief") {
-                            val count = withContext(Dispatchers.IO) { 
+                        // Sessie is pending als status nog niet geupload is en er records zijn
+                        if (header != null && TellingStatus.isPendingUpload(header.status)) {
+                            val count = withContext(Dispatchers.IO) {
                                 VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao().getWaarnemingenList(tellingId).size 
                             }
                             hasPending = count > 0
@@ -514,7 +515,7 @@ class HoofdActiviteit : AppCompatActivity() {
             .setMessage(getString(R.string.uploads_pending_message))
             .setPositiveButton(getString(R.string.uploads_pending_now)) { _, _ ->
                 prefs.edit { putBoolean(KEY_UPLOAD_ON_EXIT, false) }
-                startActivity(Intent(this, TellingBeheerScherm::class.java))
+                startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
             }
             .setNegativeButton(getString(R.string.uploads_pending_on_exit)) { _, _ ->
                 prefs.edit { putBoolean(KEY_UPLOAD_ON_EXIT, true) }
@@ -585,7 +586,7 @@ class HoofdActiviteit : AppCompatActivity() {
         val pendingUploads = prefs.getBoolean(KEY_PENDING_UPLOADS, false)
         val uploadOnExit = prefs.getBoolean(KEY_UPLOAD_ON_EXIT, false)
         if (pendingUploads && uploadOnExit) {
-            startActivity(Intent(this, TellingBeheerScherm::class.java))
+            startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
             return
         }
 
