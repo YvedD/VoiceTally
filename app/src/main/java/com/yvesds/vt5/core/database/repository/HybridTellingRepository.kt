@@ -25,11 +25,11 @@ class HybridTellingRepository(private val context: Context) {
     /**
      * Slaat een waarneming op in Room als de modus ROOM of Parallel is.
      */
-    suspend fun saveWaarnemingToRoom(item: ServerTellingDataItem) = withContext(Dispatchers.IO) {
+    suspend fun saveWaarnemingToRoom(item: ServerTellingDataItem, force: Boolean = false) = withContext(Dispatchers.IO) {
         val mode = InstellingenScherm.getStorageMode(context)
         fileLogger.info("ROOM: saveWaarnemingToRoom aangeroepen (Modus: $mode, Telling: ${item.tellingid}, ID: ${item.idLocal})")
         
-        if (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
+        if (force || mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
             try {
                 if (item.tellingid.isBlank()) {
                     fileLogger.warn("ROOM: Waarneming genegeerd - tellingid is leeg")
@@ -86,9 +86,13 @@ class HybridTellingRepository(private val context: Context) {
      * Slaat de metadata (header) op in Room.
      * @param status Optionele status update (bijv. "geupload")
      */
-    suspend fun saveHeaderToRoom(envelope: ServerTellingEnvelope, status: String = "actief") = withContext(Dispatchers.IO) {
+    suspend fun saveHeaderToRoom(
+        envelope: ServerTellingEnvelope,
+        status: String = "actief",
+        force: Boolean = false
+    ) = withContext(Dispatchers.IO) {
         val mode = InstellingenScherm.getStorageMode(context)
-        if (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
+        if (force || mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
             try {
                 val header = TellingHeader(
                     tellingid = envelope.tellingid,
@@ -129,6 +133,28 @@ class HybridTellingRepository(private val context: Context) {
             } catch (e: Exception) {
                 fileLogger.error("ROOM: Fout bij opslaan header [${envelope.tellingid}]: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * Replaces one telling snapshot in Room with the provided envelope+records.
+     * Used for deterministic historical reopen/edit flows.
+     */
+    suspend fun replaceTellingSnapshotInRoom(envelope: ServerTellingEnvelope, status: String = "actief") = withContext(Dispatchers.IO) {
+        if (envelope.tellingid.isBlank()) return@withContext
+
+        try {
+            tellingDao.deleteWaarnemingenVoorTellingById(envelope.tellingid)
+            saveHeaderToRoom(envelope, status = status, force = true)
+            envelope.data.forEach { item ->
+                val normalized = item.copy(
+                    tellingid = envelope.tellingid
+                )
+                saveWaarnemingToRoom(normalized, force = true)
+            }
+            fileLogger.info("ROOM: Snapshot replaced for telling [${envelope.tellingid}] with ${envelope.data.size} records")
+        } catch (e: Exception) {
+            fileLogger.error("ROOM: Fout bij vervangen snapshot [${envelope.tellingid}]: ${e.message}")
         }
     }
 

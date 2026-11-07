@@ -99,7 +99,7 @@ class AfrondWorker(
                     nsoort = nsoort.toString(),
                     data = recordsSnapshot
                 ),
-                useStoredOnlineIdWhenBlank = true,
+                useStoredOnlineIdWhenBlank = false,
                 now = Date()
             )
             val envelopeToSend = listOf(finalEnv)

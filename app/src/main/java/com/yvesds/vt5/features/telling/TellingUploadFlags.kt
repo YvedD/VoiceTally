@@ -83,6 +83,19 @@ object TellingUploadFlags {
         return false
     }
 
+    fun isEdited(context: Context, tellingId: String?): Boolean {
+        val tid = tellingId?.trim().orEmpty()
+        if (tid.isEmpty()) return false
+
+        val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(context)
+        val header = kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                db.tellingDao().getHeader(tid)
+            }
+        }
+        return header?.status?.trim()?.lowercase() == "edited"
+    }
+
     fun clearFlag(context: Context, tellingId: String?, onlineId: String?) {
         val primaryKey = buildKey(tellingId, onlineId) ?: return
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

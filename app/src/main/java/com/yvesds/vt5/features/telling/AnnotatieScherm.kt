@@ -64,6 +64,7 @@ class AnnotatieScherm : AppCompatActivity() {
         const val EXTRA_LOKAAL = "extra_lokaal"
         
         const val EXTRA_RECORD_LOCAL_ID = "extra_record_local_id"
+        const val EXTRA_RECORD_GROUP_ID = "extra_record_group_id"
         
         // Key for telpostid to get site-specific direction labels
         const val EXTRA_TELPOSTID = "extra_telpostid"
@@ -165,6 +166,7 @@ class AnnotatieScherm : AppCompatActivity() {
         // DEBUG: Log incoming Intent extras
         val rowPosition = intent.getIntExtra("extra_row_pos", -1)
         val recordLocalId = intent.getStringExtra(EXTRA_RECORD_LOCAL_ID)
+        val recordGroupId = intent.getStringExtra(EXTRA_RECORD_GROUP_ID)
         val explicitTitleText = intent.getStringExtra(EXTRA_TEXT) ?: "Annotatie"
 
         // Update Title if provided (useful for queue)
@@ -351,6 +353,7 @@ class AnnotatieScherm : AppCompatActivity() {
                 // CRITICAL FIX: Preserve row position so handler can match the correct record
                 putExtra("extra_row_pos", rowPosition)
                 putExtra(EXTRA_RECORD_LOCAL_ID, recordLocalId)
+                putExtra(EXTRA_RECORD_GROUP_ID, recordGroupId)
             }
 
             setResult(RESULT_OK, out)

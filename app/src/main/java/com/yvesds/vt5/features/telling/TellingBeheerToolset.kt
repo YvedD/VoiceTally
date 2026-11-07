@@ -10,7 +10,6 @@ import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.text.SimpleDateFormat
@@ -100,7 +99,19 @@ class TellingBeheerToolset(
         }
         
         // Sorteer op laatste wijzigingsdatum (nieuwste eerst)
-        result.sortedByDescending { it.lastModified }
+        val sorted = result.sortedByDescending { it.lastModified }
+
+        // Hide duplicate active snapshot entries when a named historical file
+        // for the same telling already exists in the list.
+        val duplicateActiveTellingIds = sorted
+            .asSequence()
+            .filter { !it.isActive }
+            .mapNotNull { it.tellingId?.takeIf { id -> id.isNotBlank() } }
+            .toSet()
+
+        sorted.filterNot { info ->
+            info.isActive && info.tellingId?.let { duplicateActiveTellingIds.contains(it) } == true
+        }
     }
     
     /**
@@ -485,8 +496,8 @@ class TellingBeheerToolset(
             // Probeer basis info uit bestandsnaam te halen
             // Format: telling_<tellingId>_<onlineId>_<timestamp>.json
             val parts = filename.removeSuffix(".json").split("_")
-            val tellingId = if (parts.size >= 2 && parts[0] == "telling") parts[1] else null
-            val onlineId = if (parts.size >= 3 && parts[0] == "telling") parts[2] else null
+            var tellingId = if (parts.size >= 2 && parts[0] == "telling") parts[1] else null
+            var onlineId = if (parts.size >= 3 && parts[0] == "telling") parts[2] else null
             val timestamp = if (parts.size >= 4 && parts[0] == "telling") {
                 parts.drop(3).joinToString("_")
             } else null
@@ -505,6 +516,8 @@ class TellingBeheerToolset(
                         content
                     )
                     if (envelopeList.isNotEmpty()) {
+                        tellingId = envelopeList[0].tellingid.takeIf { it.isNotBlank() } ?: tellingId
+                        onlineId = envelopeList[0].onlineid.takeIf { it.isNotBlank() } ?: onlineId
                         nrec = envelopeList[0].nrec.toIntOrNull() ?: envelopeList[0].data.size
                         nsoort = envelopeList[0].nsoort.toIntOrNull() ?: envelopeList[0].data.map { it.soortid }.toSet().size
                         telpost = envelopeList[0].telpostid.takeIf { it.isNotBlank() }
@@ -539,8 +552,8 @@ class TellingBeheerToolset(
             
             // Probeer basis info uit bestandsnaam te halen
             val parts = filename.removeSuffix(".json").split("_")
-            val tellingId = if (parts.size >= 2 && parts[0] == "telling") parts[1] else null
-            val onlineId = if (parts.size >= 3 && parts[0] == "telling") parts[2] else null
+            var tellingId = if (parts.size >= 2 && parts[0] == "telling") parts[1] else null
+            var onlineId = if (parts.size >= 3 && parts[0] == "telling") parts[2] else null
             val timestamp = if (parts.size >= 4 && parts[0] == "telling") {
                 parts.drop(3).joinToString("_")
             } else null
@@ -556,6 +569,8 @@ class TellingBeheerToolset(
                     content
                 )
                 if (envelopeList.isNotEmpty()) {
+                    tellingId = envelopeList[0].tellingid.takeIf { it.isNotBlank() } ?: tellingId
+                    onlineId = envelopeList[0].onlineid.takeIf { it.isNotBlank() } ?: onlineId
                     nrec = envelopeList[0].nrec.toIntOrNull() ?: envelopeList[0].data.size
                     nsoort = envelopeList[0].nsoort.toIntOrNull() ?: envelopeList[0].data.map { it.soortid }.toSet().size
                     telpost = envelopeList[0].telpostid.takeIf { it.isNotBlank() }

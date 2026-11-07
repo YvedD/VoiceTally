@@ -91,7 +91,7 @@ class TellingAnnotationHandler(
         
         isAnnotatieSchermOpen = true
         try {
-            launchAnnotatieSchermInternal(text, ts, pos, nextId)
+            launchAnnotatieSchermInternal(text, ts, pos, nextId, null)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch AnnotatieScherm from queue", e)
             isAnnotatieSchermOpen = false
@@ -105,17 +105,33 @@ class TellingAnnotationHandler(
      * Falls back to parsing the count from the text if no record is found.
      */
     fun launchAnnotatieScherm(text: String, timestamp: Long, rowPosition: Int) {
+        launchAnnotatieScherm(text, timestamp, rowPosition, null, null)
+    }
+
+    fun launchAnnotatieScherm(
+        text: String,
+        timestamp: Long,
+        rowPosition: Int,
+        recordLocalId: String?,
+        recordGroupId: String?
+    ) {
         if (isAnnotatieSchermOpen) return // Prevent overlapping screens
         isAnnotatieSchermOpen = true
         try {
-            launchAnnotatieSchermInternal(text, timestamp, rowPosition, null)
+            launchAnnotatieSchermInternal(text, timestamp, rowPosition, recordLocalId, recordGroupId)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to launch AnnotatieScherm", e)
             isAnnotatieSchermOpen = false
         }
     }
 
-    private fun launchAnnotatieSchermInternal(text: String, timestamp: Long, rowPosition: Int, explicitRecordLocalId: String?) {
+    private fun launchAnnotatieSchermInternal(
+        text: String,
+        timestamp: Long,
+        rowPosition: Int,
+        explicitRecordLocalId: String?,
+        explicitRecordGroupId: String?
+    ) {
         val intent = Intent(activity, AnnotatieScherm::class.java).apply {
             putExtra(AnnotatieScherm.EXTRA_TEXT, text)
             putExtra(AnnotatieScherm.EXTRA_TS, timestamp)
@@ -130,18 +146,30 @@ class TellingAnnotationHandler(
             // Find matching pending record to prefill count fields
             val pendingRecords = onGetPendingRecords?.invoke() ?: emptyList()
             val finalsList = onGetFinalsList?.invoke() ?: emptyList()
-            val rowRecordLocalId = explicitRecordLocalId ?: finalsList.getOrNull(rowPosition)?.recordLocalId
+            val finalRow = finalsList.getOrNull(rowPosition)
+            val rowRecordLocalId = explicitRecordLocalId ?: finalRow?.recordLocalId
+            val rowRecordGroupId = explicitRecordGroupId ?: finalRow?.rowKey
             
             // Find matching record by position
-            val finalRowTs = finalsList.getOrNull(rowPosition)?.ts
+            val finalRowTs = finalRow?.ts
             val matchingRecord = if (!rowRecordLocalId.isNullOrBlank()) {
                 putExtra(AnnotatieScherm.EXTRA_RECORD_LOCAL_ID, rowRecordLocalId)
                 pendingRecords.firstOrNull { it.idLocal == rowRecordLocalId }
+            } else if (!rowRecordGroupId.isNullOrBlank()) {
+                putExtra(AnnotatieScherm.EXTRA_RECORD_GROUP_ID, rowRecordGroupId)
+                pendingRecords.firstOrNull { it.groupid == rowRecordGroupId || it.idLocal == rowRecordGroupId }
             } else if (finalRowTs != null) {
                 pendingRecords.firstOrNull { it.tijdstip == finalRowTs.toString() }
             } else {
                 // Fallback: try by explicit timestamp
                 pendingRecords.firstOrNull { it.tijdstip == timestamp.toString() }
+            }
+
+            if (!rowRecordLocalId.isNullOrBlank()) {
+                putExtra(AnnotatieScherm.EXTRA_RECORD_LOCAL_ID, rowRecordLocalId)
+            }
+            if (!rowRecordGroupId.isNullOrBlank()) {
+                putExtra(AnnotatieScherm.EXTRA_RECORD_GROUP_ID, rowRecordGroupId)
             }
             
             // Prefill count values - either from record or parse from text
@@ -150,6 +178,8 @@ class TellingAnnotationHandler(
                 putExtra(AnnotatieScherm.EXTRA_RECORD_AANTAL, matchingRecord.aantal)
                 putExtra(AnnotatieScherm.EXTRA_RECORD_AANTALTERUG, matchingRecord.aantalterug)
                 putExtra(AnnotatieScherm.EXTRA_LOKAAL, matchingRecord.lokaal)
+                putExtra(AnnotatieScherm.EXTRA_RECORD_LOCAL_ID, matchingRecord.idLocal)
+                putExtra(AnnotatieScherm.EXTRA_RECORD_GROUP_ID, matchingRecord.groupid)
                 
                 // Existing annotations
                 putExtra("extra_leeftijd", matchingRecord.leeftijd)
@@ -192,10 +222,17 @@ class TellingAnnotationHandler(
         val legacyTs = data.getLongExtra(AnnotatieScherm.EXTRA_TS, 0L)
         val rowPos = data.getIntExtra("extra_row_pos", -1)
         val recordLocalId = data.getStringExtra(AnnotatieScherm.EXTRA_RECORD_LOCAL_ID)
+        val recordGroupId = data.getStringExtra(AnnotatieScherm.EXTRA_RECORD_GROUP_ID)
 
         if (!annotationsJson.isNullOrBlank()) {
             try {
-                applyAnnotationsToPendingRecord(annotationsJson, rowTs = legacyTs, rowPos = rowPos, recordLocalId = recordLocalId)
+                applyAnnotationsToPendingRecord(
+                    annotationsJson,
+                    rowTs = legacyTs,
+                    rowPos = rowPos,
+                    recordLocalId = recordLocalId,
+                    recordGroupId = recordGroupId
+                )
             } catch (ex: Exception) {
                 Log.w(TAG, "applyAnnotationsToPendingRecord failed: ${ex.message}", ex)
             }
@@ -206,7 +243,13 @@ class TellingAnnotationHandler(
                     val singleMapJson = kotlinx.serialization.json.Json.encodeToString(
                         mapOf("opmerkingen" to legacyText)
                     )
-                    applyAnnotationsToPendingRecord(singleMapJson, rowTs = legacyTs, rowPos = rowPos, recordLocalId = recordLocalId)
+                    applyAnnotationsToPendingRecord(
+                        singleMapJson,
+                        rowTs = legacyTs,
+                        rowPos = rowPos,
+                        recordLocalId = recordLocalId,
+                        recordGroupId = recordGroupId
+                    )
                 } catch (ex: Exception) {
                     Log.w(TAG, "legacy apply failed: ${ex.message}", ex)
                 }
@@ -236,7 +279,8 @@ class TellingAnnotationHandler(
         annotationsJson: String,
         rowTs: Long = 0L,
         rowPos: Int = -1,
-        recordLocalId: String? = null
+        recordLocalId: String? = null,
+        recordGroupId: String? = null
     ) {
         try {
             val parser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
@@ -263,13 +307,19 @@ class TellingAnnotationHandler(
             } else {
                 -1
             }
+            if (idx == -1 && !recordGroupId.isNullOrBlank()) {
+                idx = pendingRecords.indexOfFirst { it.groupid == recordGroupId || it.idLocal == recordGroupId }
+            }
             if (idx == -1 && rowPos >= 0) {
                 val finalsList = onGetFinalsList?.invoke() ?: emptyList()
                 val finalRow = finalsList.getOrNull(rowPos)
                 val finalRowRecordLocalId = finalRow?.recordLocalId
+                val finalRowKey = finalRow?.rowKey
                 val finalRowTs = finalRow?.ts
                 if (!finalRowRecordLocalId.isNullOrBlank()) {
                     idx = pendingRecords.indexOfFirst { it.idLocal == finalRowRecordLocalId }
+                } else if (!finalRowKey.isNullOrBlank()) {
+                    idx = pendingRecords.indexOfFirst { it.groupid == finalRowKey || it.idLocal == finalRowKey }
                 } else if (finalRowTs != null) {
                     idx = pendingRecords.indexOfFirst { it.tijdstip == finalRowTs.toString() }
                 }

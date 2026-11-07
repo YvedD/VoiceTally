@@ -30,6 +30,7 @@ import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.repository.HybridTellingRepository
+import com.yvesds.vt5.core.database.toServerEnvelope
 import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
@@ -104,6 +105,8 @@ class TellingScherm : AppCompatActivity() {
         // Intent extra key for hourly alarm trigger
         const val EXTRA_SHOW_HUIDIGE_STAND = "SHOW_HUIDIGE_STAND"
         const val EXTRA_RESTORE_PENDING_TELLING = "RESTORE_PENDING_TELLING"
+        const val EXTRA_RESTORE_TELLING_ID = "EXTRA_RESTORE_TELLING_ID"
+        const val EXTRA_RESTORE_ONLINE_ID = "EXTRA_RESTORE_ONLINE_ID"
         const val EXTRA_CLIENT_QR_PAYLOAD = "EXTRA_CLIENT_QR_PAYLOAD"
     }
 
@@ -172,6 +175,7 @@ class TellingScherm : AppCompatActivity() {
 
     // Restore guard to avoid applying restore multiple times
     private var restoredFromSavedEnvelope = false
+    private var historicalReopenSession = false
 
     // Master-client state
     private var mcPairingManager: PairingManager? = null
@@ -366,6 +370,7 @@ class TellingScherm : AppCompatActivity() {
                     viewModel.finals.observe(this@TellingScherm) { list -> uiManager.updateFinals(list) }
                     
                     viewModel.pendingRecords.observe(this@TellingScherm) { records ->
+                        ensureTilesExistForRecords(records)
                         tegelBeheer.recalculateCountsFromRecords(records)
                         synchronized(pendingRecords) {
                             pendingRecords.clear()
@@ -373,9 +378,32 @@ class TellingScherm : AppCompatActivity() {
                         }
                     }
 
-                    val currentTellingId = prefs.getString("pref_telling_id", null)
-                    if (currentTellingId != null) {
-                        viewModel.observeRecords(currentTellingId)
+                    val restoreTellingIdFromIntent = intent?.getStringExtra(EXTRA_RESTORE_TELLING_ID)?.trim().orEmpty()
+                    val restoreOnlineIdFromIntent = intent?.getStringExtra(EXTRA_RESTORE_ONLINE_ID)?.trim().orEmpty()
+                    val explicitRestoreOnStart = intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true &&
+                        restoreTellingIdFromIntent.isNotBlank()
+                    if (restoreTellingIdFromIntent.isNotBlank()) {
+                        prefs.edit()
+                            .putString("pref_telling_id", restoreTellingIdFromIntent)
+                            .apply()
+                    }
+                    if (restoreOnlineIdFromIntent.isNotBlank()) {
+                        prefs.edit()
+                            .putString("pref_online_id", restoreOnlineIdFromIntent)
+                            .apply()
+                    }
+
+                    val currentTellingId = restoreTellingIdFromIntent.ifBlank {
+                        prefs.getString("pref_telling_id", null).orEmpty()
+                    }
+
+                    if (currentTellingId.isNotBlank()) {
+                        val mode = InstellingenScherm.getStorageMode(this@TellingScherm)
+                        if (!explicitRestoreOnStart &&
+                            (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL)
+                        ) {
+                            viewModel.observeRecords(currentTellingId)
+                        }
                         viewModel.loadBaseEnvelope(currentTellingId)
                     }
 
@@ -412,7 +440,10 @@ class TellingScherm : AppCompatActivity() {
         // Ask user if a pending, non-uploaded telling should be restored
         lifecycleScope.launch {
             if (intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true) {
-                restorePendingTellingIfAvailable()
+                restorePendingTellingIfAvailable(
+                    forcedTellingId = intent?.getStringExtra(EXTRA_RESTORE_TELLING_ID),
+                    forcedOnlineId = intent?.getStringExtra(EXTRA_RESTORE_ONLINE_ID)
+                )
             }
         }
     }
@@ -590,7 +621,8 @@ class TellingScherm : AppCompatActivity() {
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     // Room shadow update
-                    hybridRepository.saveWaarnemingToRoom(updated)
+                    hybridRepository.saveWaarnemingToRoom(updated, force = true)
+                    markSessionEditedInRoomAsync()
 
                     // val records = synchronized(pendingRecords) { pendingRecords.toList() }
                     // envelopePersistence.saveEnvelopeWithRecords(records) // UITGESCHAKELD
@@ -617,13 +649,17 @@ class TellingScherm : AppCompatActivity() {
 
         // Initializer callbacks
         initializer.onTilesLoaded = { tiles ->
-            tegelBeheer.setTiles(tiles)
-            refreshDailyObservationOrdering()
+            if (restoredFromSavedEnvelope && synchronized(pendingRecords) { pendingRecords.isNotEmpty() }) {
+                Log.i(TAG, "Skipping preselection tile reset because an existing telling was restored")
+            } else {
+                tegelBeheer.setTiles(tiles)
+                refreshDailyObservationOrdering()
 
-            // Check if we need to show HuidigeStandScherm (triggered by hourly alarm)
-            if (pendingShowHuidigeStand) {
-                pendingShowHuidigeStand = false
-                showHuidigeStandScherm()
+                // Check if we need to show HuidigeStandScherm (triggered by hourly alarm)
+                if (pendingShowHuidigeStand) {
+                    pendingShowHuidigeStand = false
+                    showHuidigeStandScherm()
+                }
             }
         }
         initializer.onMatchContextBuilt = { context ->
@@ -1192,7 +1228,13 @@ class TellingScherm : AppCompatActivity() {
      */
     private fun handleFinalTap(pos: Int, row: SpeechLogRow) {
         if (row.bron == "final" && !row.isPending) {
-            annotationHandler.launchAnnotatieScherm(row.tekst, row.ts, pos)
+            annotationHandler.launchAnnotatieScherm(
+                text = row.tekst,
+                timestamp = row.ts,
+                rowPosition = pos,
+                recordLocalId = row.recordLocalId,
+                recordGroupId = row.rowKey
+            )
         }
     }
 
@@ -2192,46 +2234,112 @@ class TellingScherm : AppCompatActivity() {
         speciesManager.launchSpeciesSelection()
     }
 
-    private suspend fun restorePendingTellingIfAvailable() {
+    private suspend fun restorePendingTellingIfAvailable(
+        forcedTellingId: String? = null,
+        forcedOnlineId: String? = null
+    ) {
         if (restoredFromSavedEnvelope) return
         try {
-            val mode = InstellingenScherm.getStorageMode(this)
-            val savedRecords: List<ServerTellingDataItem>
-            val tellingId: String
-            val onlineId: String
+            val explicitRestoreRequest = !forcedTellingId.isNullOrBlank()
+            historicalReopenSession = explicitRestoreRequest
+            var tellingId = forcedTellingId?.trim().orEmpty()
+            var onlineId = forcedOnlineId?.trim().orEmpty()
+            var savedRecords: List<ServerTellingDataItem> = emptyList()
+            var restoredEnvelope: ServerTellingEnvelope? = null
 
-            if (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
-                // Restore from Room (Primary source in Hybrid mode)
-                tellingId = prefs.getString("pref_telling_id", "") ?: ""
-                onlineId = prefs.getString("pref_online_id", "") ?: ""
-                if (tellingId.isBlank()) return
-                
-                val dao = VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao()
-                val header = withContext(Dispatchers.IO) { dao.getHeader(tellingId) }
-                
-                // Alleen herstellen als de sessie in de database nog op 'actief' staat
-                if (header == null || header.status != "actief") {
-                    Log.i(TAG, "Geen actieve sessie gevonden in Room voor ID $tellingId; overgeslagen")
-                    return
-                }
+            val dao = VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao()
 
-                val roomRecords = withContext(Dispatchers.IO) {
-                    dao.getWaarnemingenList(tellingId)
+            fun tryRestoreFromPrefsEnvelope(candidateTellingId: String?): Boolean {
+                val raw = prefs.getString("pref_saved_envelope_json", null) ?: return false
+                val list = runCatching {
+                    VT5App.json.decodeFromString(ListSerializer(ServerTellingEnvelope.serializer()), raw)
+                }.getOrNull() ?: return false
+                if (list.isEmpty()) return false
+
+                val chosen = when {
+                    candidateTellingId.isNullOrBlank() -> list.firstOrNull()
+                    else -> list.firstOrNull { it.tellingid == candidateTellingId }
+                } ?: return false
+
+                val normalizedRecords = chosen.data.map { item ->
+                    item.copy(tellingid = item.tellingid.ifBlank { chosen.tellingid })
                 }
-                savedRecords = roomRecords.map { it.toServerItem() }
-            } else {
-                // Restore from JSON
-                val savedEnvelope = envelopePersistence.loadSavedEnvelope() ?: return
-                savedRecords = savedEnvelope.data
-                tellingId = savedEnvelope.tellingid
-                onlineId = savedEnvelope.onlineid
+                if (normalizedRecords.isEmpty()) return false
+
+                savedRecords = normalizedRecords
+                tellingId = chosen.tellingid
+                if (onlineId.isBlank()) {
+                    onlineId = chosen.onlineid
+                }
+                restoredEnvelope = chosen.copy(data = normalizedRecords)
+                return true
             }
 
-            if (savedRecords.isEmpty()) return
+            suspend fun tryRestoreFromRoom(candidateTellingId: String): Boolean {
+                val header = withContext(Dispatchers.IO) { dao.getHeader(candidateTellingId) } ?: return false
+                val roomRecords = withContext(Dispatchers.IO) { dao.getWaarnemingenList(candidateTellingId) }
+                savedRecords = roomRecords.map { it.toServerItem() }
+                restoredEnvelope = header.toServerEnvelope(roomRecords)
+                tellingId = header.tellingid
+                if (onlineId.isBlank()) {
+                    onlineId = header.onlineid
+                }
+                return true
+            }
 
-            // Skip restore if this telling was already sent
-            if (TellingUploadFlags.isSent(this, tellingId, onlineId)) {
-                Log.i(TAG, "Pending envelope already marked as sent; skipping restore")
+            if (explicitRestoreRequest && tellingId.isNotBlank()) {
+                tryRestoreFromPrefsEnvelope(tellingId)
+            }
+
+            if (savedRecords.isEmpty() && tellingId.isNotBlank()) {
+                tryRestoreFromRoom(tellingId)
+            }
+
+            if (savedRecords.isEmpty()) {
+                val prefTellingId = prefs.getString("pref_telling_id", "").orEmpty().trim()
+                if (prefTellingId.isNotBlank() && prefTellingId != tellingId) {
+                    if (!explicitRestoreRequest) {
+                        tryRestoreFromRoom(prefTellingId)
+                    }
+                    if (savedRecords.isEmpty()) {
+                        tryRestoreFromPrefsEnvelope(prefTellingId)
+                    }
+                }
+            }
+
+            if (savedRecords.isEmpty() && !explicitRestoreRequest && tellingId.isBlank()) {
+                tryRestoreFromPrefsEnvelope(null)
+            }
+
+            if (savedRecords.isEmpty()) {
+                val savedEnvelope = envelopePersistence.loadSavedEnvelope()
+                if (savedEnvelope != null && (tellingId.isBlank() || savedEnvelope.tellingid == tellingId)) {
+                    savedRecords = savedEnvelope.data
+                    tellingId = savedEnvelope.tellingid
+                    if (onlineId.isBlank()) {
+                        onlineId = savedEnvelope.onlineid
+                    }
+                    restoredEnvelope = savedEnvelope
+                }
+            }
+
+            if (tellingId.isBlank() || savedRecords.isEmpty()) return
+
+            val restoredSpeciesIds = savedRecords
+                .asSequence()
+                .map { it.soortid.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .toList()
+            restoredEnvelope?.telpostid
+                ?.takeIf { it.isNotBlank() }
+                ?.let { TellingSessionManager.setTelpost(it) }
+            TellingSessionManager.setPreselectedSoorten(restoredSpeciesIds)
+
+            // Alleen de automatische pending-resume moet geskipt worden wanneer reeds verzonden.
+            // Bij expliciet heropenen vanuit beheer moet reconstructie altijd doorgaan.
+            if (!explicitRestoreRequest && TellingUploadFlags.isSent(this, tellingId, onlineId)) {
+                Log.i(TAG, "Pending envelope already marked as sent; skipping automatic restore")
                 return
             }
 
@@ -2242,8 +2350,8 @@ class TellingScherm : AppCompatActivity() {
             val speciesById = snapshot.speciesById
             val countsBySoort = savedRecords.groupBy { it.soortid }
 
-            val restoredTiles = countsBySoort.mapNotNull { (soortId, items) ->
-                val soortNaam = speciesById[soortId]?.soortnaam ?: return@mapNotNull null
+            val restoredTiles = countsBySoort.map { (soortId, items) ->
+                val soortNaam = speciesById[soortId]?.soortnaam ?: soortId
                 val countMain = items.sumOf { it.aantal.toIntOrNull() ?: 0 }
                 val countReturn = items.sumOf { it.aantalterug.toIntOrNull() ?: 0 }
                 SoortTile(soortId, soortNaam, countMain, countReturn)
@@ -2253,6 +2361,8 @@ class TellingScherm : AppCompatActivity() {
                 tegelBeheer.setTiles(restoredTiles)
                 updateSelectedSpeciesMap()
             }
+            ensureTilesExistForRecords(savedRecords)
+            tegelBeheer.recalculateCountsFromRecords(savedRecords)
 
             // Restore pending records and reflect to ViewModel
             synchronized(pendingRecords) {
@@ -2261,6 +2371,9 @@ class TellingScherm : AppCompatActivity() {
             }
             if (::viewModel.isInitialized) {
                 viewModel.setPendingRecords(savedRecords)
+                restoredEnvelope?.let { envelope ->
+                    viewModel.setBaseEnvelope(envelope.copy(data = savedRecords))
+                }
             }
             savedRecords.forEach { syncDailyTotalsRecord(it) }
             savedRecords.forEach { syncDailyObservationRecord(it, refreshOrder = false) }
@@ -2277,6 +2390,45 @@ class TellingScherm : AppCompatActivity() {
             if (::viewModel.isInitialized) {
                 viewModel.setFinals(restoredFinals)
                 viewModel.setPartials(emptyList())
+            }
+
+            prefs.edit()
+                .putString("pref_telling_id", tellingId)
+                .putString("pref_online_id", onlineId)
+                .apply()
+
+            restoredEnvelope?.let { envelope ->
+                runCatching {
+                    TellingUploadCore(this).persistPreparedEnvelopeToPrefs(envelope.copy(data = savedRecords))
+                }.onFailure { ex ->
+                    Log.w(TAG, "Failed to persist reconstructed envelope in prefs: ${ex.message}")
+                }
+            }
+
+            if (explicitRestoreRequest) {
+                restoredEnvelope?.let { envelope ->
+                    runCatching {
+                        val synced = envelope.copy(
+                            tellingid = tellingId,
+                            onlineid = onlineId,
+                            data = savedRecords.map { it.copy(tellingid = tellingId) }
+                        )
+                        hybridRepository.replaceTellingSnapshotInRoom(synced, status = "actief")
+                    }.onFailure { ex ->
+                        Log.w(TAG, "Failed to sync reopened telling snapshot to Room: ${ex.message}", ex)
+                    }
+                }
+            }
+
+            if (explicitRestoreRequest && ::viewModel.isInitialized) {
+                val mode = InstellingenScherm.getStorageMode(this)
+                if (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
+                    viewModel.observeRecords(tellingId)
+                }
+            }
+
+            if (explicitRestoreRequest) {
+                TellingUploadFlags.markNotSent(this, tellingId, onlineId)
             }
 
             restoredFromSavedEnvelope = true
@@ -3174,10 +3326,11 @@ class TellingScherm : AppCompatActivity() {
             ObservationDeliveryState.REJECTED -> " ❌"
             ObservationDeliveryState.NONE -> ""
         }
+        val annotationSuffix = if (hasAnnotationData(item)) " 📝" else ""
         val display = when {
-            main > 0 && ret <= 0 -> "$prefix$name -> +$main$statusSuffix"
-            main <= 0 && ret > 0 -> "$prefix$name (tegenrichting) -> +$ret$statusSuffix"
-            else -> "$prefix$name -> +$main / +$ret$statusSuffix"
+            main > 0 && ret <= 0 -> "$prefix$name -> +$main$annotationSuffix$statusSuffix"
+            main <= 0 && ret > 0 -> "$prefix$name (tegenrichting) -> +$ret$annotationSuffix$statusSuffix"
+            else -> "$prefix$name -> +$main / +$ret$annotationSuffix$statusSuffix"
         }
         val isUploadedToServer = UploadedObservationStateStore.isCurrentRecordUploaded(
             context = this,
@@ -3190,11 +3343,24 @@ class TellingScherm : AppCompatActivity() {
             bron = "final",
             isPending = deliveryState == ObservationDeliveryState.PENDING,
             recordLocalId = item.idLocal,
-            rowKey = item.idLocal,
+            rowKey = item.idLocal.ifBlank { item.groupid },
             deliveryState = deliveryState,
             isClientOrigin = normalizedPrefix.isNotBlank() || isClientOrigin,
             isUploadedToServer = isUploadedToServer
         )
+    }
+
+    private fun hasAnnotationData(item: ServerTellingDataItem): Boolean {
+        return item.leeftijd.isNotBlank() ||
+            item.geslacht.isNotBlank() ||
+            item.kleed.isNotBlank() ||
+            item.location.isNotBlank() ||
+            item.height.isNotBlank() ||
+            item.sightingdirection.isNotBlank() ||
+            item.opmerkingen.isNotBlank() ||
+            item.markeren == "1" ||
+            item.markerenlokaal == "1" ||
+            item.teltype.isNotBlank()
     }
 
     private fun observeUploadedObservationState() {
@@ -3451,7 +3617,30 @@ class TellingScherm : AppCompatActivity() {
         
         // Room shadow write - CRUCIAL voor Hybride Systeem
         lifecycleScope.launch(Dispatchers.IO) {
-            hybridRepository.saveWaarnemingToRoom(item)
+            hybridRepository.saveWaarnemingToRoom(item, force = true)
+            markSessionEditedInRoomAsync()
+        }
+    }
+
+    private fun markSessionEditedInRoomAsync() {
+        if (!historicalReopenSession) return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val tellingId = prefs.getString("pref_telling_id", null).orEmpty()
+            if (tellingId.isBlank()) return@launch
+
+            runCatching {
+                val dao = VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao()
+                val header = dao.getHeader(tellingId) ?: return@runCatching
+                val records = dao.getWaarnemingenList(tellingId)
+                hybridRepository.saveHeaderToRoom(
+                    envelope = header.toServerEnvelope(records),
+                    status = "edited",
+                    force = true
+                )
+            }.onFailure { ex ->
+                Log.w(TAG, "Failed to mark session as edited in Room: ${ex.message}", ex)
+            }
         }
     }
 

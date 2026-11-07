@@ -149,7 +149,7 @@ class TellingAfrondHandler(
         val uploadCore = TellingUploadCore(context)
         val finalEnv = uploadCore.prepareEnvelopeForUpload(
             sourceEnvelope = finalEnvDraft,
-            useStoredOnlineIdWhenBlank = true,
+            useStoredOnlineIdWhenBlank = false,
             now = Date()
         )
 

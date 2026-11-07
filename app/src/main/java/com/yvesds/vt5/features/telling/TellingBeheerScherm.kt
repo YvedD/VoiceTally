@@ -34,6 +34,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.ui.CompassNeedleView
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.PopupThemeHelper
@@ -44,6 +45,7 @@ import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.net.ServerTellingDataItem
 import com.yvesds.vt5.net.ServerTellingEnvelope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,6 +75,7 @@ class TellingBeheerScherm : AppCompatActivity() {
 
     private lateinit var toolset: TellingBeheerToolset
     private lateinit var safHelper: SaFStorageHelper
+    private val hybridRepository by lazy { HybridTellingRepository(this) }
 
     // Views
     private lateinit var tvTitel: TextView
@@ -994,6 +997,10 @@ class TellingBeheerScherm : AppCompatActivity() {
         }
     }
 
+    private suspend fun syncEditedEnvelopeToRoom(envelope: ServerTellingEnvelope) {
+        hybridRepository.replaceTellingSnapshotInRoom(envelope, status = "edited")
+    }
+
     private fun saveCurrentTelling() {
         val filename = currentFilename ?: return
         val envelope = currentEnvelope ?: return
@@ -1024,6 +1031,10 @@ class TellingBeheerScherm : AppCompatActivity() {
                 }
 
                 if (success) {
+                    withContext(Dispatchers.IO) {
+                        syncEditedEnvelopeToRoom(envelope)
+                    }
+                    TellingUploadFlags.markNotSent(this@TellingBeheerScherm, envelope.tellingid, envelope.onlineid)
                     hasUnsavedChanges = false
                     Toast.makeText(this@TellingBeheerScherm, getString(R.string.beheer_opgeslagen), Toast.LENGTH_SHORT).show()
                 } else {
@@ -1061,6 +1072,9 @@ class TellingBeheerScherm : AppCompatActivity() {
                     useStoredOnlineIdWhenBlank = false,
                     now = Date()
                 )
+                withContext(Dispatchers.IO) {
+                    syncEditedEnvelopeToRoom(finalEnvelope)
+                }
                 val uploadResult = withContext(Dispatchers.IO) {
                     uploadCore.uploadPrepared(
                         TellingUploadCore.UploadRequest(
@@ -1185,17 +1199,52 @@ class TellingBeheerScherm : AppCompatActivity() {
                 lifecycleScope.launch {
                     try {
                         val uploadCore = TellingUploadCore(this@TellingBeheerScherm)
-                        val prepared = uploadCore.prepareEnvelopeForUpload(envelope)
+                        val preparedBase = uploadCore.prepareEnvelopeForUpload(
+                            sourceEnvelope = envelope,
+                            useStoredOnlineIdWhenBlank = false,
+                            now = Date()
+                        )
+                        val restoreTellingId = preparedBase.tellingid.ifBlank { info.tellingId.orEmpty() }
+                        val restoreOnlineId = preparedBase.onlineid.ifBlank { info.onlineId.orEmpty() }
+                        val prepared = preparedBase.copy(
+                            tellingid = restoreTellingId,
+                            onlineid = restoreOnlineId,
+                            data = preparedBase.data.map { item ->
+                                item.copy(
+                                    tellingid = item.tellingid.ifBlank { restoreTellingId }
+                                )
+                            }
+                        )
+                        val reconstructedSpeciesIds = prepared.data
+                            .asSequence()
+                            .map { it.soortid.trim() }
+                            .filter { it.isNotBlank() }
+                            .distinct()
+                            .toList()
 
                         uploadCore.persistPreparedEnvelopeToPrefs(prepared)
-                        val persistence = TellingEnvelopePersistence(this@TellingBeheerScherm, safHelper)
-                        persistence.saveEnvelopeWithRecords(prepared.data)
+
+                        // Keep reopen flow consistent with SoortSelectie: set telpost + species preselection.
+                        prepared.telpostid
+                            .takeIf { it.isNotBlank() }
+                            ?.let { TellingSessionManager.setTelpost(it) }
+                        TellingSessionManager.setPreselectedSoorten(reconstructedSpeciesIds)
+
+                        getSharedPreferences("vt5_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putString("pref_telling_id", restoreTellingId)
+                            .putString("pref_online_id", restoreOnlineId)
+                            .apply()
 
                         val intent = Intent(this@TellingBeheerScherm, TellingScherm::class.java).apply {
                             putExtra(TellingScherm.EXTRA_RESTORE_PENDING_TELLING, true)
+                            putExtra(TellingScherm.EXTRA_RESTORE_TELLING_ID, restoreTellingId)
+                            putExtra(TellingScherm.EXTRA_RESTORE_ONLINE_ID, restoreOnlineId)
                         }
                         startActivity(intent)
                         finish()
+                    } catch (_: CancellationException) {
+                        Log.i(TAG, "Heropenen-couroutine geannuleerd tijdens navigatie")
                     } catch (e: Exception) {
                         Toast.makeText(this@TellingBeheerScherm, "Fout bij heropenen: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
@@ -1279,7 +1328,11 @@ class TellingBeheerScherm : AppCompatActivity() {
                     return@forEachIndexed
                 }
 
-                val prepared = uploadCore.prepareEnvelopeForUpload(envelope)
+                val prepared = uploadCore.prepareEnvelopeForUpload(
+                    sourceEnvelope = envelope,
+                    useStoredOnlineIdWhenBlank = false,
+                    now = Date()
+                )
                 val result = withContext(Dispatchers.IO) {
                     uploadCore.uploadPrepared(
                         TellingUploadCore.UploadRequest(
@@ -1431,8 +1484,14 @@ class TellingBeheerScherm : AppCompatActivity() {
                 tvTimestamp.text = dateFormat.format(Date(info.lastModified))
 
                 val isSent = TellingUploadFlags.isSent(itemView.context, info.tellingId, info.onlineId)
+                val isEdited = TellingUploadFlags.isEdited(itemView.context, info.tellingId)
 
-                if (info.isActive && !isSent) {
+                if (isEdited) {
+                    tvBadge.visibility = View.VISIBLE
+                    tvBadge.text = "✎ Edited"
+                    tvBadge.setBackgroundColor(Color.parseColor("#29B6F6"))
+                    tvBadge.setTextColor(Color.BLACK)
+                } else if (info.isActive && !isSent) {
                     tvBadge.visibility = View.VISIBLE
                     tvBadge.text = "⚡ Onvolledig / Hersteld"
                     tvBadge.setBackgroundColor(Color.parseColor("#FBC02D"))
@@ -1445,6 +1504,9 @@ class TellingBeheerScherm : AppCompatActivity() {
                 if (isSent) {
                     tvStatus.text = "✓ Status: Verzonden"
                     tvStatus.setTextColor(Color.parseColor("#4CAF50"))
+                } else if (isEdited) {
+                    tvStatus.text = "✎ Status: Bewerkt (niet verzonden)"
+                    tvStatus.setTextColor(Color.parseColor("#29B6F6"))
                 } else {
                     tvStatus.text = "⚠ Status: Niet verzonden"
                     tvStatus.setTextColor(Color.parseColor("#FF9800"))
