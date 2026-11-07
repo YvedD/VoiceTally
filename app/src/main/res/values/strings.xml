@@ -260,6 +260,10 @@
     <string name="db_telling_upload_selected">Uploaden</string>
     <string name="db_telling_upload_selected_with_count">Uploaden (%1$d)</string>
     <string name="db_telling_upload_none">Selecteer eerst sessies om te uploaden</string>
+    <string name="db_telling_mark_uploaded_selected">Markeer GEUPLOAD</string>
+    <string name="db_telling_mark_uploaded_selected_with_count">Markeer GEUPLOAD (%1$d)</string>
+    <string name="db_telling_mark_uploaded_none">Selecteer eerst sessies om status bij te werken</string>
+    <string name="db_telling_mark_uploaded_summary">Status bijgewerkt naar GEUPLOAD: %1$d • overgeslagen: %2$d</string>
     <string name="db_telling_upload_result_title">Uploadresultaat</string>
     <string name="db_telling_upload_summary">Geslaagd: %1$d\nMislukt: %2$d\nOvergeslagen: %3$d</string>
     <string name="db_telling_reopen_title">Telling heropenen</string>
@@ -504,6 +508,10 @@
     <string name="pending_telling_delete">Telling verwijderen</string>
     <string name="pending_telling_restored">Niet-verzonden telling hersteld.</string>
     <string name="pending_telling_deleted">Niet-verzonden telling verwijderd.</string>
+    <string name="failed_recovery_title">Niet-verzonden telling gedetecteerd</string>
+    <string name="failed_recovery_message">Er staat een telling klaar met status %1$s. Wil je die nu heropenen om aan te passen en correct te uploaden?</string>
+    <string name="failed_recovery_open">Nu heropenen</string>
+    <string name="failed_recovery_open_beheer">Open tellingbeheer</string>
 
     <string name="perm_disable_title">Machtiging uitschakelen?</string>
     <string name="perm_disable_confirm">Toch uitschakelen</string>

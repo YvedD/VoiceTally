@@ -47,6 +47,17 @@
             app:strokeColor="@color/vt5_orange" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMarkUploadedSelected"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:enabled="false"
+            android:text="@string/db_telling_mark_uploaded_selected"
+            android:textSize="12sp"
+            app:strokeColor="@color/vt5_green" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDeleteSelected"
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="wrap_content"

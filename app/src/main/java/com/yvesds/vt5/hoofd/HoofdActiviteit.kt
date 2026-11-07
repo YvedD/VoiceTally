@@ -30,6 +30,7 @@ import com.yvesds.vt5.features.masterClient.McQrPayloadCodec
 import com.yvesds.vt5.features.masterClient.McRuntimePermissions
 import com.yvesds.vt5.features.opstart.ui.InstallatieScherm
 import com.yvesds.vt5.features.telling.TellingEnvelopePersistence
+import com.yvesds.vt5.features.telling.RoomTellingReopenLauncher
 import com.yvesds.vt5.features.telling.TellingScherm
 import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.features.telling.TellingStatus
@@ -79,6 +80,7 @@ class HoofdActiviteit : AppCompatActivity() {
     private lateinit var safHelper: SaFStorageHelper
     private lateinit var fileLogger: FileLogger
     private var pendingTellingDialogShown = false
+    private var failedRecoveryDialogShown = false
     private var pendingAiUpdateAfterSaF: Boolean = false
     private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
     
@@ -296,7 +298,60 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         maybeShowPendingUploadsDialog()
+        maybeShowFailedUploadRecoveryDialog()
         refreshAppUpdateBadge(showPrompt = true)
+    }
+
+    private fun maybeShowFailedUploadRecoveryDialog() {
+        if (failedRecoveryDialogShown) return
+
+        lifecycleScope.launch {
+            try {
+                val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+                val candidate = withContext(Dispatchers.IO) {
+                    db.tellingDao()
+                        .getAllHeaders()
+                        .asSequence()
+                        .filter { header ->
+                            val status = TellingStatus.normalize(header.status)
+                            status == TellingStatus.RETRY_NEEDED ||
+                                status == TellingStatus.EDITED ||
+                                status == TellingStatus.ACTIEF
+                        }
+                        .firstOrNull { header ->
+                            !TellingUploadFlags.isSent(this@HoofdActiviteit, header.tellingid, header.onlineid)
+                        }
+                } ?: return@launch
+
+                val records = withContext(Dispatchers.IO) {
+                    db.tellingDao().getWaarnemingenList(candidate.tellingid)
+                }
+                if (records.isEmpty()) return@launch
+
+                failedRecoveryDialogShown = true
+                val normalizedStatus = TellingStatus.normalize(candidate.status).uppercase()
+                val dlg = AlertDialog.Builder(this@HoofdActiviteit)
+                    .setTitle(getString(R.string.failed_recovery_title))
+                    .setMessage(getString(R.string.failed_recovery_message, normalizedStatus))
+                    .setPositiveButton(getString(R.string.failed_recovery_open)) { _, _ ->
+                        RoomTellingReopenLauncher.launch(
+                            activity = this@HoofdActiviteit,
+                            header = candidate,
+                            records = records,
+                            finishCurrent = false
+                        )
+                    }
+                    .setNegativeButton(getString(R.string.failed_recovery_open_beheer)) { _, _ ->
+                        startActivity(Intent(this@HoofdActiviteit, DatabaseTellingLijstActiviteit::class.java))
+                    }
+                    .setNeutralButton(getString(R.string.annuleer), null)
+                    .setOnDismissListener { failedRecoveryDialogShown = false }
+                    .show()
+                DialogStyler.apply(dlg)
+            } catch (e: Exception) {
+                Log.w(TAG, "maybeShowFailedUploadRecoveryDialog failed: ${e.message}", e)
+            }
+        }
     }
 
     /**

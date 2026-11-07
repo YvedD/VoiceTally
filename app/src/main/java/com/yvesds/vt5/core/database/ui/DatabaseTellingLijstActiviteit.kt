@@ -43,6 +43,7 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var btnDeleteSelected: MaterialButton
     private lateinit var btnUploadSelected: MaterialButton
+    private lateinit var btnMarkUploadedSelected: MaterialButton
     private lateinit var tellingenAdapter: TellingAdapter
     private lateinit var spinnerSortField: Spinner
     private lateinit var spinnerSiteFilter: Spinner
@@ -64,6 +65,7 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         btnDeleteSelected = findViewById(R.id.btnDeleteSelected)
         btnUploadSelected = findViewById(R.id.btnUploadSelected)
+        btnMarkUploadedSelected = findViewById(R.id.btnMarkUploadedSelected)
 
         findViewById<MaterialButton>(R.id.btnTerug).setOnClickListener { finish() }
 
@@ -82,6 +84,15 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
                 return@setOnClickListener
             }
             uploadSelectedTellingen(selected)
+        }
+
+        btnMarkUploadedSelected.setOnClickListener {
+            val selected = tellingenAdapter.getSelectedTellingIds()
+            if (selected.isEmpty()) {
+                Toast.makeText(this, getString(R.string.db_telling_mark_uploaded_none), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            markSelectedAsUploaded(selected)
         }
 
         tellingenAdapter = TellingAdapter(
@@ -218,6 +229,13 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
             .mapNotNull { selectedId -> allTellingen.firstOrNull { it.tellingid == selectedId } }
             .count { isUploadable(it) }
 
+        val markableSelectedCount = tellingenAdapter.getSelectedTellingIds()
+            .mapNotNull { selectedId -> allTellingen.firstOrNull { it.tellingid == selectedId } }
+            .count {
+                !CsvImportPolicy.isUploadBlocked(it.status, it.bron) &&
+                    TellingStatus.normalize(it.status) != TellingStatus.GEUPLOAD
+            }
+
         btnDeleteSelected.isEnabled = selectedCount > 0
         btnDeleteSelected.text = if (selectedCount > 0) {
             getString(R.string.db_telling_delete_selected_with_count, selectedCount)
@@ -230,6 +248,53 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
             getString(R.string.db_telling_upload_selected_with_count, uploadableSelectedCount)
         } else {
             getString(R.string.db_telling_upload_selected)
+        }
+
+        btnMarkUploadedSelected.isEnabled = markableSelectedCount > 0
+        btnMarkUploadedSelected.text = if (markableSelectedCount > 0) {
+            getString(R.string.db_telling_mark_uploaded_selected_with_count, markableSelectedCount)
+        } else {
+            getString(R.string.db_telling_mark_uploaded_selected)
+        }
+    }
+
+    private fun markSelectedAsUploaded(selected: List<String>) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                val dao = database.tellingDao()
+                var changed = 0
+                var skipped = 0
+
+                selected.forEach { tellingId ->
+                    val header = dao.getHeader(tellingId)
+                    if (header == null) {
+                        skipped++
+                        return@forEach
+                    }
+                    if (CsvImportPolicy.isUploadBlocked(header.status, header.bron)) {
+                        skipped++
+                        return@forEach
+                    }
+
+                    val normalized = TellingStatus.normalize(header.status)
+                    if (normalized == TellingStatus.GEUPLOAD) {
+                        skipped++
+                        return@forEach
+                    }
+
+                    hybridRepository.updateHeaderStatus(tellingId, TellingStatus.GEUPLOAD, header.onlineid)
+                    TellingUploadFlags.markSent(this@DatabaseTellingLijstActiviteit, tellingId, header.onlineid)
+                    changed++
+                }
+                changed to skipped
+            }
+
+            loadSitesAndTellingen()
+            Toast.makeText(
+                this@DatabaseTellingLijstActiviteit,
+                getString(R.string.db_telling_mark_uploaded_summary, result.first, result.second),
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
