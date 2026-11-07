@@ -687,6 +687,84 @@
                         android:text="@string/instellingen_server_response_logging_checkbox"
                         android:textColor="@color/vt5_on_surface" />
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:paddingBottom="6dp"
+                        android:text="@string/update_title"
+                        android:textColor="@color/vt5_light_blue"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvUpdateStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:alpha="0.85"
+                        android:paddingBottom="12dp"
+                        android:text="@string/update_status_unknown"
+                        android:textColor="@color/vt5_on_surface"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCheckAppUpdate"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/update_check_button"
+                        android:textSize="14sp"
+                        app:icon="@android:drawable/ic_menu_rotate" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnInstallAppUpdate"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:enabled="false"
+                        android:text="@string/update_install_button"
+                        android:textSize="14sp"
+                        app:icon="@android:drawable/stat_sys_download_done" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnShowAppRollback"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/update_rollback_button"
+                        android:textSize="14sp"
+                        app:icon="@android:drawable/ic_menu_revert" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:paddingBottom="6dp"
+                        android:text="@string/alias_beheer_title"
+                        android:textColor="@color/vt5_light_blue"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingBottom="12dp"
+                        android:text="@string/alias_beheer_subtitle"
+                        android:textColor="@color/vt5_on_surface"
+                        android:alpha="0.8"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenAliasBeheer"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/alias_beheer_open_button"
+                        android:textSize="14sp"
+                        app:icon="@android:drawable/ic_menu_edit" />
+
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"

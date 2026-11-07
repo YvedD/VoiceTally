@@ -665,6 +665,100 @@
                 android:textColor="@color/vt5_on_surface"
                 android:textSize="12sp" />
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:text="@string/update_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvUpdateStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alpha="0.85"
+                android:paddingBottom="8dp"
+                android:text="@string/update_status_unknown"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCheckAppUpdate"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/update_check_button"
+                android:textSize="12sp"
+                app:icon="@android:drawable/ic_menu_rotate" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnInstallAppUpdate"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:enabled="false"
+                android:text="@string/update_install_button"
+                android:textSize="12sp"
+                app:icon="@android:drawable/stat_sys_download_done" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnShowAppRollback"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/update_rollback_button"
+                android:textSize="12sp"
+                app:icon="@android:drawable/ic_menu_revert" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="4dp"
+                android:text="@string/alias_beheer_title"
+                android:textColor="@color/vt5_on_surface"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="8dp"
+                android:text="@string/alias_beheer_subtitle"
+                android:textColor="@color/vt5_on_surface"
+                android:alpha="0.8"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenAliasBeheer"
+                style="@style/Widget.VT5.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/alias_beheer_open_button"
+                android:textSize="12sp"
+                app:icon="@android:drawable/ic_menu_edit" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="12dp"
+                android:alpha="0.3"
+                android:background="@color/vt5_on_surface" />
+
             <!-- NIEUW: Auto-Annotatie Beheer -->
             <TextView
                 android:layout_width="match_parent"

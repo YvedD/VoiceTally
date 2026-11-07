@@ -21,7 +21,21 @@ object AppDataStore {
     private val KEY_USE_NEURAL_INFERENCE = booleanPreferencesKey("use_neural_inference")
     private val KEY_USE_DAILY_ANALYSIS_WEIGHTS = booleanPreferencesKey("use_daily_analysis_weights")
     private val KEY_KRENTEN_THRESHOLD = intPreferencesKey("ai_krenten_threshold")
+    private val KEY_UPDATE_AVAILABLE = booleanPreferencesKey("app_update_available")
+    private val KEY_UPDATE_LATEST_VERSION = stringPreferencesKey("app_update_latest_version")
+    private val KEY_UPDATE_LATEST_URL = stringPreferencesKey("app_update_latest_url")
+    private val KEY_UPDATE_LATEST_SHA256 = stringPreferencesKey("app_update_latest_sha256")
+    private val KEY_UPDATE_LAST_CHECK_AT = longPreferencesKey("app_update_last_check_at")
+    private val KEY_UPDATE_LAST_PROMPTED_VERSION = stringPreferencesKey("app_update_last_prompted_version")
     private const val PREFIX_RECORD_ID = "next_record_id_"
+
+    data class UpdateSnapshot(
+        val updateAvailable: Boolean,
+        val latestVersion: String?,
+        val latestUrl: String?,
+        val latestSha256: String?,
+        val lastCheckedAt: Long
+    )
 
     /**
      * Haalt het volgende unieke telling ID op en verhoogt de teller.
@@ -132,5 +146,45 @@ object AppDataStore {
 
     suspend fun isUseDailyAnalysisWeights(context: Context): Boolean {
         return context.dataStore.data.map { it[KEY_USE_DAILY_ANALYSIS_WEIGHTS] ?: true }.first()
+    }
+
+    suspend fun setUpdateSnapshot(
+        context: Context,
+        updateAvailable: Boolean,
+        latestVersion: String?,
+        latestUrl: String?,
+        latestSha256: String?,
+        checkedAt: Long
+    ) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_UPDATE_AVAILABLE] = updateAvailable
+            if (latestVersion.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_VERSION) else prefs[KEY_UPDATE_LATEST_VERSION] = latestVersion
+            if (latestUrl.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_URL) else prefs[KEY_UPDATE_LATEST_URL] = latestUrl
+            if (latestSha256.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_SHA256) else prefs[KEY_UPDATE_LATEST_SHA256] = latestSha256
+            prefs[KEY_UPDATE_LAST_CHECK_AT] = checkedAt
+        }
+    }
+
+    suspend fun getUpdateSnapshot(context: Context): UpdateSnapshot {
+        return context.dataStore.data.map { prefs ->
+            UpdateSnapshot(
+                updateAvailable = prefs[KEY_UPDATE_AVAILABLE] ?: false,
+                latestVersion = prefs[KEY_UPDATE_LATEST_VERSION],
+                latestUrl = prefs[KEY_UPDATE_LATEST_URL],
+                latestSha256 = prefs[KEY_UPDATE_LATEST_SHA256],
+                lastCheckedAt = prefs[KEY_UPDATE_LAST_CHECK_AT] ?: 0L
+            )
+        }.first()
+    }
+
+    suspend fun setLastPromptedUpdateVersion(context: Context, version: String?) {
+        context.dataStore.edit { prefs ->
+            if (version.isNullOrBlank()) prefs.remove(KEY_UPDATE_LAST_PROMPTED_VERSION)
+            else prefs[KEY_UPDATE_LAST_PROMPTED_VERSION] = version
+        }
+    }
+
+    suspend fun getLastPromptedUpdateVersion(context: Context): String? {
+        return context.dataStore.data.map { it[KEY_UPDATE_LAST_PROMPTED_VERSION] }.first()
     }
 }

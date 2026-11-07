@@ -21,6 +21,7 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.app.AppShutdown
 import com.yvesds.vt5.core.app.HourlyAlarmManager
 import com.yvesds.vt5.core.opslag.FileLogger
+import com.yvesds.vt5.core.opslag.AppDataStore
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.features.metadata.ui.MetadataScherm
 import com.yvesds.vt5.features.masterClient.MasterClientPrefs
@@ -46,6 +47,8 @@ import androidx.activity.result.ActivityResultLauncher
 import android.net.Uri
 import com.yvesds.vt5.ai.ModelStore
 import com.yvesds.vt5.ai.TrainingDataPreparer
+import com.yvesds.vt5.features.update.AppUpdateManager
+import android.view.View
 
 /**
  * HoofdActiviteit - Hoofdscherm van VT5 app
@@ -292,6 +295,7 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         maybeShowPendingUploadsDialog()
+        refreshAppUpdateBadge(showPrompt = true)
     }
 
     /**
@@ -653,6 +657,36 @@ class HoofdActiviteit : AppCompatActivity() {
         maybeShowPendingTellingDialog()
         // Ververs de UI badges direct bij terugkeer
         checkAiStateAndShowBadges()
+        refreshAppUpdateBadge(showPrompt = false)
+    }
+
+    private fun refreshAppUpdateBadge(showPrompt: Boolean) {
+        lifecycleScope.launch {
+            val cached = AppUpdateManager.getCachedState(this@HoofdActiviteit)
+            findViewById<TextView>(R.id.badgeAppUpdate)?.visibility = if (cached.updateAvailable) View.VISIBLE else View.GONE
+
+            val result = AppUpdateManager.refreshFromGithub(this@HoofdActiviteit, allowCache = true)
+            result.onSuccess { state ->
+                findViewById<TextView>(R.id.badgeAppUpdate)?.visibility = if (state.updateAvailable) View.VISIBLE else View.GONE
+                if (showPrompt && state.updateAvailable && !state.latestVersion.isNullOrBlank()) {
+                    val prompted = AppDataStore.getLastPromptedUpdateVersion(this@HoofdActiviteit)
+                    if (prompted != state.latestVersion) {
+                        AppDataStore.setLastPromptedUpdateVersion(this@HoofdActiviteit, state.latestVersion)
+                        val dlg = AlertDialog.Builder(this@HoofdActiviteit)
+                            .setTitle(R.string.update_prompt_title)
+                            .setMessage(getString(R.string.update_prompt_message, state.latestVersion, state.localVersion))
+                            .setPositiveButton(R.string.update_prompt_now) { _, _ ->
+                                startActivity(Intent(this@HoofdActiviteit, InstellingenScherm::class.java))
+                            }
+                            .setNegativeButton(R.string.update_prompt_later, null)
+                            .show()
+                        DialogStyler.apply(dlg)
+                    }
+                }
+            }.onFailure {
+                // Netwerkfouten blokkeren het hoofdscherm niet; we laten de laatst gekende badge staan.
+            }
+        }
     }
 
     /**

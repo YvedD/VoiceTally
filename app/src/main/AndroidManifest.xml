@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Permissies voor uurlijks alarm -->
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -127,6 +128,13 @@
             android:screenOrientation="sensorPortrait"
             tools:ignore="LockedOrientationActivity" />
 
+        <activity
+            android:name=".features.alias.ui.AliasBeheerScherm"
+            android:exported="false"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:screenOrientation="sensorPortrait"
+            tools:ignore="LockedOrientationActivity" />
+
         <!-- TellingBeheerScherm -->
         <activity
             android:name=".features.telling.TellingBeheerScherm"
@@ -224,5 +232,15 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
     </application>
 </manifest>

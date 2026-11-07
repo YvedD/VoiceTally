@@ -57,6 +57,12 @@ object AliasManager {
     /* WRITE SCOPE */
     private val writeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    data class UserAliasUpdateResult(
+        val success: Boolean,
+        val changed: Boolean,
+        val skippedConflicts: List<String>
+    )
+
     /* INITIALIZATION: ensure SAF structure and optionally generate initial seed */
     suspend fun initialize(context: Context, saf: SaFStorageHelper): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -212,6 +218,90 @@ object AliasManager {
 
     suspend fun forceRebuildCborNow(context: Context, saf: SaFStorageHelper) {
         AliasCborRebuilder.forceRebuild(context, saf)
+    }
+
+    suspend fun setUserAliasesForSpecies(
+        context: Context,
+        saf: SaFStorageHelper,
+        speciesId: String,
+        userAliases: List<String>
+    ): UserAliasUpdateResult = withContext(Dispatchers.IO) {
+        try {
+            masterWriteMutex.withLock {
+                val vt5 = saf.getVt5DirIfExists() ?: return@withContext UserAliasUpdateResult(false, false, emptyList())
+                val master = AliasMasterIO.readMasterFromAssets(context, vt5)
+                    ?: AliasMasterIO.readMasterFromBinaries(context, vt5)
+                    ?: return@withContext UserAliasUpdateResult(false, false, emptyList())
+
+                val speciesMap = master.species.associateBy { it.speciesId }.toMutableMap()
+                val speciesEntry = speciesMap[speciesId] ?: return@withContext UserAliasUpdateResult(false, false, emptyList())
+
+                val normOwner = mutableMapOf<String, String>()
+                for (entry in master.species) {
+                    for (alias in entry.aliases) {
+                        if (alias.norm.isNotBlank()) {
+                            normOwner.putIfAbsent(alias.norm, entry.speciesId)
+                        }
+                    }
+                }
+
+                val requested = linkedMapOf<String, String>()
+                userAliases.forEach { raw ->
+                    val cleanedRaw = raw.trim()
+                    val norm = TextUtils.normalizeLowerNoDiacritics(cleanedRaw)
+                    if (cleanedRaw.isNotBlank() && norm.isNotBlank()) {
+                        requested.putIfAbsent(norm, cleanedRaw.lowercase())
+                    }
+                }
+
+                val skipped = mutableListOf<String>()
+                val allowed = mutableListOf<AliasData>()
+                val nonUserAliases = speciesEntry.aliases.filter { it.source != "user_field_training" }
+                val nonUserNorms = nonUserAliases.map { it.norm }.toSet()
+
+                for ((norm, aliasText) in requested) {
+                    val owner = normOwner[norm]
+                    if (owner != null && owner != speciesId) {
+                        skipped += aliasText
+                        continue
+                    }
+                    if (norm in nonUserNorms) {
+                        continue
+                    }
+                    allowed += generateAliasData(aliasText, source = "user_field_training").copy(timestamp = Instant.now().toString())
+                }
+
+                val updatedAliases = nonUserAliases + allowed
+                val oldNorms = speciesEntry.aliases.map { it.norm }.toSet()
+                val newNorms = updatedAliases.map { it.norm }.toSet()
+                if (oldNorms == newNorms) {
+                    return@withContext UserAliasUpdateResult(true, false, skipped)
+                }
+
+                speciesMap[speciesId] = speciesEntry.copy(aliases = updatedAliases)
+                val updatedMaster = master.copy(
+                    timestamp = Instant.now().toString(),
+                    species = speciesMap.values.sortedBy { it.speciesId }
+                )
+
+                val writeResult = AliasMasterIO.writeMasterAndCbor(context, updatedMaster, vt5, saf)
+                if (writeResult == null) {
+                    AliasCborRebuilder.scheduleRebuild(context, saf, immediate = true)
+                    return@withContext UserAliasUpdateResult(false, false, skipped)
+                }
+
+                _indexFlow.value = updatedMaster.toAliasIndex()
+                indexLoaded = true
+                try {
+                    com.yvesds.vt5.features.speech.AliasMatcher.reloadIndex(context, saf)
+                } catch (_: Exception) {}
+
+                return@withContext UserAliasUpdateResult(true, true, skipped)
+            }
+        } catch (ex: Exception) {
+            Log.e(TAG, "setUserAliasesForSpecies failed: ${ex.message}", ex)
+            return@withContext UserAliasUpdateResult(false, false, emptyList())
+        }
     }
 
     /**

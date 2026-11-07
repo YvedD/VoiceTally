@@ -115,16 +115,36 @@
                 android:text="@string/hoofd_opkuis_exports"
                 android:textSize="16sp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnInstellingen"
-                style="@style/Widget.VT5.Button.Outlined"
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="64dp"
                 android:layout_columnWeight="1"
                 android:layout_marginTop="12dp"
-                android:layout_marginEnd="8dp"
-                android:text="@string/hoofd_instellingen"
-                android:textSize="16sp" />
+                android:layout_marginEnd="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInstellingen"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="@string/hoofd_instellingen"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/badgeAppUpdate"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/vt5_badge_red"
+                    android:gravity="center"
+                    android:text="@string/badge_warning"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnTelpostBeheer"

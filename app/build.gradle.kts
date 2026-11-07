@@ -1,4 +1,6 @@
 // app/build.gradle.kts
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,6 +8,33 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
     id("kotlin-parcelize")
 }
+
+val versionPropertiesFile = rootProject.file("app/version.properties")
+val versionProperties = Properties().apply {
+    if (versionPropertiesFile.exists()) {
+        versionPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun parseSemver(version: String): Triple<Int, Int, Int> {
+    val match = Regex("^(\\d+)\\.(\\d+)\\.(\\d+)$").matchEntire(version)
+        ?: error("VERSION_NAME moet semver zijn (x.y.z), maar kreeg: $version")
+    return Triple(match.groupValues[1].toInt(), match.groupValues[2].toInt(), match.groupValues[3].toInt())
+}
+
+fun semverToVersionCode(version: String): Int {
+    val (major, minor, patch) = parseSemver(version)
+    return major * 10000 + minor * 100 + patch
+}
+
+val resolvedVersionName =
+    (project.findProperty("VT_VERSION_NAME") as String?)
+        ?: versionProperties.getProperty("VERSION_NAME")
+        ?: "2.2.0"
+
+val resolvedVersionCode =
+    (project.findProperty("VT_VERSION_CODE") as String?)?.toIntOrNull()
+        ?: semverToVersionCode(resolvedVersionName)
 
 android {
     namespace = "com.yvesds.vt5"
@@ -16,8 +45,8 @@ android {
         applicationId = "com.yvesds.vt5"
         minSdk = 33
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = resolvedVersionCode
+        versionName = resolvedVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Beperk ABIs tot ARM (64-bit en 32-bit). 
@@ -124,3 +153,44 @@ dependencies {
 tasks.matching {
     it.name.startsWith("test", true) || it.name.startsWith("connectedAndroidTest", true)
 }.configureEach { this.enabled = false }
+
+tasks.register("printResolvedVersion") {
+    group = "versioning"
+    description = "Toont de versie die gebruikt wordt voor deze build."
+    notCompatibleWithConfigurationCache("Leest script-variabelen voor versie-output")
+    doLast {
+        println("VT versionName=$resolvedVersionName")
+        println("VT versionCode=$resolvedVersionCode")
+    }
+}
+
+tasks.register("bumpPatchVersion") {
+    group = "versioning"
+    description = "Verhoogt patch van app/version.properties (x.y.z -> x.y.(z+1))."
+    notCompatibleWithConfigurationCache("Schrijft versiegegevens weg naar version.properties")
+    doLast {
+        val props = Properties().apply {
+            if (versionPropertiesFile.exists()) {
+                versionPropertiesFile.inputStream().use { load(it) }
+            }
+        }
+        val current = props.getProperty("VERSION_NAME") ?: "2.2.0"
+        val (major, minor, patch) = parseSemver(current)
+        val next = "$major.$minor.${patch + 1}"
+        props.setProperty("VERSION_NAME", next)
+        versionPropertiesFile.outputStream().use { out ->
+            props.store(out, "VoiceTally app version")
+        }
+        println("VERSION_NAME bumped: $current -> $next")
+        println("Derived VERSION_CODE: ${semverToVersionCode(next)}")
+    }
+}
+
+tasks.register("prepareRelease") {
+    group = "versioning"
+    description = "Verhoogt patchversie en bouwt daarna direct de app assemblies."
+    notCompatibleWithConfigurationCache("Schrijft versiegegevens weg en start aansluitend een release build")
+    dependsOn("bumpPatchVersion")
+    finalizedBy("assemble")
+}
+

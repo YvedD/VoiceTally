@@ -25,10 +25,14 @@ import com.yvesds.vt5.core.opslag.AppDataStore
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.UiColorPrefs
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
+import com.yvesds.vt5.features.update.AppUpdateManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +43,10 @@ import java.io.File
  * InstellingenScherm - Scherm voor app-instellingen met volledige tablet-synchronisatie.
  */
 class InstellingenScherm : AppCompatActivity() {
-    
+
+    private var latestUpdateAsset: AppUpdateManager.ReleaseAsset? = null
+    private var updateAssets: List<AppUpdateManager.ReleaseAsset> = emptyList()
+
     companion object {
         const val PREFS_NAME = "vt5_prefs"
         const val PREF_LETTERGROOTTE_TEGELS_SP = "pref_lettergrootte_tegels_sp"
@@ -160,6 +167,8 @@ class InstellingenScherm : AppCompatActivity() {
             setupMaxFavorietenButtons()
             setupPermissionAcknowledgements()
             setupAiSettings()
+            setupUpdateSection()
+            setupAliasBeheerButton()
             setupKrentenFilterSettings()
             setupChartSettings()
             setupDatabaseMirroringButton()
@@ -444,6 +453,183 @@ class InstellingenScherm : AppCompatActivity() {
                 }
                 setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setUseDailyAnalysisWeights(this@InstellingenScherm, checked) } }
             }
+        }
+    }
+
+    private fun setupAliasBeheerButton() {
+        findViewById<MaterialButton>(R.id.btnOpenAliasBeheer)?.setOnClickListener {
+            startActivity(Intent(this, com.yvesds.vt5.features.alias.ui.AliasBeheerScherm::class.java))
+        }
+    }
+
+    private fun setupUpdateSection() {
+        val tvStatus = findViewById<TextView>(R.id.tvUpdateStatus) ?: return
+        val btnCheck = findViewById<MaterialButton>(R.id.btnCheckAppUpdate) ?: return
+        val btnInstall = findViewById<MaterialButton>(R.id.btnInstallAppUpdate) ?: return
+        val btnRollback = findViewById<MaterialButton>(R.id.btnShowAppRollback) ?: return
+
+        btnCheck.setOnClickListener {
+            performUpdateCheck(forceNetwork = true, showToast = true)
+        }
+
+        btnInstall.setOnClickListener {
+            val asset = latestUpdateAsset
+            if (asset == null) {
+                Toast.makeText(this, getString(R.string.update_no_versions), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            installAssetFlow(asset)
+        }
+
+        btnRollback.setOnClickListener {
+            showRollbackDialog()
+        }
+
+        lifecycleScope.launch {
+            val cached = AppUpdateManager.getCachedState(this@InstellingenScherm)
+            applyUpdateStateToUi(cached)
+            performUpdateCheck(forceNetwork = false, showToast = false)
+        }
+    }
+
+    private fun performUpdateCheck(forceNetwork: Boolean, showToast: Boolean) {
+        val tvStatus = findViewById<TextView>(R.id.tvUpdateStatus) ?: return
+        tvStatus.text = getString(R.string.update_status_checking)
+
+        lifecycleScope.launch {
+            val result = AppUpdateManager.refreshFromGithub(this@InstellingenScherm, allowCache = !forceNetwork)
+            result.onSuccess { state ->
+                applyUpdateStateToUi(state)
+                val localLabel = "${state.localVersion} (${state.localVersionCode})"
+                if (showToast) {
+                    val msg = if (state.updateAvailable && !state.latestVersion.isNullOrBlank()) {
+                        getString(R.string.update_status_available, state.latestVersion, localLabel)
+                    } else {
+                        getString(R.string.update_status_latest, localLabel)
+                    }
+                    Toast.makeText(this@InstellingenScherm, msg, Toast.LENGTH_LONG).show()
+                }
+            }.onFailure { err ->
+                tvStatus.text = getString(R.string.update_status_error, err.message ?: "onbekende fout")
+                findViewById<MaterialButton>(R.id.btnInstallAppUpdate)?.isEnabled = false
+                if (showToast) {
+                    Toast.makeText(this@InstellingenScherm, getString(R.string.update_status_error, err.message ?: "onbekende fout"), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun applyUpdateStateToUi(state: AppUpdateManager.UpdateState) {
+        val tvStatus = findViewById<TextView>(R.id.tvUpdateStatus) ?: return
+        val btnInstall = findViewById<MaterialButton>(R.id.btnInstallAppUpdate) ?: return
+        latestUpdateAsset = state.latestAsset
+        if (state.allAssets.isNotEmpty()) {
+            updateAssets = state.allAssets
+        }
+        val localLabel = "${state.localVersion} (${state.localVersionCode})"
+
+        if (state.updateAvailable && !state.latestVersion.isNullOrBlank()) {
+            tvStatus.text = getString(R.string.update_status_available, state.latestVersion, localLabel)
+            btnInstall.isEnabled = true
+        } else {
+            tvStatus.text = getString(R.string.update_status_latest, localLabel)
+            btnInstall.isEnabled = false
+        }
+    }
+
+    private fun showRollbackDialog() {
+        if (updateAssets.isEmpty()) {
+            Toast.makeText(this, getString(R.string.update_no_versions), Toast.LENGTH_SHORT).show()
+            performUpdateCheck(forceNetwork = true, showToast = false)
+            return
+        }
+
+        val labels = updateAssets.map { asset ->
+            if (asset == latestUpdateAsset) "${asset.version} (latest)" else asset.version
+        }.toTypedArray()
+
+        val dlg = AlertDialog.Builder(this)
+            .setTitle(R.string.update_rollback_title)
+            .setItems(labels) { _, which ->
+                val selected = updateAssets.getOrNull(which) ?: return@setItems
+                confirmInstallSelectedVersion(selected)
+            }
+            .setNegativeButton(R.string.annuleer, null)
+            .show()
+        DialogStyler.apply(dlg)
+    }
+
+    private fun confirmInstallSelectedVersion(asset: AppUpdateManager.ReleaseAsset) {
+        val dlg = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.update_rollback_confirm_title, asset.version))
+            .setMessage(R.string.update_rollback_confirm_message)
+            .setPositiveButton(R.string.update_prompt_now) { _, _ ->
+                installAssetFlow(asset)
+            }
+            .setNegativeButton(R.string.annuleer, null)
+            .show()
+        DialogStyler.apply(dlg)
+    }
+
+    private fun installAssetFlow(asset: AppUpdateManager.ReleaseAsset) {
+        if (!packageManager.canRequestPackageInstalls()) {
+            val dlg = AlertDialog.Builder(this)
+                .setTitle(R.string.install_unknown_sources_title)
+                .setMessage(R.string.update_install_permission_needed)
+                .setPositiveButton(R.string.update_open_install_settings) { _, _ ->
+                    openUnknownSourcesSettings()
+                }
+                .setNegativeButton(R.string.annuleer, null)
+                .show()
+            DialogStyler.apply(dlg)
+            return
+        }
+
+        lifecycleScope.launch {
+            val progress = AlertDialog.Builder(this@InstellingenScherm)
+                .setTitle(R.string.update_title)
+                .setMessage(R.string.update_downloading)
+                .setCancelable(false)
+                .create()
+            progress.show()
+            DialogStyler.apply(progress)
+
+            val result = AppUpdateManager.downloadAsset(this@InstellingenScherm, asset)
+            progress.dismiss()
+
+            result.onSuccess { apkFile ->
+                openPackageInstaller(apkFile)
+            }.onFailure { err ->
+                val msg = when {
+                    err.message?.contains("Checksum mismatch", ignoreCase = true) == true -> getString(R.string.update_checksum_failed)
+                    err.message?.contains("APK metadata mismatch", ignoreCase = true) == true -> getString(R.string.update_apk_version_mismatch)
+                    else -> getString(R.string.update_download_failed, err.message ?: "onbekende fout")
+                }
+                Toast.makeText(this@InstellingenScherm, msg, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun openUnknownSourcesSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:$packageName".toUri())
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "Kan installatie-instellingen niet openen.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openPackageInstaller(apkFile: File) {
+        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Kon installer niet openen: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
