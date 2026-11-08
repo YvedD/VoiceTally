@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.net.ServerTellingDataItem
 import java.io.File
 import java.text.SimpleDateFormat
@@ -251,13 +252,39 @@ class TellingBackupManager(
     // Private helpers
 
     private fun buildRecordBackupContent(tellingId: String, item: ServerTellingDataItem): String {
+        val prefs = context.getSharedPreferences("vt5_prefs", Context.MODE_PRIVATE)
+        val storedTellingId = prefs.getString("pref_telling_id", "").orEmpty().trim()
+        val onlineId = if (storedTellingId == tellingId.trim()) {
+            prefs.getString("pref_online_id", "").orEmpty().trim()
+        } else {
+            ""
+        }.ifBlank { "-" }
+
+        val speciesName = runCatching {
+            ServerDataCache.getCachedOrNull()?.speciesById?.get(item.soortid)?.soortnaam
+        }.getOrNull().orEmpty().ifBlank { item.soortid }
+
+        val epoch = item.tijdstip.toLongOrNull() ?: 0L
+        val timestampDate = when {
+            epoch > 9_999_999_999L -> Date(epoch)
+            epoch > 0L -> Date(epoch * 1000L)
+            else -> null
+        }
+        val readableTime = timestampDate?.let {
+            SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.US).format(it)
+        } ?: "-"
+
         return """
             |Record Backup
             |TellingId: $tellingId
+            |Onlineid: $onlineId
             |IdLocal: ${item.idLocal}
             |SoortId: ${item.soortid}
+            |Soortnaam: $speciesName
             |Aantal: ${item.aantal}
+            |Aantal terug: ${item.aantalterug}
             |Timestamp: ${item.tijdstip}
+            |Tijd: $readableTime
             |GroupId: ${item.groupid}
             |---
             |Full Item: $item
