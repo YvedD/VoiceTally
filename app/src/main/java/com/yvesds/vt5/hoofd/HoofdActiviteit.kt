@@ -201,6 +201,16 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnAiTrain = findViewById<MaterialButton>(R.id.btnAiTrain)
         val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
         val btnAiDailyReports = findViewById<MaterialButton>(R.id.btnAiDailyReports)
+        val btnOptiesMenu = findViewById<MaterialButton>(R.id.btnOptiesMenu)
+        val layoutOptiesMenu = findViewById<View>(R.id.layoutOptiesMenu)
+
+        btnOptiesMenu?.setOnClickListener {
+            if (layoutOptiesMenu != null) {
+                val isVisible = layoutOptiesMenu.visibility == View.VISIBLE
+                layoutOptiesMenu.visibility = if (isVisible) View.GONE else View.VISIBLE
+                btnOptiesMenu.text = if (isVisible) "⚙️ BEHEER & OPTIES" else "✖ SLUIT OPTIES MENU"
+            }
+        }
 
         // Alarm sectie - altijd zichtbaar
         setupAlarmSection()

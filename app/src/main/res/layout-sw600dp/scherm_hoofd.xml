@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <!-- Achtergrondafbeelding met phone.png (bg_phone) -->
+    <!-- Achtergrondafbeelding phone.png -->
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -13,13 +13,13 @@
         android:src="@drawable/bg_phone"
         android:contentDescription="@null" />
 
-    <!-- Donkere sfeeroverlay voor optimale outdoor leesbaarheid -->
+    <!-- Lichte sfeeroverlay voor optimale zichtbaarheid van de foto én tekst -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#D00D131A" />
+        android:background="#70080E14" />
 
-    <!-- Scrollbare Tablet Content (2-Koloms Dashboard) -->
+    <!-- Scrollbare Tablet Inhoud -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -30,10 +30,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingLeft="32dp"
-            android:paddingTop="36dp"
-            android:paddingRight="32dp"
-            android:paddingBottom="48dp">
+            android:paddingLeft="48dp"
+            android:paddingTop="56dp"
+            android:paddingRight="48dp"
+            android:paddingBottom="56dp">
 
             <!-- Tablet Titel Header -->
             <LinearLayout
@@ -41,7 +41,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
-                android:paddingBottom="24dp">
+                android:paddingBottom="48dp">
 
                 <TextView
                     android:id="@+id/tvTitel"
@@ -50,415 +50,435 @@
                     android:text="@string/titel_hoofd"
                     android:textAlignment="center"
                     android:textColor="@color/vt5_white"
-                    android:textSize="32sp"
+                    android:textSize="36sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Vogelmigratie Telpost Systeem - Tablet Dashboard"
+                    android:layout_marginTop="6dp"
+                    android:text="Vogelmigratie Telpost Systeem"
                     android:textAlignment="center"
-                    android:textColor="#A0FFFFFF"
-                    android:textSize="14sp" />
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="16sp" />
             </LinearLayout>
 
-            <!-- 2-Koloms Indeling voor Tablets -->
+            <!-- ======================================================== -->
+            <!-- VEREEENVOUDIGD STARTSCHERM: DE 2 HOOFDKNOPPEN (GLAS EFFECT)-->
+            <!-- ======================================================== -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:maxWidth="640dp">
 
-                <!-- LINKERKOLOM: Primaire Telling Acties & Alarm -->
-                <LinearLayout
-                    android:layout_width="0dp"
+                <!-- KNOP 1: TELLING STARTEN / HERVATTEN -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVerder"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="88dp"
+                    android:layout_marginBottom="24dp"
+                    android:background="@drawable/vt5_btn_glass_primary"
+                    app:backgroundTint="@null"
+                    android:text="🚀 TELLING STARTEN / HERVATTEN"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    app:icon="@drawable/ic_action_add"
+                    app:iconGravity="textStart"
+                    app:iconPadding="12dp"
+                    app:iconSize="28dp"
+                    app:iconTint="@color/vt5_white"
+                    app:rippleColor="#40D97A" />
+
+                <!-- KNOP 2: BEHEER & OVERIGE OPTIES -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOptiesMenu"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="76dp"
+                    android:layout_marginBottom="32dp"
+                    android:background="@drawable/vt5_btn_glass_secondary"
+                    app:backgroundTint="@null"
+                    android:text="⚙️ BEHEER &amp; OPTIES"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    app:rippleColor="#40117CAF" />
+            </LinearLayout>
+
+            <!-- ======================================================== -->
+            <!-- INKLAPBAAR PANEL VOOR ALLE OVERIGE BEHEER EN INSTELLINGEN -->
+            <!-- ======================================================== -->
+            <LinearLayout
+                android:id="@+id/layoutOptiesMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:layout_marginBottom="16dp"
+                    android:text="OVERIGE FUNCTIES &amp; INSTELLINGEN"
+                    android:textAlignment="center"
+                    android:textColor="#A0FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-                    <!-- KAART 1: Telling Workflow -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        app:cardBackgroundColor="#80151E28"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp"
-                        app:strokeColor="#117CAF"
-                        app:strokeWidth="1dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
-
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="12dp"
-                                android:text=" TELLING WORKFLOW"
-                                android:textColor="@color/vt5_green"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnVerder"
-                                style="@style/Widget.VT5.Button.Outlined"
-                                android:layout_width="match_parent"
-                                android:layout_height="64dp"
-                                android:layout_marginBottom="12dp"
-                                android:text="@string/btn_verder_metadata"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                app:icon="@drawable/ic_action_add"
-                                app:iconTint="@color/vt5_white" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnInstall"
-                                style="@style/Widget.VT5.Button.Outlined"
-                                android:layout_width="match_parent"
-                                android:layout_height="64dp"
-                                android:layout_marginBottom="12dp"
-                                android:text="@string/titel_install"
-                                android:textSize="17sp" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnJoinAsClient"
-                                style="@style/Widget.VT5.Button.Outlined"
-                                android:layout_width="match_parent"
-                                android:layout_height="64dp"
-                                android:layout_marginBottom="12dp"
-                                android:text="@string/mc_btn_join_as_client"
-                                android:textSize="17sp"
-                                app:icon="@drawable/ic_mc_wifi"
-                                app:iconTint="@color/vt5_white" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnAfsluiten"
-                                style="@style/Widget.VT5.Button.Outlined"
-                                android:layout_width="match_parent"
-                                android:layout_height="64dp"
-                                android:text="@string/btn_afsluiten"
-                                android:textSize="17sp"
-                                app:strokeColor="@color/vt5_orange" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- KAART 2: Uurlijks Alarm -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        app:cardBackgroundColor="#80151E28"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp"
-                        app:strokeColor="#3DDC84"
-                        app:strokeWidth="1dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
-
-                            <TextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
-                                android:text=" UURLIJKS ALARM"
-                                android:textColor="@color/vt5_green"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/tvAlarmStatus"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:paddingBottom="12dp"
-                                android:textColor="@color/vt5_on_surface"
-                                android:textSize="15sp" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnToggleAlarm"
-                                style="@style/Widget.VT5.Button.Outlined"
-                                android:layout_width="match_parent"
-                                android:layout_height="56dp"
-                                android:text="@string/hoofd_alarm_toggle"
-                                android:textSize="16sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                </LinearLayout>
-
-                <!-- RECHTERKOLOM: Beheer, AI & Database -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
 
-                    <!-- KAART 3: Beheer & Instellingen -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
+                    <!-- LINKERKOLOM: Telling Extra's & Alarm -->
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        app:cardBackgroundColor="#80151E28"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp"
-                        app:strokeColor="#5D748C"
-                        app:strokeWidth="1dp">
+                        android:layout_marginEnd="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <LinearLayout
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
+                            android:layout_marginBottom="16dp"
+                            app:cardBackgroundColor="#99121A24"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp"
+                            app:strokeColor="#117CAF"
+                            app:strokeWidth="1dp">
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="12dp"
-                                android:text=" BEHEER &amp; INSTELLINGEN"
-                                android:textColor="@color/vt5_light_blue"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
-
-                            <GridLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:columnCount="2">
+                                android:orientation="vertical"
+                                android:padding="16dp">
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnBewerkTellingen"
+                                    android:id="@+id/btnInstall"
                                     style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginEnd="6dp"
-                                    android:text="@string/hoofd_bewerk_tellingen"
-                                    android:textSize="14sp" />
+                                    android:layout_width="match_parent"
+                                    android:layout_height="60dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:text="@string/titel_install"
+                                    android:textSize="16sp" />
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnOpkuisExports"
+                                    android:id="@+id/btnJoinAsClient"
                                     style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginStart="6dp"
-                                    android:text="@string/hoofd_opkuis_exports"
-                                    android:textSize="14sp" />
-
-                                <FrameLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginEnd="6dp">
-
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btnInstellingen"
-                                        style="@style/Widget.VT5.Button.Outlined"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:text="@string/hoofd_instellingen"
-                                        android:textSize="14sp" />
-
-                                    <TextView
-                                        android:id="@+id/badgeAppUpdate"
-                                        android:layout_width="22dp"
-                                        android:layout_height="22dp"
-                                        android:layout_gravity="top|end"
-                                        android:layout_marginTop="4dp"
-                                        android:layout_marginEnd="4dp"
-                                        android:background="@drawable/vt5_badge_red"
-                                        android:gravity="center"
-                                        android:text="@string/badge_warning"
-                                        android:textColor="@color/vt5_white"
-                                        android:textSize="13sp"
-                                        android:textStyle="bold"
-                                        android:visibility="gone" />
-                                </FrameLayout>
+                                    android:layout_width="match_parent"
+                                    android:layout_height="60dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:text="@string/mc_btn_join_as_client"
+                                    android:textSize="16sp"
+                                    app:icon="@drawable/ic_mc_wifi"
+                                    app:iconTint="@color/vt5_white" />
 
                                 <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnTelpostBeheer"
+                                    android:id="@+id/btnAfsluiten"
                                     style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginStart="6dp"
-                                    android:layout_marginTop="10dp"
-                                    android:text="@string/hoofd_telpost_beheer"
-                                    android:textSize="14sp" />
-                            </GridLayout>
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                                    android:layout_width="match_parent"
+                                    android:layout_height="60dp"
+                                    android:text="@string/btn_afsluiten"
+                                    android:textSize="16sp"
+                                    app:strokeColor="@color/vt5_orange" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
 
-                    <!-- KAART 4: Biologische Intelligentie (AI) -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        app:cardBackgroundColor="#80151E28"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp"
-                        app:strokeColor="#117CAF"
-                        app:strokeWidth="1dp">
-
-                        <LinearLayout
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="20dp">
+                            android:layout_marginBottom="16dp"
+                            app:cardBackgroundColor="#99121A24"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp"
+                            app:strokeColor="#3DDC84"
+                            app:strokeWidth="1dp">
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="12dp"
-                                android:text=" BIOLOGISCHE INTELLIGENTIE (AI)"
-                                android:textColor="@color/vt5_light_blue"
-                                android:textSize="15sp"
-                                android:textStyle="bold" />
+                                android:orientation="vertical"
+                                android:padding="16dp">
 
-                            <GridLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:columnCount="2">
-
-                                <FrameLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginEnd="6dp">
-
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btnAiUpdate"
-                                        style="@style/Widget.VT5.Button.Outlined"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:text="@string/hoofd_ai_update"
-                                        android:textSize="14sp" />
-
-                                    <TextView
-                                        android:id="@+id/badgeAiUpdate"
-                                        android:layout_width="22dp"
-                                        android:layout_height="22dp"
-                                        android:layout_gravity="top|end"
-                                        android:layout_marginTop="4dp"
-                                        android:layout_marginEnd="4dp"
-                                        android:background="@drawable/vt5_badge_red"
-                                        android:gravity="center"
-                                        android:text="@string/badge_warning"
-                                        android:textColor="@color/vt5_white"
-                                        android:textSize="13sp"
-                                        android:textStyle="bold"
-                                        android:visibility="gone" />
-                                </FrameLayout>
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnAiForecast3Days"
-                                    style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginStart="6dp"
-                                    android:text="@string/hoofd_ai_forecast_3days"
+                                <TextView
+                                    android:id="@+id/tvAlarmStatus"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:paddingBottom="10dp"
+                                    android:textColor="@color/vt5_on_surface"
                                     android:textSize="14sp" />
 
-                                <FrameLayout
-                                    android:layout_width="0dp"
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnToggleAlarm"
+                                    style="@style/Widget.VT5.Button.Outlined"
+                                    android:layout_width="match_parent"
                                     android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginEnd="6dp">
+                                    android:text="@string/hoofd_alarm_toggle"
+                                    android:textSize="15sp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
 
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btnAiDailyReports"
-                                        style="@style/Widget.VT5.Button.Outlined"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:text="Teldag Verslagen"
-                                        android:textSize="14sp" />
-
-                                    <TextView
-                                        android:id="@+id/badgeAiDailyReports"
-                                        android:layout_width="22dp"
-                                        android:layout_height="22dp"
-                                        android:layout_gravity="top|end"
-                                        android:layout_marginTop="4dp"
-                                        android:layout_marginEnd="4dp"
-                                        android:background="@drawable/vt5_badge_red"
-                                        android:gravity="center"
-                                        android:text="@string/badge_warning"
-                                        android:textColor="@color/vt5_white"
-                                        android:textSize="13sp"
-                                        android:textStyle="bold"
-                                        android:visibility="gone" />
-                                </FrameLayout>
-
-                                <FrameLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="56dp"
-                                    android:layout_columnWeight="1"
-                                    android:layout_marginStart="6dp"
-                                    android:layout_marginTop="10dp">
-
-                                    <com.google.android.material.button.MaterialButton
-                                        android:id="@+id/btnAiTrain"
-                                        style="@style/Widget.VT5.Button.Outlined"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="match_parent"
-                                        android:text="BSI Trainen"
-                                        android:textSize="14sp" />
-
-                                    <TextView
-                                        android:id="@+id/badgeAiTrain"
-                                        android:layout_width="22dp"
-                                        android:layout_height="22dp"
-                                        android:layout_gravity="top|end"
-                                        android:layout_marginTop="4dp"
-                                        android:layout_marginEnd="4dp"
-                                        android:background="@drawable/vt5_badge_red"
-                                        android:gravity="center"
-                                        android:text="@string/badge_warning"
-                                        android:textColor="@color/vt5_white"
-                                        android:textSize="13sp"
-                                        android:textStyle="bold"
-                                        android:visibility="gone" />
-                                </FrameLayout>
-                            </GridLayout>
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- KAART 5: Database beheer -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="match_parent"
+                    <!-- RECHTERKOLOM: Beheer, AI & Database -->
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        app:cardBackgroundColor="#80151E28"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="2dp"
-                        app:strokeColor="#5D748C"
-                        app:strokeWidth="1dp">
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-                        <LinearLayout
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="16dp">
+                            android:layout_marginBottom="16dp"
+                            app:cardBackgroundColor="#99121A24"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp"
+                            app:strokeColor="#5D748C"
+                            app:strokeWidth="1dp">
 
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnDatabaseBeheer"
-                                style="@style/Widget.VT5.Button.Outlined"
+                            <LinearLayout
                                 android:layout_width="match_parent"
-                                android:layout_height="56dp"
-                                android:text="@string/hoofd_database_beheer"
-                                android:textSize="16sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
 
+                                <GridLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:columnCount="2">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnBewerkTellingen"
+                                        style="@style/Widget.VT5.Button.Outlined"
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginEnd="6dp"
+                                        android:text="@string/hoofd_bewerk_tellingen"
+                                        android:textSize="14sp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnOpkuisExports"
+                                        style="@style/Widget.VT5.Button.Outlined"
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="6dp"
+                                        android:text="@string/hoofd_opkuis_exports"
+                                        android:textSize="14sp" />
+
+                                    <FrameLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginEnd="6dp">
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnInstellingen"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:text="@string/hoofd_instellingen"
+                                            android:textSize="14sp" />
+
+                                        <TextView
+                                            android:id="@+id/badgeAppUpdate"
+                                            android:layout_width="22dp"
+                                            android:layout_height="22dp"
+                                            android:layout_gravity="top|end"
+                                            android:layout_marginTop="4dp"
+                                            android:layout_marginEnd="4dp"
+                                            android:background="@drawable/vt5_badge_red"
+                                            android:gravity="center"
+                                            android:text="@string/badge_warning"
+                                            android:textColor="@color/vt5_white"
+                                            android:textSize="13sp"
+                                            android:textStyle="bold"
+                                            android:visibility="gone" />
+                                    </FrameLayout>
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnTelpostBeheer"
+                                        style="@style/Widget.VT5.Button.Outlined"
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="6dp"
+                                        android:layout_marginTop="10dp"
+                                        android:text="@string/hoofd_telpost_beheer"
+                                        android:textSize="14sp" />
+                                </GridLayout>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            app:cardBackgroundColor="#99121A24"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp"
+                            app:strokeColor="#117CAF"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="8dp"
+                                    android:text="BIOLOGISCHE INTELLIGENTIE (AI)"
+                                    android:textColor="@color/vt5_light_blue"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold" />
+
+                                <GridLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:columnCount="2">
+
+                                    <FrameLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginEnd="6dp">
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnAiUpdate"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:text="@string/hoofd_ai_update"
+                                            android:textSize="14sp" />
+
+                                        <TextView
+                                            android:id="@+id/badgeAiUpdate"
+                                            android:layout_width="22dp"
+                                            android:layout_height="22dp"
+                                            android:layout_gravity="top|end"
+                                            android:layout_marginTop="4dp"
+                                            android:layout_marginEnd="4dp"
+                                            android:background="@drawable/vt5_badge_red"
+                                            android:gravity="center"
+                                            android:text="@string/badge_warning"
+                                            android:textColor="@color/vt5_white"
+                                            android:textSize="13sp"
+                                            android:textStyle="bold"
+                                            android:visibility="gone" />
+                                    </FrameLayout>
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnAiForecast3Days"
+                                        style="@style/Widget.VT5.Button.Outlined"
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="6dp"
+                                        android:text="@string/hoofd_ai_forecast_3days"
+                                        android:textSize="14sp" />
+
+                                    <FrameLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginTop="10dp"
+                                        android:layout_marginEnd="6dp">
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnAiDailyReports"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:text="Teldag Verslagen"
+                                            android:textSize="14sp" />
+
+                                        <TextView
+                                            android:id="@+id/badgeAiDailyReports"
+                                            android:layout_width="22dp"
+                                            android:layout_height="22dp"
+                                            android:layout_gravity="top|end"
+                                            android:layout_marginTop="4dp"
+                                            android:layout_marginEnd="4dp"
+                                            android:background="@drawable/vt5_badge_red"
+                                            android:gravity="center"
+                                            android:text="@string/badge_warning"
+                                            android:textColor="@color/vt5_white"
+                                            android:textSize="13sp"
+                                            android:textStyle="bold"
+                                            android:visibility="gone" />
+                                    </FrameLayout>
+
+                                    <FrameLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="6dp"
+                                        android:layout_marginTop="10dp">
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnAiTrain"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="match_parent"
+                                            android:text="BSI Trainen"
+                                            android:textSize="14sp" />
+
+                                        <TextView
+                                            android:id="@+id/badgeAiTrain"
+                                            android:layout_width="22dp"
+                                            android:layout_height="22dp"
+                                            android:layout_gravity="top|end"
+                                            android:layout_marginTop="4dp"
+                                            android:layout_marginEnd="4dp"
+                                            android:background="@drawable/vt5_badge_red"
+                                            android:gravity="center"
+                                            android:text="@string/badge_warning"
+                                            android:textColor="@color/vt5_white"
+                                            android:textSize="13sp"
+                                            android:textStyle="bold"
+                                            android:visibility="gone" />
+                                    </FrameLayout>
+                                </GridLayout>
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:cardBackgroundColor="#99121A24"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="2dp"
+                            app:strokeColor="#5D748C"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="16dp">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnDatabaseBeheer"
+                                    style="@style/Widget.VT5.Button.Outlined"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="56dp"
+                                    android:text="@string/hoofd_database_beheer"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
                 </LinearLayout>
 
             </LinearLayout>

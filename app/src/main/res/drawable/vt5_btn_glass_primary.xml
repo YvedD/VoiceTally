@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <!-- Semi-transparante blauwe glasachtergrond zodat de foto erachter doorschijnt -->
+    <solid android:color="#7709334D" />
+    <stroke android:width="2dp" android:color="#80D97A" />
+    <corners android:radius="16dp" />
+    <padding android:left="16dp" android:top="12dp" android:right="16dp" android:bottom="12dp" />
+</shape>
