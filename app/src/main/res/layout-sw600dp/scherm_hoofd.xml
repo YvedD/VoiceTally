@@ -64,50 +64,27 @@
             </LinearLayout>
 
             <!-- ======================================================== -->
-            <!-- VEREEENVOUDIGD STARTSCHERM: DE 2 HOOFDKNOPPEN (GLAS EFFECT)-->
+            <!-- VEREEENVOUDIGD STARTSCHERM: TELLING STARTEN KNOP (BOVEN) -->
             <!-- ======================================================== -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVerder"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:orientation="vertical"
-                android:maxWidth="640dp">
-
-                <!-- KNOP 1: TELLING STARTEN / HERVATTEN -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnVerder"
-                    style="@style/Widget.Material3.Button"
-                    android:layout_width="match_parent"
-                    android:layout_height="88dp"
-                    android:layout_marginBottom="24dp"
-                    android:background="@drawable/vt5_btn_glass_primary"
-                    app:backgroundTint="@null"
-                    android:text="🚀 TELLING STARTEN / HERVATTEN"
-                    android:textColor="@color/vt5_white"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    app:icon="@drawable/ic_action_add"
-                    app:iconGravity="textStart"
-                    app:iconPadding="12dp"
-                    app:iconSize="28dp"
-                    app:iconTint="@color/vt5_white"
-                    app:rippleColor="#40D97A" />
-
-                <!-- KNOP 2: BEHEER & OVERIGE OPTIES -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnOptiesMenu"
-                    style="@style/Widget.Material3.Button"
-                    android:layout_width="match_parent"
-                    android:layout_height="76dp"
-                    android:layout_marginBottom="32dp"
-                    android:background="@drawable/vt5_btn_glass_secondary"
-                    app:backgroundTint="@null"
-                    android:text="⚙️ BEHEER &amp; OPTIES"
-                    android:textColor="@color/vt5_white"
-                    android:textSize="19sp"
-                    android:textStyle="bold"
-                    app:rippleColor="#40117CAF" />
-            </LinearLayout>
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="32dp"
+                android:background="@drawable/vt5_btn_glass_primary"
+                android:text="TELLING STARTEN / HERVATTEN"
+                android:textColor="@color/vt5_white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_action_add"
+                app:iconGravity="textStart"
+                app:iconPadding="12dp"
+                app:iconSize="28dp"
+                app:iconTint="@color/vt5_white"
+                app:rippleColor="#40D97A" />
 
             <!-- ======================================================== -->
             <!-- INKLAPBAAR PANEL VOOR ALLE OVERIGE BEHEER EN INSTELLINGEN -->
@@ -482,6 +459,23 @@
                 </LinearLayout>
 
             </LinearLayout>
+
+            <!-- KNOP 2: BEHEER & OVERIGE OPTIES (ONDERAAN & GECENTREERD) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOptiesMenu"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="32dp"
+                android:background="@drawable/vt5_btn_glass_secondary"
+                android:text="BEHEER &amp; OPTIES"
+                android:textColor="@color/vt5_white"
+                android:textSize="19sp"
+                android:textStyle="bold"
+                app:backgroundTint="@null"
+                app:rippleColor="#40117CAF" />
 
         </LinearLayout>
     </ScrollView>
