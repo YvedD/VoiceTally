@@ -36,6 +36,8 @@ import com.yvesds.vt5.features.telling.TellingSessionManager
 import com.yvesds.vt5.features.telling.TellingStatus
 import com.yvesds.vt5.features.telling.TellingUploadFlags
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.entities.TellingHeader
+import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm.Companion.PREF_BATCH_IMPORT_ACTIVE
 import com.yvesds.vt5.core.database.ui.DatabaseTellingLijstActiviteit
@@ -222,21 +224,7 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         btnVerder.setOnClickListener {
-            it.isEnabled = false
-            // OPTIMIZATION: Trigger preload during toast display for faster MetadataScherm startup
-            Toast.makeText(this, getString(R.string.hoofd_metadata_loading), Toast.LENGTH_SHORT).show()
-            
-            // Start preloading minimal data in background
-            lifecycleScope.launch {
-                try {
-                    val repo = com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(this@HoofdActiviteit)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Background preload failed (non-critical): ${e.message}")
-                }
-            }
-            
-            startActivity(Intent(this, MetadataScherm::class.java))
-            it.isEnabled = true
+            handleStartOrResumeTellingClick(it)
         }
 
         btnJoinAsClient.setOnClickListener {
@@ -362,6 +350,95 @@ class HoofdActiviteit : AppCompatActivity() {
                 Log.w(TAG, "maybeShowFailedUploadRecoveryDialog failed: ${e.message}", e)
             }
         }
+    }
+
+    private fun handleStartOrResumeTellingClick(button: View) {
+        button.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+                val candidate = withContext(Dispatchers.IO) {
+                    db.tellingDao()
+                        .getAllHeaders()
+                        .asSequence()
+                        .filter { header ->
+                            val status = TellingStatus.normalize(header.status)
+                            status == TellingStatus.ACTIEF ||
+                                status == TellingStatus.EDITED ||
+                                status == TellingStatus.RETRY_NEEDED ||
+                                status == TellingStatus.UPLOADING
+                        }
+                        .firstOrNull { header ->
+                            !TellingUploadFlags.isSent(this@HoofdActiviteit, header.tellingid, header.onlineid)
+                        }
+                }
+
+                if (candidate != null) {
+                    val records = withContext(Dispatchers.IO) {
+                        db.tellingDao().getWaarnemingenList(candidate.tellingid)
+                    }
+                    if (records.isNotEmpty()) {
+                        showUnfinishedTellingPrompt(candidate, records, button)
+                        return@launch
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Check for unfinished telling failed: ${e.message}", e)
+            }
+
+            // Geen onafgewerkte telling gevonden -> start normale nieuwe telling
+            startNewTellingFlow(button)
+        }
+    }
+
+    private fun showUnfinishedTellingPrompt(
+        header: TellingHeader,
+        records: List<Waarneming>,
+        button: View
+    ) {
+        val count = records.sumOf { (it.aantal.toIntOrNull() ?: 0) + (it.aantalterug.toIntOrNull() ?: 0) }
+        val dateText = header.begintijd.takeIf { it.isNotBlank() } ?: "Eerdere datum"
+        val telpostText = header.telpostid.ifBlank { "Telpost" }
+
+        val dlg = AlertDialog.Builder(this)
+            .setTitle("Onafgewerkte telling gevonden!")
+            .setMessage("Er staat nog een onvoltooide telling van $dateText ($telpostText) met $count waarneming(en) in het geheugen.\n\nWil je deze telling hervatten om af te werken en te uploaden, of liever een nieuwe telling starten?")
+            .setPositiveButton("Hervatten & afwerken") { _, _ ->
+                button.isEnabled = true
+                RoomTellingReopenLauncher.launch(
+                    activity = this,
+                    header = header,
+                    records = records,
+                    finishCurrent = false
+                )
+            }
+            .setNegativeButton("Nieuwe telling starten") { _, _ ->
+                startNewTellingFlow(button)
+            }
+            .setNeutralButton(getString(R.string.annuleer)) { _, _ ->
+                button.isEnabled = true
+            }
+            .setOnCancelListener {
+                button.isEnabled = true
+            }
+            .show()
+
+        DialogStyler.apply(dlg)
+    }
+
+    private fun startNewTellingFlow(button: View) {
+        Toast.makeText(this, getString(R.string.hoofd_metadata_loading), Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                com.yvesds.vt5.features.serverdata.model.ServerDataCache.getOrLoad(this@HoofdActiviteit)
+            } catch (e: Exception) {
+                Log.w(TAG, "Background preload failed (non-critical): ${e.message}")
+            }
+        }
+
+        startActivity(Intent(this, MetadataScherm::class.java))
+        button.isEnabled = true
     }
 
     /**
