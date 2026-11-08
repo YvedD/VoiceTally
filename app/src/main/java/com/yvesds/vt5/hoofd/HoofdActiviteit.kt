@@ -357,36 +357,33 @@ class HoofdActiviteit : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
-                val candidate = withContext(Dispatchers.IO) {
-                    db.tellingDao()
-                        .getAllHeaders()
-                        .asSequence()
-                        .filter { header ->
-                            val status = TellingStatus.normalize(header.status)
-                            status == TellingStatus.ACTIEF ||
-                                status == TellingStatus.EDITED ||
-                                status == TellingStatus.RETRY_NEEDED ||
-                                status == TellingStatus.UPLOADING
+                val unfinishedPairs = withContext(Dispatchers.IO) {
+                    val dao = db.tellingDao()
+                    val allHeaders = dao.getAllHeaders()
+                    val result = mutableListOf<Pair<TellingHeader, List<Waarneming>>>()
+                    for (header in allHeaders) {
+                        val statusNorm = TellingStatus.normalize(header.status)
+                        if (statusNorm != TellingStatus.GEUPLOAD && statusNorm != TellingStatus.GEARCHIVEERD) {
+                            val records = dao.getWaarnemingenList(header.tellingid)
+                            if (records.isNotEmpty()) {
+                                result.add(header to records)
+                            }
                         }
-                        .firstOrNull { header ->
-                            !TellingUploadFlags.isSent(this@HoofdActiviteit, header.tellingid, header.onlineid)
-                        }
+                    }
+                    result
                 }
 
-                if (candidate != null) {
-                    val records = withContext(Dispatchers.IO) {
-                        db.tellingDao().getWaarnemingenList(candidate.tellingid)
-                    }
-                    if (records.isNotEmpty()) {
-                        showUnfinishedTellingPrompt(candidate, records, button)
-                        return@launch
-                    }
+                if (unfinishedPairs.isNotEmpty()) {
+                    val mostRecentPair = unfinishedPairs.first()
+                    val allUnfinishedHeaders = unfinishedPairs.map { it.first }
+                    showUnfinishedTellingPrompt(mostRecentPair.first, mostRecentPair.second, allUnfinishedHeaders, button)
+                    return@launch
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Check for unfinished telling failed: ${e.message}", e)
             }
 
-            // Geen onafgewerkte telling gevonden -> start normale nieuwe telling
+            // Scenario A: Geen onafgewerkte telling -> direct naar metadatascherm
             startNewTellingFlow(button)
         }
     }
@@ -394,6 +391,7 @@ class HoofdActiviteit : AppCompatActivity() {
     private fun showUnfinishedTellingPrompt(
         header: TellingHeader,
         records: List<Waarneming>,
+        allUnfinished: List<TellingHeader>,
         button: View
     ) {
         val count = records.sumOf { (it.aantal.toIntOrNull() ?: 0) + (it.aantalterug.toIntOrNull() ?: 0) }
@@ -402,7 +400,7 @@ class HoofdActiviteit : AppCompatActivity() {
 
         val dlg = AlertDialog.Builder(this)
             .setTitle("Onafgewerkte telling gevonden!")
-            .setMessage("Er staat nog een onvoltooide telling van $dateText ($telpostText) met $count waarneming(en) in het geheugen.\n\nWil je deze telling hervatten om af te werken en te uploaden, of liever een nieuwe telling starten?")
+            .setMessage("Er staat nog een onvoltooide telling van $dateText ($telpostText) met $count waarneming(en) in het geheugen.\n\nWil je deze telling hervatten om af te werken en te uploaden, of als afgewerkt markeren en een nieuwe telling starten?")
             .setPositiveButton("Hervatten & afwerken") { _, _ ->
                 button.isEnabled = true
                 RoomTellingReopenLauncher.launch(
@@ -412,8 +410,26 @@ class HoofdActiviteit : AppCompatActivity() {
                     finishCurrent = false
                 )
             }
-            .setNegativeButton("Nieuwe telling starten") { _, _ ->
-                startNewTellingFlow(button)
+            .setNegativeButton("Als afgewerkt markeren & Nieuwe starten") { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val dao = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao()
+                            for (unfinished in allUnfinished) {
+                                val current = dao.getHeader(unfinished.tellingid)
+                                if (current != null) {
+                                    dao.updateHeader(current.copy(status = TellingStatus.GEUPLOAD))
+                                    TellingUploadFlags.markSent(this@HoofdActiviteit, current.tellingid, current.onlineid)
+                                }
+                            }
+                        }
+                        startNewTellingFlow(button)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Could not mark unfinished telling(s) as completed", e)
+                        button.isEnabled = true
+                        Toast.makeText(this@HoofdActiviteit, "Kon tellingen niet bijwerken. Probeer opnieuw.", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
             .setNeutralButton(getString(R.string.annuleer)) { _, _ ->
                 button.isEnabled = true
