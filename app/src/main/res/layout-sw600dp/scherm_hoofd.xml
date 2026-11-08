@@ -150,20 +150,10 @@
                                     style="@style/Widget.VT5.Button.Outlined"
                                     android:layout_width="match_parent"
                                     android:layout_height="60dp"
-                                    android:layout_marginBottom="10dp"
                                     android:text="@string/mc_btn_join_as_client"
                                     android:textSize="16sp"
                                     app:icon="@drawable/ic_mc_wifi"
                                     app:iconTint="@color/vt5_white" />
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnAfsluiten"
-                                    style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="60dp"
-                                    android:text="@string/btn_afsluiten"
-                                    android:textSize="16sp"
-                                    app:strokeColor="@color/vt5_orange" />
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
 
@@ -460,28 +450,55 @@
 
             </LinearLayout>
 
-            <!-- SPACER WAARDOOR DE OPTIES-KNOP ALTIJD HELEMAAL ONDERAAN HET SCHERM GIDST -->
+            <!-- SPACER WAARDOOR DE ONDERSTE KNOPPEN ALTIJD HELEMAAL ONDERAAN HET SCHERM ZITTEN -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <!-- KNOP 2: BEHEER & OVERIGE OPTIES (ONDERAAN & GECENTREERD) -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnOptiesMenu"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="wrap_content"
+            <!-- ONDERSTE RIJ: BEHEER & OPTIES (LINKS) EN AFSLUITEN (RECHTS) -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="32dp"
-                android:background="@drawable/vt5_btn_glass_secondary"
-                android:text="BEHEER &amp; OPTIES"
-                android:textColor="@color/vt5_white"
-                android:textSize="19sp"
-                android:textStyle="bold"
-                app:backgroundTint="@null"
-                app:rippleColor="#40117CAF" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- KNOP: BEHEER & OPTIES (LINKS) -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOptiesMenu"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/vt5_btn_glass_secondary"
+                    android:text="BEHEER &amp; OPTIES"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null"
+                    app:rippleColor="#40117CAF" />
+
+                <!-- KNOP: AFSLUITEN (RECHTS) -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAfsluiten"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/vt5_btn_glass_secondary"
+                    android:text="@string/btn_afsluiten"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null"
+                    app:strokeColor="@color/vt5_orange"
+                    app:strokeWidth="1.5dp"
+                    app:rippleColor="#40EF6929" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
