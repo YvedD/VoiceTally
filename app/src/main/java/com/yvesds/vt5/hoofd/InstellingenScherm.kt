@@ -9,8 +9,11 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.BaseAdapter
 import android.widget.NumberPicker
+import com.yvesds.vt5.features.serverdata.model.ServerDataRepository
+import java.util.Locale
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -173,6 +176,8 @@ class InstellingenScherm : AppCompatActivity() {
             setupChartSettings()
             setupDatabaseMirroringButton()
             setupBirdNetConfigButton()
+            setupDefaultTelpostAndTypeTelling()
+            setupCollapsibleSections()
         } catch (t: Throwable) {
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
             Toast.makeText(this, "Fout in instellingen: ${t.message}", Toast.LENGTH_LONG).show()
@@ -752,6 +757,106 @@ class InstellingenScherm : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnOpenBirdNetConfig)?.setOnClickListener {
             val intent = Intent(this, com.yvesds.vt5.features.birdnet.BirdNetConfigActivity::class.java)
             startActivity(intent)
+        }
+    }
+
+    private fun setupDefaultTelpostAndTypeTelling() {
+        val spTelpost = findViewById<Spinner>(R.id.spinnerDefaultTelpost) ?: return
+        val spTypeTelling = findViewById<Spinner>(R.id.spinnerDefaultTypeTelling) ?: return
+
+        lifecycleScope.launch {
+            val repo = ServerDataRepository(this@InstellingenScherm)
+            val snapshot = repo.loadMinimalData()
+
+            // 1. Telposten
+            val sites = snapshot.sitesById.values.sortedBy { it.telpostnaam.lowercase(Locale.getDefault()) }
+            val siteLabels = mutableListOf("Geen (altijd handmatig kiezen)").apply {
+                addAll(sites.map { it.telpostnaam })
+            }
+            val siteIds = mutableListOf("").apply {
+                addAll(sites.map { it.telpostid })
+            }
+
+            val telpostAdapter = ArrayAdapter(this@InstellingenScherm, android.R.layout.simple_spinner_item, siteLabels)
+            telpostAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spTelpost.adapter = telpostAdapter
+
+            val currentDefaultTelpost = AppDataStore.getDefaultTelpost(this@InstellingenScherm)
+            val initialTelpostIdx = siteIds.indexOf(currentDefaultTelpost).coerceAtLeast(0)
+            spTelpost.setSelection(initialTelpostIdx)
+
+            spTelpost.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    val selectedId = siteIds.getOrNull(position).takeIf { !it.isNullOrBlank() }
+                    lifecycleScope.launch {
+                        AppDataStore.setDefaultTelpost(this@InstellingenScherm, selectedId)
+                    }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+
+            // 2. Type Telling
+            val allCodes = snapshot.codesByCategory["typetelling_trek"] ?: emptyList()
+            val filteredCodes = allCodes.filterNot { c ->
+                val key = c.key ?: ""
+                key.contains("_sound") || key.contains("_ringen") || key.startsWith("samplingrate_") || key.startsWith("gain_") || key.startsWith("verstoring_")
+            }
+            val typeLabels = mutableListOf("Geen (altijd handmatig kiezen)").apply {
+                addAll(filteredCodes.map { it.text })
+            }
+            val typeValues = mutableListOf("").apply {
+                addAll(filteredCodes.map { it.value })
+            }
+
+            val typeAdapter = ArrayAdapter(this@InstellingenScherm, android.R.layout.simple_spinner_item, typeLabels)
+            typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spTypeTelling.adapter = typeAdapter
+
+            val currentDefaultType = AppDataStore.getDefaultTypeTelling(this@InstellingenScherm)
+            val initialTypeIdx = typeValues.indexOf(currentDefaultType).coerceAtLeast(0)
+            spTypeTelling.setSelection(initialTypeIdx)
+
+            spTypeTelling.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    val selectedValue = typeValues.getOrNull(position).takeIf { !it.isNullOrBlank() }
+                    lifecycleScope.launch {
+                        AppDataStore.setDefaultTypeTelling(this@InstellingenScherm, selectedValue)
+                    }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+    }
+
+    private fun setupCollapsibleSections() {
+        val sections = listOf(
+            Triple(R.id.headerDefault, R.id.contentDefault, true),
+            Triple(R.id.headerText, R.id.contentText, false),
+            Triple(R.id.headerTiles, R.id.contentTiles, false),
+            Triple(R.id.headerColors, R.id.contentColors, false),
+            Triple(R.id.headerSorting, R.id.contentSorting, false),
+            Triple(R.id.headerAi, R.id.contentAi, false),
+            Triple(R.id.headerUpdates, R.id.contentUpdates, false),
+            Triple(R.id.headerPermissions, R.id.contentPermissions, false),
+            Triple(R.id.headerExtra, R.id.contentExtra, false)
+        )
+
+        for ((headerId, contentId, startOpen) in sections) {
+            val header = findViewById<View>(headerId) ?: continue
+            val content = findViewById<View>(contentId) ?: continue
+            
+            content.visibility = if (startOpen) View.VISIBLE else View.GONE
+            
+            val arrow = (header as? ViewGroup)?.let { vg ->
+                (0 until vg.childCount).map { vg.getChildAt(it) }.filterIsInstance<TextView>().lastOrNull()
+            }
+            arrow?.text = if (startOpen) "▲" else "▼"
+
+            header.setOnClickListener {
+                val isVisible = content.visibility == View.VISIBLE
+                content.visibility = if (isVisible) View.GONE else View.VISIBLE
+                arrow?.text = if (isVisible) "▼" else "▲"
+            }
         }
     }
 

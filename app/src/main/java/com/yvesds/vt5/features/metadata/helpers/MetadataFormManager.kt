@@ -10,10 +10,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.edit
 import com.yvesds.vt5.R
 import com.yvesds.vt5.VT5App
+import com.yvesds.vt5.core.opslag.AppDataStore
 import com.yvesds.vt5.databinding.SchermMetadataBinding
 import com.yvesds.vt5.features.opstart.helpers.ServerAuthenticationManager
 import com.yvesds.vt5.features.serverdata.model.CodeItemSlim
 import com.yvesds.vt5.features.serverdata.model.DataSnapshot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -145,6 +149,19 @@ class MetadataFormManager(
         binding.acTelpost.setOnItemClickListener { _, _, pos, _ ->
             gekozenTelpostId = ids[pos]
         }
+
+        if (gekozenTelpostId.isNullOrBlank()) {
+            CoroutineScope(Dispatchers.Main).launch {
+                val defaultId = AppDataStore.getDefaultTelpost(context)
+                if (!defaultId.isNullOrBlank()) {
+                    val idx = ids.indexOf(defaultId)
+                    if (idx >= 0) {
+                        gekozenTelpostId = defaultId
+                        binding.acTelpost.setText(labels[idx], false)
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -215,6 +232,19 @@ class MetadataFormManager(
             )
             binding.acTypeTelling.setOnItemClickListener { _, _, pos, _ ->
                 gekozenTypeTellingCode = values[pos]
+            }
+
+            if (gekozenTypeTellingCode.isNullOrBlank()) {
+                CoroutineScope(Dispatchers.Main).launch {
+                    val defaultCode = AppDataStore.getDefaultTypeTelling(context)
+                    if (!defaultCode.isNullOrBlank()) {
+                        val idx = values.indexOf(defaultCode)
+                        if (idx >= 0) {
+                            gekozenTypeTellingCode = defaultCode
+                            binding.acTypeTelling.setText(labels[idx], false)
+                        }
+                    }
+                }
             }
         }
     }

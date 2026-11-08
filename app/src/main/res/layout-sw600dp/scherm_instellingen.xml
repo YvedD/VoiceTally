@@ -1,1066 +1,1068 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:fitsSystemWindows="true"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/vt5_black"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:fitsSystemWindows="true">
 
-    <!-- Header -->
-    <LinearLayout
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingBottom="16dp">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnTerug"
-            style="@style/Widget.VT5.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="64dp"
-            android:text="@string/instellingen_back_arrow"
-            android:textSize="24sp" />
-
-        <TextView
-            android:id="@+id/tvTitel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_weight="1"
-            android:text="@string/instellingen_titel"
-            android:textColor="@color/vt5_white"
-            android:textSize="28sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/settings"
+        android:contentDescription="@null" />
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:alpha="0.3"
-        android:background="@color/vt5_on_surface" />
+        android:layout_height="match_parent"
+        android:background="#70080E14" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:fillViewport="true">
 
-        <GridLayout
+        <LinearLayout
+            android:id="@+id/root"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:paddingTop="16dp">
-
-            <!-- 1. Tekst & Schaal -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Tekst &amp; Schaal"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/instellingen_lettergrootte_partials_label"
-                            android:textColor="@color/vt5_on_surface" />
-
-                        <NumberPicker
-                            android:id="@+id/npLettergroottePartials"
-                            android:layout_width="80dp"
-                            android:layout_height="50dp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/instellingen_lettergrootte_finals_label"
-                            android:textColor="@color/vt5_on_surface" />
-
-                        <NumberPicker
-                            android:id="@+id/npLettergrootteFinals"
-                            android:layout_width="80dp"
-                            android:layout_height="50dp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/instellingen_lettergrootte_tegels_label"
-                            android:textColor="@color/vt5_on_surface" />
-
-                        <NumberPicker
-                            android:id="@+id/npLettergrootteTegels"
-                            android:layout_width="80dp"
-                            android:layout_height="50dp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 2. Kleuren -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Kleuren &amp; Thema"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="@string/instellingen_bg_color_label"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spBackgroundColor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="@string/instellingen_text_color_label"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spTextColor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="Kleur Partials"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spPartialsTextColor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="Kleur Onbekend"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spUnmatchedPartialsTextColor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
-                        android:text="Kleur Finals"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spFinalsTextColor"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 3. Gedrag -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Telling &amp; Gedrag"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cbDynamicTileSorting"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/instellingen_dynamic_tile_sorting_checkbox"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/instellingen_double_tap_title"
-                        android:textColor="@color/vt5_on_surface"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnDoubleTap5"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="5"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnDoubleTap10"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="10"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnDoubleTap50"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="50"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnDoubleTap100"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="100"
-                            android:textSize="12dp" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/instellingen_pending_tiles_title"
-                        android:textColor="@color/vt5_on_surface"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles2"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="2"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles3"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="3"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles5"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="5"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles8"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="8"
-                            android:textSize="12dp" />
-                    </LinearLayout>
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="4dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles10"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="10"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles12"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="12"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnPendingTiles15"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="15"
-                            android:textSize="12dp" />
-                        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Fav Limiet"
-                        android:textColor="@color/vt5_on_surface"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingTop="8dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav15"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="15"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav20"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="20"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav25"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="25"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav30"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="30"
-                            android:textSize="12dp" />
-                    </LinearLayout>
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="4dp">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav35"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="35"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav40"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="40"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFav75"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="75"
-                            android:textSize="12dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnFavAll"
-                            style="@style/Widget.VT5.Button.Outlined"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:layout_weight="1"
-                            android:checkable="true"
-                            android:padding="2dp"
-                            android:text="Alles"
-                            android:textSize="12dp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 4. Grafieken -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Grafiek Instellingen"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Lijndikte (DP)"
-                            android:textColor="@color/vt5_on_surface" />
-
-                        <NumberPicker
-                            android:id="@+id/npChartThickness"
-                            android:layout_width="80dp"
-                            android:layout_height="100dp" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Kleur Wind (Beaufort)"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spChartColorWind"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Kleur Aantal (Trek)"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spChartColorTrek"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Kleur Aantal (Terug)"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <Spinner
-                        android:id="@+id/spChartColorTerug"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 5. AI & Toestemmingen -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="AI &amp; Toestemmingen"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cbAiEnabled"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/instellingen_ai_checkbox"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cbUseNeuralInference"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Gebruik neurale prognose (Neural inference)"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cbUseDailyAnalysisWeights"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Gebruik teldag-verslagen in AI (Daily analysis weights)"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cbServerResponseLogging"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/instellingen_server_response_logging_checkbox"
-                        android:textColor="@color/vt5_on_surface" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:paddingBottom="6dp"
-                        android:text="@string/update_title"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvUpdateStatus"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:alpha="0.85"
-                        android:paddingBottom="12dp"
-                        android:text="@string/update_status_unknown"
-                        android:textColor="@color/vt5_on_surface"
-                        android:textSize="14sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCheckAppUpdate"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/update_check_button"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/ic_menu_rotate" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnInstallAppUpdate"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:enabled="false"
-                        android:text="@string/update_install_button"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/stat_sys_download_done" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnShowAppRollback"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="@string/update_rollback_button"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/ic_menu_revert" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:paddingBottom="6dp"
-                        android:text="@string/alias_beheer_title"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:paddingBottom="12dp"
-                        android:text="@string/alias_beheer_subtitle"
-                        android:textColor="@color/vt5_on_surface"
-                        android:alpha="0.8"
-                        android:textSize="14sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnOpenAliasBeheer"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/alias_beheer_open_button"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/ic_menu_edit" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="12dp"
-                        android:alpha="0.1"
-                        android:background="@android:color/white" />
-
-                    <!-- NIEUW: Auto-Annotatie Beheer -->
-            <TextView
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <!-- Header -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingTop="12dp"
-                android:paddingBottom="8dp"
-                android:text="Auto-Annotatie Popup Beheer"
-                android:textColor="@color/vt5_on_surface"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingBottom="20dp">
 
-            <TextView
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTerug"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="64dp"
+                    android:text="@string/instellingen_back_arrow"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/tvTitel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_weight="1"
+                    android:text="@string/instellingen_titel"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Grid voor Tablets (SW600DP) met openklappende kaarten -->
+            <GridLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingBottom="12dp"
-                android:text="Selecteer voor welke vogelsoorten het annotatiescherm automatisch moet opspringen direct na invoer (bijv. Roofvogels of Reigers)."
-                android:textColor="@color/vt5_on_surface"
-                android:alpha="0.8"
-                android:textSize="16sp" />
+                android:columnCount="2"
+                android:paddingTop="8dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnOpenAutoAnnotation"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="BEHEER AUTO-ANNOTATIE SOORTEN"
-                android:textSize="16sp"
-                app:icon="@android:drawable/ic_menu_edit" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="16dp"
-                android:alpha="0.3"
-                android:background="@color/vt5_on_surface" />
-
-            <!-- NIEUW: Krentenfilter (Birds of Interest) -->
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Birds of Interest (Krentenfilter)"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:paddingBottom="12dp"
-                        android:text="De krentenfilter markeert zeldzame soorten op basis van jouw persoonlijke database. Soorten die minder vaak zijn waargenomen dan de drempelwaarde krijgen een boost in de AI-prognose. Let op: het aanpassen van de drempelwaarde vereist een nieuwe AI-training om de lijst bij te werken."
-                        android:textColor="@color/vt5_on_surface"
-                        android:alpha="0.8"
-                        android:textSize="14sp" />
+                <!-- KAART 1: STANDAARD TELPOST & TYPE TELLING -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="8dp">
+                        android:orientation="vertical">
 
-                        <TextView
-                            android:layout_width="0dp"
+                        <LinearLayout
+                            android:id="@+id/headerDefault"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Drempel (max. waarnemingen)"
-                            android:textColor="@color/vt5_on_surface" />
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                        <NumberPicker
-                            android:id="@+id/npKrentenThreshold"
-                            android:layout_width="80dp"
-                            android:layout_height="100dp" />
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Standaard Waarden (Telpost &amp; Type)"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▲"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentDefault"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="visible">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Standaard Telpost"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <Spinner
+                                android:id="@+id/spinnerDefaultTelpost"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background"
+                                android:layout_marginBottom="16dp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Standaard Type Telling"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <Spinner
+                                android:id="@+id/spinnerDefaultTypeTelling"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background" />
+
+                        </LinearLayout>
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnApplyKrentenThreshold"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="DREMPEL TOEPASSEN"
-                        app:icon="@android:drawable/ic_menu_save" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:alpha="0.7"
-                        android:text="Soorten met minder waarnemingen dan deze drempel worden als 'krent' gemarkeerd voor de AI-monitor."
-                        android:textColor="@color/vt5_on_surface"
-                        android:textSize="12sp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnOpenKrentenMonitor"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="BEKIJK KRENTEN-MONITOR"
-                        app:icon="@android:drawable/ic_menu_view" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:alpha="0.1"
-                        android:background="@android:color/white" />
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- BirdNET-GO Configuratie Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <!-- KAART 2: TEKST & SCHAAL -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="BirdNET-GO"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Configureer server voor automatische geluidsherkenning op uw lokale netwerk."
-                        android:textColor="@color/vt5_on_surface"
-                        android:alpha="0.8"
-                        android:textSize="14sp" />
+                        <LinearLayout
+                            android:id="@+id/headerText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnOpenBirdNetConfig"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="CONFIGUREER BIRDNET-GO"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/ic_menu_manage" />
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Tekstgrootte &amp; Schaal"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
 
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
 
-            <!-- Database Spiegeling Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
+                        <LinearLayout
+                            android:id="@+id/contentText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:paddingVertical="6dp">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/instellingen_lettergrootte_partials_label"
+                                    android:textColor="@color/vt5_on_surface"
+                                    android:textSize="15sp" />
+
+                                <NumberPicker
+                                    android:id="@+id/npLettergroottePartials"
+                                    android:layout_width="80dp"
+                                    android:layout_height="56dp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:paddingVertical="6dp">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/instellingen_lettergrootte_finals_label"
+                                    android:textColor="@color/vt5_on_surface"
+                                    android:textSize="15sp" />
+
+                                <NumberPicker
+                                    android:id="@+id/npLettergrootteFinals"
+                                    android:layout_width="80dp"
+                                    android:layout_height="56dp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:paddingVertical="6dp">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/instellingen_lettergrootte_tegels_label"
+                                    android:textColor="@color/vt5_on_surface"
+                                    android:textSize="15sp" />
+
+                                <NumberPicker
+                                    android:id="@+id/npLettergrootteTegels"
+                                    android:layout_width="80dp"
+                                    android:layout_height="56dp" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 3: SOORTTEGEL & INVOER INSTELLINGEN -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Database Spiegeling"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Spiegel de interne SQLite database naar de SAF-map (VT5/database) voor externe back-up."
-                        android:textColor="@color/vt5_on_surface"
-                        android:alpha="0.8"
-                        android:textSize="14sp" />
+                        <LinearLayout
+                            android:id="@+id/headerTiles"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnMirrorDb"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="SPIEGEL DATABASE NAAR SAF"
-                        android:textSize="14sp"
-                        app:icon="@android:drawable/ic_menu_save" />
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Soorttegel &amp; Invoer Instellingen"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
 
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
 
-            <!-- Permissions Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_margin="4dp"
-                app:cardBackgroundColor="#111111"
-                app:cardCornerRadius="16dp"
-                app:strokeColor="#333333"
-                app:strokeWidth="1dp">
+                        <LinearLayout
+                            android:id="@+id/contentTiles"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_double_tap_title"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <GridLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:columnCount="4"
+                                android:layout_marginTop="6dp"
+                                android:layout_marginBottom="12dp">
+                                <Button android:id="@+id/btnDoubleTap5" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_double_tap_5" />
+                                <Button android:id="@+id/btnDoubleTap10" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_double_tap_10" />
+                                <Button android:id="@+id/btnDoubleTap50" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_double_tap_50" />
+                                <Button android:id="@+id/btnDoubleTap100" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_double_tap_100" />
+                            </GridLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_pending_tiles_title"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_pending_tiles_subtitle"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="12sp"
+                                android:alpha="0.8"
+                                android:layout_marginBottom="6dp" />
+
+                            <GridLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:columnCount="4"
+                                android:layout_marginBottom="12dp">
+                                <Button android:id="@+id/btnPendingTiles2" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_2" />
+                                <Button android:id="@+id/btnPendingTiles3" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_3" />
+                                <Button android:id="@+id/btnPendingTiles5" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_5" />
+                                <Button android:id="@+id/btnPendingTiles8" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_8" />
+                                <Button android:id="@+id/btnPendingTiles10" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_10" />
+                                <Button android:id="@+id/btnPendingTiles12" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_12" />
+                                <Button android:id="@+id/btnPendingTiles15" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_pending_tiles_15" />
+                            </GridLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_fav_limit_title"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="6dp" />
+
+                            <GridLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:columnCount="4">
+                                <Button android:id="@+id/btnFav15" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_15" />
+                                <Button android:id="@+id/btnFav20" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_20" />
+                                <Button android:id="@+id/btnFav25" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_25" />
+                                <Button android:id="@+id/btnFav30" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_30" />
+                                <Button android:id="@+id/btnFav35" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_35" />
+                                <Button android:id="@+id/btnFav40" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_40" />
+                                <Button android:id="@+id/btnFav75" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_75" />
+                                <Button android:id="@+id/btnFavAll" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:background="@drawable/vt5_btn_glass_secondary" android:text="@string/instellingen_fav_all" />
+                            </GridLayout>
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 4: KLEUREN & GRAFIEKEN -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="24dp">
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="Toestemmingen"
-                        android:textColor="@color/vt5_light_blue"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
 
-                    <GridLayout
+                        <LinearLayout
+                            android:id="@+id/headerColors"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Kleuren &amp; Grafiek Instellingen"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentColors"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_bg_color_label"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp" />
+                            <Spinner
+                                android:id="@+id/spBackgroundColor"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background"
+                                android:layout_marginBottom="10dp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_text_color_label"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp" />
+                            <Spinner
+                                android:id="@+id/spTextColor"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background"
+                                android:layout_marginBottom="10dp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_partials_text_color_label"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp" />
+                            <Spinner
+                                android:id="@+id/spPartialsTextColor"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background"
+                                android:layout_marginBottom="10dp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_unmatched_partials_text_color_label"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp" />
+                            <Spinner
+                                android:id="@+id/spUnmatchedPartialsTextColor"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background"
+                                android:layout_marginBottom="10dp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_finals_text_color_label"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp" />
+                            <Spinner
+                                android:id="@+id/spFinalsTextColor"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/vt5_input_background"
+                                android:layout_marginBottom="12dp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_chart_title"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="6dp" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:layout_marginBottom="8dp">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/instellingen_chart_thickness"
+                                    android:textColor="@color/vt5_on_surface" />
+                                <NumberPicker
+                                    android:id="@+id/npChartThickness"
+                                    android:layout_width="80dp"
+                                    android:layout_height="50dp" />
+                            </LinearLayout>
+
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/instellingen_chart_color_wind" android:textColor="@color/vt5_on_surface" />
+                            <Spinner android:id="@+id/spChartColorWind" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/vt5_input_background" android:layout_marginBottom="6dp" />
+
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/instellingen_chart_color_trek" android:textColor="@color/vt5_on_surface" />
+                            <Spinner android:id="@+id/spChartColorTrek" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/vt5_input_background" android:layout_marginBottom="6dp" />
+
+                            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/instellingen_chart_color_terug" android:textColor="@color/vt5_on_surface" />
+                            <Spinner android:id="@+id/spChartColorTerug" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/vt5_input_background" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 5: WEERGAVE & SORTERING -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:columnCount="1">
+                        android:orientation="vertical">
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cbPermAudio"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:id="@+id/headerSorting"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:text="Audio"
-                            android:textColor="@color/vt5_on_surface" />
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cbPermSaf"
-                            android:layout_width="wrap_content"
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Weergave &amp; Sortering"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentSorting"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:text="Opslag"
-                            android:textColor="@color/vt5_on_surface" />
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cbPermLocation"
-                            android:layout_width="wrap_content"
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbDynamicTileSorting"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_dynamic_tile_sorting_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_marginBottom="12dp"
+                                android:alpha="0.8"
+                                android:text="@string/instellingen_dynamic_tile_sorting_description"
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="12sp" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbServerResponseLogging"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_server_response_logging_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 6: AI-FUNCTIONALITEIT & BIRDS OF INTEREST -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/headerAi"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:text="GPS"
-                            android:textColor="@color/vt5_on_surface" />
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cbPermCamera"
-                            android:layout_width="wrap_content"
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/instellingen_ai_title"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentAi"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:text="Camera"
-                            android:textColor="@color/vt5_on_surface" />
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cbPermBluetooth"
-                            android:layout_width="wrap_content"
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbAiEnabled"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/instellingen_ai_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbUseNeuralInference"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Gebruik neurale inferentie (op apparaat)"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbUseDailyAnalysisWeights"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Gebruik dagelijkse analyse wegingen"
+                                android:textColor="@color/vt5_on_surface"
+                                android:layout_marginBottom="16dp"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Birds of Interest (Krenten-drempel)"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="4dp" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:layout_marginBottom="12dp">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Drempelwaarde (aantal):"
+                                    android:textColor="@color/vt5_on_surface" />
+                                <NumberPicker
+                                    android:id="@+id/npKrentenThreshold"
+                                    android:layout_width="80dp"
+                                    android:layout_height="50dp" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnApplyKrentenThreshold"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:text="Drempel toepassen &amp; AI hertrainen" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnOpenKrentenMonitor"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Open Krenten Monitor" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 7: APP UPDATES & VERSIEBEHEER -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/headerUpdates"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:text="Bluetooth"
-                            android:textColor="@color/vt5_on_surface" />
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
 
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cbPermAlarm"
-                            android:layout_width="wrap_content"
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/update_title"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentUpdates"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:enabled="false"
-                            android:text="Alarm"
-                            android:textColor="@color/vt5_on_surface" />
-                    </GridLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
 
-        </GridLayout>
+                            <TextView
+                                android:id="@+id/tvUpdateStatus"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="16dp"
+                                android:text="Status update controleren..."
+                                android:textColor="@color/vt5_on_surface"
+                                android:textSize="14sp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCheckAppUpdate"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:text="@string/update_check_button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnInstallAppUpdate"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:text="@string/update_install_button" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnShowAppRollback"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/update_rollback_button" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 8: TOESTEMMINGEN (INFO) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/headerPermissions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/instellingen_permissions_title"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentPermissions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbPermAudio"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/perm_audio_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbPermSaf"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/perm_saf_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbPermLocation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/perm_location_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbPermCamera"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/perm_camera_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbPermBluetooth"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/perm_bluetooth_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbPermAlarm"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/perm_alarm_checkbox"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- KAART 9: EXTRA & BEHEER -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="8dp"
+                    app:cardBackgroundColor="#99121A24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#117CAF"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/headerExtra"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Extra &amp; Beheer"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingStart="8dp"
+                                android:text="▼"
+                                android:textColor="@color/vt5_light_blue"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/contentExtra"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="20dp"
+                            android:paddingBottom="20dp"
+                            android:visibility="gone">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnOpenAutoAnnotation"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:text="Auto-annotatie beheer" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnOpenAliasBeheer"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:text="Alias beheer" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnMirrorDb"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="10dp"
+                                android:text="Database spiegelen naar SAF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnOpenBirdNetConfig"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="BirdNET configuratie" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </GridLayout>
+
+        </LinearLayout>
     </ScrollView>
 
-</LinearLayout>
+</FrameLayout>

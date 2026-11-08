@@ -27,6 +27,8 @@ object AppDataStore {
     private val KEY_UPDATE_LATEST_SHA256 = stringPreferencesKey("app_update_latest_sha256")
     private val KEY_UPDATE_LAST_CHECK_AT = longPreferencesKey("app_update_last_check_at")
     private val KEY_UPDATE_LAST_PROMPTED_VERSION = stringPreferencesKey("app_update_last_prompted_version")
+    private val KEY_DEFAULT_TELPOST_ID = stringPreferencesKey("default_telpost_id")
+    private val KEY_DEFAULT_TYPE_TELLING_CODE = stringPreferencesKey("default_type_telling_code")
     private const val PREFIX_RECORD_ID = "next_record_id_"
 
     data class UpdateSnapshot(
@@ -186,5 +188,27 @@ object AppDataStore {
 
     suspend fun getLastPromptedUpdateVersion(context: Context): String? {
         return context.dataStore.data.map { it[KEY_UPDATE_LAST_PROMPTED_VERSION] }.first()
+    }
+
+    suspend fun setDefaultTelpost(context: Context, telpostId: String?) {
+        context.dataStore.edit { prefs ->
+            if (telpostId.isNullOrBlank()) prefs.remove(KEY_DEFAULT_TELPOST_ID)
+            else prefs[KEY_DEFAULT_TELPOST_ID] = telpostId
+        }
+    }
+
+    suspend fun getDefaultTelpost(context: Context): String? {
+        return context.dataStore.data.map { it[KEY_DEFAULT_TELPOST_ID] }.first()
+    }
+
+    suspend fun setDefaultTypeTelling(context: Context, typeCode: String?) {
+        context.dataStore.edit { prefs ->
+            if (typeCode.isNullOrBlank()) prefs.remove(KEY_DEFAULT_TYPE_TELLING_CODE)
+            else prefs[KEY_DEFAULT_TYPE_TELLING_CODE] = typeCode
+        }
+    }
+
+    suspend fun getDefaultTypeTelling(context: Context): String? {
+        return context.dataStore.data.map { it[KEY_DEFAULT_TYPE_TELLING_CODE] }.first()
     }
 }
