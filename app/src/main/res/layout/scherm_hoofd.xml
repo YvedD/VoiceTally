@@ -3,15 +3,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginTop="25dp"
+    android:layout_marginBottom="40dp"
     android:fitsSystemWindows="true">
 
     <!-- Achtergrondafbeelding phone.png -->
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:contentDescription="@null"
         android:scaleType="centerCrop"
-        android:src="@drawable/bg_phone"
-        android:contentDescription="@null" />
+        android:src="@drawable/bg_phone" />
 
     <!-- Lichte sfeeroverlay voor optimale zichtbaarheid van de foto én tekst -->
     <View
@@ -215,7 +217,6 @@
                             android:textSize="14sp" />
 
 
-
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnTelpostBeheer"
                             style="@style/Widget.VT5.Button.Outlined"
@@ -262,6 +263,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1">
+
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/btnAiUpdate"
                                     style="@style/Widget.VT5.Button.Outlined"
@@ -269,6 +271,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="@string/hoofd_ai_update"
                                     android:textSize="12sp" />
+
                                 <TextView
                                     android:id="@+id/badgeAiUpdate"
                                     android:layout_width="20dp"
@@ -306,6 +309,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1">
+
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/btnAiDailyReports"
                                     style="@style/Widget.VT5.Button.Outlined"
@@ -313,6 +317,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="Teldag Verslagen"
                                     android:textSize="12sp" />
+
                                 <TextView
                                     android:id="@+id/badgeAiDailyReports"
                                     android:layout_width="20dp"
@@ -334,6 +339,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
                                 android:layout_weight="1">
+
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/btnAiTrain"
                                     style="@style/Widget.VT5.Button.Outlined"
@@ -341,6 +347,7 @@
                                     android:layout_height="wrap_content"
                                     android:text="BSI Trainen"
                                     android:textSize="12sp" />
+
                                 <TextView
                                     android:id="@+id/badgeAiTrain"
                                     android:layout_width="20dp"
@@ -433,9 +440,9 @@
                     android:textSize="12sp"
                     android:textStyle="bold"
                     app:backgroundTint="@null"
+                    app:rippleColor="#40EF6929"
                     app:strokeColor="@color/vt5_orange"
-                    app:strokeWidth="1.5dp"
-                    app:rippleColor="#40EF6929" />
+                    app:strokeWidth="1.5dp" />
             </LinearLayout>
 
         </LinearLayout>
@@ -453,8 +460,8 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSettings"
             style="@style/Widget.VT5.Button.Outlined.IconOnly"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             android:contentDescription="@string/hoofd_instellingen"
             app:backgroundTint="@android:color/transparent"

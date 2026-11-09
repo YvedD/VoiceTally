@@ -14,7 +14,7 @@
     <string name="btn_afsluiten">Afsluiten</string>
 
     <!-- Installatie -->
-    <string name="titel_install">(Her)Installatie</string>
+    <string name="titel_install">Telpost account toevoegen en algemene installatieopties</string>
     <string name="install_uitleg">
         Deze toepassing moet bestanden kunnen inlezen en wegschrijven. Bevestig het gebruik van de map ‘Documents’ in de volgende stap (kies ‘Deze map gebruiken’). Alle mappen/bestanden worden aangemaakt indien nodig. Bij herinstallatie wordt niets overschreven.
     </string>
