@@ -530,6 +530,110 @@
                                 </LinearLayout>
                             </LinearLayout>
 
+                            <!-- Trektellen.nl Account & Server -->
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                                <LinearLayout
+                                    android:id="@+id/headerTrektellen"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="?attr/selectableItemBackground"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:padding="16dp">
+                                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/sect_trektellen" android:textColor="@color/vt5_white" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Inloggegevens &amp; serverdata downloaden" android:textColor="#B0FFFFFF" android:textSize="13sp" />
+                                    </LinearLayout>
+                                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▼" android:textColor="@color/vt5_light_blue" android:textSize="16sp" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/contentTrektellen"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:paddingHorizontal="16dp"
+                                    android:paddingBottom="16dp"
+                                    android:visibility="gone">
+
+                                    <com.google.android.material.textfield.TextInputLayout
+                                        android:id="@+id/tilLogin"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:hint="@string/hint_login">
+                                        <com.google.android.material.textfield.TextInputEditText
+                                            android:id="@+id/etLogin"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:inputType="textEmailAddress" />
+                                    </com.google.android.material.textfield.TextInputLayout>
+
+                                    <com.google.android.material.textfield.TextInputLayout
+                                        android:id="@+id/tilPass"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:hint="@string/hint_password"
+                                        app:endIconMode="password_toggle">
+                                        <com.google.android.material.textfield.TextInputEditText
+                                            android:id="@+id/etPass"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:inputType="textPassword" />
+                                    </com.google.android.material.textfield.TextInputLayout>
+
+                                    <LinearLayout
+                                        android:id="@+id/rowCreds"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="12dp"
+                                        android:orientation="horizontal">
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnWis"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginEnd="4dp"
+                                            android:text="@string/btn_wis" />
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnBewaar"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginStart="4dp"
+                                            android:text="@string/btn_bewaar" />
+                                    </LinearLayout>
+
+                                    <LinearLayout
+                                        android:id="@+id/rowAuthDownload"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:orientation="horizontal">
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnLoginTest"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginEnd="4dp"
+                                            android:text="@string/btn_login_test" />
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnDownloadJsons"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginStart="4dp"
+                                            android:text="@string/btn_download_jsons" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </LinearLayout>
+
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>

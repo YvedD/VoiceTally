@@ -159,98 +159,12 @@
             android:textColor="@color/vt5_light_blue"
             android:textStyle="italic" />
 
-        <!-- Trektellen sectie -->
-        <TextView
-            android:id="@+id/tvSectTrektellen"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/sect_trektellen"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilLogin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="@string/hint_login">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etLogin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textEmailAddress" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilPass"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="@string/hint_password"
-            app:endIconMode="password_toggle">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etPass"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textPassword" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <LinearLayout
-            android:id="@+id/rowCreds"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnWis"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/btn_wis" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnBewaar"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/btn_bewaar" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/rowAuthDownload"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLoginTest"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/btn_login_test" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDownloadJsons"
-                style="@style/Widget.VT5.Button.Outlined"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/btn_download_jsons" />
-        </LinearLayout>
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAliasPrecompute"
             style="@style/Widget.VT5.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:text="@string/btn_alias_precompute" />
 
         <com.google.android.material.button.MaterialButton

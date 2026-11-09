@@ -25,7 +25,6 @@ import com.yvesds.vt5.features.opstart.helpers.AliasIndexManager
 import com.yvesds.vt5.features.opstart.helpers.InstallationDialogManager
 import com.yvesds.vt5.features.opstart.helpers.InstallationSafManager
 import com.yvesds.vt5.features.opstart.helpers.ServerAuthenticationManager
-import com.yvesds.vt5.features.opstart.helpers.ServerDataDownloadManager
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.hoofd.HoofdActiviteit
 import com.yvesds.vt5.hoofd.InstellingenScherm
@@ -35,7 +34,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * InstallatieScherm - Beheert de installatie en permissies.
- * Nu met actieve permissie-aanvragen via de checkboxen.
+ * Credentials en serverdata download zijn verplaatst naar het InstellingenScherm.
  */
 class InstallatieScherm : AppCompatActivity() {
     companion object {
@@ -44,10 +43,8 @@ class InstallatieScherm : AppCompatActivity() {
 
     private lateinit var binding: SchermInstallatieBinding
     private lateinit var saf: SaFStorageHelper
-    private lateinit var creds: CredentialsStore
     private lateinit var safManager: InstallationSafManager
     private lateinit var authManager: ServerAuthenticationManager
-    private lateinit var downloadManager: ServerDataDownloadManager
     private lateinit var aliasManager: AliasIndexManager
     private lateinit var dialogManager: InstallationDialogManager
     
@@ -59,7 +56,6 @@ class InstallatieScherm : AppCompatActivity() {
         setContentView(binding.root)
 
         saf = SaFStorageHelper(this)
-        creds = CredentialsStore(this)
         
         initializeHelpers()
         initUi()
@@ -83,14 +79,12 @@ class InstallatieScherm : AppCompatActivity() {
             updatePrecomputeButtonState()
         }
         authManager = ServerAuthenticationManager(this)
-        downloadManager = ServerDataDownloadManager(this)
         aliasManager = AliasIndexManager(this, saf)
         dialogManager = InstallationDialogManager(this)
     }
 
     private fun initUi() {
         binding.etUitleg.setText(getString(R.string.install_uitleg))
-        restoreCreds()
         refreshSafStatus()
         binding.etUitleg.measure(0, 0)
     }
@@ -117,48 +111,6 @@ class InstallatieScherm : AppCompatActivity() {
             } finally {
                 it.isEnabled = true
             }
-        }
-
-        btnWis.setOnClickListener {
-            it.isEnabled = false
-            try {
-                creds.clear()
-                etLogin.setText("")
-                etPass.setText("")
-                Toast.makeText(this@InstallatieScherm, getString(R.string.msg_credentials_gewist), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error clearing credentials: ${e.message}", e)
-                dialogManager.showError("Fout bij wissen credentials", e.message ?: "Onbekende fout")
-            } finally {
-                it.isEnabled = true
-            }
-        }
-
-        btnBewaar.setOnClickListener {
-            it.isEnabled = false
-            try {
-                val username = etLogin.text?.toString().orEmpty().trim()
-                val password = etPass.text?.toString().orEmpty()
-                creds.save(username, password)
-                Toast.makeText(this@InstallatieScherm, getString(R.string.msg_credentials_opgeslagen), Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error saving credentials: ${e.message}", e)
-                dialogManager.showError("Fout bij opslaan credentials", e.message ?: "Onbekende fout")
-            } finally {
-                it.isEnabled = true
-            }
-        }
-
-        btnLoginTest.setOnClickListener {
-            val (username, password) = getCredentialsOrWarn() ?: return@setOnClickListener
-            it.isEnabled = false
-            handleLoginTest(username, password)
-        }
-
-        btnDownloadJsons.setOnClickListener {
-            val (username, password) = getCredentialsOrWarn() ?: return@setOnClickListener
-            it.isEnabled = false
-            handleDownloadServerData(username, password)
         }
 
         btnAliasPrecompute.setOnClickListener {
@@ -259,84 +211,6 @@ class InstallatieScherm : AppCompatActivity() {
         }
     }
 
-    private fun getCredentialsOrWarn(): Pair<String, String>? {
-        val username = binding.etLogin.text?.toString().orEmpty().trim()
-        val password = binding.etPass.text?.toString().orEmpty()
-        if (username.isBlank() || password.isBlank()) {
-            Toast.makeText(this, getString(R.string.msg_vul_login_eerst), Toast.LENGTH_LONG).show()
-            return null
-        }
-        return username to password
-    }
-
-    private fun handleLoginTest(username: String, password: String) {
-        lifecycleScope.launch {
-            val progressDialog = dialogManager.showProgress("Login testen...")
-            try {
-                val result = authManager.testLogin(username, password)
-                progressDialog.dismiss()
-                if (result is ServerAuthenticationManager.AuthResult.Success) {
-                    dialogManager.showInfo(getString(R.string.dlg_titel_result), result.response)
-                    creds.save(username, password)
-                    authManager.saveFullnameToPreferences(result.response)
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            val serverdataDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
-                            authManager.saveCheckUserResponse(serverdataDir, result.response)
-                        } catch (_: Exception) {}
-                    }
-                } else if (result is ServerAuthenticationManager.AuthResult.Failure) {
-                    dialogManager.showError("Login mislukt", result.error)
-                }
-            } catch (e: Exception) {
-                dialogManager.showError("Fout bij login test", e.message ?: "Onbekende fout")
-                progressDialog.dismiss()
-            } finally {
-                binding.btnLoginTest.isEnabled = true
-            }
-        }
-    }
-
-    private fun handleDownloadServerData(username: String, password: String) {
-        val vt5Dir = safManager.getVt5Directory()
-        if (vt5Dir == null) {
-            Toast.makeText(this, getString(R.string.msg_kies_documents_eerst), Toast.LENGTH_LONG).show()
-            binding.btnDownloadJsons.isEnabled = true
-            return
-        }
-        val serverdataDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
-        val binariesDir = safManager.getSubdirectory("binaries", createIfMissing = true)
-
-        lifecycleScope.launch {
-            val progressDialog = dialogManager.showProgress("JSONs downloaden...")
-            try {
-                val downloadResult = downloadManager.downloadAllServerData(serverdataDir, binariesDir, username, password) { message ->
-                    dialogManager.updateProgress(progressDialog, message)
-                }
-                if (downloadResult is ServerDataDownloadManager.DownloadResult.Success) {
-                    if (aliasManager.needsRegeneration(vt5Dir)) {
-                        aliasManager.regenerateIndexIfNeeded(vt5Dir, authManager.generateIsoTimestamp()) { message ->
-                            dialogManager.updateProgress(progressDialog, message)
-                        }
-                    }
-                    dataPreloaded = false
-                    progressDialog.dismiss()
-                    dialogManager.showInfo(getString(R.string.dlg_titel_result), downloadResult.messages.joinToString("\n"))
-                    preloadDataIfExists()
-                } else if (downloadResult is ServerDataDownloadManager.DownloadResult.Failure) {
-                    progressDialog.dismiss()
-                    dialogManager.showError("Fout bij downloaden", downloadResult.error)
-                }
-            } catch (e: Exception) {
-                dialogManager.showError("Fout bij downloaden", e.message ?: "Onbekende fout")
-                progressDialog.dismiss()
-            } finally {
-                binding.btnDownloadJsons.isEnabled = true
-                updatePrecomputeButtonState()
-            }
-        }
-    }
-
     private fun handleForceRebuildAliasIndex() {
         val vt5Dir = safManager.getVt5Directory() ?: return
         binding.btnAliasPrecompute.isEnabled = false
@@ -366,34 +240,19 @@ class InstallatieScherm : AppCompatActivity() {
         }
     }
 
-    private fun navigateToOpstart() {
-        try {
-            val intent = Intent(this, HoofdActiviteit::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            startActivity(intent)
-            finish()
-        } catch (_: Exception) { finish() }
-    }
-
-    private fun restoreCreds() {
-        binding.etLogin.setText(creds.getUsername().orEmpty())
-        binding.etPass.setText(creds.getPassword().orEmpty())
+    private fun updatePrecomputeButtonState() {
+        val hasFolder = safManager.isSafConfigured()
+        binding.btnAliasPrecompute.isEnabled = hasFolder
+        binding.btnAliasPrecompute.alpha = if (hasFolder) 1.0f else 0.5f
     }
 
     private fun refreshSafStatus() {
-        val uri = saf.getRootUri()
-        val ok = uri != null && saf.foldersExist()
-        binding.tvStatus.text = when {
-            uri == null -> getString(R.string.status_saf_niet_ingesteld)
-            ok -> getString(R.string.status_saf_ok)
-            else -> getString(R.string.status_saf_missing)
-        }
+        val ok = safManager.isSafConfigured()
+        binding.tvStatus.text = if (ok) getString(R.string.status_saf_ok) else getString(R.string.status_saf_niet_ingesteld)
     }
 
-    private fun updatePrecomputeButtonState() = with(binding) {
-        val vt5Dir = safManager.getVt5Directory()
-        val present = vt5Dir != null && aliasManager.isIndexPresent(vt5Dir)
-        btnAliasPrecompute.isEnabled = !present
-        btnAliasPrecompute.alpha = if (present) 0.5f else 1.0f
+    private fun navigateToOpstart() {
+        startActivity(Intent(this, HoofdActiviteit::class.java))
+        finish()
     }
 }

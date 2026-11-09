@@ -13,6 +13,13 @@ import android.widget.ArrayAdapter
 import android.widget.BaseAdapter
 import android.widget.NumberPicker
 import com.yvesds.vt5.features.serverdata.model.ServerDataRepository
+import com.yvesds.vt5.core.secure.CredentialsStore
+import com.yvesds.vt5.features.opstart.helpers.ServerAuthenticationManager
+import com.yvesds.vt5.features.opstart.helpers.ServerDataDownloadManager
+import com.yvesds.vt5.features.opstart.helpers.InstallationSafManager
+import com.yvesds.vt5.features.opstart.helpers.AliasIndexManager
+import com.yvesds.vt5.features.opstart.helpers.InstallationDialogManager
+import com.google.android.material.textfield.TextInputEditText
 import java.util.Locale
 import android.widget.Spinner
 import android.widget.TextView
@@ -177,6 +184,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupDatabaseMirroringButton()
             setupBirdNetConfigButton()
             setupDefaultTelpostAndTypeTelling()
+            setupTrektellenAccountSettings()
             setupCollapsibleSections()
         } catch (t: Throwable) {
             android.util.Log.e("InstellingenScherm", "Instellingen init failed: ${t.message}", t)
@@ -838,7 +846,8 @@ class InstellingenScherm : AppCompatActivity() {
             Triple(R.id.headerAi, R.id.contentAi, false),
             Triple(R.id.headerUpdates, R.id.contentUpdates, false),
             Triple(R.id.headerPermissions, R.id.contentPermissions, false),
-            Triple(R.id.headerExtra, R.id.contentExtra, false)
+            Triple(R.id.headerExtra, R.id.contentExtra, false),
+            Triple(R.id.headerTrektellen, R.id.contentTrektellen, false)
         )
 
         for ((headerId, contentId, startOpen) in sections) {
@@ -856,6 +865,117 @@ class InstellingenScherm : AppCompatActivity() {
                 val isVisible = content.visibility == View.VISIBLE
                 content.visibility = if (isVisible) View.GONE else View.VISIBLE
                 arrow?.text = if (isVisible) "▼" else "▲"
+            }
+        }
+    }
+
+    private fun setupTrektellenAccountSettings() {
+        val creds = CredentialsStore(this)
+        val authManager = ServerAuthenticationManager(this)
+        val downloadManager = ServerDataDownloadManager(this)
+        val saf = SaFStorageHelper(this)
+        val safManager = InstallationSafManager(this, saf) {}
+        val aliasManager = AliasIndexManager(this, saf)
+        val dialogManager = InstallationDialogManager(this)
+
+        val etLogin = findViewById<TextInputEditText>(R.id.etLogin)
+        val etPass = findViewById<TextInputEditText>(R.id.etPass)
+        val btnWis = findViewById<MaterialButton>(R.id.btnWis)
+        val btnBewaar = findViewById<MaterialButton>(R.id.btnBewaar)
+        val btnLoginTest = findViewById<MaterialButton>(R.id.btnLoginTest)
+        val btnDownloadJsons = findViewById<MaterialButton>(R.id.btnDownloadJsons)
+
+        etLogin?.setText(creds.getUsername().orEmpty())
+        etPass?.setText(creds.getPassword().orEmpty())
+
+        btnWis?.setOnClickListener {
+            try {
+                creds.clear()
+                etLogin?.setText("")
+                etPass?.setText("")
+                Toast.makeText(this, getString(R.string.msg_credentials_gewist), Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Fout bij wissen: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnBewaar?.setOnClickListener {
+            val username = etLogin?.text?.toString().orEmpty().trim()
+            val password = etPass?.text?.toString().orEmpty()
+            try {
+                creds.save(username, password)
+                Toast.makeText(this, getString(R.string.msg_credentials_opgeslagen), Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Fout bij opslaan: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        fun getCredsOrWarn(): Pair<String, String>? {
+            val u = etLogin?.text?.toString().orEmpty().trim()
+            val p = etPass?.text?.toString().orEmpty()
+            if (u.isBlank() || p.isBlank()) {
+                Toast.makeText(this, getString(R.string.msg_vul_login_eerst), Toast.LENGTH_LONG).show()
+                return null
+            }
+            return u to p
+        }
+
+        btnLoginTest?.setOnClickListener {
+            val (u, p) = getCredsOrWarn() ?: return@setOnClickListener
+            lifecycleScope.launch {
+                val pd = dialogManager.showProgress("Login testen...")
+                runCatching {
+                    val res = authManager.testLogin(u, p)
+                    pd.dismiss()
+                    if (res is ServerAuthenticationManager.AuthResult.Success) {
+                        dialogManager.showInfo(getString(R.string.dlg_titel_result), res.response)
+                        creds.save(u, p)
+                        authManager.saveFullnameToPreferences(res.response)
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            runCatching {
+                                val sDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
+                                if (sDir != null) authManager.saveCheckUserResponse(sDir, res.response)
+                            }
+                        }
+                    } else if (res is ServerAuthenticationManager.AuthResult.Failure) {
+                        dialogManager.showError("Login mislukt", res.error)
+                    }
+                }.onFailure {
+                    pd.dismiss()
+                    dialogManager.showError("Fout bij login test", it.message ?: "Onbekende fout")
+                }
+            }
+        }
+
+        btnDownloadJsons?.setOnClickListener {
+            val (u, p) = getCredsOrWarn() ?: return@setOnClickListener
+            val vt5Dir = safManager.getVt5Directory()
+            if (vt5Dir == null) {
+                Toast.makeText(this, getString(R.string.msg_kies_documents_eerst), Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            val serverdataDir = safManager.getSubdirectory("serverdata", createIfMissing = true)
+            val binariesDir = safManager.getSubdirectory("binaries", createIfMissing = true)
+
+            lifecycleScope.launch {
+                val pd = dialogManager.showProgress("JSONs downloaden...")
+                runCatching {
+                    val result = downloadManager.downloadAllServerData(serverdataDir, binariesDir, u, p) { msg ->
+                        dialogManager.updateProgress(pd, msg)
+                    }
+                    pd.dismiss()
+                    if (result is ServerDataDownloadManager.DownloadResult.Success) {
+                        if (aliasManager.needsRegeneration(vt5Dir)) {
+                            aliasManager.regenerateIndexIfNeeded(vt5Dir, authManager.generateIsoTimestamp()) { _ -> }
+                        }
+                        dialogManager.showInfo(getString(R.string.dlg_titel_result), result.messages.joinToString("\n"))
+                    } else if (result is ServerDataDownloadManager.DownloadResult.Failure) {
+                        dialogManager.showError("Fout bij downloaden", result.error)
+                    }
+                }.onFailure {
+                    pd.dismiss()
+                    dialogManager.showError("Fout bij downloaden", it.message ?: "Onbekende fout")
+                }
             }
         }
     }
