@@ -196,7 +196,7 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnAfsluiten = findViewById<MaterialButton>(R.id.btnAfsluiten)
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
         val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
-        val btnInstellingen = findViewById<MaterialButton>(R.id.btnInstellingen)
+        val btnSettings = findViewById<MaterialButton>(R.id.btnSettings)
         val btnTelpostBeheer = findViewById<MaterialButton>(R.id.btnTelpostBeheer)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
         val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
@@ -252,8 +252,8 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
         
-        // Instellingen knop
-        btnInstellingen.setOnClickListener {
+        // Settings knop rechtsboven
+        btnSettings?.setOnClickListener {
             it.isEnabled = false
             startActivity(Intent(this, InstellingenScherm::class.java))
             it.isEnabled = true

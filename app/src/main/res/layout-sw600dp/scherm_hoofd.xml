@@ -241,36 +241,7 @@
                                         android:text="@string/hoofd_opkuis_exports"
                                         android:textSize="14sp" />
 
-                                    <FrameLayout
-                                        android:layout_width="0dp"
-                                        android:layout_height="56dp"
-                                        android:layout_columnWeight="1"
-                                        android:layout_marginTop="10dp"
-                                        android:layout_marginEnd="6dp">
 
-                                        <com.google.android.material.button.MaterialButton
-                                            android:id="@+id/btnInstellingen"
-                                            style="@style/Widget.VT5.Button.Outlined"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="match_parent"
-                                            android:text="@string/hoofd_instellingen"
-                                            android:textSize="14sp" />
-
-                                        <TextView
-                                            android:id="@+id/badgeAppUpdate"
-                                            android:layout_width="22dp"
-                                            android:layout_height="22dp"
-                                            android:layout_gravity="top|end"
-                                            android:layout_marginTop="4dp"
-                                            android:layout_marginEnd="4dp"
-                                            android:background="@drawable/vt5_badge_red"
-                                            android:gravity="center"
-                                            android:text="@string/badge_warning"
-                                            android:textColor="@color/vt5_white"
-                                            android:textSize="13sp"
-                                            android:textStyle="bold"
-                                            android:visibility="gone" />
-                                    </FrameLayout>
 
                                     <com.google.android.material.button.MaterialButton
                                         android:id="@+id/btnTelpostBeheer"
@@ -502,4 +473,42 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Helemaal bovenaan rechts in het element 'root' (Transparante achtergrond) -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:elevation="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSettings"
+            style="@style/Widget.VT5.Button.Outlined.IconOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/hoofd_instellingen"
+            app:backgroundTint="@android:color/transparent"
+            app:icon="@drawable/ic_gear"
+            app:iconSize="28dp"
+            app:iconTint="@color/vt5_white"
+            app:strokeWidth="0dp" />
+
+        <TextView
+            android:id="@+id/badgeAppUpdate"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/vt5_badge_red"
+            android:gravity="center"
+            android:text="@string/badge_warning"
+            android:textColor="@color/vt5_white"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </FrameLayout>
 </FrameLayout>
