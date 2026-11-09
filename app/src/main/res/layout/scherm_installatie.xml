@@ -125,14 +125,6 @@
             android:text="@string/install_unknown_sources_button" />
 
         <!-- Bestandsbeheer (SAF) -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/hoofd_telpost_beheer"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="14sp"
-            android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnKiesDocuments"
