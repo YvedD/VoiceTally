@@ -486,9 +486,10 @@ class InstellingenScherm : AppCompatActivity() {
         }
 
         btnInstall.setOnClickListener {
-            val asset = latestUpdateAsset
+            val asset = latestUpdateAsset ?: updateAssets.firstOrNull()
             if (asset == null) {
                 Toast.makeText(this, getString(R.string.update_no_versions), Toast.LENGTH_SHORT).show()
+                performUpdateCheck(forceNetwork = true, showToast = false)
                 return@setOnClickListener
             }
             installAssetFlow(asset)
@@ -524,7 +525,6 @@ class InstellingenScherm : AppCompatActivity() {
                 }
             }.onFailure { err ->
                 tvStatus.text = getString(R.string.update_status_error, err.message ?: "onbekende fout")
-                findViewById<MaterialButton>(R.id.btnInstallAppUpdate)?.isEnabled = false
                 if (showToast) {
                     Toast.makeText(this@InstellingenScherm, getString(R.string.update_status_error, err.message ?: "onbekende fout"), Toast.LENGTH_LONG).show()
                 }
@@ -535,7 +535,7 @@ class InstellingenScherm : AppCompatActivity() {
     private fun applyUpdateStateToUi(state: AppUpdateManager.UpdateState) {
         val tvStatus = findViewById<TextView>(R.id.tvUpdateStatus) ?: return
         val btnInstall = findViewById<MaterialButton>(R.id.btnInstallAppUpdate) ?: return
-        latestUpdateAsset = state.latestAsset
+        latestUpdateAsset = state.latestAsset ?: state.allAssets.firstOrNull()
         if (state.allAssets.isNotEmpty()) {
             updateAssets = state.allAssets
         }
@@ -543,11 +543,17 @@ class InstellingenScherm : AppCompatActivity() {
 
         if (state.updateAvailable && !state.latestVersion.isNullOrBlank()) {
             tvStatus.text = getString(R.string.update_status_available, state.latestVersion, localLabel)
-            btnInstall.isEnabled = true
         } else {
             tvStatus.text = getString(R.string.update_status_latest, localLabel)
-            btnInstall.isEnabled = false
         }
+
+        val displayVersion = state.latestVersion ?: latestUpdateAsset?.version
+        btnInstall.text = if (!displayVersion.isNullOrBlank()) {
+            "DOWNLOAD EN INSTALLEER\n(v$displayVersion)"
+        } else {
+            getString(R.string.update_install_button)
+        }
+        btnInstall.isEnabled = true
     }
 
     private fun showRollbackDialog() {
