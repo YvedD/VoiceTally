@@ -70,11 +70,8 @@ class InstallatieScherm : AppCompatActivity() {
 
     private fun initializeHelpers() {
         safManager = InstallationSafManager(this, saf) { success ->
-            binding.tvStatus.text = if (success) {
+            if (success) {
                 preloadDataIfExists()
-                getString(R.string.status_saf_ok)
-            } else {
-                getString(R.string.status_saf_niet_ingesteld)
             }
             updatePrecomputeButtonState()
         }
@@ -98,11 +95,11 @@ class InstallatieScherm : AppCompatActivity() {
             it.isEnabled = false
             try {
                 val ok = safManager.ensureFoldersExist()
-                tvStatus.text = if (ok) {
+                if (ok) {
                     preloadDataIfExists()
-                    getString(R.string.status_saf_ok)
+                    Toast.makeText(this@InstallatieScherm, getString(R.string.status_saf_ok), Toast.LENGTH_SHORT).show()
                 } else {
-                    getString(R.string.status_saf_missing)
+                    Toast.makeText(this@InstallatieScherm, getString(R.string.status_saf_missing), Toast.LENGTH_SHORT).show()
                 }
                 updatePrecomputeButtonState()
             } catch (e: Exception) {
@@ -248,7 +245,6 @@ class InstallatieScherm : AppCompatActivity() {
 
     private fun refreshSafStatus() {
         val ok = safManager.isSafConfigured()
-        binding.tvStatus.text = if (ok) getString(R.string.status_saf_ok) else getString(R.string.status_saf_niet_ingesteld)
     }
 
     private fun navigateToOpstart() {

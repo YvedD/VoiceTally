@@ -1,174 +1,220 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:fitsSystemWindows="true"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/rootScroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/vt5_black"
-    android:fillViewport="true">
+    android:fitsSystemWindows="true">
 
-    <LinearLayout
-        android:id="@+id/rootContent"
+    <!-- Achtergrondafbeelding settings -->
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingLeft="20dp"
-        android:paddingTop="30dp"
-        android:paddingRight="20dp"
-        android:paddingBottom="40dp">
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/settings"
+        android:contentDescription="@null" />
 
-        <!-- Uitleg -->
-        <TextView
-            android:id="@+id/tvInstallatieTitel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/titel_install"
-            android:textColor="@color/vt5_light_blue"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+    <!-- Donkere sfeeroverlay voor optimale leesbaarheid -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#85080E14" />
 
-        <TextView
-            android:id="@+id/etUitleg"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/install_uitleg"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="13sp" />
-
-        <!-- Toestemmingen Sectie -->
-        <TextView
-            android:id="@+id/tvPermissiesTitel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/install_permissions_title"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+    <ScrollView
+        android:id="@+id/rootScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
+            android:id="@+id/rootContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="#1A1A1A"
             android:orientation="vertical"
-            android:padding="8dp">
+            android:paddingLeft="20dp"
+            android:paddingTop="36dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="40dp">
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbPermAudio"
+            <!-- Titel Header -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/perm_audio_checkbox"
-                android:textColor="@color/vt5_on_surface"
-                app:buttonTint="@color/vt5_light_blue" />
+                android:orientation="vertical"
+                android:paddingBottom="24dp">
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbPermLocation"
+                <TextView
+                    android:id="@+id/tvInstallatieTitel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/titel_install"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/etUitleg"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/install_uitleg"
+                    android:textColor="#D0FFFFFF"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- SECTIE 1: TOESTEMMINGEN -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/perm_location_checkbox"
-                android:textColor="@color/vt5_on_surface"
-                app:buttonTint="@color/vt5_light_blue" />
+                android:layout_marginBottom="8dp"
+                android:text="TOESTEMMINGEN"
+                android:textColor="@color/vt5_white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbPermCamera"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/perm_camera_checkbox"
-                android:textColor="@color/vt5_on_surface"
-                app:buttonTint="@color/vt5_light_blue" />
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#CC121A24"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#227CAF"
+                app:strokeWidth="1dp">
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbPermBluetooth"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPermAudio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/perm_audio_checkbox"
+                        android:textColor="@color/vt5_on_surface"
+                        app:buttonTint="@color/vt5_light_blue" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPermLocation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/perm_location_checkbox"
+                        android:textColor="@color/vt5_on_surface"
+                        app:buttonTint="@color/vt5_light_blue" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPermCamera"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/perm_camera_checkbox"
+                        android:textColor="@color/vt5_on_surface"
+                        app:buttonTint="@color/vt5_light_blue" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPermBluetooth"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/perm_bluetooth_checkbox"
+                        android:textColor="@color/vt5_on_surface"
+                        app:buttonTint="@color/vt5_light_blue" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPermAlarm"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/perm_alarm_checkbox"
+                        android:textColor="@color/vt5_on_surface"
+                        app:buttonTint="@color/vt5_light_blue" />
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbPermSaf"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/perm_saf_checkbox"
+                        android:textColor="@color/vt5_on_surface"
+                        app:buttonTint="@color/vt5_light_blue" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- SECTIE 2: INSTALLATIE & BESTANDSBEHEER -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/perm_bluetooth_checkbox"
-                android:textColor="@color/vt5_on_surface"
-                app:buttonTint="@color/vt5_light_blue" />
+                android:layout_marginBottom="8dp"
+                android:text="INSTALLATIE &amp; OPSLAG"
+                android:textColor="@color/vt5_white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbPermAlarm"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/perm_alarm_checkbox"
-                android:textColor="@color/vt5_on_surface"
-                app:buttonTint="@color/vt5_light_blue" />
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#CC121A24"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#227CAF"
+                app:strokeWidth="1dp">
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbPermSaf"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenUnknownSources"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="@string/install_unknown_sources_button" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnKiesDocuments"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/btn_kies_documents" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCheckFolders"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="@string/btn_check_folders" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAliasPrecompute"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_alias_precompute" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- KLAAR KNOP -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnKlaar"
+                style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/perm_saf_checkbox"
-                android:textColor="@color/vt5_on_surface"
-                app:buttonTint="@color/vt5_light_blue" />
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/vt5_btn_confirm_selector"
+                android:text="@string/btn_klaar"
+                android:textColor="@color/vt5_white"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/vt5_outline" />
+
         </LinearLayout>
+    </ScrollView>
 
-        <!-- Installatiehulp -->
-        <TextView
-            android:id="@+id/tvInstallatieHelpTitel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/install_unknown_sources_title"
-            android:textColor="@color/vt5_on_surface"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnOpenUnknownSources"
-            style="@style/Widget.VT5.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/install_unknown_sources_button" />
-
-        <!-- Bestandsbeheer (SAF) -->
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnKiesDocuments"
-            style="@style/Widget.VT5.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/btn_kies_documents" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCheckFolders"
-            style="@style/Widget.VT5.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/btn_check_folders" />
-
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAlignment="center"
-            android:textColor="@color/vt5_light_blue"
-            android:textStyle="italic" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAliasPrecompute"
-            style="@style/Widget.VT5.Button.Outlined"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/btn_alias_precompute" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnKlaar"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="24dp"
-            android:background="@drawable/vt5_btn_confirm_selector"
-            android:text="@string/btn_klaar"
-            android:textColor="@color/vt5_white"
-            android:textStyle="bold"
-            app:backgroundTint="@color/vt5_outline" />
-
-    </LinearLayout>
-</ScrollView>
+</FrameLayout>
