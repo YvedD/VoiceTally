@@ -206,13 +206,10 @@
                 style="@style/Widget.VT5.Button.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/vt5_btn_confirm_selector"
+                android:layout_marginTop="12dp"
                 android:text="@string/btn_klaar"
-                android:textColor="@color/vt5_white"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                app:backgroundTint="@color/vt5_outline" />
+                android:textStyle="bold" />
 
         </LinearLayout>
     </ScrollView>
