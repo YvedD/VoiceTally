@@ -8,7 +8,7 @@
     <string name="annotatie_density_supercompact">Supercompacte weergave</string>
 
     <!-- Hoofdscherm -->
-    <string name="titel_hoofd">VoiceTally - spraakinvoer</string>
+    <string name="titel_hoofd">VoiceTally</string>
     <string name="btn_install_start">((Her)Installatie starten</string>
     <string name="btn_verder_metadata">Invullen telpostgegevens</string>
     <string name="btn_afsluiten">Afsluiten</string>
