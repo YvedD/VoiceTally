@@ -227,6 +227,7 @@ class MetadataScherm : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         ProgressDialogHelper.updateMessage(progressDialog, "Interface voorbereiden...")
                         initializeDropdowns()
+                        ensureLocationPermissionThenFetch()
                     }
 
                     // Start het laden van de volledige data in de achtergrond
@@ -320,13 +321,20 @@ class MetadataScherm : AppCompatActivity() {
         
         uiScope.launch {
             try {
+                val currentSnapshot = if (!snapshot.hasMetadataEssentials()) {
+                    withContext(Dispatchers.IO) { ServerDataCache.getOrLoad(this@MetadataScherm) }
+                } else {
+                    snapshot
+                }
+                snapshot = currentSnapshot
+
                 // Get location first
                 val loc = com.yvesds.vt5.utils.weather.WeatherManager.getLastKnownLocation(this@MetadataScherm)
                 if (loc != null) {
                     val (current, _) = weatherFetcher.fetchCurrentAndHourly(loc.latitude, loc.longitude)
                     
                     if (current != null) {
-                        weatherFetcher.applyWeatherToForm(current, snapshot)
+                        weatherFetcher.applyWeatherToForm(current, currentSnapshot)
                     } else {
                         Toast.makeText(this@MetadataScherm, getString(R.string.metadata_error_weather_fetch), Toast.LENGTH_SHORT).show()
                     }
