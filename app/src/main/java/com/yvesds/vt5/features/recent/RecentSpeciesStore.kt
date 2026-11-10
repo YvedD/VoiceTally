@@ -51,7 +51,7 @@ object RecentSpeciesStore {
 
     /**
      * Retourneert lijst van (soortId, lastUsedMillis), meest recent eerst.
-     * De score-store bepaalt de 7-dagenwindow; deze façade geeft de volledige set terug.
+     * De score-store bepaalt de 30-dagenwindow; deze façade geeft de volledige set terug.
      */
     fun getRecents(context: Context): List<Pair<String, Long>> {
         val loaded = SpeciesUsageScoreStore.getRecents(context, limit = 0)
@@ -59,6 +59,16 @@ object RecentSpeciesStore {
         cachedRecentIdsSet.clear()
         loaded.forEach { (id, _) -> cachedRecentIdsSet[id] = true }
         return loaded
+    }
+
+    /**
+     * Retourneert de unieke soortIDs van alle soorten die in de afgelopen 30 dagen zijn gebruikt.
+     */
+    fun getRecentSpeciesIds30Days(context: Context): List<String> {
+        val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24L * 60L * 60L * 1000L)
+        val recents = getRecents(context)
+        val ids = recents.filter { it.second >= thirtyDaysAgo }.map { it.first }
+        return if (ids.isNotEmpty()) ids else recents.map { it.first }
     }
 
     /**

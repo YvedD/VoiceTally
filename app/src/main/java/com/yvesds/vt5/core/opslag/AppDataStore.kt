@@ -29,6 +29,7 @@ object AppDataStore {
     private val KEY_UPDATE_LAST_PROMPTED_VERSION = stringPreferencesKey("app_update_last_prompted_version")
     private val KEY_DEFAULT_TELPOST_ID = stringPreferencesKey("default_telpost_id")
     private val KEY_DEFAULT_TYPE_TELLING_CODE = stringPreferencesKey("default_type_telling_code")
+    private val KEY_SKIP_SPECIES_SELECTION = booleanPreferencesKey("skip_species_selection")
     private const val PREFIX_RECORD_ID = "next_record_id_"
 
     data class UpdateSnapshot(
@@ -210,5 +211,17 @@ object AppDataStore {
 
     suspend fun getDefaultTypeTelling(context: Context): String? {
         return context.dataStore.data.map { it[KEY_DEFAULT_TYPE_TELLING_CODE] }.first()
+    }
+
+    suspend fun setSkipSpeciesSelection(context: Context, value: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SKIP_SPECIES_SELECTION] = value
+        }
+    }
+
+    suspend fun getSkipSpeciesSelection(context: Context): Boolean {
+        return context.dataStore.data.map { prefs ->
+            prefs[KEY_SKIP_SPECIES_SELECTION] ?: false
+        }.first()
     }
 }

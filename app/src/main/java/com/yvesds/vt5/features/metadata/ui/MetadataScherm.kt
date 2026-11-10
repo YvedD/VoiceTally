@@ -12,7 +12,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.opslag.AppDataStore
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.recent.RecentSpeciesStore
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.databinding.SchermMetadataBinding
 import com.yvesds.vt5.features.alias.AliasManager
@@ -441,27 +443,59 @@ class MetadataScherm : AppCompatActivity() {
                         return@withProgress
                     }
                     
-                    // Success! Setup session and open SoortSelectieScherm
-                    val speciesForTelpost = fullSnapshot.siteSpeciesBySite[telpostId]?.map { it.soortid } ?: emptyList()
-                    TellingSessionManager.setTelpost(telpostId)
-                    TellingSessionManager.setPreselectedSoorten(speciesForTelpost)
-                    
-                    withContext(Dispatchers.Main) {
-                        if (preserveMasterClientSession) {
-                            preserveMasterClientSessionCommitted = true
+                    // Success! Check if user configured to skip species selection screen
+                    val skipSpeciesSelection = AppDataStore.getSkipSpeciesSelection(this@MetadataScherm)
+
+                    if (skipSpeciesSelection) {
+                        val recent30DaysIds = RecentSpeciesStore.getRecentSpeciesIds30Days(this@MetadataScherm)
+                        val preselected = if (recent30DaysIds.isNotEmpty()) {
+                            recent30DaysIds
+                        } else {
+                            fullSnapshot.siteSpeciesBySite[telpostId]?.map { it.soortid } ?: emptyList()
                         }
-                        Toast.makeText(
-                            this@MetadataScherm,
-                            getString(R.string.metadata_success_started, result.onlineId),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        
-                        val intent = Intent(this@MetadataScherm, SoortSelectieScherm::class.java)
-                        intent.putExtra(SoortSelectieScherm.EXTRA_TELPOST_ID, telpostId)
-                        intent.putExtra("EXTRA_LIVE_MODE", true)
-                        intent.putExtra("EXTRA_USERNAME", username)
-                        intent.putExtra("EXTRA_PASSWORD", password)
-                        soortSelectieLauncher.launch(intent)
+                        TellingSessionManager.setTelpost(telpostId)
+                        TellingSessionManager.setPreselectedSoorten(preselected)
+
+                        withContext(Dispatchers.Main) {
+                            if (preserveMasterClientSession) {
+                                preserveMasterClientSessionCommitted = true
+                            }
+                            Toast.makeText(
+                                this@MetadataScherm,
+                                getString(R.string.metadata_success_started, result.onlineId),
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            val intent = Intent(this@MetadataScherm, com.yvesds.vt5.features.telling.TellingScherm::class.java)
+                            intent.putExtra(SoortSelectieScherm.EXTRA_TELPOST_ID, telpostId)
+                            intent.putExtra("EXTRA_LIVE_MODE", true)
+                            intent.putExtra("EXTRA_USERNAME", username)
+                            intent.putExtra("EXTRA_PASSWORD", password)
+                            startActivity(intent)
+                            finish()
+                        }
+                    } else {
+                        val speciesForTelpost = fullSnapshot.siteSpeciesBySite[telpostId]?.map { it.soortid } ?: emptyList()
+                        TellingSessionManager.setTelpost(telpostId)
+                        TellingSessionManager.setPreselectedSoorten(speciesForTelpost)
+
+                        withContext(Dispatchers.Main) {
+                            if (preserveMasterClientSession) {
+                                preserveMasterClientSessionCommitted = true
+                            }
+                            Toast.makeText(
+                                this@MetadataScherm,
+                                getString(R.string.metadata_success_started, result.onlineId),
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            val intent = Intent(this@MetadataScherm, SoortSelectieScherm::class.java)
+                            intent.putExtra(SoortSelectieScherm.EXTRA_TELPOST_ID, telpostId)
+                            intent.putExtra("EXTRA_LIVE_MODE", true)
+                            intent.putExtra("EXTRA_USERNAME", username)
+                            intent.putExtra("EXTRA_PASSWORD", password)
+                            soortSelectieLauncher.launch(intent)
+                        }
                     }
                 }
             } catch (e: Exception) {

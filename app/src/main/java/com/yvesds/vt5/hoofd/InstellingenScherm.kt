@@ -184,6 +184,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupDatabaseMirroringButton()
             setupBirdNetConfigButton()
             setupDefaultTelpostAndTypeTelling()
+            setupSkipSpeciesSelectionToggle()
             setupTrektellenAccountSettings()
             setupCollapsibleSections()
         } catch (t: Throwable) {
@@ -838,6 +839,18 @@ class InstellingenScherm : AppCompatActivity() {
                     }
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+        }
+    }
+
+    private fun setupSkipSpeciesSelectionToggle() {
+        val cb = findViewById<MaterialCheckBox>(R.id.cbSkipSpeciesSelection) ?: return
+        lifecycleScope.launch {
+            cb.isChecked = AppDataStore.getSkipSpeciesSelection(this@InstellingenScherm)
+            cb.setOnCheckedChangeListener { _, isChecked ->
+                lifecycleScope.launch {
+                    AppDataStore.setSkipSpeciesSelection(this@InstellingenScherm, isChecked)
+                }
             }
         }
     }

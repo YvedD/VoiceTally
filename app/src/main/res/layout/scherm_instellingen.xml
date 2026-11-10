@@ -186,6 +186,23 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="48dp"
                                 android:background="@drawable/vt5_input_background" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbSkipSpeciesSelection"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="14dp"
+                                android:text="Soortselectiescherm overslaan bij start"
+                                android:textColor="@color/vt5_on_surface"
+                                app:buttonTint="@color/vt5_light_blue" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Start een telling direct met de recente soorten van de afgelopen 30 dagen op de tegels."
+                                android:textColor="#B0FFFFFF"
+                                android:textSize="12sp"
+                                android:layout_marginStart="32dp" />
                         </LinearLayout>
                     </LinearLayout>
 

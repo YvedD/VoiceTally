@@ -33,16 +33,16 @@ object SpeciesUsageScoreStore {
     /** Safety cap for explicit numeric limits. */
     const val MAX_ALL_CAP = 200
 
-    /** Hard retention window for recent/favorite species. */
-    private const val RECENT_WINDOW_DAYS = 7L
+    /** Hard retention window for recent/favorite species (30 dagen). */
+    private const val RECENT_WINDOW_DAYS = 30L
     private const val RECENT_WINDOW_MS = RECENT_WINDOW_DAYS * 24L * 60L * 60L * 1000L
 
     /**
-     * Week-ish decay: half-life around 7 days.
+     * Decay half-life around 30 days.
      * score(t) = score0 * exp(-lambda * dtDays)
      * where lambda = ln(2)/halfLifeDays
      */
-    private const val HALF_LIFE_DAYS = 7.0
+    private const val HALF_LIFE_DAYS = 30.0
 
     private val memCacheByContext = ConcurrentHashMap<String, State>()
 
