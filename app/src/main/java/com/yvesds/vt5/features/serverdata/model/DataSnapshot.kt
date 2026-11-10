@@ -74,8 +74,8 @@ data class SiteValueItem(
 /* ---------------- site_species.json ---------------- */
 @Serializable
 data class SiteSpeciesItem(
-    val telpostid: String,
-    val soortid: String
+    val telpostid: String = "",
+    val soortid: String = ""
 )
 
 /* ---------------- codes.json ----------------

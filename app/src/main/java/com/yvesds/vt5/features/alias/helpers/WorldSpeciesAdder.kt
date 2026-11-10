@@ -100,9 +100,13 @@ object WorldSpeciesAdder {
                 return@withContext true
             }
 
+            val resolvedTelpostId = telpostId.takeIf { !it.isNullOrBlank() }
+                ?: runCatching { com.yvesds.vt5.core.opslag.AppDataStore.getDefaultTelpost(context) }.getOrNull()
+                ?: "0"
+
             // 2. Add to site_species.json and site_species.bin
             val addedToSiteSpecies = addToSiteSpecies(
-                context, serverdata, speciesId, telpostId ?: "0"
+                context, serverdata, speciesId, resolvedTelpostId
             )
             if (!addedToSiteSpecies) {
                 Log.w(TAG, "Failed to add species $speciesId to site_species")
