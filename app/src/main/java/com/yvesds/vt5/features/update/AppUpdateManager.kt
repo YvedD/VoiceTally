@@ -59,7 +59,7 @@ object AppUpdateManager {
                 name = "VT-AI.${snapshot.latestVersion}.apk"
             )
         } else null
-        val availableFromCurrentInstall = latestAsset != null && compareVersions(local.versionName, latestAsset.version) < 0
+        val availableFromCurrentInstall = isUpdateAvailable(context, local.versionName, latestAsset)
         UpdateState(
             localVersion = local.versionName,
             localVersionCode = local.versionCode,
@@ -70,6 +70,30 @@ object AppUpdateManager {
             checkedAt = snapshot.lastCheckedAt,
             fromCache = true
         )
+    }
+
+    private fun isUpdateAvailable(
+        context: Context,
+        localVersionName: String,
+        latestAsset: ReleaseAsset?
+    ): Boolean {
+        if (latestAsset == null) return false
+        val cmp = compareVersions(localVersionName, latestAsset.version)
+        if (cmp < 0) return true
+        if (cmp == 0 && !latestAsset.sha256.isNullOrBlank()) {
+            val installedSha = getInstalledApkSha256(context)?.lowercase()
+            if (!installedSha.isNullOrBlank() && installedSha != latestAsset.sha256.lowercase()) {
+                return true
+            }
+        }
+        return false
+    }
+
+    fun getInstalledApkSha256(context: Context): String? {
+        return runCatching {
+            val apkFile = File(context.packageCodePath)
+            if (apkFile.exists()) sha256(apkFile) else null
+        }.getOrNull()
     }
 
     suspend fun refreshFromGithub(context: Context, allowCache: Boolean = true): Result<UpdateState> = withContext(Dispatchers.IO) {
@@ -111,7 +135,7 @@ object AppUpdateManager {
 
                 val sorted = parsed.sortedWith { a, b -> compareSemver(b.version, a.version) }
                 val latest = sorted.firstOrNull()
-                val available = latest != null && compareVersions(local.versionName, latest.version) < 0
+                val available = isUpdateAvailable(context, local.versionName, latest)
 
                 AppDataStore.setUpdateSnapshot(
                     context = context,
