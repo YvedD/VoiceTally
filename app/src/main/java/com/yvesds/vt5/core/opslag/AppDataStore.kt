@@ -30,6 +30,8 @@ object AppDataStore {
     private val KEY_DEFAULT_TELPOST_ID = stringPreferencesKey("default_telpost_id")
     private val KEY_DEFAULT_TYPE_TELLING_CODE = stringPreferencesKey("default_type_telling_code")
     private val KEY_SKIP_SPECIES_SELECTION = booleanPreferencesKey("skip_species_selection")
+    private val KEY_LAST_TELLING_DATE = stringPreferencesKey("last_telling_date")
+    private val KEY_LAST_TELLING_TELPOST_ID = stringPreferencesKey("last_telling_telpost_id")
     private const val PREFIX_RECORD_ID = "next_record_id_"
 
     data class UpdateSnapshot(
@@ -223,5 +225,31 @@ object AppDataStore {
         return context.dataStore.data.map { prefs ->
             prefs[KEY_SKIP_SPECIES_SELECTION] ?: false
         }.first()
+    }
+
+    private fun getTodayDateString(): String {
+        return java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.ROOT).format(java.util.Date())
+    }
+
+    suspend fun recordTellingTelpost(context: Context, telpostId: String) {
+        if (telpostId.isBlank()) return
+        val today = getTodayDateString()
+        context.dataStore.edit { prefs ->
+            prefs[KEY_LAST_TELLING_DATE] = today
+            prefs[KEY_LAST_TELLING_TELPOST_ID] = telpostId
+        }
+    }
+
+    suspend fun getEffectiveTelpostForToday(context: Context): String? {
+        val today = getTodayDateString()
+        val prefs = context.dataStore.data.first()
+        val lastDate = prefs[KEY_LAST_TELLING_DATE]
+        val lastTelpost = prefs[KEY_LAST_TELLING_TELPOST_ID]
+
+        return if (lastDate == today && !lastTelpost.isNullOrBlank()) {
+            lastTelpost
+        } else {
+            prefs[KEY_DEFAULT_TELPOST_ID]
+        }
     }
 }

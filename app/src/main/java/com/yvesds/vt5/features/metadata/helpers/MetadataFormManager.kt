@@ -152,11 +152,11 @@ class MetadataFormManager(
 
         if (gekozenTelpostId.isNullOrBlank()) {
             CoroutineScope(Dispatchers.Main).launch {
-                val defaultId = AppDataStore.getDefaultTelpost(context)
-                if (!defaultId.isNullOrBlank()) {
-                    val idx = ids.indexOf(defaultId)
+                val effectiveId = AppDataStore.getEffectiveTelpostForToday(context)
+                if (!effectiveId.isNullOrBlank()) {
+                    val idx = ids.indexOf(effectiveId)
                     if (idx >= 0) {
-                        gekozenTelpostId = defaultId
+                        gekozenTelpostId = effectiveId
                         binding.acTelpost.setText(labels[idx], false)
                     }
                 }

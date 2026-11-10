@@ -443,7 +443,10 @@ class MetadataScherm : AppCompatActivity() {
                         return@withProgress
                     }
                     
-                    // Success! Check if user configured to skip species selection screen
+                    // Success! Record effective telpost for today's follow-up tellings
+                    AppDataStore.recordTellingTelpost(this@MetadataScherm, telpostId)
+
+                    // Check if user configured to skip species selection screen
                     val skipSpeciesSelection = AppDataStore.getSkipSpeciesSelection(this@MetadataScherm)
 
                     if (skipSpeciesSelection) {
