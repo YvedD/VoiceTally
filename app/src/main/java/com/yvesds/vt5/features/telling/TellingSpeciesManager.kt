@@ -419,10 +419,7 @@ class TellingSpeciesManager(
                     try {
                         val tiles = tegelBeheer.getTiles().map { it.soortId }.toSet()
                         val snapshot = ServerDataCache.getOrLoad(activity)
-                        val telpostId = TellingSessionManager.preselectState.value.telpostId
-                        val siteAllowed = telpostId?.let { id ->
-                            snapshot.siteSpeciesBySite[id]?.map { it.soortid }?.toSet() ?: emptySet()
-                        } ?: snapshot.speciesById.keys
+                        val siteAllowed = snapshot.speciesById.keys
                         val recents = RecentSpeciesStore.getRecents(activity).map { it.first }.toSet()
                         val speciesById = snapshot.speciesById.mapValues { (_, sp) ->
                             sp.soortnaam to sp.soortkey

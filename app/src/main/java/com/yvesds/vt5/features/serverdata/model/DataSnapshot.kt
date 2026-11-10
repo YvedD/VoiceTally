@@ -162,7 +162,7 @@ data class DataSnapshot(
         speciesById.isNotEmpty()
 
     fun hasFullDataset(): Boolean =
-        hasMetadataEssentials() && hasSpeciesData() && siteSpeciesBySite.isNotEmpty()
+        hasMetadataEssentials() && hasSpeciesData()
 
     fun isCompletelyEmpty(): Boolean =
         currentUser == null &&

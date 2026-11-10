@@ -140,10 +140,7 @@ class TellingInitializer(
 
         val tiles = tilesIds ?: emptySet()
 
-        val telpostId = TellingSessionManager.preselectState.value.telpostId
-        val siteAllowed = telpostId?.let { id ->
-            snapshot.siteSpeciesBySite[id]?.map { it.soortid }?.toSet() ?: emptySet()
-        } ?: snapshot.speciesById.keys
+        val siteAllowed = snapshot.speciesById.keys
 
         val recents = RecentSpeciesStore.getRecents(activity).map { it.first }.toSet()
 
