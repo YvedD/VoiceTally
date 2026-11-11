@@ -377,31 +377,57 @@ class SaFStorageHelper(private val context: Context) {
      * Als er een bestand bestaat, wordt het overschreven.
      */
     fun writeImportsFile(filename: String, content: String): Boolean {
+        return writeImportsFileBytes(filename, content.toByteArray(Charsets.UTF_8))
+    }
+
+    /**
+     * Schrijf binaire inhoud (zoals .xlsx bestanden) naar een bestand in de imports-map (Documents/VT5/imports).
+     */
+    fun writeImportsFileBytes(filename: String, bytes: ByteArray): Boolean {
         // Valideer bestandsnaam (geen paddoorloop)
         if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
             return false
         }
 
-        val vt5Dir = getVt5DirIfExists() ?: return false
-        var importsDir = vt5Dir.findFile(IMPORTS_DIR)
+        val vt5Dir = getVt5DirIfExists()
+        if (vt5Dir != null) {
+            var importsDir = vt5Dir.findFile(IMPORTS_DIR)
+            if (importsDir == null || !importsDir.isDirectory) {
+                importsDir = vt5Dir.createDirectory(IMPORTS_DIR) ?: return false
+            }
 
-        // Maak een imports-map aan als die niet bestaat
-        if (importsDir == null || !importsDir.isDirectory) {
-            importsDir = vt5Dir.createDirectory(IMPORTS_DIR) ?: return false
+            val mimeType = if (filename.endsWith(".xlsx")) {
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            } else if (filename.endsWith(".json")) {
+                "application/json"
+            } else {
+                "text/plain"
+            }
+
+            val newFile = importsDir.findFile(filename)?.takeIf { it.isFile }
+                ?: importsDir.createFile(mimeType, filename)
+                ?: return false
+
+            return try {
+                context.contentResolver.openOutputStream(newFile.uri, "wt")?.use { out ->
+                    out.write(bytes)
+                }
+                true
+            } catch (e: Exception) {
+                try { newFile.delete() } catch (_: Exception) {}
+                false
+            }
         }
 
-        val mimeType = if (filename.endsWith(".json")) "application/json" else "text/plain"
-        val newFile = importsDir.findFile(filename)?.takeIf { it.isFile }
-            ?: importsDir.createFile(mimeType, filename)
-            ?: return false
-
+        // Fallback: Interne opslag files/VT5/imports
         return try {
-            context.contentResolver.openOutputStream(newFile.uri)?.use { out ->
-                out.write(content.toByteArray(Charsets.UTF_8))
-            }
+            val root = java.io.File(context.filesDir, "VT5")
+            val importsDir = java.io.File(root, IMPORTS_DIR)
+            if (!importsDir.exists()) importsDir.mkdirs()
+            val target = java.io.File(importsDir, filename)
+            target.writeBytes(bytes)
             true
-        } catch (e: Exception) {
-            try { newFile.delete() } catch (_: Exception) {}
+        } catch (_: Exception) {
             false
         }
     }
@@ -411,6 +437,13 @@ class SaFStorageHelper(private val context: Context) {
      */
     suspend fun writeImportsFileSuspend(filename: String, content: String): Boolean = withContext(Dispatchers.IO) {
         writeImportsFile(filename, content)
+    }
+
+    /**
+     * Suspend-variant van writeImportsFileBytes().
+     */
+    suspend fun writeImportsFileBytesSuspend(filename: String, bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
+        writeImportsFileBytes(filename, bytes)
     }
 
     // ========================================================================

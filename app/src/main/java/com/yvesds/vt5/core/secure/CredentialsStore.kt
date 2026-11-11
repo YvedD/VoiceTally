@@ -25,6 +25,7 @@ class CredentialsStore(context: Context) {
         private const val FALLBACK_PREFS_FILE_NAME = "vt5_credentials"
         private const val KEY_USER = "trektellen_user"
         private const val KEY_PASS = "trektellen_pass"
+        private const val KEY_CI_SESSION = "trektellen_ci_session"
         
         // Cached SharedPreferences instantie - garandeert consistentie
         @Volatile
@@ -145,6 +146,15 @@ class CredentialsStore(context: Context) {
         val savedUsername = prefs.getString(KEY_USER, null)
         val savedPassword = prefs.getString(KEY_PASS, null)
         Log.i(TAG, "Verificatie - gebruikersnaam opgeslagen: ${if (savedUsername == username) "OK" else "MISMATCH"}, password saved: ${if (savedPassword == password) "OK" else "MISMATCH"}")
+    }
+
+    fun saveCiSessionCookie(cookieValue: String) {
+        prefs.edit().putString(KEY_CI_SESSION, cookieValue).commit()
+        Log.i(TAG, "Sessie cookie (ci_session) persistent opgeslagen.")
+    }
+
+    fun getCiSessionCookie(): String? {
+        return prefs.getString(KEY_CI_SESSION, null)
     }
 
     fun getUsername(): String? {

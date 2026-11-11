@@ -252,6 +252,18 @@
                                         android:layout_marginTop="10dp"
                                         android:text="@string/hoofd_telpost_beheer"
                                         android:textSize="14sp" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnTestExport"
+                                        style="@style/Widget.VT5.Button.Outlined"
+                                        android:layout_width="0dp"
+                                        android:layout_height="56dp"
+                                        android:layout_columnWeight="1"
+                                        android:layout_marginStart="6dp"
+                                        android:layout_marginTop="10dp"
+                                        android:text="Test Trektellen Export (BETA)"
+                                        android:textColor="#FF9800"
+                                        android:textSize="14sp" />
                                 </GridLayout>
                             </LinearLayout>
                         </com.google.android.material.card.MaterialCardView>
