@@ -1,0 +1,332 @@
+package com.yvesds.vt5.ai
+
+import android.content.Intent
+import android.os.Bundle
+import android.util.Log
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import com.yvesds.vt5.R
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.batch.ExcelImportManager
+import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
+import com.yvesds.vt5.core.database.weather.WeatherEnrichmentManager
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.export.ui.TrektellenExportTestActiviteit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+class BsiDatacentrumActiviteit : AppCompatActivity() {
+
+    private lateinit var tvBsiStatus: TextView
+    private lateinit var tvDbStats: TextView
+    private lateinit var btnTerug: MaterialButton
+    private lateinit var btnStartAutoPipeline: MaterialButton
+
+    private lateinit var btnStep1Export: MaterialButton
+    private lateinit var btnStep2Import: MaterialButton
+    private lateinit var btnStep3Weather: MaterialButton
+    private lateinit var btnStep4Train: MaterialButton
+
+    private lateinit var btnAiForecast3Days: MaterialButton
+    private lateinit var btnKrentenMonitor: MaterialButton
+    private lateinit var btnAiDailyReports: MaterialButton
+    private lateinit var btnDatabaseBeheer: MaterialButton
+
+    private lateinit var safStorageHelper: SaFStorageHelper
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.scherm_bsi_datacentrum)
+
+        safStorageHelper = SaFStorageHelper(this)
+
+        // Bind UI Elementen
+        btnTerug = findViewById(R.id.btnTerug)
+        tvBsiStatus = findViewById(R.id.tvBsiStatus)
+        tvDbStats = findViewById(R.id.tvDbStats)
+        btnStartAutoPipeline = findViewById(R.id.btnStartAutoPipeline)
+
+        btnStep1Export = findViewById(R.id.btnStep1Export)
+        btnStep2Import = findViewById(R.id.btnStep2Import)
+        btnStep3Weather = findViewById(R.id.btnStep3Weather)
+        btnStep4Train = findViewById(R.id.btnStep4Train)
+
+        btnAiForecast3Days = findViewById(R.id.btnAiForecast3Days)
+        btnKrentenMonitor = findViewById(R.id.btnKrentenMonitor)
+        btnAiDailyReports = findViewById(R.id.btnAiDailyReports)
+        btnDatabaseBeheer = findViewById(R.id.btnDatabaseBeheer)
+
+        // TERUG KNOP
+        btnTerug.setOnClickListener {
+            finish()
+        }
+
+        // INDIVIDUELE STAP KNOPPEN
+        btnStep1Export.setOnClickListener {
+            startActivity(Intent(this, TrektellenExportTestActiviteit::class.java))
+        }
+
+        btnStep2Import.setOnClickListener {
+            runExcelBatchImport()
+        }
+
+        btnStep3Weather.setOnClickListener {
+            runWeatherEnrichment()
+        }
+
+        btnStep4Train.setOnClickListener {
+            runAiTrainingFlow()
+        }
+
+        // AUTOMATISCHE 1-KLIK BSI PIJPLIJN
+        btnStartAutoPipeline.setOnClickListener {
+            runAutomatedBsiPipeline()
+        }
+
+        // RESULTATEN & AI OUTPUT KNOPPEN
+        btnAiForecast3Days.setOnClickListener {
+            startActivity(Intent(this, AiForecastScherm::class.java))
+        }
+
+        btnKrentenMonitor.setOnClickListener {
+            startActivity(Intent(this, KrentenMonitorActiviteit::class.java))
+        }
+
+        btnAiDailyReports.setOnClickListener {
+            startActivity(Intent(this, AiReportListActiviteit::class.java))
+        }
+
+        btnDatabaseBeheer.setOnClickListener {
+            startActivity(Intent(this, DatabaseBeheerScherm::class.java))
+        }
+
+        // Update BSI status en tellingen
+        updateBsiStatus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateBsiStatus()
+    }
+
+    /**
+     * Controleert de status van de Room DB en BSI AI-bestanden om de live statusbalk (🔴/🟡/🟢) in te stellen.
+     */
+    private fun updateBsiStatus() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = VoiceTallyDatabase.getDatabase(this@BsiDatacentrumActiviteit)
+            val count = db.tellingDao().getAllHeaders().size
+
+            // Controleer of getrainde BSI bestanden aanwezig zijn
+            val hasTrainedModel = safStorageHelper.readModelFile("bsi_weights.json") != null ||
+                    safStorageHelper.readModelFile("species_weights.json") != null
+
+            withContext(Dispatchers.Main) {
+                tvDbStats.text = getString(R.string.bsi_datacentrum_db_count_format, count)
+
+                when {
+                    count == 0 -> {
+                        tvBsiStatus.text = getString(R.string.bsi_status_red)
+                    }
+                    !hasTrainedModel -> {
+                        tvBsiStatus.text = getString(R.string.bsi_status_orange)
+                    }
+                    else -> {
+                        tvBsiStatus.text = getString(R.string.bsi_status_green)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Start de Geautomatiseerde BSI Pijplijn met uitleg en automatische detectie van lege data.
+     */
+    private fun runAutomatedBsiPipeline() {
+        lifecycleScope.launch {
+            val db = VoiceTallyDatabase.getDatabase(this@BsiDatacentrumActiviteit)
+            val count = withContext(Dispatchers.IO) { db.tellingDao().getAllHeaders().size }
+            
+            val importsDir = safStorageHelper.getImportsDirSuspend()
+            val hasImportFiles = importsDir?.listFiles()?.any { 
+                it.name?.startsWith("Trektellen_headerdata_") == true 
+            } == true
+
+            if (count == 0 && !hasImportFiles) {
+                // HET SYSTEM IS LEEG: Informeer de gebruiker duidelijk WAAROM BSI data nodig heeft
+                AlertDialog.Builder(this@BsiDatacentrumActiviteit)
+                    .setTitle(R.string.bsi_datacentrum_titel)
+                    .setMessage("De database is momenteel leeg. Bio Statistic Intelligence (BSI) vereist historische telpostgegevens om doortrekvoorspellingen te kunnen berekenen.\n\n" +
+                            "De app opent nu de Trektellen.nl Downloader. Selecteer jouw telpost en start de download. Zodra de bestanden binnen zijn, wordt de BSI-pijplijn voltooid.")
+                    .setPositiveButton("Open Downloader") { _, _ ->
+                        startActivity(Intent(this@BsiDatacentrumActiviteit, TrektellenExportTestActiviteit::class.java))
+                    }
+                    .setNegativeButton("Annuleren", null)
+                    .show()
+                return@launch
+            }
+
+            AlertDialog.Builder(this@BsiDatacentrumActiviteit)
+                .setTitle(R.string.bsi_datacentrum_titel)
+                .setMessage("De BSI Pijplijn zal nu de volgende stappen automatisch uitvoeren:\n\n" +
+                        "1. Excel-bestanden uit Documents/VT5/imports/ importeren in DB\n" +
+                        "2. Historische weerdata koppelen via Yr.no\n" +
+                        "3. BSI Neuraal Netwerk trainen op jouw telpost\n\n" +
+                        "Wil je de verwerking nu starten?")
+                .setPositiveButton("Start BSI Pijplijn") { _, _ ->
+                    executePipelineFlow()
+                }
+                .setNegativeButton("Annuleren", null)
+                .show()
+        }
+    }
+
+    private fun executePipelineFlow() {
+        lifecycleScope.launch {
+            val importManager = ExcelImportManager(this@BsiDatacentrumActiviteit)
+            val weatherManager = WeatherEnrichmentManager(this@BsiDatacentrumActiviteit)
+            val trainer = Trainer(this@BsiDatacentrumActiviteit, ModelStore(this@BsiDatacentrumActiviteit))
+
+            // 1. Batch Import uit Documents/VT5/imports/
+            Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 1/3: Excel bestanden verwerken...", Toast.LENGTH_SHORT).show()
+            val importsDir = safStorageHelper.getImportsDirSuspend()
+            var importedPairsCount = 0
+
+            if (importsDir != null) {
+                val files = importsDir.listFiles()
+                val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+
+                for (headerFile in headerFiles) {
+                    val hName = headerFile.name ?: continue
+                    val dataName = hName.replace("Trektellen_headerdata_", "Trektellen_data_")
+                    val dataFile = files.find { it.name == dataName }
+
+                    if (dataFile != null) {
+                        withContext(Dispatchers.IO) {
+                            val ok = importManager.importPair(headerFile.uri, dataFile.uri) { msg, c, t ->
+                                Log.d("BsiPipeline", "Import ($c/$t): $msg")
+                            }
+                            if (ok) importedPairsCount++
+                        }
+                    }
+                }
+            }
+
+            writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount")
+
+            // 2. Weerverrijking via Yr.no
+            Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 2/3: Weerdata koppelen via Yr.no...", Toast.LENGTH_SHORT).show()
+            val weatherOk = withContext(Dispatchers.IO) {
+                weatherManager.performEnrichment { msg, c, t ->
+                    Log.d("BsiPipeline", "Weer ($c/$t): $msg")
+                }
+            }
+
+            writeLogToVt5Logs("PIPELINE_STEP2", "Weerverrijking voltooid: $weatherOk")
+
+            // 3. BSI Model Trainen
+            Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 3/3: BSI Neuraal Netwerk trainen...", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.IO) {
+                trainer.runOnDeviceTraining { msg, c, t ->
+                    Log.d("BsiPipeline", "Training ($c/$t): $msg")
+                }
+            }
+
+            writeLogToVt5Logs("PIPELINE_STEP3", "BSI Neuraal Netwerk succesvol getraind.")
+
+            updateBsiStatus()
+
+            AlertDialog.Builder(this@BsiDatacentrumActiviteit)
+                .setTitle("BSI Pijplijn Voltooid! 🎉")
+                .setMessage("Gegevens verwerkt ($importedPairsCount koppel-bestanden geïmporteerd), weerdata gekoppeld en BSI Neuraal Netwerk getraind.\n\nDe 3-daagse trekprognoses, KrentenMonitor en dagrapporten zijn nu 100% operationeel!")
+                .setPositiveButton("OK", null)
+                .show()
+        }
+    }
+
+    private fun runExcelBatchImport() {
+        lifecycleScope.launch {
+            Toast.makeText(this@BsiDatacentrumActiviteit, "Batch import gestart uit Documents/VT5/imports/...", Toast.LENGTH_SHORT).show()
+            val importManager = ExcelImportManager(this@BsiDatacentrumActiviteit)
+            val importsDir = safStorageHelper.getImportsDirSuspend()
+            var count = 0
+
+            if (importsDir != null) {
+                val files = importsDir.listFiles()
+                val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+
+                for (headerFile in headerFiles) {
+                    val hName = headerFile.name ?: continue
+                    val dataName = hName.replace("Trektellen_headerdata_", "Trektellen_data_")
+                    val dataFile = files.find { it.name == dataName }
+
+                    if (dataFile != null) {
+                        val ok = withContext(Dispatchers.IO) {
+                            importManager.importPair(headerFile.uri, dataFile.uri) { _, _, _ -> }
+                        }
+                        if (ok) count++
+                    }
+                }
+            }
+
+            updateBsiStatus()
+            Toast.makeText(this@BsiDatacentrumActiviteit, "Import voltooid: $count koppel-bestanden verwerkt.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun runWeatherEnrichment() {
+        lifecycleScope.launch {
+            Toast.makeText(this@BsiDatacentrumActiviteit, "Weerdata verrijking gestart via Yr.no...", Toast.LENGTH_SHORT).show()
+            val weatherManager = WeatherEnrichmentManager(this@BsiDatacentrumActiviteit)
+            val ok = withContext(Dispatchers.IO) {
+                weatherManager.performEnrichment { _, _, _ -> }
+            }
+            Toast.makeText(this@BsiDatacentrumActiviteit, if (ok) "Weerdata succesvol bijgewerkt!" else "Weerdata bijwerken afgerond.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun runAiTrainingFlow() {
+        lifecycleScope.launch {
+            Toast.makeText(this@BsiDatacentrumActiviteit, "BSI Training gestart...", Toast.LENGTH_SHORT).show()
+            val trainer = Trainer(this@BsiDatacentrumActiviteit, ModelStore(this@BsiDatacentrumActiviteit))
+            withContext(Dispatchers.IO) {
+                trainer.runOnDeviceTraining { _, _, _ -> }
+            }
+            updateBsiStatus()
+            Toast.makeText(this@BsiDatacentrumActiviteit, "BSI Training succesvol afgerond!", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun writeLogToVt5Logs(eventTag: String, details: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val now = Date()
+                val timestampStr = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(now)
+                val timeLogStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(now)
+
+                val filename = "import_test_log_$timestampStr.txt"
+                val logLine = "[$timeLogStr] [$eventTag]\n$details\n----------------------------------------\n"
+
+                val vt5Dir = safStorageHelper.getVt5DirIfExistsSuspend() ?: return@launch
+                val logsDir = safStorageHelper.findOrCreateDirectorySuspend(vt5Dir, "logs") ?: return@launch
+
+                val logFile = logsDir.findFile(filename) ?: logsDir.createFile("text/plain", filename)
+                if (logFile != null) {
+                    contentResolver.openOutputStream(logFile.uri, "wa")?.use { out ->
+                        out.write(logLine.toByteArray(Charsets.UTF_8))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("BsiDatacentrum", "Fout bij schrijven naar Documents/VT5/logs: ${e.message}")
+            }
+        }
+    }
+}

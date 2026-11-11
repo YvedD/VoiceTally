@@ -288,10 +288,29 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="8dp"
-                                    android:text="BIOLOGISCHE INTELLIGENTIE (AI)"
+                                    android:text="BIO STATISTIC INTELLIGENTIE (BSI)"
                                     android:textColor="@color/vt5_light_blue"
                                     android:textSize="12sp"
                                     android:textStyle="bold" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btnBsiDatacentrum"
+                                    style="@style/Widget.Material3.Button"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginBottom="12dp"
+                                    android:background="@drawable/vt5_btn_glass_primary"
+                                    android:text="BSI DATACENTRUM (GIDS &amp; PIJPLIJN)"
+                                    android:textColor="@color/vt5_white"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    app:backgroundTint="@null"
+                                    app:icon="@drawable/ic_vt5_ai_horizon"
+                                    app:iconGravity="textStart"
+                                    app:iconPadding="10dp"
+                                    app:iconSize="24dp"
+                                    app:iconTint="@color/vt5_white"
+                                    app:rippleColor="#40D97A" />
 
                                 <GridLayout
                                     android:layout_width="match_parent"

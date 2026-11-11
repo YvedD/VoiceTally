@@ -200,6 +200,7 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnTelpostBeheer = findViewById<MaterialButton>(R.id.btnTelpostBeheer)
         val btnTestExport = findViewById<MaterialButton>(R.id.btnTestExport)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
+        val btnBsiDatacentrum = findViewById<MaterialButton>(R.id.btnBsiDatacentrum)
         val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
         val btnAiTrain = findViewById<MaterialButton>(R.id.btnAiTrain)
         val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
@@ -277,6 +278,12 @@ class HoofdActiviteit : AppCompatActivity() {
         btnTestExport?.setOnClickListener {
             it.isEnabled = false
             startActivity(Intent(this, com.yvesds.vt5.features.export.ui.TrektellenExportTestActiviteit::class.java))
+            it.isEnabled = true
+        }
+
+        btnBsiDatacentrum?.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, com.yvesds.vt5.ai.BsiDatacentrumActiviteit::class.java))
             it.isEnabled = true
         }
 

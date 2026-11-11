@@ -544,4 +544,35 @@
     <string name="telpost_beheer_layer_standard">Standaard (OSM)</string>
     <string name="telpost_beheer_layer_satellite">Satelliet (Esri)</string>
     <string name="telpost_beheer_layer_topo">Topografisch</string>
+
+    <!-- BSI Datacentrum &amp; Pipeline -->
+    <string name="bsi_datacentrum_titel">Bio Statistic Intelligence &amp; Datacentrum</string>
+    <string name="bsi_datacentrum_subtitel">Geautomatiseerde data-ingestie, weerverrijking &amp; BSI modeltraining</string>
+
+    <string name="bsi_status_red">🔴 Database bevat onvoldoende data. BSI vereist telpostgegevens.</string>
+    <string name="bsi_status_orange">🟡 Tellingen aanwezig, maar BSI-model is nog niet getraind.</string>
+    <string name="bsi_status_green">🟢 BSI-Engine actief en getraind op jouw telpost!</string>
+    <string name="bsi_datacentrum_db_count_format">Database status: %1$d tellingen geladen.</string>
+
+    <string name="bsi_pipeline_start_btn">START AUTOMATISCHE BSI VERWERKING</string>
+
+    <string name="bsi_step1_title">1. Trektellen.nl Bestanden Ophalen</string>
+    <string name="bsi_step1_why">WAAROM? BSI heeft historische trektelgegevens van jouw telpost nodig als leerschool om doortrekpatronen te herkenen.</string>
+    <string name="bsi_step1_how">HOE? Via een beveiligde webverbinding worden de koppelbestanden (header- en waarnemingsdata) voor alle gekozen jaren gedownload naar Documents/VT5/imports/.</string>
+    <string name="bsi_step1_result">RESULTAAT: Binaire .xlsx bestanden staan gereed in de opslag voor verwerking.</string>
+
+    <string name="bsi_step2_title">2. Importeren in Database</string>
+    <string name="bsi_step2_why">WAAROM? Binaire Excel-bestanden moeten worden omgezet naar een gestructureerde database zodat BSI razendsnel gegevens kan doorzoeken.</string>
+    <string name="bsi_step2_how">HOE? De ExcelImportManager leest de gedownloade .xlsx bestanden en verwerkt deze tot tellingen, uren en waarnemingsrecords in Room.</string>
+    <string name="bsi_step2_result">RESULTAAT: Honderden tellingen en duizenden waarnemingen zijn direct beschikbaar in de app.</string>
+
+    <string name="bsi_step3_title">3. Historische Weerdata Koppelen (Yr.no)</string>
+    <string name="bsi_step3_why">WAAROM? Vogels vliegen op de wind en de temperatuur. Door weerdata toe te voegen leert BSI bij welke windrichting en luchtdruk soorten massaal doortrekken.</string>
+    <string name="bsi_step3_how">HOE? Voor elk uur van je tellingen halen we bij de meteorologische dienst Yr.no de exacte historische temperatuur, windkracht, windrichting en luchtdruk op.</string>
+    <string name="bsi_step3_result">RESULTAAT: Je tellingen zijn verrijkt met meteorologische gegevens voor nauwkeurige trekvoorspellingen.</string>
+
+    <string name="bsi_step4_title">4. Bio Statistic Intelligence Trainen</string>
+    <string name="bsi_step4_why">WAAROM? Elke telpost is uniek. Door het BSI-model te trainen leert de engine de specifieke doortrekpieken en seizoenspatronen van jouw eigen locatie.</string>
+    <string name="bsi_step4_how">HOE? De app berekent de zonne-tijd (zonnehoogte/daglengte), verwerkt de soortfrequenties en traint de Neurale BSI-gewichten.</string>
+    <string name="bsi_step4_result">RESULTAAT: BSI is 100% operationeel! De 3-daagse prognoses, KrentenMonitor en dagrapporten zijn geactiveerd.</string>
 </resources>
