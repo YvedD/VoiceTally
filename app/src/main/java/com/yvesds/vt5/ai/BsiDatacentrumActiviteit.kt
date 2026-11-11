@@ -15,6 +15,7 @@ import com.yvesds.vt5.core.database.batch.ExcelImportManager
 import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm
 import com.yvesds.vt5.core.database.weather.WeatherEnrichmentManager
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.features.export.ui.TrektellenExportTestActiviteit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -148,7 +149,7 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
     }
 
     /**
-     * Start de Geautomatiseerde BSI Pijplijn met uitleg en automatische detectie van lege data.
+     * Start de Geautomatiseerde BSI Pijplijn met visuele voortgangsindicator en duidelijke keuzes.
      */
     private fun runAutomatedBsiPipeline() {
         lifecycleScope.launch {
@@ -171,7 +172,6 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
                         startActivity(Intent(this@BsiDatacentrumActiviteit, TrektellenExportTestActiviteit::class.java))
                     }
                     .setNeutralButton("Alleen Eigen Invoer Gebruiken") { _, _ ->
-                        // Waarschuw de gebruiker over de lagere nauwkeurigheid bij het starten zonder historie
                         AlertDialog.Builder(this@BsiDatacentrumActiviteit)
                             .setTitle("Alleen Eigen Invoer Gebruiken")
                             .setMessage("Je hebt gekozen om alleen met je eigen handmatige tellingen te werken.\n\n" +
@@ -179,7 +179,7 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
                                     "Er worden op dit moment géén bestanden gedownload van Trektellen.nl.")
                             .setPositiveButton("Begrepen") { _, _ ->
                                 writeLogToVt5Logs("PIPELINE_MODE", "Gebruiker kiest voor alleen eigen invoer (geen Trektellen import).")
-                                executePipelineFlow(skipImportStep = true)
+                                executePipelineFlowWithProgress(skipImportStep = true)
                             }
                             .setNegativeButton("Annuleren", null)
                             .show()
@@ -191,20 +191,28 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
 
             AlertDialog.Builder(this@BsiDatacentrumActiviteit)
                 .setTitle(R.string.bsi_datacentrum_titel)
-                .setMessage("De BSI Pijplijn zal nu de volgende stappen automatisch uitvoeren:\n\n" +
+                .setMessage("De BSI Pijplijn zal nu de volgende stappen automatisch verwerken:\n\n" +
                         "1. Excel-bestanden uit Documents/VT5/imports/ importeren in DB\n" +
                         "2. Historische weerdata koppelen via Yr.no\n" +
                         "3. BSI Neuraal Netwerk trainen op jouw telpost\n\n" +
                         "Wil je de verwerking nu starten?")
                 .setPositiveButton("Start BSI Pijplijn") { _, _ ->
-                    executePipelineFlow(skipImportStep = false)
+                    executePipelineFlowWithProgress(skipImportStep = false)
                 }
                 .setNegativeButton("Annuleren", null)
                 .show()
         }
     }
 
-    private fun executePipelineFlow(skipImportStep: Boolean = false) {
+    /**
+     * Voert de Pijplijn uit met een live visuele ProgressDialog voor directe feedback.
+     */
+    private fun executePipelineFlowWithProgress(skipImportStep: Boolean = false) {
+        val progressDialog = ProgressDialogHelper.show(
+            this,
+            "BSI Pijplijn gestart...\nEen ogenblik geduld A.U.B."
+        )
+
         lifecycleScope.launch {
             val importManager = ExcelImportManager(this@BsiDatacentrumActiviteit)
             val weatherManager = WeatherEnrichmentManager(this@BsiDatacentrumActiviteit)
@@ -212,57 +220,97 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
 
             var importedPairsCount = 0
 
-            if (!skipImportStep) {
-                // 1. Batch Import uit Documents/VT5/imports/
-                Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 1/3: Excel bestanden verwerken...", Toast.LENGTH_SHORT).show()
-                val importsDir = safStorageHelper.getImportsDirSuspend()
+            try {
+                // 1. STAP 1: Batch Import uit Documents/VT5/imports/
+                if (!skipImportStep) {
+                    ProgressDialogHelper.updateMessage(
+                        progressDialog,
+                        "[Stap 1/3] Excel bestanden scannen in Documents/VT5/imports/..."
+                    )
 
-                if (importsDir != null) {
-                    val files = importsDir.listFiles()
-                    val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+                    val importsDir = safStorageHelper.getImportsDirSuspend()
 
-                    for (headerFile in headerFiles) {
-                        val hName = headerFile.name ?: continue
-                        val dataName = hName.replace("Trektellen_headerdata_", "Trektellen_data_")
-                        val dataFile = files.find { it.name == dataName }
+                    if (importsDir != null) {
+                        val files = importsDir.listFiles()
+                        val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+                        val totalHeaders = headerFiles.size
 
-                        if (dataFile != null) {
-                            withContext(Dispatchers.IO) {
-                                val ok = importManager.importPair(headerFile.uri, dataFile.uri) { msg, c, t ->
-                                    Log.d("BsiPipeline", "Import ($c/$t): $msg")
+                        var idx = 0
+                        for (headerFile in headerFiles) {
+                            idx++
+                            val hName = headerFile.name ?: continue
+                            val dataName = hName.replace("Trektellen_headerdata_", "Trektellen_data_")
+                            val dataFile = files.find { it.name == dataName }
+
+                            ProgressDialogHelper.updateMessage(
+                                progressDialog,
+                                "[Stap 1/3] Importeren in Database ($idx/$totalHeaders):\n$hName"
+                            )
+
+                            if (dataFile != null) {
+                                withContext(Dispatchers.IO) {
+                                    val ok = importManager.importPair(headerFile.uri, dataFile.uri) { msg, c, t ->
+                                        Log.d("BsiPipeline", "Import ($c/$t): $msg")
+                                    }
+                                    if (ok) importedPairsCount++
                                 }
-                                if (ok) importedPairsCount++
                             }
                         }
                     }
+                    writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount")
+                } else {
+                    writeLogToVt5Logs("PIPELINE_STEP1", "Stap 1 overgeslagen op verzoek van gebruiker (Alleen eigen invoer).")
                 }
-                writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount")
-            } else {
-                writeLogToVt5Logs("PIPELINE_STEP1", "Stap 1 overgeslagen op verzoek van gebruiker (Alleen eigen invoer).")
+
+                // 2. STAP 2: Weerverrijking via Yr.no
+                ProgressDialogHelper.updateMessage(
+                    progressDialog,
+                    "[Stap 2/3] Historische weerdata koppelen via Yr.no..."
+                )
+
+                val weatherOk = withContext(Dispatchers.IO) {
+                    weatherManager.performEnrichment { msg, curr, total ->
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            ProgressDialogHelper.updateMessage(
+                                progressDialog,
+                                "[Stap 2/3] Yr.no Weerdata ($curr/$total):\n$msg"
+                            )
+                        }
+                    }
+                }
+
+                writeLogToVt5Logs("PIPELINE_STEP2", "Weerverrijking voltooid: $weatherOk")
+
+                // 3. STAP 3: BSI Model Trainen
+                ProgressDialogHelper.updateMessage(
+                    progressDialog,
+                    "[Stap 3/3] BSI Neuraal Netwerk trainen..."
+                )
+
+                withContext(Dispatchers.IO) {
+                    trainer.runOnDeviceTraining { msg, curr, total ->
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            ProgressDialogHelper.updateMessage(
+                                progressDialog,
+                                "[Stap 3/3] BSI Training ($curr/$total%):\n$msg"
+                            )
+                        }
+                    }
+                }
+
+                writeLogToVt5Logs("PIPELINE_STEP3", "BSI Neuraal Netwerk succesvol getraind.")
+
+                updateBsiStatus()
+
+            } catch (e: Exception) {
+                Log.e("BsiDatacentrum", "Fout in BSI Pijplijn: ${e.message}", e)
+                writeLogToVt5Logs("PIPELINE_ERROR", "Fout in BSI Pijplijn: ${e.message}")
+            } finally {
+                // Verberg de visuele progress dialoog
+                try { progressDialog.dismiss() } catch (_: Exception) {}
             }
 
-            // 2. Weerverrijking via Yr.no
-            Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 2/3: Weerdata koppelen via Yr.no...", Toast.LENGTH_SHORT).show()
-            val weatherOk = withContext(Dispatchers.IO) {
-                weatherManager.performEnrichment { msg, c, t ->
-                    Log.d("BsiPipeline", "Weer ($c/$t): $msg")
-                }
-            }
-
-            writeLogToVt5Logs("PIPELINE_STEP2", "Weerverrijking voltooid: $weatherOk")
-
-            // 3. BSI Model Trainen
-            Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 3/3: BSI Neuraal Netwerk trainen...", Toast.LENGTH_SHORT).show()
-            withContext(Dispatchers.IO) {
-                trainer.runOnDeviceTraining { msg, c, t ->
-                    Log.d("BsiPipeline", "Training ($c/$t): $msg")
-                }
-            }
-
-            writeLogToVt5Logs("PIPELINE_STEP3", "BSI Neuraal Netwerk succesvol getraind.")
-
-            updateBsiStatus()
-
+            // Eindrapportage tonen
             val successMessage = if (skipImportStep) {
                 "BSI Pijplijn voltooid op basis van je eigen ingevoerde tellingen.\n\n" +
                 "⚠️ Denk eraan: BSI zal in het begin minder nauwkeurig zijn omdat er nog weinig historie is. Elke nieuwe telling die je invoert via de app maakt BSI automatisch slimmer!"
@@ -279,8 +327,8 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
     }
 
     private fun runExcelBatchImport() {
+        val progress = ProgressDialogHelper.show(this, "Batch import starten uit Documents/VT5/imports/...")
         lifecycleScope.launch {
-            Toast.makeText(this@BsiDatacentrumActiviteit, "Batch import gestart uit Documents/VT5/imports/...", Toast.LENGTH_SHORT).show()
             val importManager = ExcelImportManager(this@BsiDatacentrumActiviteit)
             val importsDir = safStorageHelper.getImportsDirSuspend()
             var count = 0
@@ -295,37 +343,51 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
                     val dataFile = files.find { it.name == dataName }
 
                     if (dataFile != null) {
+                        ProgressDialogHelper.updateMessage(progress, "Importeren:\n$hName")
                         val ok = withContext(Dispatchers.IO) {
-                            importManager.importPair(headerFile.uri, dataFile.uri) { _, _, _ -> }
+                            importManager.importPair(headerFile.uri, dataFile.uri) { msg, _, _ ->
+                                Log.d("BsiImport", msg)
+                            }
                         }
                         if (ok) count++
                     }
                 }
             }
 
+            try { progress.dismiss() } catch (_: Exception) {}
             updateBsiStatus()
             Toast.makeText(this@BsiDatacentrumActiviteit, "Import voltooid: $count koppel-bestanden verwerkt.", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun runWeatherEnrichment() {
+        val progress = ProgressDialogHelper.show(this, "Weerdata ophalen via Yr.no...")
         lifecycleScope.launch {
-            Toast.makeText(this@BsiDatacentrumActiviteit, "Weerdata verrijking gestart via Yr.no...", Toast.LENGTH_SHORT).show()
             val weatherManager = WeatherEnrichmentManager(this@BsiDatacentrumActiviteit)
             val ok = withContext(Dispatchers.IO) {
-                weatherManager.performEnrichment { _, _, _ -> }
+                weatherManager.performEnrichment { msg, curr, total ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        ProgressDialogHelper.updateMessage(progress, "Yr.no Weerdata ($curr/$total):\n$msg")
+                    }
+                }
             }
+            try { progress.dismiss() } catch (_: Exception) {}
             Toast.makeText(this@BsiDatacentrumActiviteit, if (ok) "Weerdata succesvol bijgewerkt!" else "Weerdata bijwerken afgerond.", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun runAiTrainingFlow() {
+        val progress = ProgressDialogHelper.show(this, "BSI Neuraal Netwerk Trainen...")
         lifecycleScope.launch {
-            Toast.makeText(this@BsiDatacentrumActiviteit, "BSI Training gestart...", Toast.LENGTH_SHORT).show()
             val trainer = Trainer(this@BsiDatacentrumActiviteit, ModelStore(this@BsiDatacentrumActiviteit))
             withContext(Dispatchers.IO) {
-                trainer.runOnDeviceTraining { _, _, _ -> }
+                trainer.runOnDeviceTraining { msg, curr, total ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        ProgressDialogHelper.updateMessage(progress, "BSI Training ($curr/$total%):\n$msg")
+                    }
+                }
             }
+            try { progress.dismiss() } catch (_: Exception) {}
             updateBsiStatus()
             Toast.makeText(this@BsiDatacentrumActiviteit, "BSI Training succesvol afgerond!", Toast.LENGTH_LONG).show()
         }
