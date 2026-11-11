@@ -161,13 +161,28 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
             } == true
 
             if (count == 0 && !hasImportFiles) {
-                // HET SYSTEM IS LEEG: Informeer de gebruiker duidelijk WAAROM BSI data nodig heeft
+                // HET SYSTEEM IS LEEG: Geef de gebruiker de keuze tussen Trektellen.nl import OF puur eigen invoer!
                 AlertDialog.Builder(this@BsiDatacentrumActiviteit)
                     .setTitle(R.string.bsi_datacentrum_titel)
-                    .setMessage("De database is momenteel leeg. Bio Statistic Intelligence (BSI) vereist historische telpostgegevens om doortrekvoorspellingen te kunnen berekenen.\n\n" +
-                            "De app opent nu de Trektellen.nl Downloader. Selecteer jouw telpost en start de download. Zodra de bestanden binnen zijn, wordt de BSI-pijplijn voltooid.")
-                    .setPositiveButton("Open Downloader") { _, _ ->
+                    .setMessage("De database bevat momenteel nog geen tellingen.\n\n" +
+                            "Bio Statistic Intelligence (BSI) werkt het meest nauwkeurig met historische data van Trektellen.nl, maar kan ook puur op je eigen ingevoerde tellingen draaien.\n\n" +
+                            "Hoe wil je starten?")
+                    .setPositiveButton("Trektellen Data Importeren") { _, _ ->
                         startActivity(Intent(this@BsiDatacentrumActiviteit, TrektellenExportTestActiviteit::class.java))
+                    }
+                    .setNeutralButton("Alleen Eigen Invoer Gebruiken") { _, _ ->
+                        // Waarschuw de gebruiker over de lagere nauwkeurigheid bij het starten zonder historie
+                        AlertDialog.Builder(this@BsiDatacentrumActiviteit)
+                            .setTitle("Alleen Eigen Invoer Gebruiken")
+                            .setMessage("Je hebt gekozen om alleen met je eigen handmatige tellingen te werken.\n\n" +
+                                    "⚠️ LET OP: In het begin zal BSI minder nauwkeurige voorspellingen en grafieken tonen omdat er nog weinig historie is. Naarmate je meer tellingen invoert via de app, wordt BSI automatisch slimmer op jouw telpost.\n\n" +
+                                    "Er worden op dit moment géén bestanden gedownload van Trektellen.nl.")
+                            .setPositiveButton("Begrepen") { _, _ ->
+                                writeLogToVt5Logs("PIPELINE_MODE", "Gebruiker kiest voor alleen eigen invoer (geen Trektellen import).")
+                                executePipelineFlow(skipImportStep = true)
+                            }
+                            .setNegativeButton("Annuleren", null)
+                            .show()
                     }
                     .setNegativeButton("Annuleren", null)
                     .show()
@@ -182,45 +197,49 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
                         "3. BSI Neuraal Netwerk trainen op jouw telpost\n\n" +
                         "Wil je de verwerking nu starten?")
                 .setPositiveButton("Start BSI Pijplijn") { _, _ ->
-                    executePipelineFlow()
+                    executePipelineFlow(skipImportStep = false)
                 }
                 .setNegativeButton("Annuleren", null)
                 .show()
         }
     }
 
-    private fun executePipelineFlow() {
+    private fun executePipelineFlow(skipImportStep: Boolean = false) {
         lifecycleScope.launch {
             val importManager = ExcelImportManager(this@BsiDatacentrumActiviteit)
             val weatherManager = WeatherEnrichmentManager(this@BsiDatacentrumActiviteit)
             val trainer = Trainer(this@BsiDatacentrumActiviteit, ModelStore(this@BsiDatacentrumActiviteit))
 
-            // 1. Batch Import uit Documents/VT5/imports/
-            Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 1/3: Excel bestanden verwerken...", Toast.LENGTH_SHORT).show()
-            val importsDir = safStorageHelper.getImportsDirSuspend()
             var importedPairsCount = 0
 
-            if (importsDir != null) {
-                val files = importsDir.listFiles()
-                val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+            if (!skipImportStep) {
+                // 1. Batch Import uit Documents/VT5/imports/
+                Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 1/3: Excel bestanden verwerken...", Toast.LENGTH_SHORT).show()
+                val importsDir = safStorageHelper.getImportsDirSuspend()
 
-                for (headerFile in headerFiles) {
-                    val hName = headerFile.name ?: continue
-                    val dataName = hName.replace("Trektellen_headerdata_", "Trektellen_data_")
-                    val dataFile = files.find { it.name == dataName }
+                if (importsDir != null) {
+                    val files = importsDir.listFiles()
+                    val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
 
-                    if (dataFile != null) {
-                        withContext(Dispatchers.IO) {
-                            val ok = importManager.importPair(headerFile.uri, dataFile.uri) { msg, c, t ->
-                                Log.d("BsiPipeline", "Import ($c/$t): $msg")
+                    for (headerFile in headerFiles) {
+                        val hName = headerFile.name ?: continue
+                        val dataName = hName.replace("Trektellen_headerdata_", "Trektellen_data_")
+                        val dataFile = files.find { it.name == dataName }
+
+                        if (dataFile != null) {
+                            withContext(Dispatchers.IO) {
+                                val ok = importManager.importPair(headerFile.uri, dataFile.uri) { msg, c, t ->
+                                    Log.d("BsiPipeline", "Import ($c/$t): $msg")
+                                }
+                                if (ok) importedPairsCount++
                             }
-                            if (ok) importedPairsCount++
                         }
                     }
                 }
+                writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount")
+            } else {
+                writeLogToVt5Logs("PIPELINE_STEP1", "Stap 1 overgeslagen op verzoek van gebruiker (Alleen eigen invoer).")
             }
-
-            writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount")
 
             // 2. Weerverrijking via Yr.no
             Toast.makeText(this@BsiDatacentrumActiviteit, "Pijplijn Stap 2/3: Weerdata koppelen via Yr.no...", Toast.LENGTH_SHORT).show()
@@ -244,9 +263,16 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
 
             updateBsiStatus()
 
+            val successMessage = if (skipImportStep) {
+                "BSI Pijplijn voltooid op basis van je eigen ingevoerde tellingen.\n\n" +
+                "⚠️ Denk eraan: BSI zal in het begin minder nauwkeurig zijn omdat er nog weinig historie is. Elke nieuwe telling die je invoert via de app maakt BSI automatisch slimmer!"
+            } else {
+                "Gegevens verwerkt ($importedPairsCount koppel-bestanden geïmporteerd), weerdata gekoppeld en BSI Neuraal Netwerk getraind.\n\nDe 3-daagse trekprognoses, KrentenMonitor en dagrapporten zijn nu 100% operationeel!"
+            }
+
             AlertDialog.Builder(this@BsiDatacentrumActiviteit)
                 .setTitle("BSI Pijplijn Voltooid! 🎉")
-                .setMessage("Gegevens verwerkt ($importedPairsCount koppel-bestanden geïmporteerd), weerdata gekoppeld en BSI Neuraal Netwerk getraind.\n\nDe 3-daagse trekprognoses, KrentenMonitor en dagrapporten zijn nu 100% operationeel!")
+                .setMessage(successMessage)
                 .setPositiveButton("OK", null)
                 .show()
         }
