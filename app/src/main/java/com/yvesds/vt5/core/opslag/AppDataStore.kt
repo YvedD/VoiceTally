@@ -177,6 +177,10 @@ object AppDataStore {
     }
 
     suspend fun getUpdateSnapshot(context: Context): UpdateSnapshot {
+        return getUpdateSnapshotFlow(context).first()
+    }
+
+    fun getUpdateSnapshotFlow(context: Context): kotlinx.coroutines.flow.Flow<UpdateSnapshot> {
         return context.dataStore.data.map { prefs ->
             UpdateSnapshot(
                 updateAvailable = prefs[KEY_UPDATE_AVAILABLE] ?: false,
@@ -186,7 +190,7 @@ object AppDataStore {
                 latestUpdatedAtIso = prefs[KEY_UPDATE_LATEST_UPDATED_AT],
                 lastCheckedAt = prefs[KEY_UPDATE_LAST_CHECK_AT] ?: 0L
             )
-        }.first()
+        }
     }
 
     suspend fun setLastPromptedUpdateVersion(context: Context, version: String?) {

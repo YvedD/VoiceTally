@@ -500,9 +500,15 @@ class InstellingenScherm : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
+            AppDataStore.getUpdateSnapshotFlow(this@InstellingenScherm).collect { snapshot ->
+                findViewById<TextView>(R.id.badgeAppUpdateHeader)?.visibility = if (snapshot.updateAvailable) View.VISIBLE else View.GONE
+            }
+        }
+
+        lifecycleScope.launch {
             val cached = AppUpdateManager.getCachedState(this@InstellingenScherm)
             applyUpdateStateToUi(cached)
-            performUpdateCheck(forceNetwork = false, showToast = false)
+            performUpdateCheck(forceNetwork = true, showToast = false)
         }
     }
 

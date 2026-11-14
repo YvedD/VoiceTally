@@ -107,7 +107,13 @@ object AppUpdateManager {
         if (isoStr.isNullOrBlank()) return 0L
         return runCatching {
             java.time.Instant.parse(isoStr).toEpochMilli()
-        }.getOrDefault(0L)
+        }.getOrElse {
+            runCatching {
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.ROOT).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }.parse(isoStr)?.time ?: 0L
+            }.getOrDefault(0L)
+        }
     }
 
     fun getInstalledApkSha256(context: Context): String? {
@@ -139,6 +145,7 @@ object AppUpdateManager {
                 }
                 val body = response.body?.string().orEmpty()
                 val json = JSONObject(body)
+                val releasePublishedAt = json.optString("published_at", "")
                 val assetsJson = json.optJSONArray("assets") ?: error("Geen assets in release")
 
                 val parsed = mutableListOf<ReleaseAsset>()
@@ -151,7 +158,8 @@ object AppUpdateManager {
                     if (url.isBlank()) continue
                     val digestRaw = asset.optString("digest", "")
                     val sha256 = digestRaw.removePrefix("sha256:").ifBlank { null }
-                    val updatedAt = asset.optString("updated_at", "")
+                    val assetUpdatedAt = asset.optString("updated_at", "")
+                    val updatedAt = assetUpdatedAt.ifBlank { releasePublishedAt }
                     parsed += ReleaseAsset(
                         version = version,
                         downloadUrl = url,

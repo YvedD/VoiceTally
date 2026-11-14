@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.edit
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 /**
@@ -152,6 +153,18 @@ object HourlyAlarmManager {
             // Als een telling actief is, toon HuidigeStandScherm
             if (isTellingActive(context)) {
                 showHuidigeStandScherm(context)
+            }
+
+            // Voer een achtergrondcontrole uit op updates op GitHub
+            val pendingResult = goAsync()
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                try {
+                    com.yvesds.vt5.features.update.AppUpdateManager.refreshFromGithub(context, allowCache = false)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Uurlijkse achtergrond update-controle mislukt: ${e.message}")
+                } finally {
+                    pendingResult.finish()
+                }
             }
             
             // Plan het volgende alarm

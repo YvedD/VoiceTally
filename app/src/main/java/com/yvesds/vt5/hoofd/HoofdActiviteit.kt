@@ -305,6 +305,13 @@ class HoofdActiviteit : AppCompatActivity() {
             startActivity(Intent(this, com.yvesds.vt5.ai.AiForecastScherm::class.java))
         }
 
+        // Luister continu naar update-status in DataStore voor real-time badge-updates op de instellingenknop
+        lifecycleScope.launch {
+            AppDataStore.getUpdateSnapshotFlow(this@HoofdActiviteit).collect { snapshot ->
+                findViewById<TextView>(R.id.badgeAppUpdate)?.visibility = if (snapshot.updateAvailable) View.VISIBLE else View.GONE
+            }
+        }
+
         refreshAppUpdateBadge(showPrompt = true)
     }
 
@@ -1081,7 +1088,8 @@ class HoofdActiviteit : AppCompatActivity() {
             val cached = AppUpdateManager.getCachedState(this@HoofdActiviteit)
             findViewById<TextView>(R.id.badgeAppUpdate)?.visibility = if (cached.updateAvailable) View.VISIBLE else View.GONE
 
-            val result = AppUpdateManager.refreshFromGithub(this@HoofdActiviteit, allowCache = true)
+            // Dwing bij opstart altijd een grondige verse controle bij GitHub af (allowCache = false)
+            val result = AppUpdateManager.refreshFromGithub(this@HoofdActiviteit, allowCache = false)
             result.onSuccess { state ->
                 findViewById<TextView>(R.id.badgeAppUpdate)?.visibility = if (state.updateAvailable) View.VISIBLE else View.GONE
                 if (showPrompt && state.updateAvailable && !state.latestVersion.isNullOrBlank()) {

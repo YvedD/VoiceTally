@@ -136,6 +136,15 @@ class TellingAlarmHandler(
         
         // Roep callback aan om HuidigeStandScherm te tonen
         onAlarmTriggered?.invoke()
+
+        // Voer ook een uurlijkse achtergrondcontrole uit op app-updates op GitHub
+        scope.launch(Dispatchers.IO) {
+            try {
+                com.yvesds.vt5.features.update.AppUpdateManager.refreshFromGithub(context, allowCache = false)
+            } catch (ex: Exception) {
+                Log.w(TAG, "Uurlijkse achtergrond update-controle in TellingAlarmHandler mislukt: ${ex.message}")
+            }
+        }
     }
     
     /**

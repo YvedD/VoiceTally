@@ -81,6 +81,13 @@ class VT5App : Application() {
             Log.w(TAG, "AiManager.init failed: ${ex.message}")
         }
 
+        // Plan periodieke achtergrond update-controle (elk uur)
+        try {
+            com.yvesds.vt5.features.update.AppUpdateWorker.scheduleHourlyCheck(applicationContext)
+        } catch (ex: Exception) {
+            Log.w(TAG, "Inplannen AppUpdateWorker mislukt: ${ex.message}")
+        }
+
         startupAliasRefreshJob = appScope.async {
             try {
                 AliasStartupInitializer.rebuildAndWarmup(applicationContext)
