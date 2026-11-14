@@ -995,14 +995,27 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:orientation="vertical">
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
                                 <TextView
-                                    android:layout_width="match_parent"
+                                    android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="App-updates"
                                     android:textColor="@color/vt5_white"
                                     android:textSize="16sp"
                                     android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/badgeAppUpdateHeader"
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_marginStart="8dp"
+                                    android:background="@drawable/vt5_badge_red"
+                                    android:gravity="center"
+                                    android:text="@string/badge_warning"
+                                    android:textColor="@color/vt5_white"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:visibility="gone" />
                             </LinearLayout>
 
                             <TextView

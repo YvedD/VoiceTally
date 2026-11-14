@@ -257,6 +257,22 @@ class TellingUploadCore(
         
         // Zorg dat de telling altijd direct op 'verzonden' staat bij een geslaagde server-OK
         TellingUploadFlags.markSent(context, persistedEnvelope.tellingid, effectiveOnlineId ?: persistedEnvelope.onlineid)
+        
+        // Atomische status-update in Room DB om desynchronisatie tussen Room en SharedPreferences te voorkomen
+        try {
+            val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(context)
+            val header = db.tellingDao().getHeader(persistedEnvelope.tellingid)
+            if (header != null) {
+                val updatedHeader = header.copy(
+                    status = TellingStatus.GEUPLOAD,
+                    onlineid = effectiveOnlineId ?: header.onlineid
+                )
+                db.tellingDao().updateHeader(updatedHeader)
+            }
+        } catch (dbEx: Exception) {
+            Log.w(TAG, "Kon Room DB status niet bijwerken naar GEUPLOAD voor [${persistedEnvelope.tellingid}]: ${dbEx.message}")
+        }
+
         when (request.mode) {
             Mode.START,
             Mode.FINALIZE,

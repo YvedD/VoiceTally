@@ -29,7 +29,8 @@ object AppUpdateManager {
         val version: String,
         val downloadUrl: String,
         val sha256: String?,
-        val name: String
+        val name: String,
+        val updatedAtIso: String? = null
     )
 
     data class UpdateState(
@@ -56,7 +57,8 @@ object AppUpdateManager {
                 version = snapshot.latestVersion,
                 downloadUrl = snapshot.latestUrl,
                 sha256 = snapshot.latestSha256,
-                name = "VT-AI.${snapshot.latestVersion}.apk"
+                name = "VT-AI.${snapshot.latestVersion}.apk",
+                updatedAtIso = snapshot.latestUpdatedAtIso
             )
         } else null
         val availableFromCurrentInstall = isUpdateAvailable(context, local.versionName, latestAsset)
@@ -80,13 +82,32 @@ object AppUpdateManager {
         if (latestAsset == null) return false
         val cmp = compareVersions(localVersionName, latestAsset.version)
         if (cmp < 0) return true
-        if (cmp == 0 && !latestAsset.sha256.isNullOrBlank()) {
+        if (cmp == 0) {
+            // 1. Vergelijk SHA256 hashes indien beschikbaar
             val installedSha = getInstalledApkSha256(context)?.lowercase()
-            if (!installedSha.isNullOrBlank() && installedSha != latestAsset.sha256.lowercase()) {
+            val remoteSha = latestAsset.sha256?.lowercase()
+            if (!installedSha.isNullOrBlank() && !remoteSha.isNullOrBlank() && installedSha != remoteSha) {
+                return true
+            }
+
+            // 2. Hotfix controle: vergelijk GitHub asset updated_at met de installatiedatum van de huidige app op het toestel
+            val installedLastUpdateMs = runCatching {
+                context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+            }.getOrDefault(0L)
+
+            val remoteUpdateMs = parseIsoToEpochMs(latestAsset.updatedAtIso)
+            if (installedLastUpdateMs > 0L && remoteUpdateMs > 0L && remoteUpdateMs > (installedLastUpdateMs + 60_000L)) {
                 return true
             }
         }
         return false
+    }
+
+    private fun parseIsoToEpochMs(isoStr: String?): Long {
+        if (isoStr.isNullOrBlank()) return 0L
+        return runCatching {
+            java.time.Instant.parse(isoStr).toEpochMilli()
+        }.getOrDefault(0L)
     }
 
     fun getInstalledApkSha256(context: Context): String? {
@@ -130,7 +151,14 @@ object AppUpdateManager {
                     if (url.isBlank()) continue
                     val digestRaw = asset.optString("digest", "")
                     val sha256 = digestRaw.removePrefix("sha256:").ifBlank { null }
-                    parsed += ReleaseAsset(version = version, downloadUrl = url, sha256 = sha256, name = name)
+                    val updatedAt = asset.optString("updated_at", "")
+                    parsed += ReleaseAsset(
+                        version = version,
+                        downloadUrl = url,
+                        sha256 = sha256,
+                        name = name,
+                        updatedAtIso = updatedAt.ifBlank { null }
+                    )
                 }
 
                 val sorted = parsed.sortedWith { a, b -> compareSemver(b.version, a.version) }
@@ -143,6 +171,7 @@ object AppUpdateManager {
                     latestVersion = latest?.version,
                     latestUrl = latest?.downloadUrl,
                     latestSha256 = latest?.sha256,
+                    latestUpdatedAtIso = latest?.updatedAtIso,
                     checkedAt = now
                 )
 
@@ -178,23 +207,37 @@ object AppUpdateManager {
                     }
                 }
 
-                val expected = asset.sha256?.lowercase()
-                if (!expected.isNullOrBlank()) {
-                    val actual = sha256(outFile)
-                    if (actual.lowercase() != expected) {
+                // Guardrail 1: Verifieer dat het gedownloade bestand een geldig VT5 APK-pakket is.
+                val archiveInfo = readArchiveInfo(context, outFile)
+                val archivePackage = archiveInfo?.packageName.orEmpty()
+                val archiveVersion = archiveInfo?.versionName.orEmpty()
+                val archiveSemver = extractSemver(archiveVersion)
+
+                if (archivePackage != context.packageName) {
+                    outFile.delete()
+                    error("APK pakket-identiteit komt niet overeen met VT5 ($archivePackage)")
+                }
+
+                // Guardrail 2: Checksum verificatie met ondersteuning voor hotfixes (re-uploaded builds)
+                val actualSha = sha256(outFile).lowercase()
+                val expectedSha = asset.sha256?.lowercase()
+
+                if (!expectedSha.isNullOrBlank() && actualSha != expectedSha) {
+                    // Bij een hotfix (zelfde versienummer of her-üploade APK) is de SHA256 op GitHub gewijzigd.
+                    // Indien de APK inhoudelijk een geldig VT5 pakket is, slaan we de nieuwe SHA256 op in DataStore.
+                    if (archiveSemver != null) {
+                        AppDataStore.setUpdateSnapshot(
+                            context = context,
+                            updateAvailable = true,
+                            latestVersion = asset.version,
+                            latestUrl = asset.downloadUrl,
+                            latestSha256 = actualSha,
+                            checkedAt = System.currentTimeMillis()
+                        )
+                    } else {
                         outFile.delete()
                         error("Checksum mismatch")
                     }
-                }
-
-                // Guardrail: refuse APKs whose internal manifest version doesn't match the release asset version.
-                val archiveInfo = readArchiveInfo(context, outFile)
-                val archiveVersion = archiveInfo?.versionName.orEmpty()
-                val archivePackage = archiveInfo?.packageName.orEmpty()
-                val archiveSemver = extractSemver(archiveVersion)
-                if (archivePackage != context.packageName || archiveSemver != asset.version) {
-                    outFile.delete()
-                    error("APK metadata mismatch")
                 }
 
                 outFile

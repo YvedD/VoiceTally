@@ -26,8 +26,8 @@ import androidx.room.Index
         Index(value = ["tellingid"]), 
         Index(value = ["soortid"]), 
         Index(value = ["onlineid"]),
-        Index(value = ["tijdstip"]), // NU TOEGEVOEGD
-        Index(value = ["soortid", "tijdstip"]) // NU TOEGEVOEGD
+        Index(value = ["tijdstip"]),
+        Index(value = ["soortid", "tijdstip"])
     ]
 )
 data class Waarneming(

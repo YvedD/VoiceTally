@@ -202,6 +202,9 @@ object AliasCborRebuilder {
             Log.i(TAG, "Rebuilt CBOR cache: ${index.json.size} records, ${gzipped.size} bytes compressed (safWrite=$wroteSaf)")
         } catch (ex: Exception) {
             Log.e(TAG, "rebuildCborCache failed: ${ex.message}", ex)
+            try {
+                com.yvesds.vt5.core.opslag.ErrorLogger.logError(context, TAG, "CBOR cache herbouw mislukt: ${ex.message}", ex)
+            } catch (_: Exception) {}
         }
     }
 }

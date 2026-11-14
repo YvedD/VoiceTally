@@ -61,11 +61,25 @@ interface TellingDao {
     @Delete
     suspend fun deleteWaarneming(waarneming: Waarneming)
 
-    @Query("SELECT * FROM waarnemingen WHERE tellingid = :tellingId ORDER BY tijdstip DESC")
-    fun getWaarnemingenFlow(tellingId: String): Flow<List<Waarneming>>
+    @Query("""
+        SELECT * FROM waarnemingen 
+        WHERE tellingid = :tellingId 
+           OR (:onlineId != '' AND tellingid = :onlineId)
+           OR (:onlineId != '' AND onlineid = :onlineId)
+           OR (:tellingId != '' AND onlineid = :tellingId)
+        ORDER BY CAST(tijdstip AS INTEGER) ASC, CAST(idLocal AS INTEGER) ASC
+    """)
+    fun getWaarnemingenFlow(tellingId: String, onlineId: String = ""): Flow<List<Waarneming>>
 
-    @Query("SELECT * FROM waarnemingen WHERE tellingid = :tellingId ORDER BY tijdstip DESC")
-    suspend fun getWaarnemingenList(tellingId: String): List<Waarneming>
+    @Query("""
+        SELECT * FROM waarnemingen 
+        WHERE tellingid = :tellingId 
+           OR (:onlineId != '' AND tellingid = :onlineId)
+           OR (:onlineId != '' AND onlineid = :onlineId)
+           OR (:tellingId != '' AND onlineid = :tellingId)
+        ORDER BY CAST(tijdstip AS INTEGER) ASC, CAST(idLocal AS INTEGER) ASC
+    """)
+    suspend fun getWaarnemingenList(tellingId: String, onlineId: String = ""): List<Waarneming>
 
     @Query("SELECT * FROM waarnemingen WHERE soortid = :soortId ORDER BY tijdstip DESC")
     suspend fun getWaarnemingenBySoort(soortId: String): List<Waarneming>

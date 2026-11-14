@@ -46,8 +46,9 @@ class TellingInitializer(
 
     /**
      * Load preselected species tiles from session state.
+     * @param isRestoreRequest Set to true when reopening or reconstructing an existing telling session from Room DB
      */
-    fun loadPreselection() {
+    fun loadPreselection(isRestoreRequest: Boolean = false) {
         activity.lifecycleScope.launch {
             try {
                 val dialog = ProgressDialogHelper.show(activity, "Soorten laden...")
@@ -65,9 +66,11 @@ class TellingInitializer(
                     }
 
                     if (initial.isEmpty()) {
-                        if (MasterClientPrefs.getMode(activity) == MasterClientPrefs.MODE_CLIENT) {
+                        // Bij een heropen/reconstructie verzoek mag het scherm NIET afgesloten worden,
+                        // omdat alle tegels en waarnemingen heropgebouwd worden vanuit Room DB.
+                        if (isRestoreRequest || MasterClientPrefs.getMode(activity) == MasterClientPrefs.MODE_CLIENT) {
                             onTilesLoaded?.invoke(emptyList())
-                            onLogMessage?.invoke("Clientmodus gestart - wachten op tegelsync van master.", "systeem")
+                            onLogMessage?.invoke("Sessie heropend - tegels worden opgebouwd uit Room DB.", "systeem")
                             dialog.dismiss()
                             checkAndRequestPermissions()
                             return@launch

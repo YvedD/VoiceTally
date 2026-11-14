@@ -305,6 +305,14 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("BsiDatacentrum", "Fout in BSI Pijplijn: ${e.message}", e)
                 writeLogToVt5Logs("PIPELINE_ERROR", "Fout in BSI Pijplijn: ${e.message}")
+                try {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(
+                        this@BsiDatacentrumActiviteit,
+                        "BsiDatacentrum",
+                        "Fout in BSI Pijplijn: ${e.message}",
+                        e
+                    )
+                } catch (_: Exception) {}
             } finally {
                 // Verberg de visuele progress dialoog
                 try { progressDialog.dismiss() } catch (_: Exception) {}

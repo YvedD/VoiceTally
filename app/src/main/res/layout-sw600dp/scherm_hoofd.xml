@@ -66,25 +66,45 @@
             <!-- ======================================================== -->
             <!-- VEREEENVOUDIGD STARTSCHERM: TELLING STARTEN KNOP (BOVEN) -->
             <!-- ======================================================== -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnVerder"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="450dp"
+            <FrameLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="32dp"
-                android:background="@drawable/vt5_btn_glass_primary"
-                android:text="TELLING STARTEN / HERVATTEN"
-                android:textColor="@color/vt5_white"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                app:backgroundTint="@null"
-                app:icon="@drawable/ic_action_add"
-                app:iconGravity="textStart"
-                app:iconPadding="12dp"
-                app:iconSize="28dp"
-                app:iconTint="@color/vt5_white"
-                app:rippleColor="#40D97A" />
+                android:layout_marginBottom="32dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVerder"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="450dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/vt5_btn_glass_primary"
+                    android:text="TELLING STARTEN / HERVATTEN"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null"
+                    app:icon="@drawable/ic_action_add"
+                    app:iconGravity="textStart"
+                    app:iconPadding="12dp"
+                    app:iconSize="28dp"
+                    app:iconTint="@color/vt5_white"
+                    app:rippleColor="#40D97A" />
+
+                <TextView
+                    android:id="@+id/badgeUnfinishedTellingen"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="-6dp"
+                    android:layout_marginEnd="-6dp"
+                    android:background="@drawable/vt5_badge_red"
+                    android:gravity="center"
+                    android:text="1"
+                    android:textColor="@color/vt5_white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <!-- ======================================================== -->
             <!-- INKLAPBAAR PANEL VOOR ALLE OVERIGE BEHEER EN INSTELLINGEN -->

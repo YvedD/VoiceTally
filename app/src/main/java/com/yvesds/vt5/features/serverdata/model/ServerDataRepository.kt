@@ -104,8 +104,6 @@ class ServerDataRepository(
 
             if (speciesList.isEmpty()) fileLogger.warn("Bestand 'species' is leeg of onleesbaar")
             if (sites.isEmpty()) fileLogger.warn("Bestand 'sites' is leeg of onleesbaar")
-            if (siteSpecies.isEmpty()) fileLogger.warn("Bestand 'site_species' is leeg of onleesbaar")
-            if (codes.isEmpty()) fileLogger.warn("Bestand 'codes' is leeg of onleesbaar")
 
             val (speciesById, speciesByCanonical) = ServerDataTransformer.transformSpecies(speciesList)
             val sitesById = ServerDataTransformer.transformSites(sites)

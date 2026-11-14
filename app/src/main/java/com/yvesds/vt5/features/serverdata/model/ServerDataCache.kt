@@ -145,7 +145,6 @@ object ServerDataCache {
                 val missing = mutableListOf<String>()
                 if (!snap.hasMetadataEssentials()) missing.add("Telposten/Codes")
                 if (!snap.hasSpeciesData()) missing.add("Soortenlijst")
-                if (snap.siteSpeciesBySite.isEmpty()) missing.add("Telpost-soorten mapping (site_species)")
                 
                 val errorMsg = "Volledige serverdata onvolledig. Ontbrekend: ${missing.joinToString(", ")}"
                 getLogger(context).warn(errorMsg)

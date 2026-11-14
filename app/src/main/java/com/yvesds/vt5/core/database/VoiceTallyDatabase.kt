@@ -81,9 +81,6 @@ abstract class VoiceTallyDatabase : RoomDatabase() {
                         db.execSQL("PRAGMA foreign_keys = ON")
                     }
                 })
-                // Use the new overload to explicitly indicate whether all tables should be dropped.
-                // Passing `true` preserves the previous behaviour (drop all tables) while avoiding the deprecated API.
-                .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance
                 instance

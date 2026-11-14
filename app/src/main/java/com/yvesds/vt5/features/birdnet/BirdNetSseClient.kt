@@ -65,6 +65,9 @@ object BirdNetSseClient {
             
             if (!response.isSuccessful) {
                 Log.e(TAG, "SSE verbinding mislukt (HTTP ${response.code})")
+                try {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(VT5App.instance, TAG, "SSE verbinding mislukt (HTTP ${response.code})")
+                } catch (_: Exception) {}
                 trySend(SseEvent.ConnectionError("HTTP ${response.code}"))
                 close()
                 return@callbackFlow
@@ -73,6 +76,9 @@ object BirdNetSseClient {
             val body = response.body
             if (body == null) {
                 Log.e(TAG, "SSE verbinding mislukt (Lege respons)")
+                try {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(VT5App.instance, TAG, "SSE verbinding mislukt (Lege respons)")
+                } catch (_: Exception) {}
                 trySend(SseEvent.ConnectionError("Lege respons"))
                 close()
                 return@callbackFlow

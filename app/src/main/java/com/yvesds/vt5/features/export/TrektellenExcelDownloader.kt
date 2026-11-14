@@ -164,6 +164,9 @@ class TrektellenExcelDownloader(private val context: Context) {
             if (!response.isSuccessful) {
                 val errorBody = response.body?.string().orEmpty()
                 Log.e("TrektellenExcelExport", "HTTP ${response.code} voor $expectedFilename: $errorBody")
+                try {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(context, "TrektellenExcelExport", "HTTP ${response.code} voor $expectedFilename: $errorBody")
+                } catch (_: Exception) {}
                 throw InvalidExcelResponseException("HTTP ${response.code}", errorBody)
             }
 

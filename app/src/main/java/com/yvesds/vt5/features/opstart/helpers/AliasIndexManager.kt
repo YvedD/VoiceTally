@@ -50,7 +50,6 @@ class AliasIndexManager(
             "protocolspecies.json",
             "site_heights.json",
             "site_locations.json",
-            "site_species.json",
             "sites.json",
             "species.json"
         )

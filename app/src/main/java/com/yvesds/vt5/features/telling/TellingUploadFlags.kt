@@ -1,6 +1,7 @@
 package com.yvesds.vt5.features.telling
 
 import android.content.Context
+import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.import.CsvImportPolicy
 
 /**
@@ -37,29 +38,29 @@ object TellingUploadFlags {
         val primaryKey = buildKey(tellingId, onlineId)
         if (primaryKey != null) {
             editor.putBoolean(primaryKey, false)
+            editor.remove(primaryKey)
         }
 
         val tid = tellingId?.trim().orEmpty()
         if (tid.isNotEmpty()) {
-            editor.putBoolean(KEY_PREFIX + tid + "_local", false)
+            val keyLocal = KEY_PREFIX + tid + "_local"
+            val keyBlank = KEY_PREFIX + tid + "_"
+            editor.putBoolean(keyLocal, false)
+            editor.putBoolean(keyBlank, false)
+            editor.remove(keyLocal)
+            editor.remove(keyBlank)
         }
 
         editor.apply()
     }
 
+    /**
+     * Razendsnelle, niet-blokkerende SharedPreferences controle (zonder runBlocking op Room DB).
+     */
     fun isSent(context: Context, tellingId: String?, onlineId: String?): Boolean {
         val tid = tellingId?.trim().orEmpty()
-
-        // GEBRUIKERSWENS: Gearchiveerde sessies (imports) moeten ook als 'verzonden' (groen/geblokkeerd) getoond worden
-        if (tid.isNotEmpty()) {
-            val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(context)
-            val header = kotlinx.coroutines.runBlocking {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    db.tellingDao().getHeader(tid)
-                }
-            }
-            if (header != null && CsvImportPolicy.isUploadBlocked(header.status, header.bron)) return true
-        }
+        val oid = onlineId?.trim().orEmpty()
+        if (tid.isEmpty() && oid.isEmpty()) return false
 
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -83,17 +84,22 @@ object TellingUploadFlags {
         return false
     }
 
+    /**
+     * Suspend variant die ook Room DB status controleert zonder threads te blokkeren.
+     */
+    suspend fun isSentSuspend(context: Context, header: TellingHeader): Boolean {
+        if (CsvImportPolicy.isUploadBlocked(header.status, header.bron)) return true
+        val statusNorm = TellingStatus.normalize(header.status)
+        if (statusNorm == TellingStatus.GEUPLOAD || statusNorm == TellingStatus.GEARCHIVEERD) return true
+        return isSent(context, header.tellingid, header.onlineid)
+    }
+
     fun isEdited(context: Context, tellingId: String?): Boolean {
         val tid = tellingId?.trim().orEmpty()
         if (tid.isEmpty()) return false
-
-        val db = com.yvesds.vt5.core.database.VoiceTallyDatabase.getDatabase(context)
-        val header = kotlinx.coroutines.runBlocking {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                db.tellingDao().getHeader(tid)
-            }
-        }
-        return TellingStatus.normalize(header?.status) == TellingStatus.EDITED
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val key = "telling_edited_$tid"
+        return prefs.getBoolean(key, false)
     }
 
     fun clearFlag(context: Context, tellingId: String?, onlineId: String?) {

@@ -52,11 +52,13 @@ object AliasStartupInitializer {
             var source = "assets"
             var master = AliasMasterIO.readMasterFromAssets(appContext, vt5Root)
 
-            if (master == null) {
+            // Forceer hergeneratie uit species.json als master ontbreekt of ouder is dan versie 2.2
+            if (master == null || master.version != "2.2") {
+                Log.i(TAG, "Hergeneratie van alias master uit species.json (versie update of ontbrekend)...")
                 runCatching {
-                    AliasManager.initialize(appContext, saf)
+                    AliasSeedGenerator.generateSeed(appContext, saf, vt5Root)
                 }.onFailure {
-                    Log.w(TAG, "AliasManager.initialize during startup rebuild failed: ${it.message}", it)
+                    Log.w(TAG, "AliasSeedGenerator.generateSeed mislukt bij opstarten: ${it.message}", it)
                 }
                 master = AliasMasterIO.readMasterFromAssets(appContext, vt5Root)
             }

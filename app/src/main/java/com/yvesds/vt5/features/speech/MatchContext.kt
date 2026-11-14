@@ -53,4 +53,12 @@ data class MatchContext(
             speciesById = emptyMap()
         )
     }
+
+    /**
+     * Effectieve toegestane soorten: valt automatisch terug op alle soorten uit species.json
+     * indien site_species.json leeg of afwezig is.
+     */
+    fun getEffectiveSiteAllowedIds(): Set<String> {
+        return if (siteAllowedIds.isNotEmpty()) siteAllowedIds else speciesById.keys
+    }
 }

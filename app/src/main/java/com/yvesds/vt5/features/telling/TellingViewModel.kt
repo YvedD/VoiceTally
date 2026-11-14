@@ -63,7 +63,7 @@ class TellingViewModel : ViewModel() {
     }
 
     /**
-     * Start observing records based on the selected storage mode.
+     * Observes records directly from Room DB flow for the active tellingId.
      */
     fun observeRecords(tellingId: String) {
         if (!::recordsBeheer.isInitialized) {
@@ -74,20 +74,22 @@ class TellingViewModel : ViewModel() {
         recordsCollectorJob?.cancel()
         recordsCollectorJob = viewModelScope.launch {
             try {
-                val mode = InstellingenScherm.getStorageMode(recordsBeheer.getContext())
-                fileLogger.info("TellingViewModel: Start observatie (Modus: $mode, Telling: $tellingId)")
+                fileLogger.info("TellingViewModel: Start observatie uit Room DB (Telling: $tellingId)")
                 
-                if (mode == InstellingenScherm.STORAGE_MODE_ROOM) {
-                    hybridRepository.getWaarnemingenFlow(tellingId).collect { roomRecords ->
-                        _pendingRecords.postValue(roomRecords.map { it.toServerItem() })
-                    }
-                } else {
-                    recordsBeheer.pendingRecordsFlow.collect { list ->
-                        _pendingRecords.postValue(list)
-                    }
+                hybridRepository.getWaarnemingenFlow(tellingId).collect { roomRecords ->
+                    val items = roomRecords.map { it.toServerItem() }
+                    _pendingRecords.postValue(items)
                 }
             } catch (e: Exception) {
                 fileLogger.error("TellingViewModel: Fout bij observeren records: ${e.message}")
+                try {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(
+                        recordsBeheer.getContext(),
+                        "TellingViewModel",
+                        "Fout bij observeren records uit Room DB voor [$tellingId]: ${e.message}",
+                        e
+                    )
+                } catch (_: Exception) {}
             }
         }
     }

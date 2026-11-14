@@ -5,6 +5,9 @@ import android.media.MediaPlayer
 import android.os.VibrationEffect
 import android.os.VibratorManager
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * AlarmSoundHelper
@@ -79,6 +82,11 @@ object AlarmSoundHelper {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Fout bij afspelen alarm geluid: ${e.message}", e)
+                try {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        com.yvesds.vt5.core.opslag.ErrorLogger.logError(context, TAG, "Fout bij afspelen alarm geluid: ${e.message}", e)
+                    }
+                } catch (_: Exception) {}
             }
         }
     }

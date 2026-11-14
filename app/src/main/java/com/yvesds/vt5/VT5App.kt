@@ -43,6 +43,14 @@ class VT5App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Registreer de GlobalCrashHandler voor het synchroon opvangen van alle fatale crashes
+        try {
+            com.yvesds.vt5.core.opslag.GlobalCrashHandler.register(this)
+        } catch (ex: Exception) {
+            Log.e(TAG, "Kon GlobalCrashHandler niet registreren: ${ex.message}", ex)
+        }
+
         try {
             MatchLogWriter.start(this)
         } catch (ex: Exception) {
@@ -92,8 +100,15 @@ class VT5App : Application() {
         appScope.launch {
             try {
                 val saf = SaFStorageHelper(applicationContext)
-                // Snelle IO-controle: raak de VT5-directorystatus één keer aan op IO voordat je CPU-zware preloads plaatst.
-                withContext(Dispatchers.IO) { saf.getVt5DirIfExists() }
+                // Snelle IO-controle en automatische opschoning van oude/verzonden errorlogs
+                withContext(Dispatchers.IO) {
+                    saf.getVt5DirIfExists()
+                    try {
+                        saf.cleanupErrorLogsDirSuspend()
+                    } catch (cleanEx: Exception) {
+                        Log.w(TAG, "Automatische opruimronde van errorlogs mislukt: ${cleanEx.message}")
+                    }
+                }
 
                 // Voer index-preloads uit op Default zodat CPU-gebonden werk Default threads gebruikt.
                 // Opmerking: ensureLoaded ensureIndexLoadedSuspend intern gebruik de juiste dispatchers

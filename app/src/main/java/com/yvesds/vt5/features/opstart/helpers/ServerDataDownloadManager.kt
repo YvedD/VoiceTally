@@ -131,6 +131,9 @@ class ServerDataDownloadManager(
             
         } catch (e: Exception) {
             Log.e(TAG, "Error during download: ${e.message}", e)
+            try {
+                com.yvesds.vt5.core.opslag.ErrorLogger.logError(context, TAG, "Fout bij downloaden van serverdata: ${e.message}", e)
+            } catch (_: Exception) {}
             DownloadResult.Failure(e.message ?: "Onbekende fout bij downloaden")
         }
     }

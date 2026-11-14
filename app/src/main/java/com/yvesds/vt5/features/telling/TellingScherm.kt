@@ -398,10 +398,7 @@ class TellingScherm : AppCompatActivity() {
                     }
 
                     if (currentTellingId.isNotBlank()) {
-                        val mode = InstellingenScherm.getStorageMode(this@TellingScherm)
-                        if (!explicitRestoreOnStart &&
-                            (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL)
-                        ) {
+                        if (!explicitRestoreOnStart) {
                             viewModel.observeRecords(currentTellingId)
                         }
                         viewModel.loadBaseEnvelope(currentTellingId)
@@ -432,7 +429,8 @@ class TellingScherm : AppCompatActivity() {
         }
 
         // Preload tiles (if preselected) then initialize ASR
-        initializer.loadPreselection()
+        val isRestoreOnStart = intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true
+        initializer.loadPreselection(isRestoreRequest = isRestoreOnStart)
 
         // Check if direction aliases need training
         checkDirectionAliases()
@@ -649,8 +647,9 @@ class TellingScherm : AppCompatActivity() {
 
         // Initializer callbacks
         initializer.onTilesLoaded = { tiles ->
-            if (restoredFromSavedEnvelope && synchronized(pendingRecords) { pendingRecords.isNotEmpty() }) {
-                Log.i(TAG, "Skipping preselection tile reset because an existing telling was restored")
+            val isRestoring = historicalReopenSession || restoredFromSavedEnvelope || intent?.getBooleanExtra(EXTRA_RESTORE_PENDING_TELLING, false) == true
+            if (isRestoring) {
+                Log.i(TAG, "Skipping preselection tile reset because an existing telling is being restored")
             } else {
                 tegelBeheer.setTiles(tiles)
                 refreshDailyObservationOrdering()
@@ -689,6 +688,11 @@ class TellingScherm : AppCompatActivity() {
         birdNetDetectionAdapter = uiManager.getBirdNetAdapter()
         birdNetDetectionAdapter.onDetectionAddedToCount = { detection ->
             addBirdNetDetectionToCount(detection)
+        }
+
+        // Zorg dat reeds herstelde tegels direct aan de adapter worden doorgegeven
+        if (::tegelBeheer.isInitialized && tegelBeheer.getTiles().isNotEmpty()) {
+            refreshTileRows(tegelBeheer.getTiles())
         }
 
         // Setup callbacks for UI manager
@@ -1729,6 +1733,8 @@ class TellingScherm : AppCompatActivity() {
                     if (records.isNotEmpty()) {
                         envelopePersistence.saveEnvelopeWithRecords(records)
                     }
+                    val db = VoiceTallyDatabase.getDatabase(this@TellingScherm)
+                    db.openHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(PASSIVE)")
                 } catch (ex: Exception) {
                     Log.w(TAG, "Envelope persistence failed onPause: ${ex.message}", ex)
                 }
@@ -2275,9 +2281,16 @@ class TellingScherm : AppCompatActivity() {
                 return true
             }
 
-            suspend fun tryRestoreFromRoom(candidateTellingId: String): Boolean {
-                val header = withContext(Dispatchers.IO) { dao.getHeader(candidateTellingId) } ?: return false
-                val roomRecords = withContext(Dispatchers.IO) { dao.getWaarnemingenList(candidateTellingId) }
+            suspend fun tryRestoreFromRoom(candidateTellingId: String, candidateOnlineId: String = ""): Boolean {
+                val header = withContext(Dispatchers.IO) {
+                    dao.getHeader(candidateTellingId)
+                        ?: if (candidateOnlineId.isNotBlank()) dao.getHeader(candidateOnlineId) else null
+                } ?: return false
+
+                val effectiveTid = header.tellingid
+                val effectiveOid = if (candidateOnlineId.isNotBlank()) candidateOnlineId else header.onlineid
+                val roomRecords = withContext(Dispatchers.IO) { dao.getWaarnemingenList(effectiveTid, effectiveOid) }
+
                 savedRecords = roomRecords.map { it.toServerItem() }
                 restoredEnvelope = header.toServerEnvelope(roomRecords)
                 tellingId = header.tellingid
@@ -2287,19 +2300,21 @@ class TellingScherm : AppCompatActivity() {
                 return true
             }
 
-            if (explicitRestoreRequest && tellingId.isNotBlank()) {
-                tryRestoreFromPrefsEnvelope(tellingId)
+            // Primair inlezen rechtstreeks uit Room DB op basis van tellingId én onlineId (countid)
+            if (tellingId.isNotBlank()) {
+                tryRestoreFromRoom(tellingId, onlineId)
             }
 
-            if (savedRecords.isEmpty() && tellingId.isNotBlank()) {
-                tryRestoreFromRoom(tellingId)
+            if (savedRecords.isEmpty() && explicitRestoreRequest && tellingId.isNotBlank()) {
+                tryRestoreFromPrefsEnvelope(tellingId)
             }
 
             if (savedRecords.isEmpty()) {
                 val prefTellingId = prefs.getString("pref_telling_id", "").orEmpty().trim()
+                val prefOnlineId = prefs.getString("pref_online_id", "").orEmpty().trim()
                 if (prefTellingId.isNotBlank() && prefTellingId != tellingId) {
                     if (!explicitRestoreRequest) {
-                        tryRestoreFromRoom(prefTellingId)
+                        tryRestoreFromRoom(prefTellingId, prefOnlineId)
                     }
                     if (savedRecords.isEmpty()) {
                         tryRestoreFromPrefsEnvelope(prefTellingId)
@@ -2323,7 +2338,24 @@ class TellingScherm : AppCompatActivity() {
                 }
             }
 
-            if (tellingId.isBlank() || savedRecords.isEmpty()) return
+            // Automatische Fallback-Scanner voor .txt/.json bestanden in Documents/VT5/exports/
+            if (savedRecords.isEmpty() && (tellingId.isNotBlank() || onlineId.isNotBlank())) {
+                val recoveredFromExports = tryRecoverFromExportsFolder(tellingId, onlineId)
+                if (recoveredFromExports.isNotEmpty()) {
+                    savedRecords = recoveredFromExports
+                    if (tellingId.isBlank() && recoveredFromExports.firstOrNull()?.tellingid?.isNotBlank() == true) {
+                        tellingId = recoveredFromExports.first().tellingid
+                    }
+                }
+            }
+
+            if (tellingId.isBlank()) return
+
+            // Sorteer de opgeslagen waarnemingen chronologisch op tijdstip / idLocal
+            savedRecords = savedRecords.sortedWith(
+                compareBy<ServerTellingDataItem> { it.tijdstip.toLongOrNull() ?: 0L }
+                    .thenBy { it.idLocal.toLongOrNull() ?: 0L }
+            )
 
             val restoredSpeciesIds = savedRecords
                 .asSequence()
@@ -2357,39 +2389,42 @@ class TellingScherm : AppCompatActivity() {
                 SoortTile(soortId, soortNaam, countMain, countReturn)
             }.sortedBy { it.naam.lowercase() }
 
-            if (restoredTiles.isNotEmpty()) {
-                tegelBeheer.setTiles(restoredTiles)
-                updateSelectedSpeciesMap()
-            }
-            ensureTilesExistForRecords(savedRecords)
-            tegelBeheer.recalculateCountsFromRecords(savedRecords)
-
-            // Restore pending records and reflect to ViewModel
-            synchronized(pendingRecords) {
-                pendingRecords.clear()
-                pendingRecords.addAll(savedRecords)
-            }
-            if (::viewModel.isInitialized) {
-                viewModel.setPendingRecords(savedRecords)
-                restoredEnvelope?.let { envelope ->
-                    viewModel.setBaseEnvelope(envelope.copy(data = savedRecords))
+            withContext(Dispatchers.Main) {
+                if (restoredTiles.isNotEmpty()) {
+                    tegelBeheer.setTiles(restoredTiles)
+                    updateSelectedSpeciesMap()
                 }
-            }
-            savedRecords.forEach { syncDailyTotalsRecord(it) }
-            savedRecords.forEach { syncDailyObservationRecord(it, refreshOrder = false) }
-            refreshDailyObservationOrdering()
+                ensureTilesExistForRecords(savedRecords)
+                tegelBeheer.recalculateCountsFromRecords(savedRecords)
+                refreshTileRows(tegelBeheer.getTiles())
 
-            // Restore finals log from records (partials remain empty)
-            val restoredFinals = savedRecords.map { rec ->
-                buildFinalObservationRow(rec)
-            }
-            logManager.setFinals(restoredFinals)
-            logManager.setPartials(emptyList())
-            uiManager.updateFinals(restoredFinals)
-            uiManager.updatePartials(emptyList())
-            if (::viewModel.isInitialized) {
-                viewModel.setFinals(restoredFinals)
-                viewModel.setPartials(emptyList())
+                // Restore pending records and reflect to ViewModel
+                synchronized(pendingRecords) {
+                    pendingRecords.clear()
+                    pendingRecords.addAll(savedRecords)
+                }
+                if (::viewModel.isInitialized) {
+                    viewModel.setPendingRecords(savedRecords)
+                    restoredEnvelope?.let { envelope ->
+                        viewModel.setBaseEnvelope(envelope.copy(data = savedRecords))
+                    }
+                }
+                savedRecords.forEach { syncDailyTotalsRecord(it) }
+                savedRecords.forEach { syncDailyObservationRecord(it, refreshOrder = false) }
+                refreshDailyObservationOrdering()
+
+                // Restore finals log from records (partials remain empty)
+                val restoredFinals = savedRecords.map { rec ->
+                    buildFinalObservationRow(rec)
+                }
+                logManager.setFinals(restoredFinals)
+                logManager.setPartials(emptyList())
+                uiManager.updateFinals(restoredFinals)
+                uiManager.updatePartials(emptyList())
+                if (::viewModel.isInitialized) {
+                    viewModel.setFinals(restoredFinals)
+                    viewModel.setPartials(emptyList())
+                }
             }
 
             prefs.edit()
@@ -2421,10 +2456,7 @@ class TellingScherm : AppCompatActivity() {
             }
 
             if (explicitRestoreRequest && ::viewModel.isInitialized) {
-                val mode = InstellingenScherm.getStorageMode(this)
-                if (mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL) {
-                    viewModel.observeRecords(tellingId)
-                }
+                viewModel.observeRecords(tellingId)
             }
 
             if (explicitRestoreRequest) {
@@ -2435,7 +2467,139 @@ class TellingScherm : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.pending_telling_restored), Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             Log.w(TAG, "restorePendingTellingIfAvailable failed: ${e.message}", e)
+            try {
+                com.yvesds.vt5.core.opslag.ErrorLogger.logError(
+                    this,
+                    TAG,
+                    "Heropenen/herstellen van telling [$forcedTellingId] mislukt: ${e.message}",
+                    e
+                )
+            } catch (_: Exception) {}
         }
+    }
+
+    private suspend fun tryRecoverFromExportsFolder(tid: String, oid: String): List<ServerTellingDataItem> = withContext(Dispatchers.IO) {
+        val items = mutableListOf<ServerTellingDataItem>()
+        try {
+            val exportsDir = safHelper.getExportsDirSuspend() ?: return@withContext emptyList()
+            val files = exportsDir.listFiles().filter { it.isFile }
+            val tidClean = tid.trim()
+            val oidClean = oid.trim()
+            val dao = VoiceTallyDatabase.getDatabase(this@TellingScherm).tellingDao()
+
+            for (file in files) {
+                val name = file.name ?: continue
+                if (!name.endsWith(".txt") && !name.endsWith(".json")) continue
+
+                val text = contentResolver.openInputStream(file.uri)?.use {
+                    it.bufferedReader(Charsets.UTF_8).readText()
+                } ?: continue
+
+                if (text.isBlank()) continue
+
+                var matchFound = false
+                if (tidClean.isNotBlank() && (text.contains("TellingId: $tidClean", ignoreCase = true) || text.contains("tellingid=$tidClean", ignoreCase = true))) {
+                    matchFound = true
+                }
+                if (!matchFound && oidClean.isNotBlank() && (text.contains("Onlineid: $oidClean", ignoreCase = true) || text.contains("onlineid=$oidClean", ignoreCase = true))) {
+                    matchFound = true
+                }
+
+                if (!matchFound) continue
+
+                val parsed = parseTxtBackupRecordItem(text) ?: continue
+                items.add(parsed)
+
+                val effectiveTid = parsed.tellingid.ifBlank { tidClean }
+                val effectiveOid = oidClean
+
+                // Re-insert into Room DB so Room DB is healed
+                val entity = com.yvesds.vt5.core.database.entities.Waarneming(
+                    idLocal = parsed.idLocal,
+                    tellingid = effectiveTid,
+                    onlineid = effectiveOid,
+                    soortid = parsed.soortid,
+                    aantal = parsed.aantal,
+                    richting = parsed.richting,
+                    aantalterug = parsed.aantalterug,
+                    richtingterug = parsed.richtingterug,
+                    sightingdirection = parsed.sightingdirection,
+                    lokaal = parsed.lokaal,
+                    geslacht = parsed.geslacht,
+                    leeftijd = parsed.leeftijd,
+                    kleed = parsed.kleed,
+                    opmerkingen = parsed.opmerkingen,
+                    tijdstip = parsed.tijdstip
+                )
+                dao.insertWaarneming(entity)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "tryRecoverFromExportsFolder failed: ${e.message}")
+        }
+        return@withContext items
+    }
+
+    private fun parseTxtBackupRecordItem(text: String): ServerTellingDataItem? {
+        if (text.isBlank()) return null
+        val jsonParsed = runCatching {
+            VT5App.json.decodeFromString(ServerTellingDataItem.serializer(), text)
+        }.getOrNull()
+        if (jsonParsed != null && jsonParsed.idLocal.isNotBlank()) return jsonParsed
+
+        try {
+            var tellingId = ""
+            var onlineId = ""
+            var idLocal = ""
+            var soortId = ""
+            var aantal = "0"
+            var aantalterug = "0"
+            var timestamp = ""
+            var groupId = ""
+
+            val lines = text.lines()
+            for (line in lines) {
+                val trimmed = line.trim()
+                when {
+                    trimmed.startsWith("TellingId:", ignoreCase = true) -> tellingId = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Onlineid:", ignoreCase = true) -> onlineId = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("IdLocal:", ignoreCase = true) -> idLocal = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("SoortId:", ignoreCase = true) -> soortId = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Aantal:", ignoreCase = true) -> aantal = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Aantal terug:", ignoreCase = true) -> aantalterug = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Timestamp:", ignoreCase = true) -> timestamp = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("GroupId:", ignoreCase = true) -> groupId = trimmed.substringAfter(":").trim()
+                }
+            }
+
+            if (idLocal.isBlank() && text.contains("idLocal=")) {
+                idLocal = text.substringAfter("idLocal=").substringBefore(",").trim()
+            }
+            if (tellingId.isBlank() && text.contains("tellingid=")) {
+                tellingId = text.substringAfter("tellingid=").substringBefore(",").trim()
+            }
+            if (soortId.isBlank() && text.contains("soortid=")) {
+                soortId = text.substringAfter("soortid=").substringBefore(",").trim()
+            }
+            if (timestamp.isBlank() && text.contains("tijdstip=")) {
+                timestamp = text.substringAfter("tijdstip=").substringBefore(",").trim()
+            }
+            if (aantalterug.isBlank() && text.contains("aantalterug=")) {
+                aantalterug = text.substringAfter("aantalterug=").substringBefore(",").trim()
+            }
+
+            if (idLocal.isNotBlank() && (tellingId.isNotBlank() || onlineId.isNotBlank())) {
+                return ServerTellingDataItem(
+                    idLocal = idLocal,
+                    tellingid = tellingId,
+                    soortid = soortId,
+                    aantal = aantal,
+                    aantalterug = aantalterug,
+                    tijdstip = timestamp,
+                    groupid = groupId.ifBlank { idLocal }
+                )
+            }
+        } catch (_: Exception) {}
+        return null
     }
 
     private fun setupMasterClientSupport() {
@@ -3619,6 +3783,9 @@ class TellingScherm : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             hybridRepository.saveWaarnemingToRoom(item, force = true)
             markSessionEditedInRoomAsync()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@TellingScherm, getString(R.string.telling_alias_saved_observation), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

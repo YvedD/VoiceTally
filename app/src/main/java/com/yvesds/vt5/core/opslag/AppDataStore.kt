@@ -25,6 +25,7 @@ object AppDataStore {
     private val KEY_UPDATE_LATEST_VERSION = stringPreferencesKey("app_update_latest_version")
     private val KEY_UPDATE_LATEST_URL = stringPreferencesKey("app_update_latest_url")
     private val KEY_UPDATE_LATEST_SHA256 = stringPreferencesKey("app_update_latest_sha256")
+    private val KEY_UPDATE_LATEST_UPDATED_AT = stringPreferencesKey("app_update_latest_updated_at")
     private val KEY_UPDATE_LAST_CHECK_AT = longPreferencesKey("app_update_last_check_at")
     private val KEY_UPDATE_LAST_PROMPTED_VERSION = stringPreferencesKey("app_update_last_prompted_version")
     private val KEY_DEFAULT_TELPOST_ID = stringPreferencesKey("default_telpost_id")
@@ -32,6 +33,8 @@ object AppDataStore {
     private val KEY_SKIP_SPECIES_SELECTION = booleanPreferencesKey("skip_species_selection")
     private val KEY_LAST_TELLING_DATE = stringPreferencesKey("last_telling_date")
     private val KEY_LAST_TELLING_TELPOST_ID = stringPreferencesKey("last_telling_telpost_id")
+    private val KEY_EMAIL_ERROR_REPORTING_ENABLED = booleanPreferencesKey("email_error_reporting_enabled")
+    private val KEY_ERROR_REPORTING_EMAIL = stringPreferencesKey("error_reporting_email")
     private const val PREFIX_RECORD_ID = "next_record_id_"
 
     data class UpdateSnapshot(
@@ -39,6 +42,7 @@ object AppDataStore {
         val latestVersion: String?,
         val latestUrl: String?,
         val latestSha256: String?,
+        val latestUpdatedAtIso: String?,
         val lastCheckedAt: Long
     )
 
@@ -159,6 +163,7 @@ object AppDataStore {
         latestVersion: String?,
         latestUrl: String?,
         latestSha256: String?,
+        latestUpdatedAtIso: String? = null,
         checkedAt: Long
     ) {
         context.dataStore.edit { prefs ->
@@ -166,6 +171,7 @@ object AppDataStore {
             if (latestVersion.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_VERSION) else prefs[KEY_UPDATE_LATEST_VERSION] = latestVersion
             if (latestUrl.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_URL) else prefs[KEY_UPDATE_LATEST_URL] = latestUrl
             if (latestSha256.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_SHA256) else prefs[KEY_UPDATE_LATEST_SHA256] = latestSha256
+            if (latestUpdatedAtIso.isNullOrBlank()) prefs.remove(KEY_UPDATE_LATEST_UPDATED_AT) else prefs[KEY_UPDATE_LATEST_UPDATED_AT] = latestUpdatedAtIso
             prefs[KEY_UPDATE_LAST_CHECK_AT] = checkedAt
         }
     }
@@ -177,6 +183,7 @@ object AppDataStore {
                 latestVersion = prefs[KEY_UPDATE_LATEST_VERSION],
                 latestUrl = prefs[KEY_UPDATE_LATEST_URL],
                 latestSha256 = prefs[KEY_UPDATE_LATEST_SHA256],
+                latestUpdatedAtIso = prefs[KEY_UPDATE_LATEST_UPDATED_AT],
                 lastCheckedAt = prefs[KEY_UPDATE_LAST_CHECK_AT] ?: 0L
             )
         }.first()
@@ -250,6 +257,30 @@ object AppDataStore {
             lastTelpost
         } else {
             prefs[KEY_DEFAULT_TELPOST_ID]
+        }
+    }
+
+    // ========================================================================
+    // ERROR REPORTING VIA EMAIL SETTINGS
+    // ========================================================================
+
+    suspend fun isErrorReportingEmailEnabled(context: Context): Boolean {
+        return context.dataStore.data.first()[KEY_EMAIL_ERROR_REPORTING_ENABLED] ?: false
+    }
+
+    suspend fun setErrorReportingEmailEnabled(context: Context, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_EMAIL_ERROR_REPORTING_ENABLED] = enabled
+        }
+    }
+
+    suspend fun getErrorReportingEmail(context: Context): String {
+        return context.dataStore.data.first()[KEY_ERROR_REPORTING_EMAIL] ?: ""
+    }
+
+    suspend fun setErrorReportingEmail(context: Context, email: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_ERROR_REPORTING_EMAIL] = email.trim()
         }
     }
 }

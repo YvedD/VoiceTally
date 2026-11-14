@@ -57,7 +57,7 @@ class SaFStorageHelper(private val context: Context) {
         val rootTree = getRootUri() ?: return false
         val rootDoc = DocumentFile.fromTreeUri(context, rootTree) ?: return false
         val vt5 = rootDoc.findFile("VT5")?.takeIf { it.isDirectory } ?: return false
-        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports", "AI-models")
+        val expected = setOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports", "AI-models", "errorlogs")
         val present = vt5.listFiles().filter { it.isDirectory }.mapNotNull { it.name }.toSet()
         return expected.all { it in present }
     }
@@ -79,7 +79,7 @@ class SaFStorageHelper(private val context: Context) {
 
         val vt5Folder = findOrCreateDirectory(rootDoc, "VT5") ?: return false
 
-        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports", "AI-models")
+        val subfolders = listOf("assets", "serverdata", "counts", "exports", "binaries", "logs", "imports", "AI-models", "errorlogs")
         for (name in subfolders) {
             val dir = findOrCreateDirectory(vt5Folder, name) ?: return false
             if (name == "AI-models") {
@@ -565,11 +565,103 @@ class SaFStorageHelper(private val context: Context) {
         getExportsCleanupCount(keepCount)
     }
 
+    // ========================================================================
+    // ERRORLOGS DIRECTORY HELPERS & AUTOMATED CLEANUP
+    // ========================================================================
+
+    /**
+     * Haal de errorlogs-map (Documents/VT5/errorlogs) op als die bestaat of maak deze aan.
+     */
+    fun getErrorLogsDir(): DocumentFile? {
+        val vt5Dir = getVt5DirIfExists() ?: return null
+        return vt5Dir.findFile(ERRORLOGS_DIR)?.takeIf { it.isDirectory }
+            ?: vt5Dir.createDirectory(ERRORLOGS_DIR)
+    }
+
+    /**
+     * Suspend variant van getErrorLogsDir().
+     */
+    suspend fun getErrorLogsDirSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
+        getErrorLogsDir()
+    }
+
+    /**
+     * Vermeld alle bestanden in de errorlogs-map.
+     */
+    fun listErrorLogsFiles(): List<DocumentFile> {
+        val errorLogsDir = getErrorLogsDir() ?: return emptyList()
+        return errorLogsDir.listFiles().filter { it.isFile }
+    }
+
+    /**
+     * Suspend variant van listErrorLogsFiles().
+     */
+    suspend fun listErrorLogsFilesSuspend(): List<DocumentFile> = withContext(Dispatchers.IO) {
+        listErrorLogsFiles()
+    }
+
+    /**
+     * Voer periodieke opruiming uit in Documents/VT5/errorlogs:
+     * 1. Verwijder alle bestanden die gemarkeerd staan als verzonden (*.sent.log).
+     * 2. Verwijder onverzonden bestanden ouder dan maxAgeDays (standaard 30 dagen).
+     * 3. Beperk het aantal onverzonden bestanden tot maxUnsentFiles (standaard 20 via FIFO).
+     * 
+     * @return Pair<Int, Int> - (aantal verwijderde bestanden, aantal niet-verwijderde bestanden)
+     */
+    fun cleanupErrorLogsDir(maxAgeDays: Int = 30, maxUnsentFiles: Int = 20): Pair<Int, Int> {
+        val errorLogsDir = getErrorLogsDir() ?: return Pair(0, 0)
+        val files = errorLogsDir.listFiles().filter { it.isFile }
+        if (files.isEmpty()) return Pair(0, 0)
+
+        var deleted = 0
+        var failed = 0
+        val now = System.currentTimeMillis()
+        val maxAgeMs = maxAgeDays.toLong() * 24 * 60 * 60 * 1000
+
+        val unsentFiles = mutableListOf<DocumentFile>()
+
+        for (file in files) {
+            val name = file.name ?: ""
+            val lastMod = file.lastModified()
+            val ageMs = if (lastMod > 0) now - lastMod else 0
+
+            // 1. Verwijder bestanden met status SENT (*.sent.log) direct
+            if (name.contains(".sent.")) {
+                if (file.delete()) deleted++ else failed++
+            }
+            // 2. Verwijder bestanden ouder dan maxAgeDays
+            else if (maxAgeMs > 0 && ageMs > maxAgeMs) {
+                if (file.delete()) deleted++ else failed++
+            } else {
+                unsentFiles.add(file)
+            }
+        }
+
+        // 3. Beperk aantal onverzonden bestanden (FIFO op basis van lastModified)
+        if (unsentFiles.size > maxUnsentFiles) {
+            val sortedByOldest = unsentFiles.sortedBy { it.lastModified() }
+            val overflowCount = unsentFiles.size - maxUnsentFiles
+            for (i in 0 until overflowCount) {
+                if (sortedByOldest[i].delete()) deleted++ else failed++
+            }
+        }
+
+        return Pair(deleted, failed)
+    }
+
+    /**
+     * Suspend variant van cleanupErrorLogsDir() (draait op Dispatchers.IO).
+     */
+    suspend fun cleanupErrorLogsDirSuspend(maxAgeDays: Int = 30, maxUnsentFiles: Int = 20): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        cleanupErrorLogsDir(maxAgeDays, maxUnsentFiles)
+    }
+
     companion object {
         private const val SERVERDATA_DIR = "serverdata"
-    private const val COUNTS_DIR = "counts"
+        private const val COUNTS_DIR = "counts"
         private const val EXPORTS_DIR = "exports"
         private const val IMPORTS_DIR = "imports"
+        private const val ERRORLOGS_DIR = "errorlogs"
         private const val PREFS_NAME = "saf_storage_prefs"
         private const val KEY_ROOT_URI = "root_tree_uri"
 

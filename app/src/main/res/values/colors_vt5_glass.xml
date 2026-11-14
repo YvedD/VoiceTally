@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Officiële VT5 Glassmorphic Design System Kleuren -->
+    <color name="vt5_glass_overlay_bg">#85080E14</color>
+    <color name="vt5_glass_card_bg">#CC121A24</color>
+    <color name="vt5_glass_subcard_bg">#990E141D</color>
+    <color name="vt5_glass_cyan_stroke">#227CAF</color>
+    <color name="vt5_glass_title_text">#FFFFFF</color>
+    <color name="vt5_glass_subtitle_text">#B0BEC5</color>
+    <color name="vt5_glass_accent_text">#227CAF</color>
+</resources>

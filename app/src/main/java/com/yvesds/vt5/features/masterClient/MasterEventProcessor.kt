@@ -113,6 +113,9 @@ class MasterEventProcessor {
             AckMessage(clientEventId = event.clientEventId, success = true)
         } catch (e: Exception) {
             Log.e(TAG, "processEvent fout: ${e.message}", e)
+            try {
+                com.yvesds.vt5.core.opslag.ErrorLogger.logError(VT5App.instance, TAG, "MasterEventProcessor fout: ${e.message}", e)
+            } catch (_: Exception) {}
             AckMessage(
                 clientEventId = event.clientEventId,
                 success       = false,

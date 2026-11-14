@@ -173,6 +173,11 @@ class SpeechRecognitionManager(private val activity: Activity) {
             speechRecognizer?.startListening(intent)
         } catch (e: Exception) {
             Log.e(TAG, "Error starting speech recognition: ${e.message}", e)
+            try {
+                parsingScope.launch {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(activity.applicationContext, TAG, "Fout bij starten van spraakherkenning: ${e.message}", e)
+                }
+            } catch (_: Exception) {}
             isListening = false
         }
     }

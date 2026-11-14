@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="560dp"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    app:cardBackgroundColor="@color/vt5_glass_card_bg"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="16dp"
+    app:strokeColor="@color/vt5_glass_cyan_stroke"
+    app:strokeWidth="1.5dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="28dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚠️"
+                android:textSize="26sp" />
+
+            <TextView
+                android:id="@+id/tvFloatingTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:text="Onafgewerkte Tellingen Gevonden"
+                android:textColor="@color/vt5_white"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvFloatingSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="20dp"
+            android:text="Er staan nog niet-geüploade tellingen in het geheugen. Kies een telling om te hervatten:"
+            android:textColor="@color/vt5_on_surface"
+            android:textSize="15sp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxHeight="460dp">
+
+            <LinearLayout
+                android:id="@+id/containerFloatingCards"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMarkAllCompletedAndStartNew"
+            style="@style/Widget.VT5.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:paddingVertical="12dp"
+            android:text="ALLES MARKEREN ALS AFGEWERKT &amp; NIEUWE STARTEN"
+            android:textColor="#227CAF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:strokeColor="#227CAF"
+            app:strokeWidth="1.5dp" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -24,23 +24,20 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
 
 /**
- * AliasSeedGenerator: Generates initial alias master from species data.
+ * AliasSeedGenerator: Generates initial alias master directly from species.json (Single Source of Truth).
  * 
  * Responsibilities:
- * - Read site_species.json from SAF
- * - Parse species IDs and names
- * - Generate phonetic encodings
- * - Build initial AliasMaster seed
+ * - Read all master species from species.json (or ServerDataCache)
+ * - Generate phonetic encodings for every species
+ * - Build initial AliasMaster seed containing all global species
  * - Write master and CBOR to SAF
- * 
- * This is used during first install or when regenerating the index.
  */
 object AliasSeedGenerator {
     
     private const val TAG = "AliasSeedGenerator"
     
     /**
-     * Generate seed from species.json in serverdata directory.
+     * Generate seed directly from species.json in serverdata directory.
      * Writes the resulting master to SAF assets and CBOR to binaries.
      */
     suspend fun generateSeed(
@@ -56,57 +53,15 @@ object AliasSeedGenerator {
                 return@withContext
             }
             
-            // List contents for diagnostics
-            kotlin.runCatching {
-                val present = serverDir.listFiles().mapNotNull { it.name }
-                Log.i(TAG, "serverdata contains: ${present.joinToString(", ")}")
-            }
-            
-            // Tolerant lookup for site_species file
-            val siteSpeciesFile = serverDir.listFiles().firstOrNull { doc ->
-                val nm = doc.name?.lowercase() ?: return@firstOrNull false
-                nm == "site_species.json" || nm == "site_species" || nm.startsWith("site_species")
-            }
-            
-            if (siteSpeciesFile == null) {
-                Log.w(TAG, "No site_species file found in serverdata")
-                return@withContext
-            } else {
-                Log.i(TAG, "Using site_species file: ${siteSpeciesFile.name}")
-            }
-            
-            // Read site_species content
-            val siteBytes: ByteArray? = kotlin.runCatching {
-                context.contentResolver.openInputStream(siteSpeciesFile.uri)?.use { it.readBytes() }
-            }.getOrNull()
-            
-            if (siteBytes == null || siteBytes.isEmpty()) {
-                Log.w(TAG, "site_species file is empty or could not be read")
-                return@withContext
-            }
-            
-            // Strip BOM if present
-            val bytesNoBom = if (siteBytes.size >= 3 && 
-                siteBytes[0] == 0xEF.toByte() && 
-                siteBytes[1] == 0xBB.toByte() && 
-                siteBytes[2] == 0xBF.toByte()) {
-                siteBytes.copyOfRange(3, siteBytes.size)
-            } else siteBytes
-            
-            val text = bytesNoBom.toString(Charsets.UTF_8).trim()
-            
-            // Parse species IDs
-            val siteSpeciesIds = parseSiteSpeciesIds(text)
-            if (siteSpeciesIds.isEmpty()) {
-                Log.w(TAG, "No site_species entries found — aborting seed generation")
-                return@withContext
-            }
-            
-            // Load species map
+            // Load all species from species.json (Single Source of Truth)
             val speciesMap = loadSpeciesMap(context, serverDir)
+            if (speciesMap.isEmpty()) {
+                Log.w(TAG, "No species found in species.json / ServerDataCache — aborting seed generation")
+                return@withContext
+            }
             
-            // Build species list
-            val speciesList = buildSpeciesList(siteSpeciesIds, speciesMap).toMutableList()
+            // Build species list from all species in species.json
+            val speciesList = buildSpeciesListFromMap(speciesMap).toMutableList()
             
             // Add reserved direction species
             val seedAliases = listOf("terug", "omgekeerd", "back", "reverse")
@@ -123,7 +78,7 @@ object AliasSeedGenerator {
             
             // Create master
             val newMaster = AliasMaster(
-                version = "2.1",
+                version = "2.2",
                 timestamp = Instant.now().toString(),
                 species = speciesList
             )
@@ -136,63 +91,14 @@ object AliasSeedGenerator {
                 com.yvesds.vt5.features.speech.AliasMatcher.reloadIndex(context, saf)
             } catch (_: Exception) {}
             
-            Log.i(TAG, "Seed generated: ${newMaster.species.size} species, ${newMaster.species.sumOf { it.aliases.size }} total aliases")
+            Log.i(TAG, "Seed generated from species.json: ${newMaster.species.size} species, ${newMaster.species.sumOf { it.aliases.size }} total aliases")
         } catch (ex: Exception) {
             Log.e(TAG, "Seed generation failed: ${ex.message}", ex)
         }
     }
     
     /**
-     * Parse site_species IDs from JSON.
-     */
-    private fun parseSiteSpeciesIds(text: String): Set<String> {
-        val siteSpeciesIds = mutableSetOf<String>()
-        
-        kotlin.runCatching {
-            val root = Json.parseToJsonElement(text)
-            var arr = root.jsonArrayOrNull()
-            
-            if (arr == null && root is JsonObject) {
-                arr = root["json"]?.jsonArray 
-                    ?: root["data"]?.jsonArray 
-                    ?: root["items"]?.jsonArray
-            }
-            
-            // Fallback: search for first array of objects
-            if (arr == null && root is JsonObject) {
-                for ((_, v) in root) {
-                    if (v is JsonArray) { arr = v; break }
-                }
-            }
-            
-            // Try recursive search
-            if (arr == null) {
-                arr = root.findFirstArrayWithObjects()
-            }
-            
-            if (arr != null) {
-                arr.forEach { el ->
-                    if (el is JsonObject) {
-                        val sid = el["soortid"]?.jsonPrimitive?.contentOrNull
-                            ?: el["soort_id"]?.jsonPrimitive?.contentOrNull
-                            ?: el["soortId"]?.jsonPrimitive?.contentOrNull
-                            ?: el["id"]?.jsonPrimitive?.contentOrNull
-                        
-                        if (!sid.isNullOrBlank()) siteSpeciesIds.add(sid.lowercase().trim())
-                    }
-                }
-            } else {
-                Log.w(TAG, "site_species parsed but no usable array found")
-            }
-        }.onFailure {
-            Log.w(TAG, "Failed to parse site_species content: ${it.message}", it)
-        }
-        
-        return siteSpeciesIds
-    }
-    
-    /**
-     * Load species map from ServerDataCache or species.json.
+     * Load species map directly from ServerDataCache or species.json.
      */
     private suspend fun loadSpeciesMap(
         context: Context,
@@ -202,9 +108,10 @@ object AliasSeedGenerator {
         
         // Try ServerDataCache first
         val snapshot = kotlin.runCatching { ServerDataCache.getOrLoad(context) }.getOrNull()
-        if (snapshot != null) {
+        if (snapshot != null && snapshot.speciesById.isNotEmpty()) {
             snapshot.speciesById.forEach { (k, v) ->
-                speciesMap[k.lowercase()] = Pair(
+                val sid = k.lowercase().trim()
+                speciesMap[sid] = Pair(
                     v.soortnaam ?: k,
                     v.soortkey?.takeIf { it.isNotBlank() }
                 )
@@ -212,7 +119,7 @@ object AliasSeedGenerator {
             return@withContext speciesMap
         }
         
-        // Fallback to reading species.json from serverdata
+        // Fallback to reading species.json directly from serverdata
         val speciesFile = serverDir.findFile("species.json")?.takeIf { it.isFile }
         val speciesBytes = speciesFile?.let { doc ->
             kotlin.runCatching {
@@ -223,14 +130,23 @@ object AliasSeedGenerator {
         if (speciesBytes != null) {
             kotlin.runCatching {
                 val root = Json.parseToJsonElement(speciesBytes.toString(Charsets.UTF_8))
-                val arr = root.jsonArrayOrNull() ?: root.jsonObject["json"]?.jsonArray
+                var arr = root.jsonArrayOrNull()
+                if (arr == null && root is JsonObject) {
+                    arr = root["json"]?.jsonArray 
+                        ?: root["data"]?.jsonArray 
+                        ?: root["items"]?.jsonArray
+                }
                 
                 arr?.forEach { el ->
                     if (el is JsonObject) {
-                        val sid = el["soortid"]?.jsonPrimitive?.contentOrNull?.lowercase()?.trim() ?: return@forEach
-                        val naam = el["soortnaam"]?.jsonPrimitive?.contentOrNull ?: sid
+                        val sid = el["soortid"]?.jsonPrimitive?.contentOrNull
+                            ?: el["id"]?.jsonPrimitive?.contentOrNull
+                        val sidClean = sid?.lowercase()?.trim() ?: return@forEach
+                        val naam = el["soortnaam"]?.jsonPrimitive?.contentOrNull 
+                            ?: el["naam"]?.jsonPrimitive?.contentOrNull 
+                            ?: sidClean
                         val key = el["soortkey"]?.jsonPrimitive?.contentOrNull
-                        speciesMap[sid] = Pair(naam, key?.takeIf { it.isNotBlank() })
+                        speciesMap[sidClean] = Pair(naam, key?.takeIf { it.isNotBlank() })
                     }
                 }
             }.onFailure {
@@ -242,14 +158,13 @@ object AliasSeedGenerator {
     }
     
     /**
-     * Build sorted species list with generated aliases.
+     * Build sorted species list for all species in species.json.
      */
-    private fun buildSpeciesList(
-        siteSpeciesIds: Set<String>,
+    private fun buildSpeciesListFromMap(
         speciesMap: Map<String, Pair<String, String?>>
     ): List<SpeciesEntry> {
         // Sort species IDs deterministically
-        val sidList = siteSpeciesIds.toList().sortedWith(Comparator { a, b ->
+        val sidList = speciesMap.keys.toList().sortedWith(Comparator { a, b ->
             val ai = a.toIntOrNull()
             val bi = b.toIntOrNull()
             when {
@@ -262,7 +177,7 @@ object AliasSeedGenerator {
         
         return sidList.map { sid ->
             val (naamRaw, keyRaw) = speciesMap[sid] ?: Pair(sid, null)
-            val canonical = naamRaw ?: sid
+            val canonical = naamRaw.ifBlank { sid }
             val tilename = keyRaw
             
             val canonicalAlias = generateAliasData(text = canonical, source = "seed_canonical")
@@ -280,7 +195,7 @@ object AliasSeedGenerator {
     }
     
     /**
-     * Generate AliasData with phonetic encodings.
+     * Generate AliasData with Cologne and Dutch phonemes.
      */
     private fun generateAliasData(text: String, source: String): AliasData {
         val cleaned = TextUtils.normalizeLowerNoDiacritics(text)
@@ -298,24 +213,4 @@ object AliasSeedGenerator {
     }
     
     private fun JsonElement.jsonArrayOrNull() = try { this.jsonArray } catch (_: Throwable) { null }
-    
-    private fun JsonElement.findFirstArrayWithObjects(): JsonArray? {
-        when (this) {
-            is JsonArray -> {
-                if (this.any { it is JsonObject }) return this
-                for (el in this) {
-                    val found = el.findFirstArrayWithObjects()
-                    if (found != null) return found
-                }
-            }
-            is JsonObject -> {
-                for ((_, v) in this) {
-                    val found = v.findFirstArrayWithObjects()
-                    if (found != null) return found
-                }
-            }
-            else -> {}
-        }
-        return null
-    }
 }

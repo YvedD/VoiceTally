@@ -100,8 +100,7 @@ class InstellingenScherm : AppCompatActivity() {
 
         const val STORAGE_MODE_JSON = "json"
         const val STORAGE_MODE_ROOM = "room"
-        const val STORAGE_MODE_PARALLEL = "parallel"
-        const val DEFAULT_STORAGE_MODE = STORAGE_MODE_PARALLEL
+        const val DEFAULT_STORAGE_MODE = STORAGE_MODE_ROOM
 
         private val TILE_DOUBLE_TAP_OPTIONS = listOf(5, 10, 50, 100)
         private val TILE_TAP_GROUP_WINDOW_OPTIONS = listOf(2, 3, 5, 8, 10, 12, 15)
@@ -153,7 +152,7 @@ class InstellingenScherm : AppCompatActivity() {
         }
 
         fun getStorageMode(context: Context): String {
-            return STORAGE_MODE_PARALLEL
+            return STORAGE_MODE_ROOM
         }
     }
     
@@ -536,11 +535,15 @@ class InstellingenScherm : AppCompatActivity() {
     private fun applyUpdateStateToUi(state: AppUpdateManager.UpdateState) {
         val tvStatus = findViewById<TextView>(R.id.tvUpdateStatus) ?: return
         val btnInstall = findViewById<MaterialButton>(R.id.btnInstallAppUpdate) ?: return
+        val headerBadge = findViewById<TextView>(R.id.badgeAppUpdateHeader)
+        
         latestUpdateAsset = state.latestAsset ?: state.allAssets.firstOrNull()
         if (state.allAssets.isNotEmpty()) {
             updateAssets = state.allAssets
         }
         val localLabel = "${state.localVersion} (${state.localVersionCode})"
+
+        headerBadge?.visibility = if (state.updateAvailable) View.VISIBLE else View.GONE
 
         if (state.updateAvailable && !state.latestVersion.isNullOrBlank()) {
             tvStatus.text = getString(R.string.update_status_available, state.latestVersion, localLabel)

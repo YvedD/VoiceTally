@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -82,7 +83,6 @@ class HoofdActiviteit : AppCompatActivity() {
     private lateinit var safHelper: SaFStorageHelper
     private lateinit var fileLogger: FileLogger
     private var pendingTellingDialogShown = false
-    private var failedRecoveryDialogShown = false
     private var pendingAiUpdateAfterSaF: Boolean = false
     private lateinit var openTreeLauncher: ActivityResultLauncher<Uri?>
     
@@ -173,6 +173,9 @@ class HoofdActiviteit : AppCompatActivity() {
             fileLogger.info("HoofdActiviteit gestart - VT5 App actief")
             fileLogger.info("Geselecteerde opslagmodus: $storageMode")
         }
+
+        // Controleer op eventueel aanwezig onverzonden fatale crashlog
+        checkAndPromptUnsentFatalCrashLogs()
 
         // Check if the splash screen passed AI-load status and inform the user.
         try {
@@ -302,59 +305,63 @@ class HoofdActiviteit : AppCompatActivity() {
             startActivity(Intent(this, com.yvesds.vt5.ai.AiForecastScherm::class.java))
         }
 
-        maybeShowPendingUploadsDialog()
-        maybeShowFailedUploadRecoveryDialog()
         refreshAppUpdateBadge(showPrompt = true)
     }
 
-    private fun maybeShowFailedUploadRecoveryDialog() {
-        if (failedRecoveryDialogShown) return
-
+    private fun checkAndPromptUnsentFatalCrashLogs() {
         lifecycleScope.launch {
             try {
-                val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
-                val candidate = withContext(Dispatchers.IO) {
-                    db.tellingDao()
-                        .getAllHeaders()
-                        .asSequence()
-                        .filter { header ->
-                            val status = TellingStatus.normalize(header.status)
-                            status == TellingStatus.RETRY_NEEDED ||
-                                status == TellingStatus.EDITED ||
-                                status == TellingStatus.ACTIEF
-                        }
-                        .firstOrNull { header ->
-                            !TellingUploadFlags.isSent(this@HoofdActiviteit, header.tellingid, header.onlineid)
-                        }
-                } ?: return@launch
+                val enabled = com.yvesds.vt5.core.opslag.AppDataStore.isErrorReportingEmailEnabled(this@HoofdActiviteit)
+                if (!enabled) return@launch
 
-                val records = withContext(Dispatchers.IO) {
-                    db.tellingDao().getWaarnemingenList(candidate.tellingid)
+                val targetEmail = com.yvesds.vt5.core.opslag.AppDataStore.getErrorReportingEmail(this@HoofdActiviteit)
+                val saf = com.yvesds.vt5.core.opslag.SaFStorageHelper(this@HoofdActiviteit)
+                val errorLogsDir = withContext(Dispatchers.IO) { saf.getErrorLogsDir() }
+
+                var unsentDocFile: androidx.documentfile.provider.DocumentFile? = null
+                var unsentRawFile: java.io.File? = null
+
+                withContext(Dispatchers.IO) {
+                    if (errorLogsDir != null) {
+                        unsentDocFile = errorLogsDir.listFiles().firstOrNull { file ->
+                            val name = file.name ?: ""
+                            name.startsWith("fatal_crash_") && name.endsWith(".log") && !name.contains(".sent.")
+                        }
+                    }
+                    if (unsentDocFile == null) {
+                        val root = java.io.File(filesDir, "VT5")
+                        val dir = java.io.File(root, "errorlogs")
+                        if (dir.exists()) {
+                            unsentRawFile = dir.listFiles()?.firstOrNull { file ->
+                                file.name.startsWith("fatal_crash_") && file.name.endsWith(".log") && !file.name.contains(".sent.")
+                            }
+                        }
+                    }
                 }
-                if (records.isEmpty()) return@launch
 
-                failedRecoveryDialogShown = true
-                val normalizedStatus = TellingStatus.normalize(candidate.status).uppercase()
+                val filename = unsentDocFile?.name ?: unsentRawFile?.name ?: return@launch
+
                 val dlg = AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle(getString(R.string.failed_recovery_title))
-                    .setMessage(getString(R.string.failed_recovery_message, normalizedStatus))
-                    .setPositiveButton(getString(R.string.failed_recovery_open)) { _, _ ->
-                        RoomTellingReopenLauncher.launch(
-                            activity = this@HoofdActiviteit,
-                            header = candidate,
-                            records = records,
-                            finishCurrent = false
+                    .setTitle("Onverwachte crash gedetecteerd")
+                    .setMessage("VT5 is de vorige keer onverwacht afgesloten.\n\nWil je het foutdiagnose-logbestand ($filename) per e-mail verzenden naar ${if (targetEmail.isBlank()) "het gekozen e-mailadres" else targetEmail}?")
+                    .setPositiveButton("E-mailen") { _, _ ->
+                        val sent = com.yvesds.vt5.core.opslag.ErrorLogEmailSender.sendErrorLogByEmail(
+                            context = this@HoofdActiviteit,
+                            targetEmail = targetEmail,
+                            docFile = unsentDocFile,
+                            rawFile = unsentRawFile
                         )
+                        if (sent) {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                com.yvesds.vt5.core.opslag.ErrorLogger.markAsSent(this@HoofdActiviteit, filename)
+                            }
+                        }
                     }
-                    .setNegativeButton(getString(R.string.failed_recovery_open_beheer)) { _, _ ->
-                        startActivity(Intent(this@HoofdActiviteit, DatabaseTellingLijstActiviteit::class.java))
-                    }
-                    .setNeutralButton(getString(R.string.annuleer), null)
-                    .setOnDismissListener { failedRecoveryDialogShown = false }
+                    .setNegativeButton("Nee", null)
                     .show()
                 DialogStyler.apply(dlg)
-            } catch (e: Exception) {
-                Log.w(TAG, "maybeShowFailedUploadRecoveryDialog failed: ${e.message}", e)
+            } catch (ex: Exception) {
+                Log.w(TAG, "checkAndPromptUnsentFatalCrashLogs mislukt: ${ex.message}")
             }
         }
     }
@@ -362,6 +369,7 @@ class HoofdActiviteit : AppCompatActivity() {
     private fun handleStartOrResumeTellingClick(button: View) {
         button.isEnabled = false
         lifecycleScope.launch {
+            var dialogShown = false
             try {
                 val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
                 val unfinishedPairs = withContext(Dispatchers.IO) {
@@ -370,24 +378,34 @@ class HoofdActiviteit : AppCompatActivity() {
                     val result = mutableListOf<Pair<TellingHeader, List<Waarneming>>>()
                     for (header in allHeaders) {
                         val statusNorm = TellingStatus.normalize(header.status)
-                        if (statusNorm != TellingStatus.GEUPLOAD && statusNorm != TellingStatus.GEARCHIVEERD) {
-                            val records = dao.getWaarnemingenList(header.tellingid)
-                            if (records.isNotEmpty()) {
-                                result.add(header to records)
-                            }
+                        val isSent = TellingUploadFlags.isSent(this@HoofdActiviteit, header.tellingid, header.onlineid)
+                        if (statusNorm != TellingStatus.GEUPLOAD && statusNorm != TellingStatus.GEARCHIVEERD && !isSent) {
+                            val records = dao.getWaarnemingenList(header.tellingid, header.onlineid)
+                            result.add(header to records)
                         }
                     }
-                    result
+                    result.sortedByDescending { it.first.begintijd }
                 }
 
                 if (unfinishedPairs.isNotEmpty()) {
-                    val mostRecentPair = unfinishedPairs.first()
-                    val allUnfinishedHeaders = unfinishedPairs.map { it.first }
-                    showUnfinishedTellingPrompt(mostRecentPair.first, mostRecentPair.second, allUnfinishedHeaders, button)
+                    dialogShown = true
+                    showUnfinishedTellingenFloatingDialog(unfinishedPairs, button)
                     return@launch
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Check for unfinished telling failed: ${e.message}", e)
+                Log.e(TAG, "Check for unfinished telling failed: ${e.message}", e)
+                withContext(Dispatchers.IO) {
+                    com.yvesds.vt5.core.opslag.ErrorLogger.logError(
+                        this@HoofdActiviteit,
+                        "HoofdActiviteit",
+                        "Fout bij 'Telling starten / hervatten' knop: ${e.message}",
+                        e
+                    )
+                }
+            } finally {
+                if (!dialogShown) {
+                    button.isEnabled = true
+                }
             }
 
             // Scenario A: Geen onafgewerkte telling -> direct naar metadatascherm
@@ -395,58 +413,285 @@ class HoofdActiviteit : AppCompatActivity() {
         }
     }
 
-    private fun showUnfinishedTellingPrompt(
-        header: TellingHeader,
-        records: List<Waarneming>,
-        allUnfinished: List<TellingHeader>,
+    private fun showUnfinishedTellingenFloatingDialog(
+        unfinishedPairs: List<Pair<TellingHeader, List<Waarneming>>>,
         button: View
     ) {
-        val count = records.sumOf { (it.aantal.toIntOrNull() ?: 0) + (it.aantalterug.toIntOrNull() ?: 0) }
-        val dateText = header.begintijd.takeIf { it.isNotBlank() } ?: "Eerdere datum"
-        val telpostText = header.telpostid.ifBlank { "Telpost" }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_unfinished_tellingen_floating, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
 
-        val dlg = AlertDialog.Builder(this)
-            .setTitle("Onafgewerkte telling gevonden!")
-            .setMessage("Er staat nog een onvoltooide telling van $dateText ($telpostText) met $count waarneming(en) in het geheugen.\n\nWil je deze telling hervatten om af te werken en te uploaden, of als afgewerkt markeren en een nieuwe telling starten?")
-            .setPositiveButton("Hervatten & afwerken") { _, _ ->
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val container = dialogView.findViewById<LinearLayout>(R.id.containerFloatingCards)
+        val btnMarkAllAndStartNew = dialogView.findViewById<MaterialButton>(R.id.btnMarkAllCompletedAndStartNew)
+
+        val currentPairs = unfinishedPairs.toMutableList()
+
+        fun renderCards() {
+            container.removeAllViews()
+            if (currentPairs.isEmpty()) {
+                dialog.dismiss()
                 button.isEnabled = true
-                RoomTellingReopenLauncher.launch(
-                    activity = this,
-                    header = header,
-                    records = records,
-                    finishCurrent = false
-                )
+                startNewTellingFlow(button)
+                return
             }
-            .setNegativeButton("Als afgewerkt markeren & Nieuwe starten") { _, _ ->
-                lifecycleScope.launch {
-                    try {
-                        withContext(Dispatchers.IO) {
-                            val dao = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao()
-                            for (unfinished in allUnfinished) {
-                                val current = dao.getHeader(unfinished.tellingid)
+
+            refreshUnfinishedTellingenBadge()
+
+            for (pair in currentPairs) {
+                val header = pair.first
+                val records = pair.second
+                val cardView = layoutInflater.inflate(R.layout.item_unfinished_telling_card, container, false)
+
+                val tvTelpost = cardView.findViewById<TextView>(R.id.tvCardTelpost)
+                val tvDatumTijd = cardView.findViewById<TextView>(R.id.tvCardDatumTijd)
+                val tvAantallen = cardView.findViewById<TextView>(R.id.tvCardAantallen)
+                val btnHervatten = cardView.findViewById<MaterialButton>(R.id.btnCardHervatten)
+                val btnAfgewerkt = cardView.findViewById<MaterialButton>(R.id.btnCardAfgewerktMarkeren)
+
+                val countRecords = records.size
+                val countBirds = records.sumOf { (it.aantal.toIntOrNull() ?: 0) + (it.aantalterug.toIntOrNull() ?: 0) }
+                val rawDate = header.begintijd.takeIf { it.isNotBlank() } ?: "Onbekende datum"
+                val formattedDate = com.yvesds.vt5.core.database.ui.SpeciesNameResolver.formatTimestamp(rawDate)
+                val dateText = if (formattedDate.isNotBlank()) formattedDate else rawDate
+                val telpostText = header.telpostid.ifBlank { "Telpost" }
+
+                tvTelpost.text = "📍 $telpostText"
+                tvDatumTijd.text = "📅 $dateText"
+                tvAantallen.text = "📊 $countRecords records ($countBirds vogels)"
+
+                btnHervatten.setOnClickListener {
+                    dialog.dismiss()
+                    button.isEnabled = true
+                    lifecycleScope.launch {
+                        try {
+                            var freshRecords = withContext(Dispatchers.IO) {
+                                val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+                                db.tellingDao().getWaarnemingenList(header.tellingid, header.onlineid)
+                            }
+                            if (freshRecords.isEmpty()) {
+                                val recovered = withContext(Dispatchers.IO) {
+                                    tryRecoverRecordsFromExportsInHoofd(header.tellingid, header.onlineid)
+                                }
+                                if (recovered.isNotEmpty()) {
+                                    freshRecords = withContext(Dispatchers.IO) {
+                                        val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+                                        db.tellingDao().getWaarnemingenList(header.tellingid, header.onlineid)
+                                    }
+                                }
+                            }
+                            RoomTellingReopenLauncher.launch(
+                                activity = this@HoofdActiviteit,
+                                header = header,
+                                records = freshRecords,
+                                finishCurrent = false
+                            )
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Hervatten mislukt: ${ex.message}", ex)
+                            withContext(Dispatchers.IO) {
+                                com.yvesds.vt5.core.opslag.ErrorLogger.logError(
+                                    this@HoofdActiviteit,
+                                    "HoofdActiviteit",
+                                    "Fout bij hervatten van telling [${header.tellingid}]: ${ex.message}",
+                                    ex
+                                )
+                            }
+                        }
+                    }
+                }
+
+                btnAfgewerkt.setOnClickListener {
+                    lifecycleScope.launch {
+                        try {
+                            withContext(Dispatchers.IO) {
+                                val dao = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao()
+                                val current = dao.getHeader(header.tellingid)
                                 if (current != null) {
                                     dao.updateHeader(current.copy(status = TellingStatus.GEUPLOAD))
                                     TellingUploadFlags.markSent(this@HoofdActiviteit, current.tellingid, current.onlineid)
                                 }
                             }
+                            currentPairs.removeAll { it.first.tellingid == header.tellingid }
+                            renderCards()
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Marking header completed failed: ${ex.message}", ex)
                         }
-                        startNewTellingFlow(button)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Could not mark unfinished telling(s) as completed", e)
-                        button.isEnabled = true
-                        Toast.makeText(this@HoofdActiviteit, "Kon tellingen niet bijwerken. Probeer opnieuw.", Toast.LENGTH_LONG).show()
                     }
                 }
-            }
-            .setNeutralButton(getString(R.string.annuleer)) { _, _ ->
-                button.isEnabled = true
-            }
-            .setOnCancelListener {
-                button.isEnabled = true
-            }
-            .show()
 
-        DialogStyler.apply(dlg)
+                container.addView(cardView)
+            }
+        }
+
+        btnMarkAllAndStartNew.setOnClickListener {
+            lifecycleScope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        val dao = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao()
+                        for (pair in currentPairs) {
+                            val header = pair.first
+                            val current = dao.getHeader(header.tellingid)
+                            if (current != null) {
+                                dao.updateHeader(current.copy(status = TellingStatus.GEUPLOAD))
+                                TellingUploadFlags.markSent(this@HoofdActiviteit, current.tellingid, current.onlineid)
+                            }
+                        }
+                    }
+                    dialog.dismiss()
+                    button.isEnabled = true
+                    startNewTellingFlow(button)
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Marking all completed failed: ${ex.message}", ex)
+                }
+            }
+        }
+
+        dialog.setOnDismissListener {
+            button.isEnabled = true
+        }
+
+        renderCards()
+        dialog.show()
+        DialogStyler.apply(dialog)
+    }
+
+    private suspend fun tryRecoverRecordsFromExportsInHoofd(targetTellingId: String, targetOnlineId: String): List<Waarneming> = withContext(Dispatchers.IO) {
+        val result = mutableListOf<Waarneming>()
+        try {
+            val safHelper = com.yvesds.vt5.core.opslag.SaFStorageHelper(this@HoofdActiviteit)
+            val exportsDir = safHelper.getExportsDirSuspend() ?: return@withContext emptyList()
+            val files = exportsDir.listFiles().filter { it.isFile }
+
+            val tidClean = targetTellingId.trim()
+            val oidClean = targetOnlineId.trim()
+            val dao = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit).tellingDao()
+
+            for (file in files) {
+                val name = file.name ?: continue
+                if (!name.endsWith(".txt") && !name.endsWith(".json")) continue
+
+                val text = contentResolver.openInputStream(file.uri)?.use {
+                    it.bufferedReader(Charsets.UTF_8).readText()
+                } ?: continue
+
+                if (text.isBlank()) continue
+
+                var matchFound = false
+                if (tidClean.isNotBlank() && (text.contains("TellingId: $tidClean", ignoreCase = true) || text.contains("tellingid=$tidClean", ignoreCase = true))) {
+                    matchFound = true
+                }
+                if (!matchFound && oidClean.isNotBlank() && (text.contains("Onlineid: $oidClean", ignoreCase = true) || text.contains("onlineid=$oidClean", ignoreCase = true))) {
+                    matchFound = true
+                }
+
+                if (!matchFound) continue
+
+                val recordItem = parseTxtBackupRecordInHoofd(text) ?: continue
+                val tid = recordItem.tellingid.ifBlank { tidClean }
+                val oid = oidClean
+
+                var header = dao.getHeader(tid)
+                if (header == null && oid.isNotBlank()) header = dao.getHeader(oid)
+                if (header == null) {
+                    header = TellingHeader(
+                        tellingid = tid,
+                        onlineid = oid,
+                        telpostid = "Restored",
+                        begintijd = recordItem.tijdstip,
+                        status = TellingStatus.ACTIEF
+                    )
+                    dao.insertHeader(header)
+                }
+
+                val entity = Waarneming(
+                    idLocal = recordItem.idLocal,
+                    tellingid = tid,
+                    onlineid = oid,
+                    soortid = recordItem.soortid,
+                    aantal = recordItem.aantal,
+                    richting = recordItem.richting,
+                    aantalterug = recordItem.aantalterug,
+                    richtingterug = recordItem.richtingterug,
+                    sightingdirection = recordItem.sightingdirection,
+                    lokaal = recordItem.lokaal,
+                    geslacht = recordItem.geslacht,
+                    leeftijd = recordItem.leeftijd,
+                    kleed = recordItem.kleed,
+                    opmerkingen = recordItem.opmerkingen,
+                    tijdstip = recordItem.tijdstip
+                )
+                dao.insertWaarneming(entity)
+                result.add(entity)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "tryRecoverRecordsFromExportsInHoofd error: ${e.message}", e)
+        }
+        return@withContext result
+    }
+
+    private fun parseTxtBackupRecordInHoofd(text: String): com.yvesds.vt5.net.ServerTellingDataItem? {
+        if (text.isBlank()) return null
+        val jsonParsed = runCatching {
+            com.yvesds.vt5.VT5App.json.decodeFromString(com.yvesds.vt5.net.ServerTellingDataItem.serializer(), text)
+        }.getOrNull()
+        if (jsonParsed != null && jsonParsed.idLocal.isNotBlank()) return jsonParsed
+
+        try {
+            var tellingId = ""
+            var onlineId = ""
+            var idLocal = ""
+            var soortId = ""
+            var aantal = "0"
+            var aantalterug = "0"
+            var timestamp = ""
+            var groupId = ""
+
+            val lines = text.lines()
+            for (line in lines) {
+                val trimmed = line.trim()
+                when {
+                    trimmed.startsWith("TellingId:", ignoreCase = true) -> tellingId = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Onlineid:", ignoreCase = true) -> onlineId = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("IdLocal:", ignoreCase = true) -> idLocal = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("SoortId:", ignoreCase = true) -> soortId = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Aantal:", ignoreCase = true) -> aantal = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Aantal terug:", ignoreCase = true) -> aantalterug = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("Timestamp:", ignoreCase = true) -> timestamp = trimmed.substringAfter(":").trim()
+                    trimmed.startsWith("GroupId:", ignoreCase = true) -> groupId = trimmed.substringAfter(":").trim()
+                }
+            }
+
+            if (idLocal.isBlank() && text.contains("idLocal=")) {
+                idLocal = text.substringAfter("idLocal=").substringBefore(",").trim()
+            }
+            if (tellingId.isBlank() && text.contains("tellingid=")) {
+                tellingId = text.substringAfter("tellingid=").substringBefore(",").trim()
+            }
+            if (soortId.isBlank() && text.contains("soortid=")) {
+                soortId = text.substringAfter("soortid=").substringBefore(",").trim()
+            }
+            if (timestamp.isBlank() && text.contains("tijdstip=")) {
+                timestamp = text.substringAfter("tijdstip=").substringBefore(",").trim()
+            }
+            if (aantalterug.isBlank() && text.contains("aantalterug=")) {
+                aantalterug = text.substringAfter("aantalterug=").substringBefore(",").trim()
+            }
+
+            if (idLocal.isNotBlank() && (tellingId.isNotBlank() || onlineId.isNotBlank())) {
+                return com.yvesds.vt5.net.ServerTellingDataItem(
+                    idLocal = idLocal,
+                    tellingid = tellingId,
+                    soortid = soortId,
+                    aantal = aantal,
+                    aantalterug = aantalterug,
+                    tijdstip = timestamp,
+                    groupid = groupId.ifBlank { idLocal }
+                )
+            }
+        } catch (_: Exception) {}
+        return null
     }
 
     private fun startNewTellingFlow(button: View) {
@@ -568,7 +813,7 @@ class HoofdActiviteit : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val mode = InstellingenScherm.getStorageMode(this@HoofdActiviteit)
-                val isHybrid = mode == InstellingenScherm.STORAGE_MODE_ROOM || mode == InstellingenScherm.STORAGE_MODE_PARALLEL
+                val isHybrid = true
                 
                 val tellingId: String
                 val onlineId: String
@@ -669,26 +914,6 @@ class HoofdActiviteit : AppCompatActivity() {
         } catch (e: Exception) {
             Log.w(TAG, "deletePendingTelling failed: ${e.message}", e)
         }
-    }
-
-    private fun maybeShowPendingUploadsDialog() {
-        val prefs = getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
-        if (!prefs.getBoolean(KEY_PENDING_UPLOADS, false)) return
-
-        val dlg = AlertDialog.Builder(this)
-            .setTitle(getString(R.string.uploads_pending_title))
-            .setMessage(getString(R.string.uploads_pending_message))
-            .setPositiveButton(getString(R.string.uploads_pending_now)) { _, _ ->
-                prefs.edit { putBoolean(KEY_UPLOAD_ON_EXIT, false) }
-                startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
-            }
-            .setNegativeButton(getString(R.string.uploads_pending_on_exit)) { _, _ ->
-                prefs.edit { putBoolean(KEY_UPLOAD_ON_EXIT, true) }
-            }
-            .setNeutralButton(getString(R.string.annuleer), null)
-            .show()
-
-        DialogStyler.apply(dlg)
     }
 
     private fun startClientQrJoinFlow() {
@@ -820,10 +1045,35 @@ class HoofdActiviteit : AppCompatActivity() {
         super.onResume()
         // Update status wanneer we terugkomen naar dit scherm
         updateAlarmStatus()
-        maybeShowPendingTellingDialog()
+        refreshUnfinishedTellingenBadge()
         // Ververs de UI badges direct bij terugkeer
         checkAiStateAndShowBadges()
         refreshAppUpdateBadge(showPrompt = false)
+    }
+
+    private fun refreshUnfinishedTellingenBadge() {
+        lifecycleScope.launch {
+            try {
+                val count = withContext(Dispatchers.IO) {
+                    val db = VoiceTallyDatabase.getDatabase(this@HoofdActiviteit)
+                    val allHeaders = db.tellingDao().getAllHeaders()
+                    allHeaders.count { header ->
+                        val statusNorm = TellingStatus.normalize(header.status)
+                        val isSent = TellingUploadFlags.isSent(this@HoofdActiviteit, header.tellingid, header.onlineid)
+                        statusNorm != TellingStatus.GEUPLOAD && statusNorm != TellingStatus.GEARCHIVEERD && !isSent
+                    }
+                }
+                val badge = findViewById<TextView>(R.id.badgeUnfinishedTellingen)
+                if (count > 0) {
+                    badge?.text = count.toString()
+                    badge?.visibility = View.VISIBLE
+                } else {
+                    badge?.visibility = View.GONE
+                }
+            } catch (ex: Exception) {
+                Log.w(TAG, "refreshUnfinishedTellingenBadge failed: ${ex.message}")
+            }
+        }
     }
 
     private fun refreshAppUpdateBadge(showPrompt: Boolean) {

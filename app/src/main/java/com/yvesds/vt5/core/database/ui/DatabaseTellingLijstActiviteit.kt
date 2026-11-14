@@ -19,9 +19,12 @@ import com.google.android.material.button.MaterialButton
 import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
+import com.yvesds.vt5.core.database.entities.Waarneming
 import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.database.toServerEnvelope
 import com.yvesds.vt5.core.import.CsvImportPolicy
+import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import androidx.documentfile.provider.DocumentFile
 import com.yvesds.vt5.features.telling.RoomTellingReopenLauncher
 import com.yvesds.vt5.features.telling.TellingStatus
 import com.yvesds.vt5.features.telling.TellingUploadCore
@@ -312,9 +315,10 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
     private fun reopenTellingFromRoom(telling: TellingHeader) {
         lifecycleScope.launch {
             try {
-                val records = withContext(Dispatchers.IO) {
-                    database.tellingDao().getWaarnemingenList(telling.tellingid)
+                var records = withContext(Dispatchers.IO) {
+                    database.tellingDao().getWaarnemingenList(telling.tellingid, telling.onlineid)
                 }
+
                 if (records.isEmpty()) {
                     Toast.makeText(
                         this@DatabaseTellingLijstActiviteit,
@@ -323,12 +327,14 @@ class DatabaseTellingLijstActiviteit : AppCompatActivity() {
                     ).show()
                     return@launch
                 }
+
                 RoomTellingReopenLauncher.launch(
                     activity = this@DatabaseTellingLijstActiviteit,
                     header = telling,
                     records = records,
                     finishCurrent = true
                 )
+
             } catch (_: CancellationException) {
                 Log.i(TAG, "Heropenen geannuleerd")
             } catch (e: Exception) {

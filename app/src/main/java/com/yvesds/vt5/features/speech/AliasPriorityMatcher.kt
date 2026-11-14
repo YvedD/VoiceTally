@@ -6,6 +6,7 @@ import com.yvesds.vt5.features.alias.SPECIES_ID_DIR_RETURN
 import com.yvesds.vt5.utils.LevenshteinUtils
 import com.yvesds.vt5.utils.TextUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 
@@ -421,11 +422,12 @@ object AliasPriorityMatcher {
         if (normalized.isBlank()) return emptyList()
 
         val collected = ArrayList<Candidate>(8)
+        val siteAllowed = ctx.getEffectiveSiteAllowedIds()
         collected += findExactCanonicalCandidatesInSet(normalized, ctx.tilesSpeciesIds, "exact_canonical_tiles", ctx)
-        collected += findExactCanonicalCandidatesInSet(normalized, ctx.siteAllowedIds, "exact_canonical_site", ctx)
+        collected += findExactCanonicalCandidatesInSet(normalized, siteAllowed, "exact_canonical_site", ctx)
             .filterNot { it.speciesId in ctx.tilesSpeciesIds }
         collected += findExactAliasCandidatesInSet(normalized, ctx.tilesSpeciesIds, "exact_alias_tiles", ctx, appContext, saf)
-        collected += findExactAliasCandidatesInSet(normalized, ctx.siteAllowedIds, "exact_alias_site", ctx, appContext, saf)
+        collected += findExactAliasCandidatesInSet(normalized, siteAllowed, "exact_alias_site", ctx, appContext, saf)
             .filterNot { it.speciesId in ctx.tilesSpeciesIds }
 
         return deduplicateCandidates(collected, ctx)
@@ -437,12 +439,27 @@ object AliasPriorityMatcher {
         normalized: String,
         allowed: Set<String>,
         sourceTag: String,
-        ctx: MatchContext
+        ctx: MatchContext,
+        appContext: Context? = null
     ): List<Candidate> {
         val nameMap = ctx.speciesById
         val results = ArrayList<Candidate>()
         for (sid in allowed) {
-            val info = nameMap[sid] ?: continue
+            val info = nameMap[sid]
+            if (info == null) {
+                appContext?.let { context ->
+                    try {
+                        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                            com.yvesds.vt5.core.opslag.ErrorLogger.logError(
+                                context,
+                                "AliasPriorityMatcher",
+                                "Soort ID '$sid' uit site_species.json ontbreekt in species.json"
+                            )
+                        }
+                    } catch (_: Exception) {}
+                }
+                continue
+            }
             val canon = info.first
             if (TextUtils.normalizeLowerNoDiacritics(canon) == normalized) {
                 results += Candidate(
@@ -610,11 +627,12 @@ object AliasPriorityMatcher {
     }
 
     private fun candidatePriority(candidate: Candidate, ctx: MatchContext): Int {
+        val siteAllowed = ctx.getEffectiveSiteAllowedIds()
         return when {
             candidate.isInTiles -> 0
             candidate.source.startsWith("exact_canonical") -> 1
             candidate.source.startsWith("exact_alias") -> 2
-            candidate.speciesId in ctx.siteAllowedIds -> 3
+            candidate.speciesId in siteAllowed -> 3
             else -> 4
         }
     }
@@ -673,9 +691,10 @@ object AliasPriorityMatcher {
 
     private fun computePrior(speciesId: String, ctx: MatchContext): Double {
         var prior = 0.0
+        val siteAllowed = ctx.getEffectiveSiteAllowedIds()
         if (speciesId in ctx.recentIds) prior += PRIOR_RECENT
         if (speciesId in ctx.tilesSpeciesIds) prior += PRIOR_TILES
-        if (speciesId in ctx.siteAllowedIds) prior += PRIOR_SITE
+        if (speciesId in siteAllowed) prior += PRIOR_SITE
         return prior.coerceAtMost(PRIOR_MAX)
     }
 }
