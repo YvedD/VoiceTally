@@ -20,7 +20,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class SplashActiviteit : AppCompatActivity() {
     
     companion object {
-        private const val SPLASH_DURATION_MS = 4500L
+        private const val SPLASH_DURATION_MS = 1200L
     }
     
     private var splashJob: Job? = null
@@ -52,16 +52,19 @@ class SplashActiviteit : AppCompatActivity() {
                 it.text = spannable
             }
 
-            delay(1200.milliseconds)
+            // Garandeer dat preload gestart is
+            ServerDataCache.preload(this@SplashActiviteit)
+
+            delay(300.milliseconds)
             if (!isActive) return@launch
 
-            ivSplash?.animate()?.alpha(0f)?.setDuration(1250)?.start()
-            delay(1250.milliseconds)
+            ivSplash?.animate()?.alpha(0f)?.setDuration(400)?.start()
+            delay(400.milliseconds)
             if (!isActive) return@launch
             
-            containerAi?.animate()?.alpha(1.0f)?.setDuration(1250)?.start()
+            containerAi?.animate()?.alpha(1.0f)?.setDuration(400)?.start()
             
-            withTimeoutOrNull(10000.milliseconds) {
+            withTimeoutOrNull(4000.milliseconds) {
                 val aliasJob = async { VT5App.awaitStartupAliasRefresh() }
                 val dataJob = async { 
                     try {
