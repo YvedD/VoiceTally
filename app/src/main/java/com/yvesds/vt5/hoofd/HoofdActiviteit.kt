@@ -162,7 +162,7 @@ class HoofdActiviteit : AppCompatActivity() {
                 // If there was a pending ai update, run it now
                 if (pendingAiUpdateAfterSaF) {
                     pendingAiUpdateAfterSaF = false
-                    runFullAiUpdateFlow()
+                    startActivity(Intent(this, com.yvesds.vt5.ai.BsiHubActiviteit::class.java))
                 }
             }
         }
@@ -202,11 +202,6 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnSettings = findViewById<MaterialButton>(R.id.btnSettings)
         val btnTelpostBeheer = findViewById<MaterialButton>(R.id.btnTelpostBeheer)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
-        val btnBsiDatacentrum = findViewById<MaterialButton>(R.id.btnBsiDatacentrum)
-        val btnAiUpdate = findViewById<MaterialButton>(R.id.btnAiUpdate)
-        val btnAiTrain = findViewById<MaterialButton>(R.id.btnAiTrain)
-        val btnAiForecast = findViewById<MaterialButton>(R.id.btnAiForecast3Days)
-        val btnAiDailyReports = findViewById<MaterialButton>(R.id.btnAiDailyReports)
         val btnOptiesMenu = findViewById<MaterialButton>(R.id.btnOptiesMenu)
         val layoutOptiesMenu = findViewById<View>(R.id.layoutOptiesMenu)
 
@@ -263,6 +258,13 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
 
+        // BSI Header knop (BSI Hub)
+        findViewById<MaterialButton>(R.id.btnBsiHeader)?.setOnClickListener {
+            it.isEnabled = false
+            startActivity(Intent(this, com.yvesds.vt5.ai.BsiHubActiviteit::class.java))
+            it.isEnabled = true
+        }
+
         // Database Beheer knop
         btnDatabaseBeheer.setOnClickListener {
             it.isEnabled = false
@@ -277,33 +279,7 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = true
         }
 
-        btnBsiDatacentrum?.setOnClickListener {
-            it.isEnabled = false
-            startActivity(Intent(this, com.yvesds.vt5.ai.BsiDatacentrumActiviteit::class.java))
-            it.isEnabled = true
-        }
 
-        btnAiUpdate.setOnClickListener {
-            runFullAiUpdateFlow()
-        }
-
-        btnAiTrain.setOnClickListener {
-            runAiTrainingFlow()
-        }
-
-        btnAiDailyReports.setOnClickListener {
-            if (!isDataEnriched || !isAiTrained) {
-                showAiPrerequisiteWarning()
-            } else {
-                it.isEnabled = false
-                startActivity(Intent(this, com.yvesds.vt5.ai.AiReportListActiviteit::class.java))
-                it.isEnabled = true
-            }
-        }
-
-        btnAiForecast?.setOnClickListener {
-            startActivity(Intent(this, com.yvesds.vt5.ai.AiForecastScherm::class.java))
-        }
 
         // Luister continu naar update-status in DataStore voor real-time badge-updates op de instellingenknop
         lifecycleScope.launch {
@@ -716,105 +692,6 @@ class HoofdActiviteit : AppCompatActivity() {
         button.isEnabled = true
     }
 
-    /**
-     * Start het trainingsproces van de AI hersenen.
-     */
-    private fun runAiTrainingFlow() {
-        val btn = findViewById<MaterialButton>(R.id.btnAiTrain)
-        btn.isEnabled = false
-        
-        lifecycleScope.launch {
-            val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "AI Hersenen Trainen: Data voorbereiden...")
-            try {
-                val modelStore = com.yvesds.vt5.ai.ModelStore(this@HoofdActiviteit)
-                val preparer = com.yvesds.vt5.ai.TrainingDataPreparer(this@HoofdActiviteit)
-                
-                // 1. Genereer eerst de labels (zodat de trainer en inference op één lijn zitten)
-                val labels = preparer.generateLabelsJson(modelStore.getTrainingExportDir())
-                
-                // 2. Voer de On-Device Training uit (direct uit Room)
-                val trainer = com.yvesds.vt5.ai.Trainer(this@HoofdActiviteit, modelStore)
-                trainer.runOnDeviceTraining { msg, current, total ->
-                    lifecycleScope.launch(Dispatchers.Main) {
-                        ProgressDialogHelper.updateMessage(progress, "$msg\n($current van $total)")
-                    }
-                }
-
-                progress.dismiss()
-                checkAiStateAndShowBadges()
-
-                AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle("BSI-Training Voltooid")
-                    .setMessage("De BSI heeft geleerd van je database. Het persoonlijke model is bijgewerkt en klaar voor gebruik.")
-                    .setPositiveButton("OK", null)
-                    .show()
-
-            } catch (e: Exception) {
-                progress.dismiss()
-                Log.e(TAG, "Training flow failed", e)
-                AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle("Fout bij trainen")
-                    .setMessage("Er is een fout opgetreden: ${e.message}")
-                    .setPositiveButton("OK", null)
-                    .show()
-            } finally {
-                btn.isEnabled = true
-            }
-        }
-    }
-
-    /**
-     * Voert de gegevensverrijking uit: ontbrekende weergegevens ophalen voor telposten/jaren
-     * en de database-headers aanvullen.
-     */
-    private fun runFullAiUpdateFlow() {
-        val btn = findViewById<MaterialButton>(R.id.btnAiUpdate)
-        btn.isEnabled = false
-        
-        lifecycleScope.launch {
-            val progress = ProgressDialogHelper.show(this@HoofdActiviteit, "Gegevens verrijken: Analyse...")
-            try {
-                val enrichmentManager = com.yvesds.vt5.core.database.weather.WeatherEnrichmentManager(this@HoofdActiviteit)
-                
-                // Stap A & B: Weer ophalen en Headers aanvullen
-                var lastUpdate = 0L
-                val success = enrichmentManager.performEnrichment { msg, current, total ->
-                    val now = System.currentTimeMillis()
-                    if (now - lastUpdate > 100 || current == total) {
-                        lastUpdate = now
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            ProgressDialogHelper.updateMessage(progress, "$msg\n($current van $total)")
-                        }
-                    }
-                }
-
-                progress.dismiss()
-                checkAiStateAndShowBadges()
-
-                if (success) {
-                    AlertDialog.Builder(this@HoofdActiviteit)
-                        .setTitle("Aanvullingen voltooid")
-                        .setMessage("Alle beschikbare weergegevens zijn opgehaald en ontbrekende velden in de database zijn aangevuld.")
-                        .setPositiveButton("OK", null)
-                        .show()
-                } else {
-                    Toast.makeText(this@HoofdActiviteit, "Verrijking onvolledig. Controleer je internetverbinding.", Toast.LENGTH_LONG).show()
-                }
-
-            } catch (e: Exception) {
-                progress.dismiss()
-                Log.e(TAG, "Enrichment flow failed", e)
-                AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle("Fout bij aanvullen weergegevens")
-                    .setMessage("Er is een fout opgetreden: ${e.message}")
-                    .setPositiveButton("OK", null)
-                    .show()
-            } finally {
-                btn.postDelayed({ btn.isEnabled = true }, 500)
-            }
-        }
-    }
-
     private fun maybeShowPendingTellingDialog() {
         if (pendingTellingDialogShown) return
         lifecycleScope.launch {
@@ -1125,12 +1002,6 @@ class HoofdActiviteit : AppCompatActivity() {
             isAiTrained = withContext(Dispatchers.IO) { 
                 val modelDir = modelStore.getModelDir()
                 modelDir?.findFile("neural_engine.bin") != null && modelDir.findFile("expert_knowledge.json") != null
-            }
-
-            withContext(Dispatchers.Main) {
-                findViewById<TextView>(R.id.badgeAiUpdate)?.visibility = if (isDataEnriched) android.view.View.GONE else android.view.View.VISIBLE
-                findViewById<TextView>(R.id.badgeAiTrain)?.visibility = if (isAiTrained) android.view.View.GONE else android.view.View.VISIBLE
-                findViewById<TextView>(R.id.badgeAiDailyReports)?.visibility = if (isDataEnriched && isAiTrained) android.view.View.GONE else android.view.View.VISIBLE
             }
         }
     }

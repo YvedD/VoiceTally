@@ -8,4 +8,12 @@
     <color name="vt5_glass_title_text">#FFFFFF</color>
     <color name="vt5_glass_subtitle_text">#B0BEC5</color>
     <color name="vt5_glass_accent_text">#227CAF</color>
+
+    <!-- Herbruikbaar Zwevend Informatiescherm (Floating Info-Screen) Kleuren -->
+    <color name="floating_info_bg_color">#FFFFFF</color> <!-- Wit, 0% transparantie (ondoorzichtig) -->
+    <color name="floating_info_border_color">#D32F2F</color> <!-- Warm rode randkleur (aanpasbaar!) -->
+    <color name="floating_info_title_color">#0D47A1</color> <!-- Donkerblauwe titelkleur -->
+    <color name="floating_info_text_color">#263238</color> <!-- Donker grijs/blauwe inhoudskleur -->
+    <color name="floating_info_button_stroke">#D32F2F</color> <!-- Knop randkleur -->
+    <color name="floating_info_button_text">#D32F2F</color> <!-- Knop tekstkleur -->
 </resources>

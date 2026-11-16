@@ -247,163 +247,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- KAART: Biologische Intelligentie (AI) -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="14dp"
-                    app:cardBackgroundColor="#99121A24"
-                    app:cardCornerRadius="14dp"
-                    app:cardElevation="2dp"
-                    app:strokeColor="#117CAF"
-                    app:strokeWidth="1dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            android:text="BIO STATISTIC INTELLIGENTIE (BSI)"
-                            android:textColor="@color/vt5_light_blue"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnBsiDatacentrum"
-                            style="@style/Widget.Material3.Button"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:background="@drawable/vt5_btn_glass_primary"
-                            android:text="BSI DATACENTRUM (GIDS &amp; PIJPLIJN)"
-                            android:textColor="@color/vt5_white"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            app:backgroundTint="@null"
-                            app:icon="@drawable/ic_vt5_ai_horizon"
-                            app:iconGravity="textStart"
-                            app:iconPadding="10dp"
-                            app:iconSize="24dp"
-                            app:iconTint="@color/vt5_white"
-                            app:rippleColor="#40D97A" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <FrameLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnAiUpdate"
-                                    style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/hoofd_ai_update"
-                                    android:textSize="12sp" />
-
-                                <TextView
-                                    android:id="@+id/badgeAiUpdate"
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:layout_gravity="top|end"
-                                    android:layout_marginTop="4dp"
-                                    android:layout_marginEnd="4dp"
-                                    android:background="@drawable/vt5_badge_red"
-                                    android:gravity="center"
-                                    android:text="@string/badge_warning"
-                                    android:textColor="@color/vt5_white"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold"
-                                    android:visibility="gone" />
-                            </FrameLayout>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnAiForecast3Days"
-                                style="@style/Widget.VT5.Button.Outlined"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1"
-                                android:text="@string/hoofd_ai_forecast_3days"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:orientation="horizontal">
-
-                            <FrameLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnAiDailyReports"
-                                    style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:text="Teldag Verslagen"
-                                    android:textSize="12sp" />
-
-                                <TextView
-                                    android:id="@+id/badgeAiDailyReports"
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:layout_gravity="top|end"
-                                    android:layout_marginTop="4dp"
-                                    android:layout_marginEnd="4dp"
-                                    android:background="@drawable/vt5_badge_red"
-                                    android:gravity="center"
-                                    android:text="@string/badge_warning"
-                                    android:textColor="@color/vt5_white"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold"
-                                    android:visibility="gone" />
-                            </FrameLayout>
-
-                            <FrameLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:layout_weight="1">
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/btnAiTrain"
-                                    style="@style/Widget.VT5.Button.Outlined"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:text="BSI Trainen"
-                                    android:textSize="12sp" />
-
-                                <TextView
-                                    android:id="@+id/badgeAiTrain"
-                                    android:layout_width="20dp"
-                                    android:layout_height="20dp"
-                                    android:layout_gravity="top|end"
-                                    android:layout_marginTop="4dp"
-                                    android:layout_marginEnd="4dp"
-                                    android:background="@drawable/vt5_badge_red"
-                                    android:gravity="center"
-                                    android:text="@string/badge_warning"
-                                    android:textColor="@color/vt5_white"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold"
-                                    android:visibility="gone" />
-                            </FrameLayout>
-                        </LinearLayout>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
 
                 <!-- KAART: Database Beheer -->
                 <com.google.android.material.card.MaterialCardView
@@ -487,40 +331,63 @@
     </ScrollView>
 
     <!-- Helemaal bovenaan rechts in het element 'root' (Transparante achtergrond) -->
-    <FrameLayout
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:elevation="8dp">
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
+        <!-- BSI Logo Icoon knop (links van instellingen) -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSettings"
+            android:id="@+id/btnBsiHeader"
             style="@style/Widget.VT5.Button.Outlined.IconOnly"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_marginEnd="4dp"
             android:background="@android:color/transparent"
-            android:contentDescription="@string/hoofd_instellingen"
+            android:contentDescription="@string/bsi_titel"
             app:backgroundTint="@android:color/transparent"
-            app:icon="@drawable/ic_gear"
-            app:iconTint="@color/vt5_white"
+            app:icon="@drawable/ic_vt5_ai_horizon"
+            app:iconSize="28dp"
+            app:iconTint="@null"
             app:strokeWidth="0dp" />
 
-        <TextView
-            android:id="@+id/badgeAppUpdate"
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:layout_gravity="top|end"
-            android:layout_marginTop="2dp"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/vt5_badge_red"
-            android:gravity="center"
-            android:text="@string/badge_warning"
-            android:textColor="@color/vt5_white"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-    </FrameLayout>
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSettings"
+                style="@style/Widget.VT5.Button.Outlined.IconOnly"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="4dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/hoofd_instellingen"
+                app:backgroundTint="@android:color/transparent"
+                app:icon="@drawable/ic_gear"
+                app:iconSize="28dp"
+                app:iconTint="@color/vt5_white"
+                app:strokeWidth="0dp" />
+
+            <TextView
+                android:id="@+id/badgeAppUpdate"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/vt5_badge_red"
+                android:gravity="center"
+                android:text="@string/badge_warning"
+                android:textColor="@color/vt5_white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
 </FrameLayout>

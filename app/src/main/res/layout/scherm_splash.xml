@@ -72,10 +72,10 @@
             android:indeterminateTint="@color/vt5_light_blue" />
 
         <TextView
-            android:id="@+id/textView"
+            android:id="@+id/tvSplashVersion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Voicetally Bio Statistic Intelligence 2.1.0"
+            android:text="VoiceTally with Bio Statistic Intelligence v4.0.0"
             android:textAlignment="center"
             android:textColor="#5292DC"
             android:textSize="12sp" />

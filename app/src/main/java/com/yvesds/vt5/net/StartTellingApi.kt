@@ -2,6 +2,7 @@
 
 package com.yvesds.vt5.net
 
+import com.yvesds.vt5.BuildConfig
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,7 +34,7 @@ object StartTellingApi {
     ): List<ServerTellingEnvelope> {
 
         val nowStr = nowAsSqlLike()
-        val externId = "VoiceTally5 v.1.f"
+        val externId = "VoiceTally-app ${BuildConfig.VERSION_NAME}"
         val timezone = "Europe/Brussels"
         val bron = "4"
 

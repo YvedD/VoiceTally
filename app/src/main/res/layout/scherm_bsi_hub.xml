@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <!-- Achtergrondafbeelding -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@drawable/settings" />
+
+    <!-- Glasmorfische Donkere Overlay (85% dekking) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#85080E14" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingLeft="20dp"
+            android:paddingTop="36dp"
+            android:paddingRight="20dp"
+            android:paddingBottom="40dp">
+
+            <!-- HEADER MET TERUG KNOP & BSI LOGO -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingBottom="20dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTerug"
+                    style="@style/Widget.VT5.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="48dp"
+                    android:text="←"
+                    android:textSize="18sp" />
+
+                <ImageView
+                    android:layout_width="45dp"
+                    android:layout_height="45dp"
+                    android:layout_marginStart="12dp"
+                    android:backgroundTint="#C9000000"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_vt5_ai_horizon" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="BSI Beheerscentrum"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Centrale Hub voor alle BSI functies &amp; instellingen"
+                        android:textColor="#D0FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ======================================================== -->
+            <!-- LIVE BSI STATUSKAART (GLASMOTIEF)                         -->
+            <!-- ======================================================== -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#CC121A24"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#227CAF"
+                app:strokeWidth="1.5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvBsiHubStatusTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="BSI Status"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvBsiStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/bsi_status_green"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvDbStats"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Database status: geladen"
+                        android:textColor="#A0FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ======================================================== -->
+            <!-- SECTIE 1: BSI MODULES & FUNCTIONALITEITEN                -->
+            <!-- ======================================================== -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="BSI MODULES &amp; PIPELINE"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#CC121A24"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#FFFFFF"
+                app:strokeWidth="1.5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="BSI Datacentrum &amp; Pijplijn"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/btnInfoBsiDatacentrum"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_marginStart="8dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="@string/bsi_info_datacentrum_desc"
+                            android:focusable="true"
+                            android:padding="2dp"
+                            android:src="@drawable/ic_info_circle_exclamation" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Beheer van de 4-stappen BSI data-pijplijn, Trektellen import en neuraal trainen."
+                        android:textColor="#B0BEC5"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenDatacentrum"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="OPEN BSI DATACENTRUM"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ======================================================== -->
+            <!-- SECTIE 2: PROGNOSES & MONITORING                         -->
+            <!-- ======================================================== -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="PROGNOSES &amp; ANALYSE"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#CC121A24"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#FFFFFF"
+                app:strokeWidth="1.5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenForecast"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="3-DAAGSE AI MIGRATIE PROGNOSE"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenKrentenMonitor"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="KRENTENMONITOR &amp; FENOLOGIE"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnOpenDailyReports"
+                        style="@style/Widget.VT5.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="AI TELDAG-VERSLAGEN ARCHIEF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ======================================================== -->
+            <!-- SECTIE 3: BSI ALGEMENE INSTELLINGEN                       -->
+            <!-- ======================================================== -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="BSI CONFIGURATIE &amp; OPTIES"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#CC121A24"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#FFFFFF"
+                app:strokeWidth="1.5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchNeuralInference"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="Neurale Prognose (Lite Neural Engine)"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="Schakelt de on-device neurale netwerkvoorspellingen in naast de heuristische basis."
+                        android:textColor="#B0BEC5"
+                        android:textSize="11sp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="#30FFFFFF" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchDailyAnalysisWeights"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="Teldag-verslagen Wegen (Daily Analysis)"
+                        android:textColor="@color/vt5_white"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Gebruikt bevestigde dagrapporten uit het archief als multiplicatieve leergewichten."
+                        android:textColor="#B0BEC5"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

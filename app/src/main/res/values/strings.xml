@@ -546,6 +546,11 @@
     <string name="telpost_beheer_layer_topo">Topografisch</string>
 
     <!-- BSI Datacentrum &amp; Pipeline -->
+    <string name="splash_version_format">VoiceTally with Bio Statistic Intelligence v%1$s</string>
+    <string name="bsi_titel">Bio Statistic Intelligence</string>
+    <string name="bsi_info_datacentrum_desc">Informatie BSI Datacentrum</string>
+    <string name="bsi_info_datacentrum_title">BSI Datacentrum &amp; Pijplijn</string>
+    <string name="bsi_info_datacentrum_body">Wat doet het BSI Datacentrum?\n\nHet BSI Datacentrum is de slimme rekenmotor achter VoiceTally. Het verzorgt het volledige proces om ruwe veldgegevens en historie om te zetten in persoonlijke, nauwkeurige trekvoorspellingen voor jouw eigen telpost.\n\nDe 4 specifieke stappen van de BSI Pijplijn uitgelegd:\n\n1. Gegevens Inlezen (Trektellen &amp; Eigen Invoer)\nDe BSI heeft \'leerstof\' nodig. In deze eerste stap verzamelt de app jouw historische tellingen en waarnemingen (via Trektellen.nl koppelbestanden of je eigen invoer). Hoe meer historie de BSI kent van jouw telpost, hoe slimmer de voorspellingen worden.\n\n2. Historische Weerverrijking (via Yr.no)\nVogels vliegen op de wind en het weer. De app vraagt voor elk uur dat jij in het verleden op de telpost stond automatisch de historische weersomstandigheden op — zoals de exacte windrichting, windkracht, temperatuur en luchtdruk.\n\n3. On-Device BSI Trainen (De Slimme Leerfase)\nNu worden jouw tellingen en het weer aan elkaar gekoppeld. De AI op jouw eigen smartphone leert complexe patronen te herkennen, zoals: "Bij stijgende luchtdruk en een lichte NO-wind vliegen er op deze telpost massaal vinken en piepers."\n\n4. Prognoses &amp; Dagrapporten Genereren\nZodra de BSI getraind is, rekenen de BSI-modellen 3-daagse trekprognoses uit voor jouw telpost, waarschuwt de KrentenMonitor voor zeldzame soorten en worden je teldag-verslagen beoordeeld met sterrenscores (CPUE).</string>
     <string name="bsi_datacentrum_titel">Bio Statistic Intelligence &amp; Datacentrum</string>
     <string name="bsi_datacentrum_subtitel">Geautomatiseerde data-ingestie, weerverrijking &amp; BSI modeltraining</string>
 

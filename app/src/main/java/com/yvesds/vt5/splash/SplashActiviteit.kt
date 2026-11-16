@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.yvesds.vt5.BuildConfig
 import com.yvesds.vt5.R
 import com.yvesds.vt5.VT5App
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
@@ -28,6 +29,9 @@ class SplashActiviteit : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_splash)
+
+        val tvSplashVersion = findViewById<android.widget.TextView>(R.id.tvSplashVersion)
+        tvSplashVersion?.text = getString(R.string.splash_version_format, BuildConfig.VERSION_NAME)
         
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {}
