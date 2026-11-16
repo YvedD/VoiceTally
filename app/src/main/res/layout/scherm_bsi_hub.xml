@@ -54,9 +54,8 @@
                     android:layout_width="45dp"
                     android:layout_height="45dp"
                     android:layout_marginStart="12dp"
-                    android:backgroundTint="#C9000000"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_vt5_ai_horizon" />
+                    android:src="@drawable/ic_vt5_ai_horizon"/>
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -168,7 +167,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="BSI Datacentrum &amp; Pijplijn"
+                            android:text="BSI Datacentrum"
                             android:textColor="@color/vt5_white"
                             android:textSize="15sp"
                             android:textStyle="bold" />
