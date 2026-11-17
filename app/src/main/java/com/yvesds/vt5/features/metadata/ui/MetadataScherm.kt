@@ -135,6 +135,11 @@ class MetadataScherm : AppCompatActivity() {
         binding.btnWeerAuto.setOnClickListener { ensureLocationPermissionThenFetch() }
         binding.btnAiCurrentForecast.setOnClickListener { onAiCurrentForecastClicked() }
 
+        uiScope.launch {
+            val enabled = AppDataStore.isAiEnabled(this@MetadataScherm)
+            binding.btnAiCurrentForecast.visibility = if (enabled) android.view.View.VISIBLE else android.view.View.GONE
+        }
+
         // Start het laden in stappen:
         // 1. Eerst de essentiële codes (snel)
         // 2. Later, terwijl de gebruiker bezig is, de rest van de data

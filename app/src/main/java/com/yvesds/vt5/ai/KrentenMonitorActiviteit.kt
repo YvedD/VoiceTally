@@ -43,6 +43,13 @@ class KrentenMonitorActiviteit : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_krenten_monitor)
 
+        lifecycleScope.launch {
+            if (!com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@KrentenMonitorActiviteit)) {
+                android.widget.Toast.makeText(this@KrentenMonitorActiviteit, "BSI / AI is uitgeschakeld in de Instellingen.", android.widget.Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+
         modelStore = ModelStore(this)
         rv = findViewById(R.id.rvKrenten)
         etZoek = findViewById(R.id.etZoek)

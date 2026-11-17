@@ -31,6 +31,8 @@ object FloatingInfoDialog {
         headerDrawableResId: Int? = R.drawable.kraanvogels_bckgrnd,
         bgDrawableResId: Int? = null,
         closeButtonText: CharSequence = "Sluiten",
+        showDontShowAgainOption: Boolean = false,
+        onDontShowAgainChecked: ((Boolean) -> Unit)? = null,
         onClose: (() -> Unit)? = null
     ): Dialog {
         val dialog = Dialog(context)
@@ -47,10 +49,17 @@ object FloatingInfoDialog {
         val cardHeader = view.findViewById<View>(R.id.cardFloatingInfoHeader)
         val ivBg = view.findViewById<ImageView>(R.id.ivFloatingInfoBg)
         val btnClose = view.findViewById<MaterialButton>(R.id.btnFloatingInfoClose)
+        val cbDontShow = view.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbDontShowAgain)
 
         tvTitle.text = title
         tvBody.text = bodyText
         btnClose.text = closeButtonText
+
+        if (showDontShowAgainOption && cbDontShow != null) {
+            cbDontShow.visibility = View.VISIBLE
+        } else {
+            cbDontShow?.visibility = View.GONE
+        }
 
         if (iconResId != null) {
             ivIcon.setImageResource(iconResId)
@@ -74,6 +83,9 @@ object FloatingInfoDialog {
         }
 
         btnClose.setOnClickListener {
+            if (showDontShowAgainOption && cbDontShow != null && cbDontShow.isChecked) {
+                onDontShowAgainChecked?.invoke(true)
+            }
             dialog.dismiss()
             onClose?.invoke()
         }

@@ -44,9 +44,12 @@ import com.yvesds.vt5.core.database.ui.DatabaseBeheerScherm.Companion.PREF_BATCH
 import com.yvesds.vt5.core.database.ui.DatabaseTellingLijstActiviteit
 import com.yvesds.vt5.core.ui.DialogStyler
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
+import androidx.activity.OnBackPressedCallback
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.serialization.ExperimentalSerializationApi
 import androidx.activity.result.ActivityResultLauncher
 import android.net.Uri
@@ -74,11 +77,13 @@ class HoofdActiviteit : AppCompatActivity() {
     private val TAG = "HoofdActiviteit"
 
     companion object {
-        private const val EXPORTS_KEEP_COUNT = 10
         private const val PREFS_UPLOADS = "vt5_uploads"
         private const val KEY_PENDING_UPLOADS = "pending_uploads"
         private const val KEY_UPLOAD_ON_EXIT = "upload_on_exit"
     }
+
+    @Volatile
+    private var isExiting = false
 
     private lateinit var safHelper: SaFStorageHelper
     private lateinit var fileLogger: FileLogger
@@ -198,12 +203,18 @@ class HoofdActiviteit : AppCompatActivity() {
         val btnJoinAsClient = findViewById<MaterialButton>(R.id.btnJoinAsClient)
         val btnAfsluiten = findViewById<MaterialButton>(R.id.btnAfsluiten)
         val btnBewerkTellingen = findViewById<MaterialButton>(R.id.btnBewerkTellingen)
-        val btnOpkuisExports = findViewById<MaterialButton>(R.id.btnOpkuisExports)
         val btnSettings = findViewById<MaterialButton>(R.id.btnSettings)
         val btnTelpostBeheer = findViewById<MaterialButton>(R.id.btnTelpostBeheer)
         val btnDatabaseBeheer = findViewById<MaterialButton>(R.id.btnDatabaseBeheer)
         val btnOptiesMenu = findViewById<MaterialButton>(R.id.btnOptiesMenu)
         val layoutOptiesMenu = findViewById<View>(R.id.layoutOptiesMenu)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (isExiting) return
+                shutdownAndExit()
+            }
+        })
 
         btnOptiesMenu?.setOnClickListener {
             if (layoutOptiesMenu != null) {
@@ -233,6 +244,7 @@ class HoofdActiviteit : AppCompatActivity() {
         }
 
         btnAfsluiten.setOnClickListener {
+            if (isExiting) return@setOnClickListener
             it.isEnabled = false
             shutdownAndExit()
         }
@@ -241,13 +253,6 @@ class HoofdActiviteit : AppCompatActivity() {
         btnBewerkTellingen.setOnClickListener {
             it.isEnabled = false
             startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
-            it.isEnabled = true
-        }
-        
-        // Opkuis exports knop
-        btnOpkuisExports.setOnClickListener {
-            it.isEnabled = false
-            showExportsCleanupConfirmation()
             it.isEnabled = true
         }
         
@@ -263,6 +268,14 @@ class HoofdActiviteit : AppCompatActivity() {
             it.isEnabled = false
             startActivity(Intent(this, com.yvesds.vt5.ai.BsiHubActiviteit::class.java))
             it.isEnabled = true
+        }
+
+        updateBsiHeaderVisibility()
+        showOnboardingInfoScreen(forceShow = false)
+
+        // Info Icoon onderaan (Snelcursus / Onboarding Floating Info Screen)
+        findViewById<View>(R.id.btnInfoOnboarding)?.setOnClickListener {
+            showOnboardingInfoScreen(forceShow = true)
         }
 
         // Database Beheer knop
@@ -850,31 +863,57 @@ class HoofdActiviteit : AppCompatActivity() {
     }
 
     /**
-     * Voert een veilige shutdown uit:
+     * Voert een veilige shutdown uit bij het afsluiten:
+     * - Toont toast 'Tijdelijke bestanden verwijderen...'
+     * - Blokkeert afsluiten gedurende opkuis
+     * - Verwijder alle export bestanden ouder dan de laatste 5 TELDAGEN
+     * - Toont toast 'Tijdelijke bestanden verwijderd'
      * - Roept AppShutdown.shutdownApp() voor cleanup
      * - Verwijdert de app uit 'recente apps' (finishAndRemoveTask)
-     * - Thread-safe en voorkomt geheugenlekken
      */
     private fun shutdownAndExit() {
+        if (isExiting) return
+        isExiting = true
+
         val prefs = getSharedPreferences(PREFS_UPLOADS, MODE_PRIVATE)
         val pendingUploads = prefs.getBoolean(KEY_PENDING_UPLOADS, false)
         val uploadOnExit = prefs.getBoolean(KEY_UPLOAD_ON_EXIT, false)
         if (pendingUploads && uploadOnExit) {
+            isExiting = false
             startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
             return
         }
 
-        Log.i(TAG, "User initiated app shutdown")
-        
-        try {
-            // Voer alle cleanup uit (netwerk clients, logs, etc.)
-            AppShutdown.shutdownApp(this)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error during shutdown cleanup: ${e.message}", e)
+        Log.i(TAG, "User initiated app shutdown with automated cleanup across exports, logs, errorlogs and counts (keep last 5 counting days)")
+
+        Toast.makeText(this, getString(R.string.hoofd_toast_deleting_exports), Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                // Automatische opkuis van 'exports', 'logs', 'errorlogs' en 'counts' ouder dan de laatste 5 teldagen
+                val (deleted, failed) = withContext(Dispatchers.IO) {
+                    safHelper.cleanupAllTemporaryFoldersOnExit(keepDaysCount = 5)
+                }
+                Log.i(TAG, "Exit cleanup across exports, logs, errorlogs and counts completed: $deleted deleted, $failed failed")
+
+                // Voer overige app-cleanup uit (netwerk clients, logs, etc.)
+                withContext(Dispatchers.IO) {
+                    AppShutdown.shutdownApp(this@HoofdActiviteit)
+                }
+
+                Toast.makeText(this@HoofdActiviteit, getString(R.string.hoofd_toast_deleted_exports), Toast.LENGTH_SHORT).show()
+                delay(1500.milliseconds)
+                Toast.makeText(this@HoofdActiviteit, getString(R.string.hoofd_toast_app_closing), Toast.LENGTH_SHORT).show()
+                // Geef de laatste Toast tijd om zichtbaar te zijn voordat de app sluit.
+                delay(1000.milliseconds)
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during shutdown cleanup: ${e.message}", e)
+            } finally {
+                // Verwijder de app uit recente apps en sluit af
+                finishAndRemoveTaskCompat()
+            }
         }
-        
-        // Verwijder de app uit recente apps en sluit af
-        finishAndRemoveTaskCompat()
     }
 
     /**
@@ -932,7 +971,45 @@ class HoofdActiviteit : AppCompatActivity() {
         refreshUnfinishedTellingenBadge()
         // Ververs de UI badges direct bij terugkeer
         checkAiStateAndShowBadges()
+        updateBsiHeaderVisibility()
         refreshAppUpdateBadge(showPrompt = false)
+    }
+
+    private fun updateBsiHeaderVisibility() {
+        lifecycleScope.launch {
+            try {
+                val isAiEnabled = AppDataStore.isAiEnabled(this@HoofdActiviteit)
+                val btnBsi = findViewById<View>(R.id.btnBsiHeader)
+                btnBsi?.visibility = if (isAiEnabled) View.VISIBLE else View.GONE
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to update BSI header visibility: ${e.message}")
+            }
+        }
+    }
+
+    private fun showOnboardingInfoScreen(forceShow: Boolean = false) {
+        lifecycleScope.launch {
+            try {
+                val shown = AppDataStore.isFirstLaunchInfoShown(this@HoofdActiviteit)
+                if (forceShow || !shown) {
+                    com.yvesds.vt5.core.ui.FloatingInfoDialog.show(
+                        context = this@HoofdActiviteit,
+                        title = getString(R.string.onboarding_welcome_title),
+                        bodyText = getString(R.string.onboarding_welcome_body),
+                        headerDrawableResId = R.drawable.kraanvogels_bckgrnd,
+                        closeButtonText = getString(R.string.sluiten),
+                        showDontShowAgainOption = true,
+                        onDontShowAgainChecked = {
+                            lifecycleScope.launch {
+                                AppDataStore.setFirstLaunchInfoShown(this@HoofdActiviteit, true)
+                            }
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to show onboarding info screen: ${e.message}")
+            }
+        }
     }
 
     private fun refreshUnfinishedTellingenBadge() {
@@ -1023,83 +1100,5 @@ class HoofdActiviteit : AppCompatActivity() {
         DialogStyler.apply(dlg)
     }
     
-    /**
-     * Show confirmation dialog for exports cleanup.
-     * First checks how many files would be deleted, then asks for confirmation.
-     */
-    private fun showExportsCleanupConfirmation() {
-        Toast.makeText(this, getString(R.string.hoofd_opkuis_laden), Toast.LENGTH_SHORT).show()
-        
-        lifecycleScope.launch {
-            try {
-                val filesToDelete = withContext(Dispatchers.IO) {
-                    safHelper.getExportsCleanupCount(EXPORTS_KEEP_COUNT)
-                }
-                
-                if (filesToDelete == 0) {
-                    Toast.makeText(
-                        this@HoofdActiviteit,
-                        getString(R.string.hoofd_opkuis_geen_bestanden),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@launch
-                }
-                
-                // Show confirmation dialog
-                val dlg = AlertDialog.Builder(this@HoofdActiviteit)
-                    .setTitle(getString(R.string.hoofd_opkuis_bevestig_titel))
-                    .setMessage(getString(R.string.hoofd_opkuis_bevestig_msg, filesToDelete))
-                    .setPositiveButton(getString(R.string.hoofd_opkuis_ja)) { _, _ ->
-                        performExportsCleanup()
-                    }
-                    .setNegativeButton(getString(R.string.hoofd_opkuis_nee), null)
-                    .show()
 
-                DialogStyler.apply(dlg)
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Error checking exports cleanup count: ${e.message}", e)
-                Toast.makeText(
-                    this@HoofdActiviteit,
-                    getString(R.string.hoofd_opkuis_fout, e.message ?: "Onbekende fout"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-    
-    /**
-     * Perform the actual exports cleanup after user confirmation.
-     */
-    private fun performExportsCleanup() {
-        lifecycleScope.launch {
-            try {
-                val (deleted, failed) = withContext(Dispatchers.IO) {
-                    safHelper.cleanupExportsDir(EXPORTS_KEEP_COUNT)
-                }
-                
-                if (failed > 0) {
-                    Toast.makeText(
-                        this@HoofdActiviteit,
-                        getString(R.string.hoofd_opkuis_succes, deleted) + " ($failed mislukt)",
-                        Toast.LENGTH_LONG
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        this@HoofdActiviteit,
-                        getString(R.string.hoofd_opkuis_succes, deleted),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during exports cleanup: ${e.message}", e)
-                Toast.makeText(
-                    this@HoofdActiviteit,
-                    getString(R.string.hoofd_opkuis_fout, e.message ?: "Onbekende fout"),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
 }

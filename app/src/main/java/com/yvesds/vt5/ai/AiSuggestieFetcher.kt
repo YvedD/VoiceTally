@@ -20,6 +20,12 @@ object AiSuggestieFetcher {
     private const val TAG = "AiSuggestieFetcher"
 
     suspend fun fetchAndShow(context: Context, cur: Current, hour: Int? = null) {
+        if (!com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(context)) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "BSI / AI is uitgeschakeld in de Instellingen.", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
         Log.i(TAG, "Starting AI fetch sequence...")
         try {
             val progress = withContext(Dispatchers.Main) {

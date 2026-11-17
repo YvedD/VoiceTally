@@ -36,6 +36,13 @@ class AiReportListActiviteit : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_ai_report_list)
 
+        lifecycleScope.launch {
+            if (!com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@AiReportListActiviteit)) {
+                android.widget.Toast.makeText(this@AiReportListActiviteit, "BSI / AI is uitgeschakeld in de Instellingen.", android.widget.Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+
         database = VoiceTallyDatabase.getDatabase(this)
         
         findViewById<View>(R.id.btnTerug).setOnClickListener { finish() }

@@ -41,6 +41,13 @@ class AiForecastScherm : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_ai_forecast)
 
+        lifecycleScope.launch {
+            if (!com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@AiForecastScherm)) {
+                android.widget.Toast.makeText(this@AiForecastScherm, "BSI / AI is uitgeschakeld in de Instellingen.", android.widget.Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+
         database = VoiceTallyDatabase.getDatabase(this)
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClose).setOnClickListener {

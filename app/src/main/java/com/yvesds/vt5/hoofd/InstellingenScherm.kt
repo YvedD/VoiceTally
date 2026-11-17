@@ -210,6 +210,16 @@ class InstellingenScherm : AppCompatActivity() {
             val intent = Intent(this, com.yvesds.vt5.features.telling.AutoAnnotatieBeheerScherm::class.java)
             startActivity(intent)
         }
+
+        findViewById<View>(R.id.btnInfoAutoAnnotation)?.setOnClickListener {
+            com.yvesds.vt5.core.ui.FloatingInfoDialog.show(
+                context = this,
+                title = getString(R.string.auto_annotation_info_title),
+                bodyText = getString(R.string.auto_annotation_info_body),
+                headerDrawableResId = R.drawable.kraanvogels_bckgrnd,
+                closeButtonText = getString(R.string.sluiten)
+            )
+        }
     }
 
     private fun setupLettergrootteNumberPickers() {
@@ -436,10 +446,19 @@ class InstellingenScherm : AppCompatActivity() {
     }
 
     private fun setupAiSettings() {
+        val containerSub = findViewById<View>(R.id.containerAiSubOptions)
         findViewById<MaterialCheckBox>(R.id.cbAiEnabled)?.apply {
             lifecycleScope.launch {
-                isChecked = AppDataStore.isAiEnabled(this@InstellingenScherm)
-                setOnCheckedChangeListener { _, checked -> lifecycleScope.launch { AppDataStore.setAiEnabled(this@InstellingenScherm, checked) } }
+                val enabled = AppDataStore.isAiEnabled(this@InstellingenScherm)
+                isChecked = enabled
+                containerSub?.visibility = if (enabled) View.VISIBLE else View.GONE
+
+                setOnCheckedChangeListener { _, checked ->
+                    lifecycleScope.launch {
+                        AppDataStore.setAiEnabled(this@InstellingenScherm, checked)
+                        containerSub?.visibility = if (checked) View.VISIBLE else View.GONE
+                    }
+                }
             }
         }
 
@@ -472,6 +491,16 @@ class InstellingenScherm : AppCompatActivity() {
     private fun setupAliasBeheerButton() {
         findViewById<MaterialButton>(R.id.btnOpenAliasBeheer)?.setOnClickListener {
             startActivity(Intent(this, com.yvesds.vt5.features.alias.ui.AliasBeheerScherm::class.java))
+        }
+
+        findViewById<View>(R.id.btnInfoAliasBeheer)?.setOnClickListener {
+            com.yvesds.vt5.core.ui.FloatingInfoDialog.show(
+                context = this,
+                title = getString(R.string.alias_info_title),
+                bodyText = getString(R.string.alias_info_body),
+                headerDrawableResId = R.drawable.kraanvogels_bckgrnd,
+                closeButtonText = getString(R.string.sluiten)
+            )
         }
     }
 

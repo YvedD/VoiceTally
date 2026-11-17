@@ -12,6 +12,10 @@
     <string name="btn_install_start">((Her)Installatie starten</string>
     <string name="btn_verder_metadata">Invullen telpostgegevens</string>
     <string name="btn_afsluiten">Afsluiten</string>
+    <string name="sluiten">Sluiten</string>
+    <string name="hoofd_toast_deleting_exports">VT5 ruimt tijdelijke bestanden op.</string>
+    <string name="hoofd_toast_deleted_exports">Bestanden opgeruimd</string>
+    <string name="hoofd_toast_app_closing">De app sluit zichzelf af</string>
 
     <!-- Installatie -->
     <string name="titel_install">Algemene installatie instellingen</string>
@@ -26,7 +30,7 @@
     <string name="perm_bluetooth_checkbox">Bluetooth - nodig voor draadloze communicatie tussen toestellen.</string>
     <string name="perm_alarm_checkbox">Exact Alarm - nodig voor het betrouwbaar afgaan van het uurlijkse alarm.</string>
     <string name="instellingen_ai_title">AI-functionaliteit</string>
-    <string name="instellingen_ai_checkbox">AI-meldingen inschakelen</string>
+    <string name="instellingen_ai_checkbox">BSI-meldingen inschakelen</string>
     <string name="instellingen_ai_description">Indien ingeschakeld worden AI-modellen lokaal op het toestel aangemaakt en gebruikt voor waarnemingssuggesties.</string>
 
     <!-- Grafiek Instellingen -->
@@ -545,6 +549,22 @@
     <string name="telpost_beheer_layer_satellite">Satelliet (Esri)</string>
     <string name="telpost_beheer_layer_topo">Topografisch</string>
 
+    <!-- Eerste Gebruik Onboarding Floating Info-Screen -->
+    <string name="onboarding_welcome_title">Welkom bij VoiceTally!</string>
+    <string name="onboarding_dont_show_again">Dit bericht niet meer tonen bij het opstarten</string>
+    <string name="onboarding_info_desc">Snelcursus &amp; Informatie</string>
+    <string name="onboarding_welcome_body">Snelcursus voor Nieuwe Tellers:\n\n1. Spraakgestuurde Invoer voor Trektellen.nl\nVoiceTally is primair ontwikkeld voor trektellers met een account voor één of meer telposten van Trektellen.nl. Met deze app voer je waarnemingen direct en eventueel handsfree in via spraakherkenning.\n\n2. Spraak Invoeren via de [+ Volume] Knop\nDruk tijdens een telling op de [+ Volume] knop van je toestel om direct de spraakherkenning te starten zonder op het scherm te hoeven tikken.\n\n3. Verhaspelingen &amp; Aliassen Trainen (gele tekst in het Partials Scherm van het Tellingscherm)\nTellers gebruiken vaak verkorte namen. De app leert jouw specifieke verhaspelingen via Aliassen. Wordt een gesproken woord niet direct herkend? Tik op een GELE tekstregel in de zone \'Partials\' vak bovenaan het Tellingscherm, kies het gesproken woord en koppel het direct aan de juiste vogelsoort. De app onthoudt deze alias vanaf dan voor altijd!\n\n4. SoortSelectieScherm &amp; Direct Starten\nVoorafgaand aan een telling kies je op het SoortSelectieScherm je doelsoorten. Schakel je dit scherm liever uit in de Instellingen? Dan start een nieuwe telling direct met de recente soorten van de afgelopen 30 dagen op je tegels!\n\n5. Trektellen Inloggegevens &amp; Serverdata (Instellingenscherm)\nAlle instellingen voor je telpost(en) en account gebeuren in het gewone Instellingenscherm (het tandwieltje rechtsboven). In de sectie \'Trektellen.nl Account &amp; Server\' vul je je gebruikersnaam en wachtwoord in, tik je op \'Testen &amp; Opslaan\' en download je de benodigde serverdata (zoals species.json en sites.json).\n\n6. Automatische Weergegevens Aggregatie\nDe app haalt voor elk uur van je telling automatisch de actuele weerdata op via meteorologische diensten (Yr.no / Open-Meteo). Zo worden wind, temperatuur en luchtdruk automatisch gekoppeld zonder handmatige invoer.\n\n7. Telling Starten &amp; Direct Uploaden\nTik op \'TELLING STARTEN\'. Bij het uploaden haalt VoiceTally op de achtergrond een uniek \'onlineid\' op bij de Trektellen.nl servers, waarna al je waarnemingen veilig worden overgebracht.\n\n8. Soorten Toevoegen tijdens een Telling\nVoeg soorten automatisch toe via spraakinvoer (bijv. "vinken 5" - de app is getraind op eerst de SOORTNAAM + AANTAL - er is een mogelijkheid om een tegenovergestelde richting te trainen ten opzichte van de seizoensrichting, bijvoorbeeld NOORDOOST in het najaar) of manueel via het [+] teken en de zoekbalk.\n\n9. Eerste Stappen op het InstallatieScherm (Gids bij Eerste Start)\nHet InstallatieScherm (bereikbaar onderaan via \'BEHEER &amp; OPTIES\' -> \'Algemene installatie instellingen\') is ENKEL bedoeld om de app op een doeltoestel werkende te krijgen: mappenstructuur aanmaken (Documents/VT5/), SAF mappenrechten bevestigen en controle van de submappen.\n\n10. Functie van het Uurlijks Alarm\nHet optionele Uurlijks Alarm geeft elk uur op de telpost een discreet geluidssignaal. Zo weet je exact wanneer een nieuw teluur is aangebroken en blijven uuraantallen strak gescheiden.\n\n11. Standaard Telpost &amp; Teltype (Instellingenscherm)\nIn de bovenste sectie van het Instellingenscherm (het tandwieltje rechtsboven) stel je je vaste \'Standaard Telpost\' en \'Standaard Type Telling\' in. Hiermee start je met één enkele tik direct een nieuwe telling op jouw vertrouwde locatie!</string>
+
+    <!-- Alias Beheer Floating Info Screen -->
+    <string name="alias_info_title">Alias Beheer &amp; Spraakherkenning</string>
+    <string name="alias_info_desc">Informatie Alias beheer</string>
+    <string name="alias_info_body">Waarom Aliassen de Ruggegraat van VoiceTally zijn:\n\nTijdens een telling vliegen vogels snel voorbij en heb je geen tijd om ingewikkelde namen in te typen. VoiceTally gebruikt een krachtig slim spraaksysteem waarmee je waarnemingen handsfree kunt inspreken.\n\nElke teller spreekt vogelnamen echter net even anders uit of gebruikt eigen afkortingen (zoals "vink", "kiek", "grote zilver" of zelfs streektaal/slang). Aliassen zijn de sleutel om al die gesproken varianten feilloos te koppelen aan de officiële vogelsoorten van Trektellen.nl!\n\nDe 3 Niveaus van Spraakherkenning:\n1. Exacte Spelling &amp; Synoniemen: Vaste afkortingen en tegelnamen.\n2. Klank-Skelet (Cologne Phonetisch): Herkent de medeklinker-opbouw van woorden, zelfs bij achtergrondruis op de telpost.\n3. Klankherkenning (IPA Fonetisch): Herkent klinkers en foneem-klanken voor maximale nauwkeurigheid.\n\nHoe train je Aliassen?\n• Tijdens een telling (Partials Scherm):\nWordt een gesproken woord geel weergegeven bovenaan het Tellingscherm? Tik op de gele tekstregel in het \'Partials\' vak, kies het gesproken woord en koppel het direct aan de juiste vogelsoort. De app leert deze alias vanaf dat moment automatisch voor altijd!\n\n• In het Alias Beheer scherm:\nHier kun je alle 766 vogelsoorten opzoeken. Je ziet per soort de standaard ingebouwde aliassen én je eigen getrainde aliassen. Je kunt hier zelf nieuwe spreekwoorden of afkortingen toevoegen of bestaande getrainde aliassen bewerken en opschonen.\n\nAlle aliassen worden supersnel in het geheugen van je toestel opgeslagen, zodat spraakherkenning op de telpost direct en zonder internetverbinding werkt!</string>
+
+    <!-- Auto-annotatie Beheer Floating Info Screen -->
+    <string name="auto_annotation_info_title">Auto-annotatie Beheer</string>
+    <string name="auto_annotation_info_desc">Informatie Auto-annotatie beheer</string>
+    <string name="auto_annotation_info_body">Wat is Auto-annotatie?\n\nTijdens het tellen wil je bij sommige vogelsoorten (zoals roofvogels, zeldzaamheden of specifieke doelsoorten) meteen extra details vastleggen, zoals geslacht (man/vrouw), leeftijd (adult/juveniel), vliegrichting of opmerkingen.\n\nNormaal gesproken moet je na het inspreken op de waarneming tikken om het detailscherm te openen. Wanneer je een soort instelt op Auto-annotatie, verschijnt het detailscherm AUTOMATISCH zodra die soort wordt ingesproken of toegevoegd!\n\nHoe werkt Auto-annotatie Beheer?\n• Lijst met vogelsoorten:\nIn dit beheerscherm zie je alle soorten uit jouw database. Vink de soorten aan waarvoor je tijdens een telling altijd direct het detailscherm wilt laten verschijnen.\n\n• Automatisch &amp; Razendsnel:\nZodra je op \'Opslaan\' tikt, worden je keuzes bewaard in Documents/VT5/assets/auto_annotatie.json. De app herkent de gekozen soorten tijdens het tellen zonder enige vertraging.\n\n• Handig in het Veld:\nZo vergeet je nooit meer om de leeftijd, het geslacht of de vliegrichting van belangrijke soorten direct op de telpost te noteren!</string>
+
     <!-- BSI Datacentrum &amp; Pipeline -->
     <string name="splash_version_format">VoiceTally with Bio Statistic Intelligence v%1$s</string>
     <string name="bsi_titel">Bio Statistic Intelligence</string>
@@ -580,4 +600,5 @@
     <string name="bsi_step4_why">WAAROM? Elke telpost is uniek. Door het BSI-model te trainen leert de engine de specifieke doortrekpieken en seizoenspatronen van jouw eigen locatie.</string>
     <string name="bsi_step4_how">HOE? De app berekent de zonne-tijd (zonnehoogte/daglengte), verwerkt de soortfrequenties en traint de Neurale BSI-gewichten.</string>
     <string name="bsi_step4_result">RESULTAAT: BSI is 100% operationeel! De 3-daagse prognoses, KrentenMonitor en dagrapporten zijn geactiveerd.</string>
+    <string name="bsi_functies">BSI-functies</string>
 </resources>

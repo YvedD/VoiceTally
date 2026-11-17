@@ -105,8 +105,14 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             startActivity(Intent(this, DatabaseSoortOverzichtActiviteit::class.java))
         }
 
-        findViewById<MaterialButton>(R.id.btnAiEvaluation).setOnClickListener {
+        val btnAiEval = findViewById<MaterialButton>(R.id.btnAiEvaluation)
+        btnAiEval.setOnClickListener {
             startActivity(Intent(this, com.yvesds.vt5.ai.AiLogActiviteit::class.java))
+        }
+
+        lifecycleScope.launch {
+            val enabled = com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@DatabaseBeheerScherm)
+            btnAiEval.visibility = if (enabled) android.view.View.VISIBLE else android.view.View.GONE
         }
 
         findViewById<MaterialButton>(R.id.btnBatchImport).setOnClickListener {

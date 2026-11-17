@@ -545,6 +545,188 @@ class SaFStorageHelper(private val context: Context) {
     suspend fun cleanupExportsDirSuspend(keepCount: Int = 10): Pair<Int, Int> = withContext(Dispatchers.IO) {
         cleanupExportsDir(keepCount)
     }
+
+    /**
+     * Haal de logs-map (Documents/VT5/logs) op als die bestaat of maak deze aan.
+     */
+    fun getLogsDir(): DocumentFile? {
+        val vt5Dir = getVt5DirIfExists() ?: return null
+        return vt5Dir.findFile("logs")?.takeIf { it.isDirectory }
+            ?: vt5Dir.createDirectory("logs")
+    }
+
+    /**
+     * Controleert of een bestandsnaam beschermd is (mag nooit automatisch verwijderd worden).
+     */
+    private fun isProtectedFile(filename: String?): Boolean {
+        if (filename == null) return false
+        val lower = filename.lowercase()
+        return lower == "active_telling.json" ||
+               lower == "alias_master.json" ||
+               lower == "aliases_optimized.cbor.gz" ||
+               lower == "species.json" ||
+               lower == "sites.json" ||
+               lower == "site_species.json"
+    }
+
+    private val regexDateExtractor = Regex("(20\\d{2})[_-]?(0[1-9]|1[0-2])[_-]?(0[1-9]|[12]\\d|3[01])")
+    private val regexJsonDatumExtractor = Regex("\"(?:datum|begintijd|created_at|timestamp)\"\\s*:\\s*\"(20\\d{2})[_-]?(0[1-9]|1[0-2])[_-]?(0[1-9]|[12]\\d|3[01])")
+    private val regexJsonIsoDatumExtractor = Regex("\"(?:datum|begintijd|created_at|timestamp)\"\\s*:\\s*\"(20\\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])")
+
+    private fun extractDateStringFromFilenameOrContent(
+        name: String,
+        lastModifiedMs: Long,
+        openInputStream: (() -> java.io.InputStream?)? = null
+    ): String {
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+
+        // 1. Zoek datumpatroon (20YYMMDD of 20YY-MM-DD) overal in de bestandsnaam (ongeacht voorvoegsels)
+        val match = regexDateExtractor.find(name)
+        if (match != null) {
+            val y = match.groupValues[1]
+            val m = match.groupValues[2]
+            val d = match.groupValues[3]
+            return "$y-$m-$d"
+        }
+
+        // 2. Indien JSON bestand zonder datum in naam: probeer datum uit JSON te lezen
+        if (name.endsWith(".json", ignoreCase = true) && openInputStream != null) {
+            try {
+                val headerSnippet = openInputStream()?.use { stream ->
+                    val buffer = ByteArray(2048)
+                    val read = stream.read(buffer)
+                    if (read > 0) String(buffer, 0, read, Charsets.UTF_8) else ""
+                } ?: ""
+
+                val jsonMatch = regexJsonIsoDatumExtractor.find(headerSnippet)
+                    ?: regexJsonDatumExtractor.find(headerSnippet)
+                if (jsonMatch != null) {
+                    val y = jsonMatch.groupValues[1]
+                    val m = jsonMatch.groupValues[2]
+                    val d = jsonMatch.groupValues[3]
+                    return "$y-$m-$d"
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 3. Fallback: lastModified datum
+        return dateFormat.format(java.util.Date(lastModifiedMs))
+    }
+
+    /**
+     * Ruimt een specifieke SAF map op bij het afsluiten door alle bestanden te verwijderen
+     * die ouder zijn dan de laatste 'keepDaysCount' teldagen (unieke kalenderdagen).
+     */
+    fun cleanupDirectoryByCountingDays(dir: DocumentFile?, keepDaysCount: Int = 5): Pair<Int, Int> {
+        if (dir == null || !dir.isDirectory) return Pair(0, 0)
+        val files = dir.listFiles().filter { it.isFile && !isProtectedFile(it.name) }
+        if (files.isEmpty()) return Pair(0, 0)
+
+        // Koppel elk bestand aan zijn teldag (yyyy-MM-dd)
+        val fileWithDay = files.map { file ->
+            val name = file.name ?: ""
+            val dayStr = extractDateStringFromFilenameOrContent(
+                name = name,
+                lastModifiedMs = file.lastModified(),
+                openInputStream = { context.contentResolver.openInputStream(file.uri) }
+            )
+            file to dayStr
+        }
+
+        // Bepaal de unieke teldagen gesorteerd van meest recent naar oudst
+        val uniqueDaysSorted = fileWithDay.map { it.second }.distinct().sortedDescending()
+
+        // Behoud de meest recente 'keepDaysCount' teldagen (bijv. 5)
+        val allowedDays = uniqueDaysSorted.take(keepDaysCount).toSet()
+
+        var deleted = 0
+        var failed = 0
+
+        for ((file, dayStr) in fileWithDay) {
+            if (dayStr !in allowedDays) {
+                if (file.delete()) {
+                    deleted++
+                } else {
+                    failed++
+                }
+            }
+        }
+
+        return Pair(deleted, failed)
+    }
+
+    private fun cleanupInternalDirectoryByCountingDays(dir: java.io.File, keepDaysCount: Int = 5): Pair<Int, Int> {
+        if (!dir.exists() || !dir.isDirectory) return Pair(0, 0)
+        val files = dir.listFiles()?.filter { it.isFile && !isProtectedFile(it.name) } ?: return Pair(0, 0)
+        if (files.isEmpty()) return Pair(0, 0)
+
+        val fileWithDay = files.map { file ->
+            val name = file.name ?: ""
+            val dayStr = extractDateStringFromFilenameOrContent(
+                name = name,
+                lastModifiedMs = file.lastModified(),
+                openInputStream = { runCatching { java.io.FileInputStream(file) }.getOrNull() }
+            )
+            file to dayStr
+        }
+
+        val uniqueDaysSorted = fileWithDay.map { it.second }.distinct().sortedDescending()
+        val allowedDays = uniqueDaysSorted.take(keepDaysCount).toSet()
+
+        var deleted = 0
+        var failed = 0
+
+        for ((file, dayStr) in fileWithDay) {
+            if (dayStr !in allowedDays) {
+                if (file.delete()) {
+                    deleted++
+                } else {
+                    failed++
+                }
+            }
+        }
+
+        return Pair(deleted, failed)
+    }
+
+    /**
+     * Ruimt alle tijdelijke submappen ('exports', 'logs', 'errorlogs', 'counts') op bij het afsluiten
+     * door alle bestanden te verwijderen die ouder zijn dan de laatste 'keepDaysCount' teldagen.
+     *
+     * @return Pair<Int, Int> - (totaal aantal verwijderde bestanden, totaal aantal mislukte verwijderingen)
+     */
+    fun cleanupAllTemporaryFoldersOnExit(keepDaysCount: Int = 5): Pair<Int, Int> {
+        val safDirsToClean = listOfNotNull(
+            getExportsDir(),
+            getLogsDir(),
+            getErrorLogsDir(),
+            getCountsDir()
+        )
+
+        var totalDeleted = 0
+        var totalFailed = 0
+
+        for (dir in safDirsToClean) {
+            val (deleted, failed) = cleanupDirectoryByCountingDays(dir, keepDaysCount)
+            totalDeleted += deleted
+            totalFailed += failed
+        }
+
+        // Ook interne opslag mappen opschonen
+        val internalFolders = listOf("exports", "logs", "errorlogs", "counts")
+        for (folderName in internalFolders) {
+            val internalDir = java.io.File(context.filesDir, "VT5/$folderName")
+            val (deleted, failed) = cleanupInternalDirectoryByCountingDays(internalDir, keepDaysCount)
+            totalDeleted += deleted
+            totalFailed += failed
+        }
+
+        return Pair(totalDeleted, totalFailed)
+    }
+
+    suspend fun cleanupAllTemporaryFoldersOnExitSuspend(keepDaysCount: Int = 5): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        cleanupAllTemporaryFoldersOnExit(keepDaysCount)
+    }
     
     /**
      * Krijg het aantal bestanden dat verwijderd zou worden door cleanupExportsDir().

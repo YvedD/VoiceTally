@@ -47,6 +47,13 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_bsi_datacentrum)
 
+        lifecycleScope.launch {
+            if (!com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@BsiDatacentrumActiviteit)) {
+                android.widget.Toast.makeText(this@BsiDatacentrumActiviteit, "BSI / AI is uitgeschakeld in de Instellingen.", android.widget.Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+
         safStorageHelper = SaFStorageHelper(this)
 
         // Bind UI Elementen

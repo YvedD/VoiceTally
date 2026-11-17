@@ -39,6 +39,14 @@ class BsiHubActiviteit : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_bsi_hub)
 
+        lifecycleScope.launch {
+            if (!AppDataStore.isAiEnabled(this@BsiHubActiviteit)) {
+                android.widget.Toast.makeText(this@BsiHubActiviteit, "BSI / AI is momenteel uitgeschakeld in de Instellingen.", android.widget.Toast.LENGTH_SHORT).show()
+                finish()
+                return@launch
+            }
+        }
+
         safStorageHelper = SaFStorageHelper(this)
 
         // Bind UI Elementen

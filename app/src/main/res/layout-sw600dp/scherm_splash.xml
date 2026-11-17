@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     VT5 Splash Screen Layout (Tablet)
-    Geoptimaliseerd voor grotere schermen.
+    Schermvullende opstartafbeelding geoptimaliseerd voor tablets.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:fitsSystemWindows="true"
@@ -9,53 +9,47 @@
     android:layout_height="match_parent"
     android:background="@color/vt5_black">
 
-    <!-- Container voor de Logo-transitie (Tablet) -->
-    <FrameLayout
-        android:layout_width="650dp"
-        android:layout_height="650dp"
-        android:layout_gravity="center">
+    <!-- Schermvullende Opstartafbeelding (Tablet) -->
+    <ImageView
+        android:id="@+id/ivSplashLogo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/app_name"
+        android:scaleType="centerCrop"
+        android:src="@drawable/opstartscherm" />
+
+    <!-- AI Layer: BSI-powered oog dat de plaats inneemt bij BSI transitie -->
+    <LinearLayout
+        android:id="@+id/containerAiLogo"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:gravity="center"
+        android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/ivSplashLogo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="top|center_horizontal"
-            android:adjustViewBounds="true"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/vt5" />
+            android:id="@+id/ivAiLogo"
+            android:layout_width="260dp"
+            android:layout_height="260dp"
+            android:contentDescription="BSI Logo"
+            android:src="@drawable/ic_vt5_ai_horizon" />
 
-        <!-- AI Layer: BSI-powered oog dat de plaats inneemt -->
-        <LinearLayout
-            android:id="@+id/containerAiLogo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:id="@+id/ivAiLogo"
-                android:layout_width="514dp"
-                android:layout_height="514dp"
-                android:contentDescription="BSI Logo"
-                android:src="@drawable/ic_vt5_ai_horizon" />
-
-            <TextView
-                android:id="@+id/tvBsiTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="136dp"
-                android:text="Bio Statistic Intelligence"
-                android:textColor="#117CAF"
-                android:textSize="28sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </FrameLayout>
+        <TextView
+            android:id="@+id/tvBsiTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Bio Statistic Intelligence"
+            android:textColor="#117CAF"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
-        android:layout_width="600dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="80dp"
+        android:layout_marginBottom="40dp"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="24dp">
@@ -71,12 +65,13 @@
 
         <TextView
             android:id="@+id/tvSplashVersion"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="VoiceTally with Bio Statistic Intelligence v4.0.0"
             android:textAlignment="center"
-            android:textColor="#5292DC"
-            android:textSize="16sp" />
+            android:textColor="#8FFBFBFB"
+            android:textSize="30sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </FrameLayout>

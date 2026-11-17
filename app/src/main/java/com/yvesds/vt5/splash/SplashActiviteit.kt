@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class SplashActiviteit : AppCompatActivity() {
     
     companion object {
-        private const val SPLASH_DURATION_MS = 1200L
+        private const val SPLASH_DURATION_MS = 1500L
     }
     
     private var splashJob: Job? = null
@@ -59,14 +59,19 @@ class SplashActiviteit : AppCompatActivity() {
             // Garandeer dat preload gestart is
             ServerDataCache.preload(this@SplashActiviteit)
 
-            delay(300.milliseconds)
+            val isAiEnabled = com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@SplashActiviteit)
+
+            // Geef de nieuwe schermvullende opstartafbeelding minimaal 1.5 seconde zichtbaarheid tijdens het hot-preloaden
+            delay(1500.milliseconds)
             if (!isActive) return@launch
 
-            ivSplash?.animate()?.alpha(0f)?.setDuration(400)?.start()
-            delay(400.milliseconds)
-            if (!isActive) return@launch
-            
-            containerAi?.animate()?.alpha(1.0f)?.setDuration(400)?.start()
+            if (isAiEnabled) {
+                ivSplash?.animate()?.alpha(0f)?.setDuration(400)?.start()
+                delay(400.milliseconds)
+                if (!isActive) return@launch
+                
+                containerAi?.animate()?.alpha(1.0f)?.setDuration(400)?.start()
+            }
             
             withTimeoutOrNull(4000.milliseconds) {
                 val aliasJob = async { VT5App.awaitStartupAliasRefresh() }

@@ -16,6 +16,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  */
 object AppDataStore {
     private val KEY_NEXT_TELLING_ID = longPreferencesKey("next_telling_id")
+    private val KEY_FIRST_LAUNCH_INFO_SHOWN = booleanPreferencesKey("first_launch_info_shown")
     private val KEY_AI_ENABLED = booleanPreferencesKey("ai_enabled")
     private val KEY_AI_MODEL_DIR_URI = stringPreferencesKey("ai_model_dir_uri")
     private val KEY_USE_NEURAL_INFERENCE = booleanPreferencesKey("use_neural_inference")
@@ -106,6 +107,16 @@ object AppDataStore {
 
     suspend fun isAiEnabled(context: Context): Boolean {
         return context.dataStore.data.map { it[KEY_AI_ENABLED] ?: false }.first()
+    }
+
+    suspend fun setFirstLaunchInfoShown(context: Context, shown: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_FIRST_LAUNCH_INFO_SHOWN] = shown
+        }
+    }
+
+    suspend fun isFirstLaunchInfoShown(context: Context): Boolean {
+        return context.dataStore.data.map { it[KEY_FIRST_LAUNCH_INFO_SHOWN] ?: false }.first()
     }
 
     suspend fun setAiModelDirUri(context: Context, uri: String?) {

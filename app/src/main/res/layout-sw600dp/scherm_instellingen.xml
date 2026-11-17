@@ -160,6 +160,110 @@
                                 </LinearLayout>
                             </LinearLayout>
 
+                            <!-- Trektellen.nl Account & Server -->
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                                <LinearLayout
+                                    android:id="@+id/headerTrektellen"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:background="?attr/selectableItemBackground"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:padding="16dp">
+                                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/sect_trektellen" android:textColor="@color/vt5_white" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Inloggegevens &amp; serverdata downloaden" android:textColor="#B0FFFFFF" android:textSize="13sp" />
+                                    </LinearLayout>
+                                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▼" android:textColor="@color/vt5_light_blue" android:textSize="16sp" />
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:id="@+id/contentTrektellen"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:paddingHorizontal="16dp"
+                                    android:paddingBottom="16dp"
+                                    android:visibility="gone">
+
+                                    <com.google.android.material.textfield.TextInputLayout
+                                        android:id="@+id/tilLogin"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:hint="@string/hint_login">
+                                        <com.google.android.material.textfield.TextInputEditText
+                                            android:id="@+id/etLogin"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:inputType="textEmailAddress" />
+                                    </com.google.android.material.textfield.TextInputLayout>
+
+                                    <com.google.android.material.textfield.TextInputLayout
+                                        android:id="@+id/tilPass"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:hint="@string/hint_password"
+                                        app:endIconMode="password_toggle">
+                                        <com.google.android.material.textfield.TextInputEditText
+                                            android:id="@+id/etPass"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:inputType="textPassword" />
+                                    </com.google.android.material.textfield.TextInputLayout>
+
+                                    <LinearLayout
+                                        android:id="@+id/rowCreds"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="12dp"
+                                        android:orientation="horizontal">
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnWis"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginEnd="4dp"
+                                            android:text="@string/btn_wis" />
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnBewaar"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginStart="4dp"
+                                            android:text="@string/btn_bewaar" />
+                                    </LinearLayout>
+
+                                    <LinearLayout
+                                        android:id="@+id/rowAuthDownload"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:orientation="horizontal">
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnLoginTest"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginEnd="4dp"
+                                            android:text="@string/btn_login_test" />
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnDownloadJsons"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:layout_marginStart="4dp"
+                                            android:text="@string/btn_download_jsons" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </LinearLayout>
+
                             <!-- Soorten en invoer -->
                             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                                 <LinearLayout
@@ -215,6 +319,64 @@
                                         <com.google.android.material.button.MaterialButton android:id="@+id/btnFav75" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="12sp" android:checkable="true" android:text="@string/instellingen_fav_75" />
                                         <com.google.android.material.button.MaterialButton android:id="@+id/btnFavAll" style="@style/Widget.VT5.Button.Outlined" android:layout_width="0dp" android:layout_height="42dp" android:layout_columnWeight="1" android:layout_margin="2dp" android:textSize="11sp" android:checkable="true" android:text="@string/instellingen_fav_all" />
                                     </GridLayout>
+
+                                    <!-- ALIAS BEHEER KNOP MET INFO-ICOON TABLET -->
+                                    <LinearLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="16dp"
+                                        android:gravity="center_vertical"
+                                        android:orientation="horizontal">
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnOpenAliasBeheer"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:text="Alias beheer" />
+
+                                        <ImageView
+                                            android:id="@+id/btnInfoAliasBeheer"
+                                            android:layout_width="36dp"
+                                            android:layout_height="36dp"
+                                            android:layout_marginStart="8dp"
+                                            android:background="?attr/selectableItemBackgroundBorderless"
+                                            android:clickable="true"
+                                            android:contentDescription="@string/alias_info_desc"
+                                            android:focusable="true"
+                                            android:padding="4dp"
+                                            android:src="@drawable/ic_info_circle_exclamation" />
+                                    </LinearLayout>
+
+                                    <!-- AUTO-ANNOTATIE BEHEER KNOP MET INFO-ICOON TABLET -->
+                                    <LinearLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:gravity="center_vertical"
+                                        android:orientation="horizontal">
+
+                                        <com.google.android.material.button.MaterialButton
+                                            android:id="@+id/btnOpenAutoAnnotation"
+                                            style="@style/Widget.VT5.Button.Outlined"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:layout_weight="1"
+                                            android:text="Auto-annotatie beheer" />
+
+                                        <ImageView
+                                            android:id="@+id/btnInfoAutoAnnotation"
+                                            android:layout_width="36dp"
+                                            android:layout_height="36dp"
+                                            android:layout_marginStart="8dp"
+                                            android:background="?attr/selectableItemBackgroundBorderless"
+                                            android:clickable="true"
+                                            android:contentDescription="@string/auto_annotation_info_desc"
+                                            android:focusable="true"
+                                            android:padding="4dp"
+                                            android:src="@drawable/ic_info_circle_exclamation" />
+                                    </LinearLayout>
                                 </LinearLayout>
                             </LinearLayout>
 
@@ -422,7 +584,7 @@
                                     android:orientation="horizontal"
                                     android:padding="16dp">
                                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="AI-functies" android:textColor="@color/vt5_white" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/bsi_functies" android:textColor="@color/vt5_white" android:textSize="16sp" android:textStyle="bold" />
                                     </LinearLayout>
                                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▼" android:textColor="@color/vt5_light_blue" android:textSize="16sp" />
                                 </LinearLayout>
@@ -435,15 +597,22 @@
                                     android:paddingBottom="16dp"
                                     android:visibility="gone">
                                     <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbAiEnabled" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/instellingen_ai_checkbox" android:textColor="@color/vt5_on_surface" app:buttonTint="@color/vt5_light_blue" />
-                                    <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbUseNeuralInference" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Gebruik neurale inferentie (op apparaat)" android:textColor="@color/vt5_on_surface" app:buttonTint="@color/vt5_light_blue" />
-                                    <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbUseDailyAnalysisWeights" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Gebruik dagelijkse analyse wegingen" android:textColor="@color/vt5_on_surface" android:layout_marginBottom="12dp" app:buttonTint="@color/vt5_light_blue" />
-                                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Birds of Interest (Krenten-drempel)" android:textColor="@color/vt5_light_blue" android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="4dp" />
-                                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="8dp">
-                                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Drempelwaarde (aantal):" android:textColor="@color/vt5_on_surface" />
-                                        <NumberPicker android:id="@+id/npKrentenThreshold" android:layout_width="80dp" android:layout_height="50dp" />
+                                    <LinearLayout
+                                        android:id="@+id/containerAiSubOptions"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="vertical"
+                                        android:visibility="gone">
+                                        <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbUseNeuralInference" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Gebruik neurale inferentie (op apparaat)" android:textColor="@color/vt5_on_surface" app:buttonTint="@color/vt5_light_blue" />
+                                        <com.google.android.material.checkbox.MaterialCheckBox android:id="@+id/cbUseDailyAnalysisWeights" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Gebruik dagelijkse analyse wegingen" android:textColor="@color/vt5_on_surface" android:layout_marginBottom="12dp" app:buttonTint="@color/vt5_light_blue" />
+                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Birds of Interest (Krenten-drempel)" android:textColor="@color/vt5_light_blue" android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="4dp" />
+                                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                                            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Drempelwaarde (aantal):" android:textColor="@color/vt5_on_surface" />
+                                            <NumberPicker android:id="@+id/npKrentenThreshold" android:layout_width="80dp" android:layout_height="50dp" />
+                                        </LinearLayout>
+                                        <com.google.android.material.button.MaterialButton android:id="@+id/btnApplyKrentenThreshold" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Drempel toepassen &amp; AI hertrainen" />
+                                        <com.google.android.material.button.MaterialButton android:id="@+id/btnOpenKrentenMonitor" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Open Krenten Monitor" />
                                     </LinearLayout>
-                                    <com.google.android.material.button.MaterialButton android:id="@+id/btnApplyKrentenThreshold" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Drempel toepassen &amp; AI hertrainen" />
-                                    <com.google.android.material.button.MaterialButton android:id="@+id/btnOpenKrentenMonitor" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Open Krenten Monitor" />
                                 </LinearLayout>
                             </LinearLayout>
 
@@ -539,116 +708,12 @@
                                     android:paddingHorizontal="16dp"
                                     android:paddingBottom="16dp"
                                     android:visibility="gone">
-                                    <com.google.android.material.button.MaterialButton android:id="@+id/btnOpenAutoAnnotation" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Auto-annotatie beheer" />
-                                    <com.google.android.material.button.MaterialButton android:id="@+id/btnOpenAliasBeheer" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Alias beheer" />
                                     <com.google.android.material.button.MaterialButton android:id="@+id/btnMirrorDb" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Database spiegelen naar SAF" />
                                     <com.google.android.material.button.MaterialButton android:id="@+id/btnOpenBirdNetConfig" style="@style/Widget.VT5.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="BirdNET configuratie" />
                                 </LinearLayout>
                             </LinearLayout>
 
-                            <!-- Trektellen.nl Account & Server -->
-                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-                                <LinearLayout
-                                    android:id="@+id/headerTrektellen"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:background="?attr/selectableItemBackground"
-                                    android:clickable="true"
-                                    android:focusable="true"
-                                    android:gravity="center_vertical"
-                                    android:orientation="horizontal"
-                                    android:padding="16dp">
-                                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/sect_trektellen" android:textColor="@color/vt5_white" android:textSize="16sp" android:textStyle="bold" />
-                                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Inloggegevens &amp; serverdata downloaden" android:textColor="#B0FFFFFF" android:textSize="13sp" />
-                                    </LinearLayout>
-                                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▼" android:textColor="@color/vt5_light_blue" android:textSize="16sp" />
-                                </LinearLayout>
-                                <LinearLayout
-                                    android:id="@+id/contentTrektellen"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="vertical"
-                                    android:paddingHorizontal="16dp"
-                                    android:paddingBottom="16dp"
-                                    android:visibility="gone">
 
-                                    <com.google.android.material.textfield.TextInputLayout
-                                        android:id="@+id/tilLogin"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="8dp"
-                                        android:hint="@string/hint_login">
-                                        <com.google.android.material.textfield.TextInputEditText
-                                            android:id="@+id/etLogin"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:inputType="textEmailAddress" />
-                                    </com.google.android.material.textfield.TextInputLayout>
-
-                                    <com.google.android.material.textfield.TextInputLayout
-                                        android:id="@+id/tilPass"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="8dp"
-                                        android:hint="@string/hint_password"
-                                        app:endIconMode="password_toggle">
-                                        <com.google.android.material.textfield.TextInputEditText
-                                            android:id="@+id/etPass"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:inputType="textPassword" />
-                                    </com.google.android.material.textfield.TextInputLayout>
-
-                                    <LinearLayout
-                                        android:id="@+id/rowCreds"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="12dp"
-                                        android:orientation="horizontal">
-                                        <com.google.android.material.button.MaterialButton
-                                            android:id="@+id/btnWis"
-                                            style="@style/Widget.VT5.Button.Outlined"
-                                            android:layout_width="0dp"
-                                            android:layout_height="wrap_content"
-                                            android:layout_weight="1"
-                                            android:layout_marginEnd="4dp"
-                                            android:text="@string/btn_wis" />
-                                        <com.google.android.material.button.MaterialButton
-                                            android:id="@+id/btnBewaar"
-                                            style="@style/Widget.VT5.Button.Outlined"
-                                            android:layout_width="0dp"
-                                            android:layout_height="wrap_content"
-                                            android:layout_weight="1"
-                                            android:layout_marginStart="4dp"
-                                            android:text="@string/btn_bewaar" />
-                                    </LinearLayout>
-
-                                    <LinearLayout
-                                        android:id="@+id/rowAuthDownload"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="8dp"
-                                        android:orientation="horizontal">
-                                        <com.google.android.material.button.MaterialButton
-                                            android:id="@+id/btnLoginTest"
-                                            style="@style/Widget.VT5.Button.Outlined"
-                                            android:layout_width="0dp"
-                                            android:layout_height="wrap_content"
-                                            android:layout_weight="1"
-                                            android:layout_marginEnd="4dp"
-                                            android:text="@string/btn_login_test" />
-                                        <com.google.android.material.button.MaterialButton
-                                            android:id="@+id/btnDownloadJsons"
-                                            style="@style/Widget.VT5.Button.Outlined"
-                                            android:layout_width="0dp"
-                                            android:layout_height="wrap_content"
-                                            android:layout_weight="1"
-                                            android:layout_marginStart="4dp"
-                                            android:text="@string/btn_download_jsons" />
-                                    </LinearLayout>
-                                </LinearLayout>
-                            </LinearLayout>
 
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
