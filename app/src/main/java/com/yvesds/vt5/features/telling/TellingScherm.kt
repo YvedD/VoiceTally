@@ -1600,8 +1600,11 @@ class TellingScherm : AppCompatActivity() {
                     return
                 }
 
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
+                Toast.makeText(
+                    this@TellingScherm,
+                    getString(R.string.telling_back_disabled_toast),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         })
     }
