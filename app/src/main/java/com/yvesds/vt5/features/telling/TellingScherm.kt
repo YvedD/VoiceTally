@@ -2401,10 +2401,31 @@ class TellingScherm : AppCompatActivity() {
                 tegelBeheer.recalculateCountsFromRecords(savedRecords)
                 refreshTileRows(tegelBeheer.getTiles())
 
-                // Restore pending records and reflect to ViewModel
+                // Restore pending records and reflect to ViewModel (with merge to prevent data loss)
                 synchronized(pendingRecords) {
+                    val existing = pendingRecords.toList()
+                    val mergedMap = LinkedHashMap<String, ServerTellingDataItem>()
+                    savedRecords.forEach { rec ->
+                        val key = rec.idLocal.takeIf { it.isNotBlank() }
+                            ?: rec.groupid.takeIf { it.isNotBlank() }
+                            ?: "${rec.tijdstip}_${rec.soortid}_${rec.aantal}_${rec.aantalterug}"
+                        mergedMap[key] = rec
+                    }
+                    existing.forEach { rec ->
+                        val key = rec.idLocal.takeIf { it.isNotBlank() }
+                            ?: rec.groupid.takeIf { it.isNotBlank() }
+                            ?: "${rec.tijdstip}_${rec.soortid}_${rec.aantal}_${rec.aantalterug}"
+                        if (!mergedMap.containsKey(key)) {
+                            mergedMap[key] = rec
+                        }
+                    }
+                    val finalCombinedRecords = mergedMap.values.sortedWith(
+                        compareBy<ServerTellingDataItem> { it.tijdstip.toLongOrNull() ?: 0L }
+                            .thenBy { it.idLocal.toLongOrNull() ?: 0L }
+                    )
                     pendingRecords.clear()
-                    pendingRecords.addAll(savedRecords)
+                    pendingRecords.addAll(finalCombinedRecords)
+                    savedRecords = finalCombinedRecords
                 }
                 if (::viewModel.isInitialized) {
                     viewModel.setPendingRecords(savedRecords)

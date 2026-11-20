@@ -168,6 +168,7 @@ class InstellingenScherm : AppCompatActivity() {
             setupTileTapGroupWindowButtons()
             setupDynamicTileSortingToggle()
             setupServerResponseLoggingToggle()
+            setupDiagnosticLogsButton()
             setupAutoAnnotationButton()
             setupColorSpinners()
             setupPartialsTextColorSpinner()
@@ -352,6 +353,12 @@ class InstellingenScherm : AppCompatActivity() {
             val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             isChecked = prefs.getBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, DEFAULT_SERVER_RESPONSE_LOGGING_ENABLED)
             setOnCheckedChangeListener { _, isChecked -> prefs.edit { putBoolean(PREF_SERVER_RESPONSE_LOGGING_ENABLED, isChecked) } }
+        }
+    }
+
+    private fun setupDiagnosticLogsButton() {
+        findViewById<MaterialButton>(R.id.btnDiagnosticLogs)?.setOnClickListener {
+            startActivity(Intent(this, com.yvesds.vt5.core.ui.DiagnosticLogsActivity::class.java))
         }
     }
 

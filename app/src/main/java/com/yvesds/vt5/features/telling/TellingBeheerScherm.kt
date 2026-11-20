@@ -33,6 +33,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.yvesds.vt5.R
+import com.yvesds.vt5.core.database.VoiceTallyDatabase
+import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
 import com.yvesds.vt5.core.database.repository.HybridTellingRepository
 import com.yvesds.vt5.core.ui.CompassNeedleView
@@ -1198,9 +1200,36 @@ class TellingBeheerScherm : AppCompatActivity() {
             .setPositiveButton("Heropenen") { _, _ ->
                 lifecycleScope.launch {
                     try {
+                        val initialTid = envelope.tellingid.ifBlank { info.tellingId.orEmpty() }
+                        val initialOid = envelope.onlineid.ifBlank { info.onlineId.orEmpty() }
+
+                        // Merge live Room DB records with file envelope data to guarantee zero data loss
+                        val liveRoomItems = withContext(Dispatchers.IO) {
+                            VoiceTallyDatabase.getDatabase(this@TellingBeheerScherm)
+                                .tellingDao()
+                                .getWaarnemingenList(initialTid, initialOid)
+                        }.map { it.toServerItem() }
+
+                        val mergedMap = LinkedHashMap<String, com.yvesds.vt5.net.ServerTellingDataItem>()
+                        envelope.data.forEach { item ->
+                            val key = item.idLocal.takeIf { it.isNotBlank() }
+                                ?: item.groupid.takeIf { it.isNotBlank() }
+                                ?: "${item.tijdstip}_${item.soortid}_${item.aantal}_${item.aantalterug}"
+                            mergedMap[key] = item
+                        }
+                        liveRoomItems.forEach { item ->
+                            val key = item.idLocal.takeIf { it.isNotBlank() }
+                                ?: item.groupid.takeIf { it.isNotBlank() }
+                                ?: "${item.tijdstip}_${item.soortid}_${item.aantal}_${item.aantalterug}"
+                            if (!mergedMap.containsKey(key)) {
+                                mergedMap[key] = item
+                            }
+                        }
+
+                        val mergedEnvelope = envelope.copy(data = mergedMap.values.toList())
                         val uploadCore = TellingUploadCore(this@TellingBeheerScherm)
                         val preparedBase = uploadCore.prepareEnvelopeForUpload(
-                            sourceEnvelope = envelope,
+                            sourceEnvelope = mergedEnvelope,
                             useStoredOnlineIdWhenBlank = false,
                             now = Date()
                         )

@@ -4,6 +4,7 @@ import android.content.Context
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.database.entities.Waarneming
+import com.yvesds.vt5.core.database.toServerItem
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.features.telling.TellingStatus
 import com.yvesds.vt5.hoofd.InstellingenScherm
@@ -177,21 +178,39 @@ class HybridTellingRepository(private val context: Context) {
 
     /**
      * Replaces one telling snapshot in Room with the provided envelope+records.
-     * Used for deterministic historical reopen/edit flows.
+     * Merges with any existing Room waarnemingen to prevent data loss.
      */
     suspend fun replaceTellingSnapshotInRoom(envelope: ServerTellingEnvelope, status: String = "actief") = withContext(Dispatchers.IO) {
         if (envelope.tellingid.isBlank()) return@withContext
 
         try {
-            tellingDao.deleteWaarnemingenVoorTellingById(envelope.tellingid)
-            saveHeaderToRoom(envelope, status = status, force = true)
+            val existingRoomRecords = tellingDao.getWaarnemingenList(envelope.tellingid, envelope.onlineid)
+            val existingRoomItems = existingRoomRecords.map { it.toServerItem() }
+
+            val mergedMap = LinkedHashMap<String, ServerTellingDataItem>()
             envelope.data.forEach { item ->
-                val normalized = item.copy(
-                    tellingid = envelope.tellingid
-                )
-                saveWaarnemingToRoom(normalized, force = true)
+                val key = item.idLocal.takeIf { it.isNotBlank() }
+                    ?: item.groupid.takeIf { it.isNotBlank() }
+                    ?: "${item.tijdstip}_${item.soortid}_${item.aantal}_${item.aantalterug}"
+                mergedMap[key] = item.copy(tellingid = envelope.tellingid)
             }
-            fileLogger.info("ROOM: Snapshot replaced for telling [${envelope.tellingid}] with ${envelope.data.size} records")
+            existingRoomItems.forEach { item ->
+                val key = item.idLocal.takeIf { it.isNotBlank() }
+                    ?: item.groupid.takeIf { it.isNotBlank() }
+                    ?: "${item.tijdstip}_${item.soortid}_${item.aantal}_${item.aantalterug}"
+                if (!mergedMap.containsKey(key)) {
+                    mergedMap[key] = item.copy(tellingid = envelope.tellingid)
+                }
+            }
+
+            val mergedRecords = mergedMap.values.toList()
+
+            tellingDao.deleteWaarnemingenVoorTellingById(envelope.tellingid)
+            saveHeaderToRoom(envelope.copy(data = mergedRecords), status = status, force = true)
+            mergedRecords.forEach { item ->
+                saveWaarnemingToRoom(item, force = true)
+            }
+            fileLogger.info("ROOM: Snapshot replaced for telling [${envelope.tellingid}] with ${mergedRecords.size} merged records (was ${envelope.data.size} in envelope)")
         } catch (e: Exception) {
             fileLogger.error("ROOM: Fout bij vervangen snapshot [${envelope.tellingid}]: ${e.message}")
         }

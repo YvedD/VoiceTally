@@ -573,6 +573,15 @@
                                 android:text="@string/instellingen_server_response_logging_checkbox"
                                 android:textColor="@color/vt5_on_surface"
                                 app:buttonTint="@color/vt5_light_blue" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnDiagnosticLogs"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:text="📋 Bekijk / Exporteer Diagnose Logboeken"
+                                app:icon="@drawable/ic_action_upload" />
                         </LinearLayout>
                     </LinearLayout>
 
