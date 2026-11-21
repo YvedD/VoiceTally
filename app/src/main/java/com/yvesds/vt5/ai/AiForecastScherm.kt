@@ -67,24 +67,41 @@ class AiForecastScherm : AppCompatActivity() {
         loadForecast()
     }
 
+    private var isGlobalReferenceSelected: Boolean = false
+
     private fun showTelpostSelectionDialog() {
         lifecycleScope.launch {
             val saf = SaFStorageHelper(this@AiForecastScherm)
             val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
             val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
-            val siteList = root?.locaties ?: emptyList()
-            if (siteList.isEmpty()) return@launch
+            val userSites = root?.locaties ?: emptyList()
 
-            val siteNames = arrayOf("📍 GPS Automatisch (Dichtstbijzijnde)") + siteList.map { "📍 Telpost: ${it.telpostid}" }.toTypedArray()
+            val globalSites = GlobalMigrationSitesManager.getAllGlobalSites(this@AiForecastScherm)
+
+            val displayList = mutableListOf<String>()
+            displayList.add("📍 GPS Automatisch (Dichtstbijzijnde)")
+
+            if (userSites.isNotEmpty()) {
+                userSites.forEach { displayList.add("📌 Mijn Telpost: ${it.telpostid}") }
+            }
+
+            globalSites.forEach { displayList.add("🌍 Referentie: ${it.name}") }
 
             androidx.appcompat.app.AlertDialog.Builder(this@AiForecastScherm)
                 .setTitle("Selecteer Telpost voor BSI Prognose")
-                .setItems(siteNames) { _, index ->
+                .setItems(displayList.toTypedArray()) { _, index ->
                     if (index == 0) {
                         selectedLat = null; selectedLon = null; selectedSiteId = null
-                    } else {
-                        val site = siteList[index - 1]
+                        isGlobalReferenceSelected = false
+                    } else if (index <= userSites.size) {
+                        val site = userSites[index - 1]
                         selectedLat = site.latitude; selectedLon = site.longitude; selectedSiteId = site.telpostid
+                        isGlobalReferenceSelected = false
+                    } else {
+                        val globalIdx = index - 1 - userSites.size
+                        val gSite = globalSites[globalIdx]
+                        selectedLat = gSite.latitude; selectedLon = gSite.longitude; selectedSiteId = gSite.name
+                        isGlobalReferenceSelected = true
                     }
                     loadForecast()
                 }
@@ -104,25 +121,24 @@ class AiForecastScherm : AppCompatActivity() {
                 val userLat = loc?.latitude ?: 51.2
                 val userLon = loc?.longitude ?: 3.0
 
-                // Haal telpost-locaties JSON op voor GPS matching
                 val saf = SaFStorageHelper(this@AiForecastScherm)
                 val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
                 val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
-                val siteList = root?.locaties ?: emptyList()
+                val userSites = root?.locaties ?: emptyList()
+                val globalSites = GlobalMigrationSitesManager.getAllGlobalSites(this@AiForecastScherm)
 
-                val closestSite = siteList.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
-                val closestDist = closestSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+                val closestUserSite = userSites.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+                val closestUserDist = closestUserSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
 
-                val targetLat = selectedLat ?: closestSite?.latitude ?: userLat
-                val targetLon = selectedLon ?: closestSite?.longitude ?: userLon
-                val activeSiteName = selectedSiteId ?: closestSite?.telpostid ?: "Onbekend"
-                val isGpsMatched = selectedSiteId == null
-
+                val targetLat = selectedLat ?: closestUserSite?.latitude ?: userLat
+                val targetLon = selectedLon ?: closestUserSite?.longitude ?: userLon
+                val activeSiteName = selectedSiteId ?: closestUserSite?.telpostid ?: "GPS Positie"
+                
                 val tvTelpostInfo = findViewById<TextView>(R.id.tvSelectedTelpostInfo)
-                val infoText = if (isGpsMatched) {
-                    "📍 $activeSiteName (GPS Dichtstbijzijnde ${String.format(Locale.US, "%.1f", closestDist ?: 0.0)} km)"
-                } else {
-                    "📍 $activeSiteName (Handmatig gekozen)"
+                val infoText = when {
+                    selectedSiteId == null -> "📍 $activeSiteName (GPS Dichtstbijzijnde ${String.format(Locale.US, "%.1f", closestUserDist ?: 0.0)} km)"
+                    isGlobalReferenceSelected -> "🌍 $activeSiteName (Mondiaal Referentiepunt)"
+                    else -> "📌 $activeSiteName (Mijn Telpost)"
                 }
                 tvTelpostInfo?.text = infoText
 
