@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
 import com.yvesds.vt5.R
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.dao.DayCountRowClean
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
@@ -79,6 +80,8 @@ class AiForecastScherm : AppCompatActivity() {
             val userLat = loc?.latitude ?: 51.2
             val userLon = loc?.longitude ?: 3.0
 
+            val snapshot = withContext(Dispatchers.IO) { try { ServerDataCache.getOrLoad(this@AiForecastScherm) } catch (_: Exception) { null } }
+
             val saf = SaFStorageHelper(this@AiForecastScherm)
             val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
             val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
@@ -87,7 +90,10 @@ class AiForecastScherm : AppCompatActivity() {
             val closestUserSite = userSites.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
             val closestUserDist = closestUserSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
 
-            val activeSiteName = selectedSiteId ?: closestUserSite?.telpostid ?: "GPS Positie"
+            val rawSiteId = selectedSiteId ?: closestUserSite?.telpostid
+            val activeSiteName = if (rawSiteId != null) {
+                snapshot?.sitesById?.get(rawSiteId)?.telpostnaam ?: rawSiteId
+            } else "GPS Positie"
 
             val tvTelpostInfo = findViewById<TextView>(R.id.tvSelectedTelpostInfo)
             val infoText = when {
@@ -112,6 +118,8 @@ class AiForecastScherm : AppCompatActivity() {
 
     private fun showTelpostSelectionDialog() {
         lifecycleScope.launch {
+            val snapshot = withContext(Dispatchers.IO) { try { ServerDataCache.getOrLoad(this@AiForecastScherm) } catch (_: Exception) { null } }
+
             val saf = SaFStorageHelper(this@AiForecastScherm)
             val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
             val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
@@ -123,7 +131,10 @@ class AiForecastScherm : AppCompatActivity() {
             displayList.add("📍 GPS Automatisch (Dichtstbijzijnde)")
 
             if (userSites.isNotEmpty()) {
-                userSites.forEach { displayList.add("📌 Mijn Telpost: ${it.telpostid}") }
+                userSites.forEach {
+                    val siteName = snapshot?.sitesById?.get(it.telpostid)?.telpostnaam ?: it.telpostid
+                    displayList.add("📌 Mijn Telpost: $siteName")
+                }
             }
 
             globalSites.forEach { displayList.add("🌍 Referentie: ${it.name}") }

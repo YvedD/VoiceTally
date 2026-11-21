@@ -14,6 +14,7 @@ import com.yvesds.vt5.R
 import com.yvesds.vt5.core.database.VoiceTallyDatabase
 import com.yvesds.vt5.core.database.dao.DayCountRowClean
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -58,6 +59,8 @@ class AiPrognoseActiviteit : AppCompatActivity() {
             val userLat = loc?.latitude ?: 51.2
             val userLon = loc?.longitude ?: 3.0
 
+            val snapshot = withContext(Dispatchers.IO) { try { ServerDataCache.getOrLoad(this@AiPrognoseActiviteit) } catch (_: Exception) { null } }
+
             val saf = SaFStorageHelper(this@AiPrognoseActiviteit)
             val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
             val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
@@ -65,7 +68,8 @@ class AiPrognoseActiviteit : AppCompatActivity() {
             val closestSite = siteList.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
             val closestDist = closestSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
 
-            val activeName = closestSite?.telpostid ?: "Onbekend"
+            val rawSiteId = closestSite?.telpostid
+            val activeName = if (rawSiteId != null) snapshot?.sitesById?.get(rawSiteId)?.telpostnaam ?: rawSiteId else "Onbekend"
             findViewById<TextView>(R.id.tvTelpostPrognoseInfo)?.text = "📍 $activeName (GPS Dichtstbijzijnde ${String.format(Locale.US, "%.1f", closestDist ?: 0.0)} km)"
         }
 
