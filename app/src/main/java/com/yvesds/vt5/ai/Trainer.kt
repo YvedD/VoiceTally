@@ -78,12 +78,15 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 }
             }
 
-            // 5. Sla de nieuwe gewichten op
-            onProgress("Nieuwe ervaringen opslaan...", 95, 100)
+            // 5. Sla de nieuwe gewichten op (Zowel Globaal als per Telpost in DB)
+            onProgress("Nieuwe ervaringen opslaan voor alle telposten...", 95, 100)
             modelStore.saveNeuralEngine(engine)
-            // Persistente labels zodat label-index mapping reproduceerbaar is
             try {
                 modelStore.saveModelLabels(allSpecies)
+                val uniqueSiteIds = dao.getUniqueTelpostIds()
+                uniqueSiteIds.forEach { siteId ->
+                    modelStore.saveNeuralEngineForCluster(siteId, engine)
+                }
             } catch (_: Exception) { /* Best effort - niet kritisch */ }
 
             // 6. Voer Retroactieve Piek-Analyse uit (Knowledge Base)
@@ -154,41 +157,48 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
             val saf = SaFStorageHelper(context)
             
             val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
-            val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
-            
-            // BEPAAL HOOFDTELPOST (De allereerste in het JSON bestand)
-            val primarySite = root.locaties.firstOrNull() ?: return@withContext
-            val clusterIds = getLocalSiteClusterIds(saf, primarySite.latitude, primarySite.longitude) ?: listOf(primarySite.telpostid)
-            val primaryClusterId = primarySite.telpostid
-            
+            val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
+            val siteList = root?.locaties ?: emptyList()
+
+            // Haal alle unieke telpost-IDs op uit de database tellingen
+            val dbSiteIds = dao.getUniqueTelpostIds().ifEmpty { siteList.map { it.telpostid } }
             val speciesIds = dao.getAllSpeciesIds()
-            val total = speciesIds.size
+            val totalTasks = dbSiteIds.size * speciesIds.size
+            var currentTask = 0
 
-            speciesIds.forEachIndexed { index, sid ->
-                if (index % 10 == 0) {
-                    onProgress("Vault verzegelen: Soort ${index+1}/$total...", 99, 100)
+            dbSiteIds.forEach { siteId ->
+                val siteLoc = siteList.find { it.telpostid == siteId }
+                val clusterIds = BsiClusterManager.getClusterSiteIds(
+                    context,
+                    siteLoc?.latitude,
+                    siteLoc?.longitude
+                )
+
+                speciesIds.forEach { sid ->
+                    currentTask++
+                    if (currentTask % 20 == 0 || currentTask == totalTasks) {
+                        val perc = (98 + (currentTask.toFloat() / totalTasks * 2)).toInt()
+                        onProgress("Vault verzegelen voor $siteId ($currentTask/$totalTasks)...", perc, 100)
+                    }
+
+                    val distribution = dao.getSpeciesDailyDistribution(sid, clusterIds)
+                    val rawCurve = FloatArray(366)
+                    distribution.forEach { if (it.day in 1..366) rawCurve[it.day - 1] = it.count.toFloat() }
+
+                    val smoothedCurve = applyGaussianKdeSmoothing(rawCurve, bandwidthDays = 5)
+                    val curveString = smoothedCurve.joinToString("|") { String.format(Locale.US, "%.4f", it) }
+
+                    val peakSpring = findPeakInPeriod(rawCurve, 1, 166)
+                    val peakAutumn = findPeakInPeriod(rawCurve, 167, 366)
+
+                    dao.insertDailyAnalysisVault(com.yvesds.vt5.core.database.entities.SpeciesPhenologyVault(
+                        speciesId = sid,
+                        clusterId = siteId, // Gekoppeld aan de specifieke telpost ID
+                        dailyBphSeries = curveString,
+                        peakSpring = peakSpring,
+                        peakAutumn = peakAutumn
+                    ))
                 }
-
-                // Gebruik de volledige cluster voor de distributie
-                val distribution = dao.getSpeciesDailyDistribution(sid, clusterIds)
-                val rawCurve = FloatArray(366)
-                distribution.forEach { if (it.day in 1..366) rawCurve[it.day - 1] = it.count.toFloat() }
-                
-                // BSI 5.0: Gaussische Kernel Density Estimation (KDE) Smoothing (h = 5 dagen)
-                val smoothedCurve = applyGaussianKdeSmoothing(rawCurve, bandwidthDays = 5)
-                val curveString = smoothedCurve.joinToString("|") { String.format(Locale.US, "%.4f", it) }
-
-                // Piek berekening
-                val peakSpring = findPeakInPeriod(rawCurve, 1, 166)
-                val peakAutumn = findPeakInPeriod(rawCurve, 167, 366)
-
-                dao.insertDailyAnalysisVault(com.yvesds.vt5.core.database.entities.SpeciesPhenologyVault(
-                    speciesId = sid,
-                    clusterId = primaryClusterId, // Altijd gekoppeld aan de hoofdtelpost
-                    dailyBphSeries = curveString,
-                    peakSpring = peakSpring,
-                    peakAutumn = peakAutumn
-                ))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Vault failure: ${e.message}")
@@ -224,18 +234,7 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
         return java.text.SimpleDateFormat("d MMMM", Locale("nl", "BE")).format(cal.time)
     }
 
-    private fun getLocalSiteClusterIds(saf: SaFStorageHelper, lat: Double, lon: Double): List<String>? {
-        return try {
-            val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: return null
-            val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
-            root.locaties.filter { 
-                val r = 6371.0
-                val dLat = Math.toRadians(it.latitude - lat); val dLon = Math.toRadians(it.longitude - lon)
-                val a = kotlin.math.sin(dLat/2).pow(2) + kotlin.math.cos(Math.toRadians(lat)) * kotlin.math.cos(Math.toRadians(it.latitude)) * kotlin.math.sin(dLon/2).pow(2)
-                r * 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a)) <= 35.0 
-            }.map { it.telpostid }
-        } catch (_: Exception) { null }
-    }
+
 
     /**
      * BSI 4.0: Berekent de uurs-distributie profielen op basis van de "Anchor Sites".

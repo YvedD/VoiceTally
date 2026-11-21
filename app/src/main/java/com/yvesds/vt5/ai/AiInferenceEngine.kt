@@ -97,7 +97,12 @@ object AiInferenceEngine {
         val profiles = dao.getSpeciesPhenologyProfile(dayStart, dayEnd, cluster ?: emptyList(), if (cluster == null) 0 else 1)
         
         val clusterIndices = dao.getSpeciesGigaBaseline(cluster ?: emptyList(), effortHours).associateBy { it.soortid }
-        val vaultEntries = try { dao.getAllPhenologyVaultEntries().associateBy { it.speciesId } } catch (_: Exception) { emptyMap() }
+        val primarySiteId = cluster?.firstOrNull() ?: ""
+        val vaultEntries = try {
+            val allVaults = dao.getAllPhenologyVaultEntries()
+            allVaults.filter { it.clusterId == primarySiteId }.associateBy { it.speciesId }
+                .ifEmpty { allVaults.associateBy { it.speciesId } }
+        } catch (_: Exception) { emptyMap() }
 
         // Neural model: probeer labels en model te laden en maak één predictie voor de huidige context
         val effectiveUseNeural = if (useNeural != null) {
