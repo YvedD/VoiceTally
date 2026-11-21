@@ -150,8 +150,9 @@ class AiPrognoseActiviteit : AppCompatActivity() {
         tvName.setTextColor(if (isHighlight) getColor(R.color.vt5_orange) else getGuildColor(item.guildName))
         
         val norm = item.expectedIndex ?: 0f
-        tvExpected.text = "BpH: ${"%.2f".format(norm)}"
-        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: ${"%.5f".format(norm)} ex/h"
+        val normFmt = if (norm in 0.00001f..0.00999f) String.format(Locale.US, "%.4f", norm) else String.format(Locale.US, "%.2f", norm)
+        tvExpected.text = "BpH: $normFmt"
+        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: $normFmt ex/h"
 
         // Foto
         if (!item.latinName.isNullOrBlank()) {

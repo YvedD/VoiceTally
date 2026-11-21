@@ -241,10 +241,11 @@ class AiForecastScherm : AppCompatActivity() {
         view.findViewById<TextView>(R.id.tvGuild).text = item.guildName
         tvName.text = item.soortnaam
         
-        // BSI Kans & Norm
+        // BSI Kans & Norm (Met 4 decimalen voor zeldzame soorten / Krenten)
         val norm = item.expectedIndex ?: 0f
+        val normFmt = if (norm in 0.00001f..0.00999f) String.format(Locale.US, "%.4f", norm) else String.format(Locale.US, "%.2f", norm)
         view.findViewById<TextView>(R.id.tvProbability).text = "${item.kans}%"
-        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: ${"%.2f".format(norm)} ex/h"
+        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: $normFmt ex/h"
         
         // Foto
         if (!item.latinName.isNullOrBlank()) {
@@ -305,11 +306,12 @@ class AiForecastScherm : AppCompatActivity() {
         tvName.text = primary.soortnaam
 
         val norm = primary.expectedIndex ?: 0f
+        val normFmt = if (norm in 0.00001f..0.00999f) String.format(Locale.US, "%.4f", norm) else String.format(Locale.US, "%.2f", norm)
         // Compose probability display
         val bProb = baseline?.kans ?: 0
         val eProb = experimental?.kans ?: 0
         view.findViewById<TextView>(R.id.tvProbability).text = "H:${bProb}%   P:${eProb}%"
-        tvScientific.text = "BSI Kans: ${max(bProb, eProb)}% | Norm: ${"%.2f".format(norm)} ex/h"
+        tvScientific.text = "BSI Kans: ${max(bProb, eProb)}% | Norm: $normFmt ex/h"
 
         // Sources line (clear labels)
         val sources = mutableListOf<String>()
