@@ -174,8 +174,9 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
                 val rawCurve = FloatArray(366)
                 distribution.forEach { if (it.day in 1..366) rawCurve[it.day - 1] = it.count.toFloat() }
                 
-                // GEEN SMOOTHING: Sla ruwe data op voor maximale eerlijkheid
-                val curveString = rawCurve.joinToString("|") { String.format(Locale.US, "%.4f", it) }
+                // BSI 5.0: Gaussische Kernel Density Estimation (KDE) Smoothing (h = 5 dagen)
+                val smoothedCurve = applyGaussianKdeSmoothing(rawCurve, bandwidthDays = 5)
+                val curveString = smoothedCurve.joinToString("|") { String.format(Locale.US, "%.4f", it) }
 
                 // Piek berekening
                 val peakSpring = findPeakInPeriod(rawCurve, 1, 166)
@@ -192,6 +193,25 @@ class Trainer(private val context: Context, private val modelStore: ModelStore) 
         } catch (e: Exception) {
             Log.e(TAG, "Vault failure: ${e.message}")
         }
+    }
+
+    private fun applyGaussianKdeSmoothing(rawCurve: FloatArray, bandwidthDays: Int = 5): FloatArray {
+        val n = rawCurve.size
+        val smoothed = FloatArray(n)
+        val sigma = bandwidthDays.toDouble()
+        val radius = bandwidthDays * 2
+        for (i in 0 until n) {
+            var sumWeight = 0.0
+            var sumVal = 0.0
+            for (offset in -radius..radius) {
+                val idx = (i + offset + n) % n
+                val weight = exp(-((offset * offset).toDouble()) / (2.0 * sigma * sigma))
+                sumVal += rawCurve[idx] * weight
+                sumWeight += weight
+            }
+            smoothed[i] = if (sumWeight > 0.0) (sumVal / sumWeight).toFloat() else rawCurve[i]
+        }
+        return smoothed
     }
 
     private fun findPeakInPeriod(curve: FloatArray, startDay: Int, endDay: Int): String {
