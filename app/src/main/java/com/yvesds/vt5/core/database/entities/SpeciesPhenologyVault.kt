@@ -16,4 +16,10 @@ data class SpeciesPhenologyVault(
     val dailyBphSeries: String, // String van 366 floats gescheiden door |
     val peakSpring: String,     // Tekstuele datum (bijv. "15 april")
     val peakAutumn: String      // Tekstuele datum (bijv. "20 oktober")
-)
+) {
+    fun getBphForDay(dayOfYear: Int): Float {
+        val series = dailyBphSeries.split('|')
+        val idx = (dayOfYear - 1).coerceIn(0, (series.size - 1).coerceAtLeast(0))
+        return series.getOrNull(idx)?.toFloatOrNull() ?: 0f
+    }
+}

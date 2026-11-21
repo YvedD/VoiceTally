@@ -512,6 +512,9 @@ interface TellingDao {
     @Query("SELECT * FROM species_phenology_vault WHERE speciesId = :sid AND clusterId = :cid LIMIT 1")
     suspend fun getDailyAnalysisVault(sid: String, cid: String): SpeciesPhenologyVault?
 
+    @Query("SELECT * FROM species_phenology_vault")
+    suspend fun getAllPhenologyVaultEntries(): List<SpeciesPhenologyVault>
+
     @Query("DELETE FROM species_phenology_vault")
     suspend fun clearPhenologyVault()
 

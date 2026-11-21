@@ -244,7 +244,7 @@ class AiForecastScherm : AppCompatActivity() {
         // BSI Kans & Norm
         val norm = item.expectedIndex ?: 0f
         view.findViewById<TextView>(R.id.tvProbability).text = "${item.kans}%"
-        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: ${"%.5f".format(norm)} ex/h"
+        tvScientific.text = "BSI Kans: ${item.kans}% | Norm: ${"%.2f".format(norm)} ex/h"
         
         // Foto
         if (!item.latinName.isNullOrBlank()) {
@@ -309,7 +309,7 @@ class AiForecastScherm : AppCompatActivity() {
         val bProb = baseline?.kans ?: 0
         val eProb = experimental?.kans ?: 0
         view.findViewById<TextView>(R.id.tvProbability).text = "H:${bProb}%   P:${eProb}%"
-        tvScientific.text = "BSI Kans: ${max(bProb, eProb)}% | Norm: ${"%.5f".format(norm)} ex/h"
+        tvScientific.text = "BSI Kans: ${max(bProb, eProb)}% | Norm: ${"%.2f".format(norm)} ex/h"
 
         // Sources line (clear labels)
         val sources = mutableListOf<String>()

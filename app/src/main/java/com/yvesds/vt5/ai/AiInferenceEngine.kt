@@ -96,9 +96,8 @@ object AiInferenceEngine {
 
         val profiles = dao.getSpeciesPhenologyProfile(dayStart, dayEnd, cluster ?: emptyList(), if (cluster == null) 0 else 1)
         
-        val clusterIndices = if (cluster != null) {
-            dao.getSpeciesGigaBaseline(cluster, effortHours).associateBy { it.soortid }
-        } else emptyMap()
+        val clusterIndices = dao.getSpeciesGigaBaseline(cluster ?: emptyList(), effortHours).associateBy { it.soortid }
+        val vaultEntries = try { dao.getAllPhenologyVaultEntries().associateBy { it.speciesId } } catch (_: Exception) { emptyMap() }
 
         // Neural model: probeer labels en model te laden en maak één predictie voor de huidige context
         val effectiveUseNeural = if (useNeural != null) {
@@ -161,6 +160,16 @@ object AiInferenceEngine {
             val guild = SpeciesGuildMapper.getGuildByLatin(latin)
             if (guild == SpeciesGuildMapper.Guild.OTHER) return@mapNotNull null
             val strategy = guild.strategy
+
+            // BSI 5.2 Fenologisch Seizoensveto:
+            // Controleer seizoensgebonden BpH (dagnorm) uit de vault.
+            // Als de soort op deze dag seizoensgebonden afwezig is (< 0.001 ex/h), gefilterd met 0%.
+            val vault = vaultEntries[p.soortid]
+            val seasonalBph = (vault?.getBphForDay(dayOfYear) ?: 0f).toDouble()
+            if (seasonalBph < 0.001 && p.count < 10) {
+                Log.d(TAG, "PHENOLOGY VETO: ${p.soortid} ($name) is out of season on day $dayOfYear (BpH=$seasonalBph)")
+                return@mapNotNull null
+            }
 
             // BSI 4.0: BoI Check & Window
             val totalObs = clusterIndices[p.soortid]?.activePosts ?: 0
@@ -296,10 +305,11 @@ object AiInferenceEngine {
                 }
             } catch (_: Exception) { /* best-effort */ }
 
-            Log.d(TAG, "RAW BSI 4.1: %-20s | BASE:%5.2f | COMBINED:%5.2f | Ratio:%.2f | W:%.2f | T:%.2f | G:%.2f".format(
-                name, total, combinedScore, efficiencyRatio, fWind, fTime, fGatekeeper))
+            Log.d(TAG, "RAW BSI 5.2: %-20s | BASE:%5.2f | COMBINED:%5.2f | BpH_d:%.4f".format(
+                name, total, combinedScore, seasonalBph))
 
-            ScoredSpecies(p.soortid, name, combinedScore, guild, clusterIndices[p.soortid]?.clusterIndex)
+            val displayNorm = if (seasonalBph > 0.0) seasonalBph.toFloat() else (clusterIndices[p.soortid]?.clusterIndex ?: 0f)
+            ScoredSpecies(p.soortid, name, combinedScore, guild, displayNorm)
         }
 
         // 4. Gilde selectie & Krenten-Highlights
