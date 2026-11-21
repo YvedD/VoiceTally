@@ -276,8 +276,24 @@ object AiInferenceEngine {
             val twinCount = weatherTwins.filter { it.soortid == p.soortid }.sumOf { it.count }
             val fTwin = 1.0 + (log10(twinCount.toDouble().coerceAtLeast(1.0)) * 0.5)
 
-            // BSI 4.1: Finale aggregatie met Efficiency Ratio (basis)
-            val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * fTwin * boiCorridorFactor * efficiencyRatio * (1.0 + regBoost)
+            // BSI 5.3: Seizoensgebonden Corridor Trigger Boost (Vorst-migratie in najaar/winter vs. Stuwtrek in voorjaar)
+            var seasonalCorridorTriggerFactor = 1.0
+            val isAutumnSeason = month in 7..11
+            if (isAutumnSeason) {
+                // Najaar/Winter: Vorst-migratie & koudfront trigger
+                if (SpeciesGuildMapper.isFrostMigrationResponsive(guild) && (regBoost > 0.2 || (cur.temperature2m ?: 10.0) <= 2.0)) {
+                    seasonalCorridorTriggerFactor = 1.8
+                }
+            } else {
+                // Voorjaar: Stuwtrek trigger bij Z-ZO-O winden in Zuid-Europa
+                val isStuwWind = currentWindLabel in listOf("Z", "ZZO", "ZO", "OZO", "O", "ONO")
+                if (SpeciesGuildMapper.isSpringStuwtrekResponsive(guild) && (regBoost > 0.2 || isStuwWind)) {
+                    seasonalCorridorTriggerFactor = 1.8
+                }
+            }
+
+            // BSI 4.1 & 5.3: Finale aggregatie met Efficiency Ratio & Seizoens-Corridor Trigger
+            val total = fMassa * fWind * fSpecial * fTime * fGatekeeper * fTwin * boiCorridorFactor * efficiencyRatio * seasonalCorridorTriggerFactor * (1.0 + regBoost)
 
             // Apply daily-analysis weight (if available) as multiplicative factor so real reconstructed days influence the score
             var combinedScore = total

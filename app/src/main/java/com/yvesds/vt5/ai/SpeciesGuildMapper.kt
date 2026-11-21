@@ -102,6 +102,35 @@ object SpeciesGuildMapper {
     }
 
     /**
+     * BSI 5.3: Bepaal of een gilde reageert op vorst-migratie & koudfront triggers op de Europese corridors.
+     */
+    fun isFrostMigrationResponsive(guild: Guild): Boolean {
+        return guild in listOf(
+            Guild.WATERFOWL,
+            Guild.COASTAL_BIRDS,
+            Guild.SHOREBIRDS,
+            Guild.PASSERINES,
+            Guild.HERONS
+        )
+    }
+
+    /**
+     * BSI 5.3: Bepaal of een gilde reageert op voorjaars-stuwtrek bij Z-ZO-O winden in Zuid-Europa.
+     */
+    fun isSpringStuwtrekResponsive(guild: Guild): Boolean {
+        return guild in listOf(
+            Guild.PASSERINES,
+            Guild.LANDBIRDS_SPECIAL,
+            Guild.LANDBIRDS_REG,
+            Guild.RAPTORS_THERMAL,
+            Guild.RAPTORS_ACTIVE,
+            Guild.SHOREBIRDS,
+            Guild.HERONS,
+            Guild.STORKS
+        )
+    }
+
+    /**
      * Fallback mapping gebaseerd op soortid indien latin ontbreekt.
      */
     fun getGuild(soortid: String): Guild {

@@ -121,5 +121,44 @@ object AiWeatherService {
         BsiContextCache.putPressureGradient(refPointName, gradient)
         return gradient
     }
+
+    /**
+     * BSI 5.3: Detecteer actieve vorst-migratie triggers op Noord-Europese referentiepunten.
+     * Controleert of op punten zoals Falsterbo, Skagen, Helgoland, Gdansk de temp <= 0°C is
+     * of dat er sprake is van een scherpe koudfront inval (temp drop >= 5°C).
+     */
+    fun detectCorridorFrostTrigger(corridorData: Map<String, List<WeatherManager.HourlyForecast>>): Boolean {
+        val northernPoints = listOf("Falsterbo (SE)", "Skagen (DK)", "Helgoland (DE)", "Gdansk (PL)", "Sylt (DE)", "Borkum (DE)")
+        corridorData.filter { it.key in northernPoints }.values.forEach { hourly ->
+            val minTemp = hourly.mapNotNull { it.temp }.minOrNull() ?: 10.0
+            val maxTemp = hourly.mapNotNull { it.temp }.maxOrNull() ?: 10.0
+            if (minTemp <= 0.0 || (maxTemp - minTemp) >= 5.0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * BSI 5.3: Detecteer actieve stuwtrek triggers in het voorjaar op Zuid-Europese referentiepunten.
+     * Controleert of op punten zoals Cap Gris-Nez, Biarritz, Camargue, Tarifa, Mallorca sprake is van
+     * een warme luchtstroom (temp >= 12°C) gecombineerd met een Zuid tot Oostelijke windcomponent (Z, ZO, O, ZZO, ONO).
+     */
+    fun detectSpringStuwtrekTrigger(corridorData: Map<String, List<WeatherManager.HourlyForecast>>): Boolean {
+        val southernPoints = listOf("Cap Gris-Nez (FR)", "Baie de Somme (FR)", "Biarritz (FR)", "Camargue (FR)", "Tarifa (ES)", "Mallorca (ES)")
+        val stuwtrekWinds = listOf("Z", "ZZO", "ZO", "OZO", "O", "ONO")
+        
+        corridorData.filter { it.key in southernPoints }.values.forEach { hourly ->
+            val maxTemp = hourly.mapNotNull { it.temp }.maxOrNull() ?: 0.0
+            val hasStuwWind = hourly.any { entry ->
+                val label = WeatherManager.degTo16WindLabel(entry.windDeg)
+                label in stuwtrekWinds
+            }
+            if (maxTemp >= 12.0 && hasStuwWind) {
+                return true
+            }
+        }
+        return false
+    }
 }
 
