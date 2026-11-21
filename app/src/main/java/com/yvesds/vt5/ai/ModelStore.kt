@@ -109,6 +109,55 @@ class ModelStore(private val context: Context) {
     }
 
     /**
+     * BSI 5.4: Slaat de Neurale Motor specifiek op per telpost-cluster.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    fun saveNeuralEngineForCluster(clusterId: String, engine: LiteNeuralEngine): Boolean {
+        ensureModelDir()
+        return try {
+            val jsonStr = json.encodeToString(engine)
+            saveFileToModelDir("neural_engine_cluster_${clusterId}.json", jsonStr.toByteArray())
+            val binaryData = ProtoBuf.encodeToByteArray(engine)
+            saveFileToModelDir("neural_engine_cluster_${clusterId}.bin", binaryData)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Kon cluster model $clusterId niet opslaan: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * BSI 5.4: Laadt de gespecialiseerde Neurale Motor voor een specifiek telpost-cluster
+     * met automatische fallback op het generieke basismodel.
+     */
+    @OptIn(ExperimentalSerializationApi::class)
+    fun loadNeuralEngineForCluster(clusterId: String, numSpecies: Int): LiteNeuralEngine {
+        val dir = getModelDir() ?: return loadNeuralEngine(numSpecies)
+        val binFile = dir.findFile("neural_engine_cluster_${clusterId}.bin")
+        val jsonFile = dir.findFile("neural_engine_cluster_${clusterId}.json")
+
+        try {
+            if (binFile != null) {
+                val bytes = context.contentResolver.openInputStream(binFile.uri)?.use { it.readBytes() }
+                if (bytes != null) {
+                    val loaded = ProtoBuf.decodeFromByteArray<LiteNeuralEngine>(bytes)
+                    if (loaded.outputSize == numSpecies) return loaded
+                }
+            }
+            if (jsonFile != null) {
+                val jsonStr = context.contentResolver.openInputStream(jsonFile.uri)?.use { it.bufferedReader().readText() }
+                if (!jsonStr.isNullOrBlank()) {
+                    val loaded = json.decodeFromString<LiteNeuralEngine>(jsonStr)
+                    if (loaded.outputSize == numSpecies) return loaded
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Load cluster model $clusterId failed: ${e.message}")
+        }
+        return loadNeuralEngine(numSpecies)
+    }
+
+    /**
      * Slaat de lijst met labels op die bij het model hoort.
      */
     fun saveModelLabels(labels: List<String>): Boolean {

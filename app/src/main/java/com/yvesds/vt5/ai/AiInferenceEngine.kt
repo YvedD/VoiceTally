@@ -125,8 +125,8 @@ object AiInferenceEngine {
         var neuralPredictions: FloatArray? = null
         if (!modelLabels.isNullOrEmpty() && effectiveUseNeural) {
             try {
-                val neural = modelStore.loadNeuralEngine(modelLabels.size)
-                // Bouw feature-vector voor de huidige situatie (best effort)
+                val primaryClusterId = cluster?.firstOrNull() ?: "default"
+                val neural = modelStore.loadNeuralEngineForCluster(primaryClusterId, modelLabels.size)
                 val siteId = cluster?.firstOrNull()
                 val preparer = TrainingDataPreparer(context)
                 val epochSec = cal.timeInMillis / 1000L
@@ -168,6 +168,15 @@ object AiInferenceEngine {
             val seasonalBph = (vault?.getBphForDay(dayOfYear) ?: 0f).toDouble()
             if (seasonalBph < 0.001 && p.count < 10) {
                 Log.d(TAG, "PHENOLOGY VETO: ${p.soortid} ($name) is out of season on day $dayOfYear (BpH=$seasonalBph)")
+                return@mapNotNull null
+            }
+
+            // BSI 5.4: Micro-Biotoop Zicht-op-Zee Veto for Strict Pelagics:
+            // Strikt open-zee pelagische vogels (Jan-van-Gent, Pijlstormvogels, Kleine Jager, Zeekoet)
+            // vereisen direct Zicht-op-Zee (d_kust <= 2.0 km). Binnenland/duin posten op 3-5 km krijgen 0%.
+            val hasSeaView = SiteContextResolver.hasSeaView(lat, lon)
+            if (SpeciesGuildMapper.isStrictPelagic(latin) && !hasSeaView) {
+                Log.d(TAG, "SEA-VIEW VETO: ${p.soortid} ($name) requires Zicht-op-Zee (d_coast > 2.0km)")
                 return@mapNotNull null
             }
 

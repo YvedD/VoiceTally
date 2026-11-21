@@ -36,6 +36,12 @@ import kotlin.math.*
 class AiForecastScherm : AppCompatActivity() {
 
     private lateinit var database: VoiceTallyDatabase
+    private val weeklyDistCache = mutableMapOf<String, List<com.yvesds.vt5.core.database.dao.WeekCountRow>>()
+    private val dailyDistCache = mutableMapOf<String, List<DayCountRowClean>>()
+
+    private var selectedLat: Double? = null
+    private var selectedLon: Double? = null
+    private var selectedSiteId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,40 +63,51 @@ class AiForecastScherm : AppCompatActivity() {
         loadForecast()
     }
 
+    private fun showTelpostSelectionDialog() {
+        lifecycleScope.launch {
+            val saf = SaFStorageHelper(this@AiForecastScherm)
+            val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
+            val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
+            val siteList = root?.locaties ?: emptyList()
+            if (siteList.isEmpty()) return@launch
+
+            val siteNames = arrayOf("GPS Locatie (Automatisch)") + siteList.map { "Telpost: ${it.telpostid}" }.toTypedArray()
+
+            androidx.appcompat.app.AlertDialog.Builder(this@AiForecastScherm)
+                .setTitle("Selecteer Telpost voor Prognose")
+                .setItems(siteNames) { _, index ->
+                    if (index == 0) {
+                        selectedLat = null; selectedLon = null; selectedSiteId = null
+                    } else {
+                        val site = siteList[index - 1]
+                        selectedLat = site.latitude; selectedLon = site.longitude; selectedSiteId = site.telpostid
+                    }
+                    loadForecast()
+                }
+                .setNegativeButton("Annuleren", null)
+                .show()
+        }
+    }
+
     private fun loadForecast() {
+        weeklyDistCache.clear()
+        dailyDistCache.clear()
         lifecycleScope.launch {
             val progress = ProgressDialogHelper.show(this@AiForecastScherm, "AI berekent 3-daagse prognose...")
             
             try {
                 val loc = WeatherManager.getLastKnownLocation(this@AiForecastScherm)
-                if (loc == null) {
-                    showError("Geen locatie beschikbaar"); progress.dismiss(); return@launch
-                }
+                val targetLat = selectedLat ?: loc?.latitude ?: 51.2
+                val targetLon = selectedLon ?: loc?.longitude ?: 3.0
 
                 // 1. HAAL WEERSVERWACHTING OP
-                val hourlyData = WeatherManager.fetch72HourForecast(loc.latitude, loc.longitude)
+                val hourlyData = WeatherManager.fetch72HourForecast(targetLat, targetLon)
                 if (hourlyData == null || hourlyData.isEmpty()) {
                     showError("Kon weersverwachting niet ophalen"); progress.dismiss(); return@launch
                 }
 
-                // BEPAAL CLUSTER ÉÉN KEER (Analoog aan verslagen)
-                val saf = SaFStorageHelper(this@AiForecastScherm)
-                val clusterIds = withContext(Dispatchers.IO) {
-                    try {
-                        val jsonStr = saf.readServerDataFile("telpost_locaties.json") ?: "{}"
-                        val root = com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr)
-                        val primarySite = root.locaties.firstOrNull()
-                        if (primarySite != null) {
-                            root.locaties.filter { 
-                                val r = 6371.0
-                                val dLat = Math.toRadians(it.latitude - primarySite.latitude)
-                                val dLon = Math.toRadians(it.longitude - primarySite.longitude)
-                                val a = sin(dLat/2).pow(2) + cos(Math.toRadians(primarySite.latitude)) * cos(Math.toRadians(it.latitude)) * sin(dLon/2).pow(2)
-                                r * 2 * atan2(sqrt(a), sqrt(1 - a)) <= 35.0 
-                            }.map { it.telpostid }
-                        } else emptyList()
-                    } catch(_: Exception) { emptyList() }
-                }
+                // BEPAAL CLUSTER VIA BSICLUSTERMANAGER
+                val clusterIds = BsiClusterManager.getClusterSiteIds(this@AiForecastScherm, targetLat, targetLon)
 
                 val container = findViewById<ViewGroup>(R.id.forecastContainer)
                 container.removeAllViews()

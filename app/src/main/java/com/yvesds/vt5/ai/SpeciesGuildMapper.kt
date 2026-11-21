@@ -131,6 +131,20 @@ object SpeciesGuildMapper {
     }
 
     /**
+     * BSI 5.4: Bepaal of een vogelsoort een strikte open-zee pelagische soort is
+     * (Jan-van-Gent, Pijlstormvogels, Kleine Jager, Noordse Stormvogel, Zeekoet, Alk).
+     * Deze soorten vereisen direct "Zicht-op-Zee" (d_kust <= 2.0 km).
+     */
+    fun isStrictPelagic(latinName: String?): Boolean {
+        if (latinName.isNullOrBlank()) return false
+        val genus = latinName.split(" ")[0].trim()
+        return genus in listOf(
+            "Morus", "Fulmarus", "Puffinus", "Calonectris", "Hydrobates",
+            "Oceanodroma", "Stercorarius", "Uria", "Alca", "Fratercula", "Ardenna"
+        )
+    }
+
+    /**
      * Fallback mapping gebaseerd op soortid indien latin ontbreekt.
      */
     fun getGuild(soortid: String): Guild {
