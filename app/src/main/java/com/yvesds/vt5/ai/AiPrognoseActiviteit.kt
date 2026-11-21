@@ -1,5 +1,6 @@
 package com.yvesds.vt5.ai
 
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -50,6 +51,28 @@ class AiPrognoseActiviteit : AppCompatActivity() {
 
         findViewById<TextView>(R.id.tvCondities).text = "Condities: ${data.weerBeschrijving}"
         findViewById<View>(R.id.btnTerug).setOnClickListener { finish() }
+
+        // Bind Telpost Info & Change Button
+        lifecycleScope.launch {
+            val loc = com.yvesds.vt5.utils.weather.WeatherManager.getLastKnownLocation(this@AiPrognoseActiviteit)
+            val userLat = loc?.latitude ?: 51.2
+            val userLon = loc?.longitude ?: 3.0
+
+            val saf = SaFStorageHelper(this@AiPrognoseActiviteit)
+            val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
+            val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
+            val siteList = root?.locaties ?: emptyList()
+            val closestSite = siteList.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+            val closestDist = closestSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+
+            val activeName = closestSite?.telpostid ?: "Onbekend"
+            findViewById<TextView>(R.id.tvTelpostPrognoseInfo)?.text = "📍 $activeName (GPS Dichtstbijzijnde ${String.format(Locale.US, "%.1f", closestDist ?: 0.0)} km)"
+        }
+
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnChangeTelpostPrognose)?.setOnClickListener {
+            // Open 3-daagse forecast scherm waar de telpost vrij gekozen kan worden
+            startActivity(Intent(this, AiForecastScherm::class.java))
+        }
 
         buildDashboard(data)
     }

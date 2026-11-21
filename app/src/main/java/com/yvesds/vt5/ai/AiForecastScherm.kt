@@ -60,6 +60,10 @@ class AiForecastScherm : AppCompatActivity() {
             finish()
         }
 
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnChangeTelpost)?.setOnClickListener {
+            showTelpostSelectionDialog()
+        }
+
         loadForecast()
     }
 
@@ -71,10 +75,10 @@ class AiForecastScherm : AppCompatActivity() {
             val siteList = root?.locaties ?: emptyList()
             if (siteList.isEmpty()) return@launch
 
-            val siteNames = arrayOf("GPS Locatie (Automatisch)") + siteList.map { "Telpost: ${it.telpostid}" }.toTypedArray()
+            val siteNames = arrayOf("📍 GPS Automatisch (Dichtstbijzijnde)") + siteList.map { "📍 Telpost: ${it.telpostid}" }.toTypedArray()
 
             androidx.appcompat.app.AlertDialog.Builder(this@AiForecastScherm)
-                .setTitle("Selecteer Telpost voor Prognose")
+                .setTitle("Selecteer Telpost voor BSI Prognose")
                 .setItems(siteNames) { _, index ->
                     if (index == 0) {
                         selectedLat = null; selectedLon = null; selectedSiteId = null
@@ -97,8 +101,30 @@ class AiForecastScherm : AppCompatActivity() {
             
             try {
                 val loc = WeatherManager.getLastKnownLocation(this@AiForecastScherm)
-                val targetLat = selectedLat ?: loc?.latitude ?: 51.2
-                val targetLon = selectedLon ?: loc?.longitude ?: 3.0
+                val userLat = loc?.latitude ?: 51.2
+                val userLon = loc?.longitude ?: 3.0
+
+                // Haal telpost-locaties JSON op voor GPS matching
+                val saf = SaFStorageHelper(this@AiForecastScherm)
+                val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
+                val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
+                val siteList = root?.locaties ?: emptyList()
+
+                val closestSite = siteList.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+                val closestDist = closestSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+
+                val targetLat = selectedLat ?: closestSite?.latitude ?: userLat
+                val targetLon = selectedLon ?: closestSite?.longitude ?: userLon
+                val activeSiteName = selectedSiteId ?: closestSite?.telpostid ?: "Onbekend"
+                val isGpsMatched = selectedSiteId == null
+
+                val tvTelpostInfo = findViewById<TextView>(R.id.tvSelectedTelpostInfo)
+                val infoText = if (isGpsMatched) {
+                    "📍 $activeSiteName (GPS Dichtstbijzijnde ${String.format(Locale.US, "%.1f", closestDist ?: 0.0)} km)"
+                } else {
+                    "📍 $activeSiteName (Handmatig gekozen)"
+                }
+                tvTelpostInfo?.text = infoText
 
                 // 1. HAAL WEERSVERWACHTING OP
                 val hourlyData = WeatherManager.fetch72HourForecast(targetLat, targetLon)
