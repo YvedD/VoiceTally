@@ -14,8 +14,8 @@
         app:cardBackgroundColor="@color/floating_info_bg_color"
         app:cardCornerRadius="20dp"
         app:cardElevation="12dp"
-        app:strokeColor="@color/grafiek_achtergrondkleur"
-        app:strokeWidth="3dp">
+        app:strokeColor="@color/popup_text_oranje"
+        app:strokeWidth="4dp">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -52,7 +52,7 @@
                         android:layout_height="wrap_content"
                         android:adjustViewBounds="true"
                         android:contentDescription="@null"
-                        android:scaleType="fitCenter"
+                        android:scaleType="centerCrop"
                         android:src="@drawable/kraanvogels_bckgrnd" />
                 </com.google.android.material.card.MaterialCardView>
 
@@ -62,7 +62,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingBottom="12dp">
+                    android:paddingBottom="6dp">
 
                     <ImageView
                         android:id="@+id/ivFloatingInfoIcon"

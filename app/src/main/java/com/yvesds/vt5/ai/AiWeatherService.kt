@@ -100,5 +100,26 @@ object AiWeatherService {
 
         return Pair(null, null)
     }
+
+    /**
+     * Bsi 5.0: Berekent de geostrofische luchtdrukgradiënt vector (hPa per 100 km)
+     * tussen een referentiepunt en de telpost.
+     */
+    fun calculatePressureGradientVector(
+        refPointName: String,
+        refPressureHpa: Double,
+        localPressureHpa: Double,
+        refLat: Double,
+        refLon: Double,
+        localLat: Double,
+        localLon: Double
+    ): Double {
+        val distKm = BsiClusterManager.calculateDistanceKm(refLat, refLon, localLat, localLon).coerceAtLeast(10.0)
+        val deltaP = refPressureHpa - localPressureHpa
+        // Gradiënt per 100km
+        val gradient = (deltaP / distKm) * 100.0
+        BsiContextCache.putPressureGradient(refPointName, gradient)
+        return gradient
+    }
 }
 
