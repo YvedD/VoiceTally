@@ -64,10 +64,51 @@ class AiForecastScherm : AppCompatActivity() {
             showTelpostSelectionDialog()
         }
 
-        loadForecast()
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnStartForecastCalculation)?.setOnClickListener {
+            loadForecast()
+        }
+
+        initSuggestedTelpostUI()
     }
 
     private var isGlobalReferenceSelected: Boolean = false
+
+    private fun initSuggestedTelpostUI() {
+        lifecycleScope.launch {
+            val loc = WeatherManager.getLastKnownLocation(this@AiForecastScherm)
+            val userLat = loc?.latitude ?: 51.2
+            val userLon = loc?.longitude ?: 3.0
+
+            val saf = SaFStorageHelper(this@AiForecastScherm)
+            val jsonStr = withContext(Dispatchers.IO) { saf.readServerDataFile("telpost_locaties.json") ?: "{}" }
+            val root = try { com.yvesds.vt5.VT5App.json.decodeFromString<com.yvesds.vt5.core.database.entities.TelpostLocatiesRoot>(jsonStr) } catch (_: Exception) { null }
+            val userSites = root?.locaties ?: emptyList()
+
+            val closestUserSite = userSites.minByOrNull { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+            val closestUserDist = closestUserSite?.let { BsiClusterManager.calculateDistanceKm(userLat, userLon, it.latitude, it.longitude) }
+
+            val activeSiteName = selectedSiteId ?: closestUserSite?.telpostid ?: "GPS Positie"
+
+            val tvTelpostInfo = findViewById<TextView>(R.id.tvSelectedTelpostInfo)
+            val infoText = when {
+                selectedSiteId == null -> "📍 $activeSiteName (GPS Dichtstbijzijnde ${String.format(Locale.US, "%.1f", closestUserDist ?: 0.0)} km)"
+                isGlobalReferenceSelected -> "🌍 $activeSiteName (Mondiaal Referentiepunt)"
+                else -> "📌 $activeSiteName (Mijn Telpost)"
+            }
+            tvTelpostInfo?.text = infoText
+
+            val container = findViewById<ViewGroup>(R.id.forecastContainer)
+            container?.removeAllViews()
+
+            val promptCard = LayoutInflater.from(this@AiForecastScherm).inflate(R.layout.item_ai_suggestion, container, false)
+            promptCard.findViewById<TextView>(R.id.tvSpeciesName)?.text = "Klaar voor berekening"
+            promptCard.findViewById<TextView>(R.id.tvGuild)?.text = "BSI 3-Daagse Prognose"
+            promptCard.findViewById<TextView>(R.id.tvScientificInfo)?.text = "📍 $infoText\n\nTik op '🚀 BEREKEN 3-DAAGSE PROGNOSE' om de BSI voorspelling voor deze telpost te berekenen."
+            promptCard.findViewById<View>(R.id.clGraphContainer)?.visibility = View.GONE
+            promptCard.findViewById<View>(R.id.tvHistoric)?.visibility = View.GONE
+            container?.addView(promptCard)
+        }
+    }
 
     private fun showTelpostSelectionDialog() {
         lifecycleScope.launch {
@@ -103,7 +144,7 @@ class AiForecastScherm : AppCompatActivity() {
                         selectedLat = gSite.latitude; selectedLon = gSite.longitude; selectedSiteId = gSite.name
                         isGlobalReferenceSelected = true
                     }
-                    loadForecast()
+                    initSuggestedTelpostUI()
                 }
                 .setNegativeButton("Annuleren", null)
                 .show()
