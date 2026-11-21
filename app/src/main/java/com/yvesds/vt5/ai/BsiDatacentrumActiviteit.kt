@@ -204,7 +204,40 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
                         "3. BSI Neuraal Netwerk trainen op jouw telpost\n\n" +
                         "Wil je de verwerking nu starten?")
                 .setPositiveButton("Start BSI Pijplijn") { _, _ ->
-                    executePipelineFlowWithProgress(skipImportStep = false)
+                    selectSiteAndExecutePipeline(skipImportStep = false)
+                }
+                .setNegativeButton("Annuleren", null)
+                .show()
+        }
+    }
+
+    private fun selectSiteAndExecutePipeline(skipImportStep: Boolean) {
+        if (skipImportStep) {
+            executePipelineFlowWithProgress(skipImportStep = true, targetSiteId = null)
+            return
+        }
+
+        lifecycleScope.launch {
+            val importsDir = safStorageHelper.getImportsDirSuspend()
+            val files = importsDir?.listFiles() ?: emptyArray()
+            val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+            val siteIdsInImports = headerFiles.mapNotNull { f ->
+                val parts = f.name?.split("_") ?: return@mapNotNull null
+                if (parts.size >= 3) parts[2] else null
+            }.distinct().sorted()
+
+            if (siteIdsInImports.size <= 1) {
+                executePipelineFlowWithProgress(skipImportStep = false, targetSiteId = siteIdsInImports.firstOrNull())
+                return@launch
+            }
+
+            val options = arrayOf("🌐 Alle Telposten verwerken (${siteIdsInImports.size} telposten)") + siteIdsInImports.map { "📌 Alleen Telpost: $it" }.toTypedArray()
+
+            AlertDialog.Builder(this@BsiDatacentrumActiviteit)
+                .setTitle("Selecteer Telpost voor BSI Pijplijn")
+                .setItems(options) { _, index ->
+                    val chosenSite = if (index == 0) null else siteIdsInImports[index - 1]
+                    executePipelineFlowWithProgress(skipImportStep = false, targetSiteId = chosenSite)
                 }
                 .setNegativeButton("Annuleren", null)
                 .show()
@@ -214,7 +247,7 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
     /**
      * Voert de Pijplijn uit met een live visuele ProgressDialog voor directe feedback.
      */
-    private fun executePipelineFlowWithProgress(skipImportStep: Boolean = false) {
+    private fun executePipelineFlowWithProgress(skipImportStep: Boolean = false, targetSiteId: String? = null) {
         val progressDialog = ProgressDialogHelper.show(
             this,
             "BSI Pijplijn gestart...\nEen ogenblik geduld A.U.B."
@@ -239,7 +272,13 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
 
                     if (importsDir != null) {
                         val files = importsDir.listFiles()
-                        val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+                        val headerFiles = files.filter { file ->
+                            val name = file.name ?: ""
+                            val isHeader = name.startsWith("Trektellen_headerdata_") && name.endsWith(".xlsx")
+                            if (!isHeader) false
+                            else if (targetSiteId != null) name.startsWith("Trektellen_headerdata_${targetSiteId}_")
+                            else true
+                        }
                         val totalHeaders = headerFiles.size
 
                         var idx = 0
@@ -264,7 +303,7 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
                             }
                         }
                     }
-                    writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount")
+                    writeLogToVt5Logs("PIPELINE_STEP1", "Geïmporteerde koppel-bestanden: $importedPairsCount (Filter: ${targetSiteId ?: "Alle"})")
                 } else {
                     writeLogToVt5Logs("PIPELINE_STEP1", "Stap 1 overgeslagen op verzoek van gebruiker (Alleen eigen invoer).")
                 }
@@ -342,6 +381,34 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
     }
 
     private fun runExcelBatchImport() {
+        lifecycleScope.launch {
+            val importsDir = safStorageHelper.getImportsDirSuspend()
+            val files = importsDir?.listFiles() ?: emptyArray()
+            val headerFilesAll = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+            val siteIdsInImports = headerFilesAll.mapNotNull { f ->
+                val parts = f.name?.split("_") ?: return@mapNotNull null
+                if (parts.size >= 3) parts[2] else null
+            }.distinct().sorted()
+
+            if (siteIdsInImports.isEmpty()) {
+                Toast.makeText(this@BsiDatacentrumActiviteit, "Geen Excel bestanden gevonden in Documents/VT5/imports/", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            val options = arrayOf("🌐 Alle Telposten importeren (${siteIdsInImports.size} telposten)") + siteIdsInImports.map { "📌 Alleen Telpost: $it" }.toTypedArray()
+
+            AlertDialog.Builder(this@BsiDatacentrumActiviteit)
+                .setTitle("Selecteer Telpost voor Batch Import")
+                .setItems(options) { _, index ->
+                    val chosenSite = if (index == 0) null else siteIdsInImports[index - 1]
+                    executeExcelBatchImportForSite(chosenSite)
+                }
+                .setNegativeButton("Annuleren", null)
+                .show()
+        }
+    }
+
+    private fun executeExcelBatchImportForSite(targetSiteId: String?) {
         val progress = ProgressDialogHelper.show(this, "Batch import starten uit Documents/VT5/imports/...")
         lifecycleScope.launch {
             val importManager = ExcelImportManager(this@BsiDatacentrumActiviteit)
@@ -350,7 +417,13 @@ class BsiDatacentrumActiviteit : AppCompatActivity() {
 
             if (importsDir != null) {
                 val files = importsDir.listFiles()
-                val headerFiles = files.filter { it.name?.startsWith("Trektellen_headerdata_") == true && it.name?.endsWith(".xlsx") == true }
+                val headerFiles = files.filter { file ->
+                    val name = file.name ?: ""
+                    val isHeader = name.startsWith("Trektellen_headerdata_") && name.endsWith(".xlsx")
+                    if (!isHeader) false
+                    else if (targetSiteId != null) name.startsWith("Trektellen_headerdata_${targetSiteId}_")
+                    else true
+                }
 
                 for (headerFile in headerFiles) {
                     val hName = headerFile.name ?: continue

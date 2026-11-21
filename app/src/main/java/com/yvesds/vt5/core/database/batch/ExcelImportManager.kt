@@ -71,8 +71,10 @@ class ExcelImportManager(private val context: Context) {
             val headersMap = mutableMapOf<String, HeaderInfo>()
             val headersToInsert = mutableListOf<TellingHeader>()
             
-            // Haal alle bestaande onlineIds in één keer op om per-row DB hits te voorkomen
-            val existingOnlineIds = db.tellingDao().getAllHeaders().mapNotNull { it.onlineid.ifEmpty { null } }.toSet()
+            // Haal alle bestaande onlineIds en (telpostid + begintijd) combinaties in één keer op
+            val allExistingHeaders = db.tellingDao().getAllHeaders()
+            val existingOnlineIds = allExistingHeaders.mapNotNull { it.onlineid.ifEmpty { null } }.toSet()
+            val existingHeadersByTime = allExistingHeaders.associateBy { "${it.telpostid}_${it.begintijd}" }
             
             // Verzamel sessies uit Excel
             val sessionsInExcel = mutableListOf<Row>()
@@ -104,7 +106,10 @@ class ExcelImportManager(private val context: Context) {
             // Reserveer IDs in bulk voor de nieuwe sessies
             val newSessionsCount = sessionsInExcel.count { row ->
                 val onlineId = row.getCellText(headerColMap["id"] ?: -1).split(".")[0]
-                !existingOnlineIds.contains(onlineId)
+                val siteId = row.getCellText(headerColMap["siteid"] ?: -1).split(".")[0]
+                val begintijd = parseTrektellenDate(row, headerColMap, "start")
+                val timeKey = "${siteId}_${begintijd}"
+                !existingOnlineIds.contains(onlineId) && !existingHeadersByTime.containsKey(timeKey)
             }
             
             val nextIdIterator = if (newSessionsCount > 0) {
@@ -113,14 +118,18 @@ class ExcelImportManager(private val context: Context) {
 
             sessionsInExcel.forEach { row ->
                 val onlineId = row.getCellText(headerColMap["id"] ?: -1).split(".")[0]
+                val siteId = row.getCellText(headerColMap["siteid"] ?: -1).split(".")[0]
+                val begintijd = parseTrektellenDate(row, headerColMap, "start")
+                val timeKey = "${siteId}_${begintijd}"
                 val startTimeStr = row.getCellText(headerColMap["start"] ?: -1).let { if (it.contains(" ")) it.split(" ")[1] else "00:00:00" }
                 
-                if (existingOnlineIds.contains(onlineId)) {
-                    // Reeds aanwezig: haal bestaande tellingid op
-                    val existing = db.tellingDao().getHeaderByOnlineId(onlineId)
-                    if (existing != null) {
-                        headersMap[onlineId] = HeaderInfo(existing.tellingid, startTimeStr, true)
-                    }
+                val existingHeader = if (existingOnlineIds.contains(onlineId)) {
+                    db.tellingDao().getHeaderByOnlineId(onlineId)
+                } else existingHeadersByTime[timeKey]
+
+                if (existingHeader != null) {
+                    // Reeds aanwezig in DB: hergebruik bestaande tellingid
+                    headersMap[onlineId] = HeaderInfo(existingHeader.tellingid, startTimeStr, true)
                 } else {
                     // Nieuwe sessie: gebruik gereserveerd ID
                     val tellingId = nextIdIterator?.next()?.toString() ?: UUID.randomUUID().toString()
@@ -128,8 +137,8 @@ class ExcelImportManager(private val context: Context) {
                     val header = TellingHeader(
                         tellingid = tellingId,
                         onlineid = onlineId,
-                        telpostid = row.getCellText(headerColMap["siteid"] ?: -1).split(".")[0],
-                        begintijd = parseTrektellenDate(row, headerColMap, "start"),
+                        telpostid = siteId,
+                        begintijd = begintijd,
                         eindtijd = parseTrektellenDate(row, headerColMap, "stop"),
                         tellers = row.getCellText(headerColMap["observers"] ?: -1),
                         windrichting = row.getCellText(headerColMap["winddirection"] ?: -1).lowercase(),
@@ -192,14 +201,41 @@ class ExcelImportManager(private val context: Context) {
                                         } else false
 
                                         if (!isDuplicate) {
+                                            val cnt1Val = (
+                                                row.getCellText(colMap["direction1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["count1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["cnt1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["aantal1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["aantal"] ?: -1) } } } }
+                                            ).split(".")[0].ifEmpty { "0" }
+
+                                            val cnt2Val = (
+                                                row.getCellText(colMap["direction2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["count2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["cnt2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["aantal2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["aantalterug"] ?: -1) } } } }
+                                            ).split(".")[0].ifEmpty { "0" }
+
+                                            val dir1Val = row.getCellText(colMap["exactdirection1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["dir1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["richting1"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["direction1_label"] ?: -1) } } }
+
+                                            val dir2Val = row.getCellText(colMap["exactdirection2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["dir2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["richting2"] ?: -1).ifEmpty {
+                                                row.getCellText(colMap["direction2_label"] ?: -1) } } }
+
                                             val waarneming = Waarneming(
                                                 idLocal = UUID.randomUUID().toString(),
                                                 tellingid = headerInfo.tellingId,
                                                 onlineid = dataId,
                                                 soortid = row.getCellText(colMap["speciesid"] ?: -1).split(".")[0],
-                                                aantal = row.getCellText(colMap["direction1"] ?: -1).split(".")[0].ifEmpty { "0" },
-                                                richting = row.getCellText(colMap["direction1"] ?: -1),
-                                                aantalterug = row.getCellText(colMap["direction2"] ?: -1).split(".")[0].ifEmpty { "0" },
+                                                aantal = cnt1Val,
+                                                richting = dir1Val,
+                                                aantalterug = cnt2Val,
+                                                richtingterug = dir2Val,
                                                 tijdstip = parseWaarnemingFullDate(row, colMap, headerInfo.startTimeFallback),
                                                 opmerkingen = row.getCellText(colMap["remark"] ?: -1)
                                             )

@@ -380,36 +380,40 @@ class TrektellenExportTestActiviteit : AppCompatActivity() {
                         validatePkHeader = validatePk
                     )
 
+                    var headerSuccess = false
                     headerResult.onSuccess { res ->
+                        headerSuccess = true
                         succeededResults.add(res)
                         tvResultReport.append("  ✔ Opgeslagen: ${res.filename} (${res.bytesWritten / 1024} KB)\n")
                         writeLogToVt5Logs("DOWNLOAD_OK", "Headerdata $tName ($tNumber) $yr: ${res.filename} (${res.bytesWritten} bytes)")
                     }.onFailure { err ->
                         val errMsg = "$tName ($tNumber) - Jaar $yr [headerdata]: ${err.message}"
                         failedResults.add(errMsg)
-                        tvResultReport.append("  ✘ Mislukt/Leeg: ${err.message}\n")
+                        tvResultReport.append("  ✘ Mislukt/Leeg: ${err.message} (Data overgeslagen)\n")
                         writeLogToVt5Logs("DOWNLOAD_FAIL", errMsg)
                     }
 
-                    // 2. Download Data (exporttype = 2) -> Trektellen_data_[telpost]_[jaar].xlsx
-                    tvResultReport.append("► [$pairProgressIndex/$totalCombinations] $tName ($tNumber) - $yr: Data (2/2)...\n")
-                    val dataResult = downloader.downloadSingleExport(
-                        telpostNumber = tNumber,
-                        year = yr,
-                        exportType = 2,
-                        customCookieHeader = savedCookie,
-                        validatePkHeader = validatePk
-                    )
+                    // 2. Download Data (exporttype = 2) alleen als headerdata succesvol was
+                    if (headerSuccess) {
+                        tvResultReport.append("► [$pairProgressIndex/$totalCombinations] $tName ($tNumber) - $yr: Data (2/2)...\n")
+                        val dataResult = downloader.downloadSingleExport(
+                            telpostNumber = tNumber,
+                            year = yr,
+                            exportType = 2,
+                            customCookieHeader = savedCookie,
+                            validatePkHeader = validatePk
+                        )
 
-                    dataResult.onSuccess { res ->
-                        succeededResults.add(res)
-                        tvResultReport.append("  ✔ Opgeslagen: ${res.filename} (${res.bytesWritten / 1024} KB)\n")
-                        writeLogToVt5Logs("DOWNLOAD_OK", "Data $tName ($tNumber) $yr: ${res.filename} (${res.bytesWritten} bytes)")
-                    }.onFailure { err ->
-                        val errMsg = "$tName ($tNumber) - Jaar $yr [data]: ${err.message}"
-                        failedResults.add(errMsg)
-                        tvResultReport.append("  ✘ Mislukt/Leeg: ${err.message}\n")
-                        writeLogToVt5Logs("DOWNLOAD_FAIL", errMsg)
+                        dataResult.onSuccess { res ->
+                            succeededResults.add(res)
+                            tvResultReport.append("  ✔ Opgeslagen: ${res.filename} (${res.bytesWritten / 1024} KB)\n")
+                            writeLogToVt5Logs("DOWNLOAD_OK", "Data $tName ($tNumber) $yr: ${res.filename} (${res.bytesWritten} bytes)")
+                        }.onFailure { err ->
+                            val errMsg = "$tName ($tNumber) - Jaar $yr [data]: ${err.message}"
+                            failedResults.add(errMsg)
+                            tvResultReport.append("  ✘ Mislukt/Leeg: ${err.message}\n")
+                            writeLogToVt5Logs("DOWNLOAD_FAIL", errMsg)
+                        }
                     }
                 }
             }
