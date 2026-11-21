@@ -18,20 +18,31 @@ object AppUpdateManager {
     private const val API_URL = "https://api.github.com/repos/$OWNER/$REPO/releases/tags/$TAG"
     private const val CACHE_TTL_MS = 2 * 60 * 60 * 1000L
 
-    private val apkPattern = Regex("^VT-AI\\.(\\d+\\.\\d+\\.\\d+)\\.apk$")
-    private val semverPattern = Regex("(\\d+)\\.(\\d+)(?:\\.(\\d+))?")
+    // Matched bestandsnamen zoals:
+    // VT-AI.4.0.1 build 3.apk
+    // VT-AI.4.0.1.3.apk
+    // VT-AI.4.0.1-b3.apk
+    // VT-AI.4.0.1.apk
+    private val apkPattern = Regex(
+        "^VT-AI\\.(\\d+\\.\\d+\\.\\d+)(?:[\\s._-]*build[\\s._-]*(\\d+)|[\\s._-]*b(\\d+)|[\\s._-]*(\\d+))?\\.apk$",
+        RegexOption.IGNORE_CASE
+    )
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder().build()
     }
 
     data class ReleaseAsset(
-        val version: String,
+        val version: String,       // Basissverienaam (bijv. "4.0.1")
+        val buildNumber: Int,      // Build-nummer (bijv. 3, of 0 indien afwezig)
         val downloadUrl: String,
         val sha256: String?,
         val name: String,
         val updatedAtIso: String? = null
-    )
+    ) {
+        val displayVersion: String
+            get() = if (buildNumber > 0) "$version build $buildNumber" else version
+    }
 
     data class UpdateState(
         val localVersion: String,
@@ -49,19 +60,65 @@ object AppUpdateManager {
         val versionCode: Long
     )
 
+    data class ParsedVersion(
+        val baseVersion: String,  // e.g. "4.0.1"
+        val buildNumber: Int,     // e.g. 3
+        val major: Int,           // 4
+        val minor: Int,           // 0
+        val patch: Int            // 1
+    ) : Comparable<ParsedVersion> {
+
+        val versionCode: Long
+            get() = (major * 10_000_000L) + (minor * 100_000L) + (patch * 1_000L) + buildNumber
+
+        val displayVersion: String
+            get() = if (buildNumber > 0) "$baseVersion build $buildNumber" else baseVersion
+
+        override fun compareTo(other: ParsedVersion): Int {
+            if (this.major != other.major) return this.major.compareTo(other.major)
+            if (this.minor != other.minor) return this.minor.compareTo(other.minor)
+            if (this.patch != other.patch) return this.patch.compareTo(other.patch)
+            return this.buildNumber.compareTo(other.buildNumber)
+        }
+
+        companion object {
+            private val versionRegex = Regex(
+                "(\\d+)\\.(\\d+)(?:\\.(\\d+))?(?:[\\s._-]*build[\\s._-]*(\\d+)|[\\s._-]*b(\\d+)|[\\s._-]*(\\d+))?",
+                RegexOption.IGNORE_CASE
+            )
+
+            fun parse(text: String?): ParsedVersion {
+                if (text.isNullOrBlank()) return ParsedVersion("0.0.0", 0, 0, 0, 0)
+                val match = versionRegex.find(text) ?: return ParsedVersion("0.0.0", 0, 0, 0, 0)
+                val major = match.groupValues[1].toIntOrNull() ?: 0
+                val minor = match.groupValues[2].toIntOrNull() ?: 0
+                val patch = match.groupValues.getOrNull(3)?.ifBlank { "0" }?.toIntOrNull() ?: 0
+                val buildStr = match.groupValues.getOrNull(4)?.ifBlank { null }
+                    ?: match.groupValues.getOrNull(5)?.ifBlank { null }
+                    ?: match.groupValues.getOrNull(6)?.ifBlank { null }
+                val build = buildStr?.toIntOrNull() ?: 0
+                val base = "$major.$minor.$patch"
+                return ParsedVersion(base, build, major, minor, patch)
+            }
+        }
+    }
+
     suspend fun getCachedState(context: Context): UpdateState = withContext(Dispatchers.IO) {
         val local = readInstalledVersion(context)
         val snapshot = AppDataStore.getUpdateSnapshot(context)
         val latestAsset = if (!snapshot.latestVersion.isNullOrBlank() && !snapshot.latestUrl.isNullOrBlank()) {
+            val parsed = ParsedVersion.parse(snapshot.latestVersion)
             ReleaseAsset(
-                version = snapshot.latestVersion,
+                version = parsed.baseVersion,
+                buildNumber = parsed.buildNumber,
                 downloadUrl = snapshot.latestUrl,
                 sha256 = snapshot.latestSha256,
-                name = "VT-AI.${snapshot.latestVersion}.apk",
+                name = "VT-AI.${parsed.displayVersion}.apk",
                 updatedAtIso = snapshot.latestUpdatedAtIso
             )
         } else null
-        val availableFromCurrentInstall = isUpdateAvailable(context, local.versionName, latestAsset)
+
+        val availableFromCurrentInstall = isUpdateAvailable(context, local.versionName, local.versionCode, latestAsset)
         UpdateState(
             localVersion = local.versionName,
             localVersionCode = local.versionCode,
@@ -77,20 +134,25 @@ object AppUpdateManager {
     private fun isUpdateAvailable(
         context: Context,
         localVersionName: String,
+        localVersionCode: Long,
         latestAsset: ReleaseAsset?
     ): Boolean {
         if (latestAsset == null) return false
-        val cmp = compareVersions(localVersionName, latestAsset.version)
-        if (cmp < 0) return true
-        if (cmp == 0) {
-            // 1. Vergelijk SHA256 hashes indien beschikbaar
+        val localParsed = ParsedVersion.parse(localVersionName)
+        val remoteParsed = ParsedVersion.parse(latestAsset.displayVersion)
+
+        // 1. Vergelijk geconsolideerde versie & build nummer
+        if (remoteParsed > localParsed) return true
+        if (remoteParsed.versionCode > localVersionCode) return true
+
+        // 2. Indien de versie gelijk is, controleer SHA256 of GitHub hotfix uploaddatum
+        if (remoteParsed == localParsed || remoteParsed.versionCode == localVersionCode) {
             val installedSha = getInstalledApkSha256(context)?.lowercase()
             val remoteSha = latestAsset.sha256?.lowercase()
             if (!installedSha.isNullOrBlank() && !remoteSha.isNullOrBlank() && installedSha != remoteSha) {
                 return true
             }
 
-            // 2. Hotfix controle: vergelijk GitHub asset updated_at met de installatiedatum van de huidige app op het toestel
             val installedLastUpdateMs = runCatching {
                 context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
             }.getOrDefault(0L)
@@ -153,7 +215,12 @@ object AppUpdateManager {
                     val asset = assetsJson.getJSONObject(i)
                     val name = asset.optString("name")
                     val match = apkPattern.matchEntire(name) ?: continue
-                    val version = match.groupValues[1]
+                    val baseVersion = match.groupValues[1]
+                    val buildStr = match.groupValues.getOrNull(2)?.ifBlank { null }
+                        ?: match.groupValues.getOrNull(3)?.ifBlank { null }
+                        ?: match.groupValues.getOrNull(4)?.ifBlank { null }
+                    val buildNum = buildStr?.toIntOrNull() ?: 0
+
                     val url = asset.optString("browser_download_url")
                     if (url.isBlank()) continue
                     val digestRaw = asset.optString("digest", "")
@@ -161,7 +228,8 @@ object AppUpdateManager {
                     val assetUpdatedAt = asset.optString("updated_at", "")
                     val updatedAt = assetUpdatedAt.ifBlank { releasePublishedAt }
                     parsed += ReleaseAsset(
-                        version = version,
+                        version = baseVersion,
+                        buildNumber = buildNum,
                         downloadUrl = url,
                         sha256 = sha256,
                         name = name,
@@ -169,14 +237,18 @@ object AppUpdateManager {
                     )
                 }
 
-                val sorted = parsed.sortedWith { a, b -> compareSemver(b.version, a.version) }
+                val sorted = parsed.sortedWith { a, b ->
+                    val parsedA = ParsedVersion.parse(a.displayVersion)
+                    val parsedB = ParsedVersion.parse(b.displayVersion)
+                    parsedB.compareTo(parsedA)
+                }
                 val latest = sorted.firstOrNull()
-                val available = isUpdateAvailable(context, local.versionName, latest)
+                val available = isUpdateAvailable(context, local.versionName, local.versionCode, latest)
 
                 AppDataStore.setUpdateSnapshot(
                     context = context,
                     updateAvailable = available,
-                    latestVersion = latest?.version,
+                    latestVersion = latest?.displayVersion,
                     latestUrl = latest?.downloadUrl,
                     latestSha256 = latest?.sha256,
                     latestUpdatedAtIso = latest?.updatedAtIso,
@@ -186,7 +258,7 @@ object AppUpdateManager {
                 UpdateState(
                     localVersion = local.versionName,
                     localVersionCode = local.versionCode,
-                    latestVersion = latest?.version,
+                    latestVersion = latest?.displayVersion,
                     updateAvailable = available,
                     latestAsset = latest,
                     allAssets = sorted,
@@ -218,8 +290,6 @@ object AppUpdateManager {
                 // Guardrail 1: Verifieer dat het gedownloade bestand een geldig VT5 APK-pakket is.
                 val archiveInfo = readArchiveInfo(context, outFile)
                 val archivePackage = archiveInfo?.packageName.orEmpty()
-                val archiveVersion = archiveInfo?.versionName.orEmpty()
-                val archiveSemver = extractSemver(archiveVersion)
 
                 if (archivePackage != context.packageName) {
                     outFile.delete()
@@ -231,50 +301,19 @@ object AppUpdateManager {
                 val expectedSha = asset.sha256?.lowercase()
 
                 if (!expectedSha.isNullOrBlank() && actualSha != expectedSha) {
-                    // Bij een hotfix (zelfde versienummer of her-üploade APK) is de SHA256 op GitHub gewijzigd.
-                    // Indien de APK inhoudelijk een geldig VT5 pakket is, slaan we de nieuwe SHA256 op in DataStore.
-                    if (archiveSemver != null) {
-                        AppDataStore.setUpdateSnapshot(
-                            context = context,
-                            updateAvailable = true,
-                            latestVersion = asset.version,
-                            latestUrl = asset.downloadUrl,
-                            latestSha256 = actualSha,
-                            checkedAt = System.currentTimeMillis()
-                        )
-                    } else {
-                        outFile.delete()
-                        error("Checksum mismatch")
-                    }
+                    AppDataStore.setUpdateSnapshot(
+                        context = context,
+                        updateAvailable = true,
+                        latestVersion = asset.displayVersion,
+                        latestUrl = asset.downloadUrl,
+                        latestSha256 = actualSha,
+                        checkedAt = System.currentTimeMillis()
+                    )
                 }
 
                 outFile
             }
         }
-    }
-
-    private fun parseSemver(version: String): Triple<Int, Int, Int> {
-        val m = semverPattern.matchEntire(version) ?: return Triple(0, 0, 0)
-        val patch = m.groupValues.getOrNull(3)?.ifBlank { "0" } ?: "0"
-        return Triple(m.groupValues[1].toInt(), m.groupValues[2].toInt(), patch.toInt())
-    }
-
-    private fun compareSemver(left: String, right: String): Int {
-        val l = parseSemver(extractSemver(left) ?: "0.0.0")
-        val r = parseSemver(extractSemver(right) ?: "0.0.0")
-        return when {
-            l.first != r.first -> l.first.compareTo(r.first)
-            l.second != r.second -> l.second.compareTo(r.second)
-            else -> l.third.compareTo(r.third)
-        }
-    }
-
-    private fun compareVersions(local: String, remote: String): Int {
-        return compareSemver(local, remote)
-    }
-
-    private fun extractSemver(text: String): String? {
-        return semverPattern.find(text)?.value
     }
 
     private fun readInstalledVersion(context: Context): InstalledVersion {
@@ -303,5 +342,3 @@ object AppUpdateManager {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 }
-
-

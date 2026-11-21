@@ -17,24 +17,44 @@ val versionProperties = Properties().apply {
 }
 
 fun parseSemver(version: String): Triple<Int, Int, Int> {
-    val match = Regex("^(\\d+)\\.(\\d+)\\.(\\d+)$").matchEntire(version)
+    val cleanVersion = version.substringBefore(" ").trim()
+    val match = Regex("^(\\d+)\\.(\\d+)\\.(\\d+)$").matchEntire(cleanVersion)
         ?: error("VERSION_NAME moet semver zijn (x.y.z), maar kreeg: $version")
     return Triple(match.groupValues[1].toInt(), match.groupValues[2].toInt(), match.groupValues[3].toInt())
 }
 
-fun semverToVersionCode(version: String): Int {
+fun semverToVersionCode(version: String, buildNumber: Int = 0): Int {
     val (major, minor, patch) = parseSemver(version)
-    return major * 10000 + minor * 100 + patch
+    return major * 10_000_000 + minor * 100_000 + patch * 1_000 + buildNumber
 }
 
-val resolvedVersionName =
-    (project.findProperty("VT_VERSION_NAME") as String?)
+val baseVersionName =
+    ((project.findProperty("VT_VERSION_NAME") as String?)
         ?: versionProperties.getProperty("VERSION_NAME")
-        ?: "2.2.0"
+        ?: "4.0.1").trim()
 
+var currentBuildNumber =
+    ((project.findProperty("VT_BUILD_NUMBER") as String?)?.toIntOrNull())
+        ?: (versionProperties.getProperty("BUILD_NUMBER", "0").trim().toIntOrNull() ?: 0)
+
+// Verhoog BUILD_NUMBER alleen bij een echte build/bundle taak (zoals 'Generate Signed App...')
+val isArtifactBuild = gradle.startParameter.taskNames.any { task ->
+    task.contains("assemble", ignoreCase = true) || task.contains("bundle", ignoreCase = true)
+}
+
+if (isArtifactBuild && project.findProperty("VT_BUILD_NUMBER") == null) {
+    currentBuildNumber += 1
+    versionProperties.setProperty("VERSION_NAME", baseVersionName)
+    versionProperties.setProperty("BUILD_NUMBER", currentBuildNumber.toString())
+    versionPropertiesFile.outputStream().use { out ->
+        versionProperties.store(out, "VoiceTally app version")
+    }
+}
+
+val resolvedVersionName = "$baseVersionName build $currentBuildNumber"
 val resolvedVersionCode =
     (project.findProperty("VT_VERSION_CODE") as String?)?.toIntOrNull()
-        ?: semverToVersionCode(resolvedVersionName)
+        ?: semverToVersionCode(baseVersionName, currentBuildNumber)
 
 android {
     namespace = "com.yvesds.vt5"
@@ -49,8 +69,11 @@ android {
         versionName = resolvedVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Beperk ABIs tot ARM (64-bit en 32-bit). 
-        // Dit verwijdert x86 en x86_64 native libs (voor emulators), wat de APK grootte 
+        buildConfigField("String", "BASE_VERSION_NAME", "\"$baseVersionName\"")
+        buildConfigField("int", "BUILD_NUMBER", currentBuildNumber.toString())
+
+        // Beperk ABIs tot ARM (64-bit en 32-bit).
+        // Dit verwijdert x86 en x86_64 native libs (voor emulators), wat de APK grootte
         // aanzienlijk verkleint.
         ndk {
             abiFilters.add("armeabi-v7a")
@@ -94,6 +117,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+
+    // Geef de gegenereerde APK de naam: VT-AI.<versie> build <nummer>.apk
+    applicationVariants.all {
+        val variant = this
+        variant.outputs
+            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .forEach { output ->
+                output.outputFileName = "VT-AI.${baseVersionName} build ${currentBuildNumber}.apk"
+            }
+    }
 }
 
 dependencies {
@@ -131,9 +164,6 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     implementation("androidx.room:room-paging:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
-    // Voor Kotlin: gebruik ksp of kapt (VT5 gebruikt kapt of standaard annotationProcessor)
-    // Gezien de huidige configuratie voegen we kapt toe als plugin indien nodig, 
-    // maar we proberen eerst de standaard annotationProcessor voor Room.
 
     implementation("androidx.media:media:1.7.1")
 
@@ -150,6 +180,7 @@ dependencies {
     // Kaart functionaliteit (OpenStreetMap)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 }
+
 // Tests uit
 tasks.matching {
     it.name.startsWith("test", true) || it.name.startsWith("connectedAndroidTest", true)
@@ -160,6 +191,8 @@ tasks.register("printResolvedVersion") {
     description = "Toont de versie die gebruikt wordt voor deze build."
     notCompatibleWithConfigurationCache("Leest script-variabelen voor versie-output")
     doLast {
+        println("VT baseVersionName=$baseVersionName")
+        println("VT buildNumber=$currentBuildNumber")
         println("VT versionName=$resolvedVersionName")
         println("VT versionCode=$resolvedVersionCode")
     }
@@ -167,7 +200,7 @@ tasks.register("printResolvedVersion") {
 
 tasks.register("bumpPatchVersion") {
     group = "versioning"
-    description = "Verhoogt patch van app/version.properties (x.y.z -> x.y.(z+1))."
+    description = "Verhoogt patch van app/version.properties (x.y.z -> x.y.(z+1)) en reset BUILD_NUMBER naar 0."
     notCompatibleWithConfigurationCache("Schrijft versiegegevens weg naar version.properties")
     doLast {
         val props = Properties().apply {
@@ -175,15 +208,16 @@ tasks.register("bumpPatchVersion") {
                 versionPropertiesFile.inputStream().use { load(it) }
             }
         }
-        val current = props.getProperty("VERSION_NAME") ?: "2.2.0"
+        val current = props.getProperty("VERSION_NAME") ?: "4.0.1"
         val (major, minor, patch) = parseSemver(current)
         val next = "$major.$minor.${patch + 1}"
         props.setProperty("VERSION_NAME", next)
+        props.setProperty("BUILD_NUMBER", "0")
         versionPropertiesFile.outputStream().use { out ->
             props.store(out, "VoiceTally app version")
         }
-        println("VERSION_NAME bumped: $current -> $next")
-        println("Derived VERSION_CODE: ${semverToVersionCode(next)}")
+        println("VERSION_NAME bumped: $current -> $next (BUILD_NUMBER reset to 0)")
+        println("Next derived VERSION_CODE (build 1): ${semverToVersionCode(next, 1)}")
     }
 }
 
@@ -194,4 +228,3 @@ tasks.register("prepareRelease") {
     dependsOn("bumpPatchVersion")
     finalizedBy("assemble")
 }
-

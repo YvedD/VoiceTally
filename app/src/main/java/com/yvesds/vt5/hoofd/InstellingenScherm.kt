@@ -610,7 +610,7 @@ class InstellingenScherm : AppCompatActivity() {
         }
 
         val labels = updateAssets.map { asset ->
-            if (asset == latestUpdateAsset) "${asset.version} (latest)" else asset.version
+            if (asset == latestUpdateAsset) "${asset.displayVersion} (latest)" else asset.displayVersion
         }.toTypedArray()
 
         val dlg = AlertDialog.Builder(this)
@@ -626,7 +626,7 @@ class InstellingenScherm : AppCompatActivity() {
 
     private fun confirmInstallSelectedVersion(asset: AppUpdateManager.ReleaseAsset) {
         val dlg = AlertDialog.Builder(this)
-            .setTitle(getString(R.string.update_rollback_confirm_title, asset.version))
+            .setTitle(getString(R.string.update_rollback_confirm_title, asset.displayVersion))
             .setMessage(R.string.update_rollback_confirm_message)
             .setPositiveButton(R.string.update_prompt_now) { _, _ ->
                 installAssetFlow(asset)

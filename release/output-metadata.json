@@ -11,9 +11,9 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 40001,
-      "versionName": "4.0.1",
-      "outputFile": "app-release.apk"
+      "versionCode": 40001001,
+      "versionName": "4.0.1 build 1",
+      "outputFile": "VT-AI.4.0.1 build 1.apk"
     }
   ],
   "elementType": "File",
@@ -22,14 +22,14 @@
       "minApi": 28,
       "maxApi": 30,
       "baselineProfiles": [
-        "baselineProfiles/1/app-release.dm"
+        "baselineProfiles/1/VT-AI.4.0.1 build 1.dm"
       ]
     },
     {
       "minApi": 31,
       "maxApi": 2147483647,
       "baselineProfiles": [
-        "baselineProfiles/0/app-release.dm"
+        "baselineProfiles/0/VT-AI.4.0.1 build 1.dm"
       ]
     }
   ],
