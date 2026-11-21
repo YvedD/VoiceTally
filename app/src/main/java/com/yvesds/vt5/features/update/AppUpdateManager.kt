@@ -145,14 +145,9 @@ object AppUpdateManager {
         if (remoteParsed > localParsed) return true
         if (remoteParsed.versionCode > localVersionCode) return true
 
-        // 2. Indien de versie gelijk is, controleer SHA256 of GitHub hotfix uploaddatum
+        // 2. Indien de versie gelijk is aan de geïnstalleerde versie:
+        // Controleer uitsluitend of er op GitHub een her-üploade hotfix staat met een recentere uploaddatum
         if (remoteParsed == localParsed || remoteParsed.versionCode == localVersionCode) {
-            val installedSha = getInstalledApkSha256(context)?.lowercase()
-            val remoteSha = latestAsset.sha256?.lowercase()
-            if (!installedSha.isNullOrBlank() && !remoteSha.isNullOrBlank() && installedSha != remoteSha) {
-                return true
-            }
-
             val installedLastUpdateMs = runCatching {
                 context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
             }.getOrDefault(0L)

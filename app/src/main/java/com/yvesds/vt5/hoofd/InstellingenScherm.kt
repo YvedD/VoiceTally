@@ -72,6 +72,7 @@ class InstellingenScherm : AppCompatActivity() {
         const val PREF_SERVER_RESPONSE_LOGGING_ENABLED = "pref_server_response_logging_enabled"
         const val PREF_STORAGE_MODE = "pref_storage_mode"
         const val EXTRA_TRIGGER_AI_TRAINING = "extra_trigger_ai_training"
+        const val EXTRA_TARGET_SECTION = "extra_target_section"
 
         const val PREF_CHART_LINE_THICKNESS = "pref_chart_line_thickness"
         const val PREF_CHART_COLOR_WIND = "pref_chart_color_wind"
@@ -545,6 +546,27 @@ class InstellingenScherm : AppCompatActivity() {
             val cached = AppUpdateManager.getCachedState(this@InstellingenScherm)
             applyUpdateStateToUi(cached)
             performUpdateCheck(forceNetwork = true, showToast = false)
+        }
+
+        handleTargetSectionIntent()
+    }
+
+    private fun handleTargetSectionIntent() {
+        val section = intent.getStringExtra(EXTRA_TARGET_SECTION)
+        if (section == "app_update") {
+            val contentUpdates = findViewById<View>(R.id.contentUpdates)
+            val headerUpdates = findViewById<View>(R.id.headerUpdates)
+            val scrollView = findViewById<android.widget.ScrollView>(R.id.scrollInstellingen)
+
+            contentUpdates?.visibility = View.VISIBLE
+            val arrow = (headerUpdates as? ViewGroup)?.let { vg ->
+                (0 until vg.childCount).map { vg.getChildAt(it) }.filterIsInstance<TextView>().lastOrNull()
+            }
+            arrow?.text = "▲"
+
+            headerUpdates?.post {
+                scrollView?.smoothScrollTo(0, headerUpdates.top)
+            }
         }
     }
 

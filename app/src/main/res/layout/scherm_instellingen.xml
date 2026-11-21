@@ -18,6 +18,7 @@
         android:background="#85080E14" />
 
     <ScrollView
+        android:id="@+id/scrollInstellingen"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true">

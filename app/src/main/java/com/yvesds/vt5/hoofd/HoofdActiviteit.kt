@@ -1054,7 +1054,10 @@ class HoofdActiviteit : AppCompatActivity() {
                             .setTitle(R.string.update_prompt_title)
                             .setMessage(getString(R.string.update_prompt_message, state.latestVersion, state.localVersion))
                             .setPositiveButton(R.string.update_prompt_now) { _, _ ->
-                                startActivity(Intent(this@HoofdActiviteit, InstellingenScherm::class.java))
+                                val intent = Intent(this@HoofdActiviteit, InstellingenScherm::class.java).apply {
+                                    putExtra(InstellingenScherm.EXTRA_TARGET_SECTION, "app_update")
+                                }
+                                startActivity(intent)
                             }
                             .setNegativeButton(R.string.update_prompt_later, null)
                             .show()
