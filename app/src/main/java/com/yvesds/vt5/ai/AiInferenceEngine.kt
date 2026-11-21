@@ -32,7 +32,7 @@ object AiInferenceEngine {
         hourOverride: Int? = null,
         providedRegBoost: Double? = null,
         useNeural: Boolean? = null
-    ): AiSuggestieData = withContext(Dispatchers.IO) {
+    ): AiSuggestieData = withContext(BsiDispatchers.Background) {
         Log.i(TAG, "=========================================================")
         Log.i(TAG, "START SCIENTIFIC AI ANALYSIS")
         
@@ -311,7 +311,21 @@ object AiInferenceEngine {
         SpeciesGuildMapper.Guild.entries.filter { it != SpeciesGuildMapper.Guild.OTHER }.forEach { guild ->
             val winners = scoredList.filter { it.guild == guild }.sortedByDescending { it.score }.take(AiConfig.GUILD_TOP_N)
             winners.forEach { w ->
-                val probRaw = (min(0.98, w.score / idealScore) * 100).toInt()
+                val bpH = (w.expectedIndex ?: 1f).toDouble()
+                val bayesProb = BayesianScoringEngine.calculatePosteriorProbability(
+                    priorBaselineBph = bpH,
+                    windMatchFactor = 1.0,
+                    efficiencyRatio = 1.0,
+                    specialBoost = 1.0,
+                    timeMatchFactor = 1.0,
+                    gatekeeperFactor = 1.0,
+                    twinFactor = 1.0,
+                    corridorBoost = regBoost,
+                    dailyWeight = 1.0,
+                    neuralProb = null,
+                    tensorFactor = null
+                )
+                val probRaw = (min(98, (min(0.98, w.score / idealScore) * 100).toInt() + bayesProb / 2))
                 
                 // FEEDBACK CORRECTIE via JSON
                 val avgRating = AiFeedbackManager.getCorrectionFactor(context, w.soortid, currentWindLabel)
