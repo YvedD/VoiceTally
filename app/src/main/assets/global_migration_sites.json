@@ -1,0 +1,553 @@
+{
+  "schemaVersion": 1,
+  "generatedAtIso": "2026-11-21T21:50:00Z",
+  "totalSites": 21,
+  "sites": [
+    {
+      "siteId": "ref_falsterbo",
+      "trektellenId": 105,
+      "name": "Falsterbo (SE)",
+      "countryCode": "SE",
+      "region": "Skåne",
+      "latitude": 55.38,
+      "longitude": 12.83,
+      "altitudeMeters": 2,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZW", "ZZW", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 225.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["E", "NE", "ENE", "NNE", "N"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_THERMAL", "RAPTORS_ACTIVE", "PASSERINES", "WATERFOWL"]
+    },
+    {
+      "siteId": "ref_skagen",
+      "trektellenId": 101,
+      "name": "Skagen (DK)",
+      "countryCode": "DK",
+      "region": "Nordjylland",
+      "latitude": 57.72,
+      "longitude": 10.58,
+      "altitudeMeters": 3,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZO", "SE", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO", "ENE", "NE"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_ACTIVE", "PASSERINES", "COASTAL_BIRDS", "GULLS_TERNS"]
+    },
+    {
+      "siteId": "ref_blavand",
+      "trektellenId": 102,
+      "name": "Blåvand (DK)",
+      "countryCode": "DK",
+      "region": "Syddanmark",
+      "latitude": 55.55,
+      "longitude": 8.08,
+      "altitudeMeters": 5,
+      "biotopeType": "COASTAL_DUNES",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S", "SE"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NNO", "NO", "NW"]
+        }
+      },
+      "dominantGuilds": ["WATERFOWL", "SHOREBIRDS", "PASSERINES", "COASTAL_BIRDS"]
+    },
+    {
+      "siteId": "ref_helgoland",
+      "trektellenId": 201,
+      "name": "Helgoland (DE)",
+      "countryCode": "DE",
+      "region": "Schleswig-Holstein",
+      "latitude": 54.18,
+      "longitude": 7.88,
+      "altitudeMeters": 50,
+      "biotopeType": "OFFSHORE_ISLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 35.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S", "SE"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 215.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["NW", "WNW", "N", "NO"]
+        }
+      },
+      "dominantGuilds": ["PELAGICS", "PASSERINES", "COASTAL_BIRDS", "SHOREBIRDS"]
+    },
+    {
+      "siteId": "ref_sylt",
+      "trektellenId": 202,
+      "name": "Sylt (DE)",
+      "countryCode": "DE",
+      "region": "Schleswig-Holstein",
+      "latitude": 54.91,
+      "longitude": 8.30,
+      "altitudeMeters": 8,
+      "biotopeType": "COASTAL_ISLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO", "NW"]
+        }
+      },
+      "dominantGuilds": ["WATERFOWL", "SHOREBIRDS", "COASTAL_BIRDS", "PASSERINES"]
+    },
+    {
+      "siteId": "ref_borkum",
+      "trektellenId": 203,
+      "name": "Borkum (DE)",
+      "countryCode": "DE",
+      "region": "Niedersachsen",
+      "latitude": 53.58,
+      "longitude": 6.66,
+      "altitudeMeters": 6,
+      "biotopeType": "COASTAL_ISLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 225.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["E", "NE", "N", "NW"]
+        }
+      },
+      "dominantGuilds": ["WATERFOWL", "SHOREBIRDS", "PASSERINES", "GULLS_TERNS"]
+    },
+    {
+      "siteId": "ref_texel",
+      "trektellenId": 1,
+      "name": "Texel (NL)",
+      "countryCode": "NL",
+      "region": "Noord-Holland",
+      "latitude": 53.05,
+      "longitude": 4.80,
+      "altitudeMeters": 10,
+      "biotopeType": "COASTAL_ISLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZZO", "ZO", "OZO", "O"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NNO", "NO", "ONO", "O", "NW", "WNW"]
+        }
+      },
+      "dominantGuilds": ["WATERFOWL", "SHOREBIRDS", "PASSERINES", "PELAGICS"]
+    },
+    {
+      "siteId": "ref_lauwersmeer",
+      "trektellenId": 2,
+      "name": "Lauwersmeer (NL)",
+      "countryCode": "NL",
+      "region": "Groningen",
+      "latitude": 53.38,
+      "longitude": 6.19,
+      "altitudeMeters": 2,
+      "biotopeType": "ESTUARY_WETLAND",
+      "hasSeaView": false,
+      "coastalDistanceKm": 3.5,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 225.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["NO", "NNO", "O"]
+        }
+      },
+      "dominantGuilds": ["WATERFOWL", "SHOREBIRDS", "HERONS", "PASSERINES"]
+    },
+    {
+      "siteId": "ref_ijmuiden",
+      "trektellenId": 32,
+      "name": "IJmuiden Pier (NL)",
+      "countryCode": "NL",
+      "region": "Noord-Holland",
+      "latitude": 52.46,
+      "longitude": 4.56,
+      "altitudeMeters": 5,
+      "biotopeType": "COASTAL_PIER",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZZO", "ZO", "OZO", "O"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NNO", "NO", "ONO", "O", "NW", "WNW"]
+        }
+      },
+      "dominantGuilds": ["PELAGICS", "COASTAL_BIRDS", "GULLS_TERNS", "WATERFOWL", "PASSERINES"]
+    },
+    {
+      "siteId": "ref_gdansk",
+      "trektellenId": 301,
+      "name": "Gdansk (PL)",
+      "countryCode": "PL",
+      "region": "Pomorskie",
+      "latitude": 54.35,
+      "longitude": 18.64,
+      "altitudeMeters": 10,
+      "biotopeType": "ESTUARY_WETLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.5,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 60.0,
+          "directionLabel": "ONO",
+          "favorableWindSectors": ["Z", "SW", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 240.0,
+          "directionLabel": "WSW",
+          "favorableWindSectors": ["E", "NE", "N"]
+        }
+      },
+      "dominantGuilds": ["PASSERINES", "WATERFOWL", "SHOREBIRDS", "RAPTORS_ACTIVE"]
+    },
+    {
+      "siteId": "ref_cap_gris_nez",
+      "trektellenId": 401,
+      "name": "Cap Gris-Nez (FR)",
+      "countryCode": "FR",
+      "region": "Hauts-de-France",
+      "latitude": 50.87,
+      "longitude": 1.58,
+      "altitudeMeters": 45,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZZO", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO", "NW", "WNW"]
+        }
+      },
+      "dominantGuilds": ["PELAGICS", "COASTAL_BIRDS", "PASSERINES", "WATERFOWL", "RAPTORS_ACTIVE"]
+    },
+    {
+      "siteId": "ref_baie_de_somme",
+      "trektellenId": 402,
+      "name": "Baie de Somme (FR)",
+      "countryCode": "FR",
+      "region": "Hauts-de-France",
+      "latitude": 50.21,
+      "longitude": 1.62,
+      "altitudeMeters": 5,
+      "biotopeType": "ESTUARY_WETLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 1.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO", "NW"]
+        }
+      },
+      "dominantGuilds": ["WATERFOWL", "SHOREBIRDS", "PASSERINES", "HERONS"]
+    },
+    {
+      "siteId": "ref_ouistreham",
+      "trektellenId": 403,
+      "name": "Ouistreham (FR)",
+      "countryCode": "FR",
+      "region": "Normandie",
+      "latitude": 49.28,
+      "longitude": -0.25,
+      "altitudeMeters": 4,
+      "biotopeType": "ESTUARY_WETLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.5,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 225.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["NO", "N", "NW"]
+        }
+      },
+      "dominantGuilds": ["PASSERINES", "WATERFOWL", "SHOREBIRDS"]
+    },
+    {
+      "siteId": "ref_ile_oleron",
+      "trektellenId": 404,
+      "name": "Île d'Oléron (FR)",
+      "countryCode": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "latitude": 45.91,
+      "longitude": -1.30,
+      "altitudeMeters": 10,
+      "biotopeType": "COASTAL_ISLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO", "NW"]
+        }
+      },
+      "dominantGuilds": ["PELAGICS", "PASSERINES", "SHOREBIRDS", "WATERFOWL"]
+    },
+    {
+      "siteId": "ref_biarritz",
+      "trektellenId": 405,
+      "name": "Biarritz (FR)",
+      "countryCode": "FR",
+      "region": "Nouvelle-Aquitaine",
+      "latitude": 43.48,
+      "longitude": -1.56,
+      "altitudeMeters": 35,
+      "biotopeType": "HILL_RIDGE_PASS",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 225.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["NO", "N", "ENE"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_THERMAL", "RAPTORS_ACTIVE", "PASSERINES", "STORKS"]
+    },
+    {
+      "siteId": "ref_tarifa",
+      "trektellenId": 501,
+      "name": "Tarifa (ES)",
+      "countryCode": "ES",
+      "region": "Andalucía",
+      "latitude": 36.01,
+      "longitude": -5.60,
+      "altitudeMeters": 20,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 15.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "SW", "W", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 195.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["E", "NE", "ENE"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_THERMAL", "STORKS", "RAPTORS_ACTIVE", "PASSERINES"]
+    },
+    {
+      "siteId": "ref_gibraltar",
+      "trektellenId": 502,
+      "name": "Gibraltar (UK)",
+      "countryCode": "UK",
+      "region": "Gibraltar",
+      "latitude": 36.14,
+      "longitude": -5.35,
+      "altitudeMeters": 400,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 15.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "SW", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 195.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["E", "NE"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_THERMAL", "STORKS", "RAPTORS_ACTIVE", "PASSERINES"]
+    },
+    {
+      "siteId": "ref_sagres",
+      "trektellenId": 503,
+      "name": "Sagres (PT)",
+      "countryCode": "PT",
+      "region": "Algarve",
+      "latitude": 37.01,
+      "longitude": -8.94,
+      "altitudeMeters": 40,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO", "NW"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_THERMAL", "RAPTORS_ACTIVE", "PELAGICS", "PASSERINES"]
+    },
+    {
+      "siteId": "ref_camargue",
+      "trektellenId": 406,
+      "name": "Camargue (FR)",
+      "countryCode": "FR",
+      "region": "Provence-Alpes-Côte d'Azur",
+      "latitude": 43.53,
+      "longitude": 4.65,
+      "altitudeMeters": 2,
+      "biotopeType": "ESTUARY_WETLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 1.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 45.0,
+          "directionLabel": "NO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 225.0,
+          "directionLabel": "ZW",
+          "favorableWindSectors": ["NO", "N"]
+        }
+      },
+      "dominantGuilds": ["HERONS", "SHOREBIRDS", "WATERFOWL", "STORKS"]
+    },
+    {
+      "siteId": "ref_mallorca",
+      "trektellenId": 504,
+      "name": "Mallorca (ES)",
+      "countryCode": "ES",
+      "region": "Illes Balears",
+      "latitude": 39.69,
+      "longitude": 3.01,
+      "altitudeMeters": 15,
+      "biotopeType": "OFFSHORE_ISLAND",
+      "hasSeaView": true,
+      "coastalDistanceKm": 2.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 30.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 210.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO"]
+        }
+      },
+      "dominantGuilds": ["PASSERINES", "PELAGICS", "RAPTORS_ACTIVE", "SHOREBIRDS"]
+    },
+    {
+      "siteId": "ref_messina",
+      "trektellenId": 601,
+      "name": "Messina (IT)",
+      "countryCode": "IT",
+      "region": "Sicilia",
+      "latitude": 38.19,
+      "longitude": 15.55,
+      "altitudeMeters": 300,
+      "biotopeType": "PENINSULA_BOTTLE_NECK",
+      "hasSeaView": true,
+      "coastalDistanceKm": 0.0,
+      "migrationVectors": {
+        "spring": {
+          "primaryHeadingDeg": 20.0,
+          "directionLabel": "NNO",
+          "favorableWindSectors": ["Z", "ZO", "S"]
+        },
+        "autumn": {
+          "primaryHeadingDeg": 200.0,
+          "directionLabel": "ZZW",
+          "favorableWindSectors": ["N", "NO"]
+        }
+      },
+      "dominantGuilds": ["RAPTORS_THERMAL", "STORKS", "RAPTORS_ACTIVE", "PASSERINES"]
+    }
+  ]
+}
