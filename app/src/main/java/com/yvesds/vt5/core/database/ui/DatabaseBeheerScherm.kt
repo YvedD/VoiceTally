@@ -101,24 +101,6 @@ class DatabaseBeheerScherm : AppCompatActivity() {
             startActivity(Intent(this, DatabaseTellingLijstActiviteit::class.java))
         }
 
-        findViewById<MaterialButton>(R.id.btnSoortZoeken).setOnClickListener {
-            startActivity(Intent(this, DatabaseSoortOverzichtActiviteit::class.java))
-        }
-
-        val btnAiEval = findViewById<MaterialButton>(R.id.btnAiEvaluation)
-        btnAiEval.setOnClickListener {
-            startActivity(Intent(this, com.yvesds.vt5.ai.AiLogActiviteit::class.java))
-        }
-
-        lifecycleScope.launch {
-            val enabled = com.yvesds.vt5.core.opslag.AppDataStore.isAiEnabled(this@DatabaseBeheerScherm)
-            btnAiEval.visibility = if (enabled) android.view.View.VISIBLE else android.view.View.GONE
-        }
-
-        findViewById<MaterialButton>(R.id.btnBatchImport).setOnClickListener {
-            startExcelBatchImport()
-        }
-
         findViewById<MaterialButton>(R.id.btnResetDatabase).setOnClickListener {
             startDoubleResetConfirmation("DE VOLLEDIGE DATABASE", ::performFullDatabaseReset)
         }

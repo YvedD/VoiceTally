@@ -228,3 +228,26 @@ tasks.register("prepareRelease") {
     dependsOn("bumpPatchVersion")
     finalizedBy("assemble")
 }
+
+// ============================================================================
+// AUTOMATISCHE UPLOAD NAAR GITHUB RELEASE (VoiceTally-AI) NA RELEASE BUILD
+// ============================================================================
+val expectedApkFileName = "VT-AI.${baseVersionName} build ${currentBuildNumber}.apk"
+
+tasks.register<Exec>("uploadApkNaarGitHub") {
+    group = "publishing"
+    description = "Uploadt de gebouwde release APK automatisch naar GitHub Release VoiceTally-AI"
+    notCompatibleWithConfigurationCache("Gebruikt dynamische build-variabelen voor APK-upload")
+    workingDir = rootDir
+
+    commandLine(
+        "powershell",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "upload-release.ps1",
+        "-ApkName", expectedApkFileName
+    )
+}
+
+tasks.matching { it.name == "packageRelease" || it.name == "assembleRelease" }.configureEach {
+    finalizedBy("uploadApkNaarGitHub")
+}

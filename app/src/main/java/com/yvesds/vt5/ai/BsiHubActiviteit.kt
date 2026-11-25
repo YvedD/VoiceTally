@@ -26,9 +26,6 @@ class BsiHubActiviteit : AppCompatActivity() {
     private lateinit var tvDbStats: TextView
 
     private lateinit var btnOpenDatacentrum: MaterialButton
-    private lateinit var btnOpenForecast: MaterialButton
-    private lateinit var btnOpenKrentenMonitor: MaterialButton
-    private lateinit var btnOpenDailyReports: MaterialButton
 
     private lateinit var switchNeuralInference: SwitchMaterial
     private lateinit var switchDailyAnalysisWeights: SwitchMaterial
@@ -55,9 +52,6 @@ class BsiHubActiviteit : AppCompatActivity() {
         tvDbStats = findViewById(R.id.tvDbStats)
 
         btnOpenDatacentrum = findViewById(R.id.btnOpenDatacentrum)
-        btnOpenForecast = findViewById(R.id.btnOpenForecast)
-        btnOpenKrentenMonitor = findViewById(R.id.btnOpenKrentenMonitor)
-        btnOpenDailyReports = findViewById(R.id.btnOpenDailyReports)
 
         switchNeuralInference = findViewById(R.id.switchNeuralInference)
         switchDailyAnalysisWeights = findViewById(R.id.switchDailyAnalysisWeights)
@@ -70,18 +64,6 @@ class BsiHubActiviteit : AppCompatActivity() {
         // NAVIGATIE MODULES
         btnOpenDatacentrum.setOnClickListener {
             startActivity(Intent(this, BsiDatacentrumActiviteit::class.java))
-        }
-
-        btnOpenForecast.setOnClickListener {
-            startActivity(Intent(this, AiForecastScherm::class.java))
-        }
-
-        btnOpenKrentenMonitor.setOnClickListener {
-            startActivity(Intent(this, KrentenMonitorActiviteit::class.java))
-        }
-
-        btnOpenDailyReports.setOnClickListener {
-            startActivity(Intent(this, AiReportListActiviteit::class.java))
         }
 
         // FLOATING INFO-SCREEN VOOR BSI DATACENTRUM

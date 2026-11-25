@@ -295,6 +295,10 @@ class TellingSpeciesManager(
                     )
                 }
 
+                val isKrent = try {
+                    com.yvesds.vt5.ai.ModelStore(activity).getActiveKrentenSpeciesIds().contains(soortId)
+                } catch (_: Exception) { false }
+
                 val idLocal = DataUploader.getAndIncrementRecordId(activity, tellingId)
                 return@withContext ServerTellingDataItem(
                     idLocal = idLocal,
@@ -309,7 +313,7 @@ class TellingSpeciesManager(
                     aantal_plus = "0",
                     aantalterug_plus = "0",
                     lokaal_plus = "0",
-                    markeren = "0",
+                    markeren = if (isKrent) "1" else "0",
                     markerenlokaal = "0",
                     geslacht = "",
                     leeftijd = "",

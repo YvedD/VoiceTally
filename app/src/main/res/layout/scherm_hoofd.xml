@@ -355,7 +355,7 @@
             android:contentDescription="@string/bsi_titel"
             app:backgroundTint="@android:color/transparent"
             app:icon="@drawable/ic_vt5_ai_horizon"
-            app:iconSize="28dp"
+            app:iconSize="42dp"
             app:iconTint="@null"
             app:strokeWidth="0dp" />
 
@@ -373,7 +373,7 @@
                 android:contentDescription="@string/hoofd_instellingen"
                 app:backgroundTint="@android:color/transparent"
                 app:icon="@drawable/ic_gear"
-                app:iconSize="28dp"
+                app:iconSize="42dp"
                 app:iconTint="@color/vt5_white"
                 app:strokeWidth="0dp" />
 

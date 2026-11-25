@@ -155,7 +155,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="#99121A24"
                 app:cardCornerRadius="14dp"
                 app:cardElevation="2dp"
@@ -166,47 +166,43 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="14dp">
+                    android:padding="12dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/bsi_step1_title"
-                        android:textColor="@color/vt5_white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/bsi_step1_why"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/bsi_step1_title"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step1_how"
-                        android:textColor="#A0FFFFFF"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step1_result"
-                        android:textColor="#3DDC84"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:id="@+id/btnInfoStep1"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="8dp"
+                            android:background="?selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="Info Stap 1"
+                            android:focusable="true"
+                            android:padding="4dp"
+                            android:src="@drawable/ic_info_circle_exclamation"
+                            app:tint="@color/floating_info_bg_color" />
+                    </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStep1Export"
                         style="@style/Widget.VT5.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:text="Open Trektellen Export Downloader"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -216,7 +212,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="#99121A24"
                 app:cardCornerRadius="14dp"
                 app:cardElevation="2dp"
@@ -227,47 +223,43 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="14dp">
+                    android:padding="12dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/bsi_step2_title"
-                        android:textColor="@color/vt5_white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/bsi_step2_why"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/bsi_step2_title"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step2_how"
-                        android:textColor="#A0FFFFFF"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step2_result"
-                        android:textColor="#3DDC84"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:id="@+id/btnInfoStep2"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="8dp"
+                            android:background="?selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="Info Stap 2"
+                            android:focusable="true"
+                            android:padding="4dp"
+                            android:src="@drawable/ic_info_circle_exclamation"
+                            app:tint="@color/floating_info_bg_color" />
+                    </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStep2Import"
                         style="@style/Widget.VT5.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:text="Start Excel Batch Import naar DB"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -277,7 +269,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="14dp"
+                android:layout_marginBottom="12dp"
                 app:cardBackgroundColor="#99121A24"
                 app:cardCornerRadius="14dp"
                 app:cardElevation="2dp"
@@ -288,47 +280,43 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="14dp">
+                    android:padding="12dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/bsi_step3_title"
-                        android:textColor="@color/vt5_white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/bsi_step3_why"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/bsi_step3_title"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step3_how"
-                        android:textColor="#A0FFFFFF"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step3_result"
-                        android:textColor="#3DDC84"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:id="@+id/btnInfoStep3"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="8dp"
+                            android:background="?selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="Info Stap 3"
+                            android:focusable="true"
+                            android:padding="4dp"
+                            android:src="@drawable/ic_info_circle_exclamation"
+                            app:tint="@color/floating_info_bg_color" />
+                    </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStep3Weather"
                         style="@style/Widget.VT5.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:text="Weerdata Aanvullen via Yr.no"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -349,66 +337,53 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="14dp">
+                    android:padding="12dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/bsi_step4_title"
-                        android:textColor="@color/vt5_white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/bsi_step4_why"
-                        android:textColor="#D0FFFFFF"
-                        android:textSize="12sp" />
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/bsi_step4_title"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step4_how"
-                        android:textColor="#A0FFFFFF"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/bsi_step4_result"
-                        android:textColor="#3DDC84"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        <ImageView
+                            android:id="@+id/btnInfoStep4"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_marginStart="8dp"
+                            android:background="?selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="Info Stap 4"
+                            android:focusable="true"
+                            android:padding="4dp"
+                            android:src="@drawable/ic_info_circle_exclamation"
+                            app:tint="@color/floating_info_bg_color" />
+                    </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnStep4Train"
                         style="@style/Widget.VT5.Button.Outlined"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="8dp"
                         android:text="BSI Neuraal Netwerk Trainen"
                         android:textSize="12sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- ======================================================== -->
-            <!-- SECTIE AI OOGST & PROGNOSES                              -->
+            <!-- SECTIE AI OOGST & PROGNOSES (OPKLAPBAAR MENU)            -->
             <!-- ======================================================== -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:letterSpacing="0.08"
-                android:text="BIOLOGISCHE INTELLIGENTIE &amp; RESULTATEN"
-                android:textColor="@color/vt5_white"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardResultsSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
@@ -421,43 +396,206 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAiForecast3Days"
-                        style="@style/Widget.VT5.Button.Outlined"
+                    <!-- Opklapbare Header Bar -->
+                    <LinearLayout
+                        android:id="@+id/layoutHeaderResults"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="3-Daagse Trekprognose"
-                        android:textSize="13sp" />
+                        android:background="?selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnKrentenMonitor"
-                        style="@style/Widget.VT5.Button.Outlined"
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:letterSpacing="0.05"
+                            android:text="BIOLOGISCHE INTELLIGENTIE &amp; RESULTATEN"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvArrowResults"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="▼"
+                            android:textColor="@color/vt5_light_blue"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Inhoud van het opklapbare menu (standaard ingeklapt) -->
+                    <LinearLayout
+                        android:id="@+id/layoutResultsContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="KrentenMonitor &amp; Fenologie"
-                        android:textSize="13sp" />
+                        android:orientation="vertical"
+                        android:paddingLeft="16dp"
+                        android:paddingRight="16dp"
+                        android:paddingBottom="16dp"
+                        android:visibility="gone">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnAiDailyReports"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="Teldag Verslagen &amp; AI Analyses"
-                        android:textSize="13sp" />
+                        <!-- 1. 3-Daagse Trekprognose -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnDatabaseBeheer"
-                        style="@style/Widget.VT5.Button.Outlined"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Database Beheer &amp; Inzien"
-                        android:textSize="13sp" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnAiForecast3Days"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="3-Daagse Trekprognose"
+                                android:textSize="13sp" />
+
+                            <ImageView
+                                android:id="@+id/btnInfoForecast"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:background="?selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:contentDescription="Info Trekprognose"
+                                android:focusable="true"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_info_circle_exclamation"
+                                app:tint="@color/floating_info_bg_color" />
+                        </LinearLayout>
+
+                        <!-- 2. KrentenMonitor -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnKrentenMonitor"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="KrentenMonitor &amp; Fenologie"
+                                android:textSize="13sp" />
+
+                            <ImageView
+                                android:id="@+id/btnInfoKrenten"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:background="?selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:contentDescription="Info KrentenMonitor"
+                                android:focusable="true"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_info_circle_exclamation"
+                                app:tint="@color/floating_info_bg_color" />
+                        </LinearLayout>
+
+                        <!-- 3. Teldag Verslagen & AI Analyses -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnAiDailyReports"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Teldag Verslagen &amp; AI Analyses"
+                                android:textSize="13sp" />
+
+                            <ImageView
+                                android:id="@+id/btnInfoDailyReports"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:background="?selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:contentDescription="Info Teldag Verslagen"
+                                android:focusable="true"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_info_circle_exclamation"
+                                app:tint="@color/floating_info_bg_color" />
+                        </LinearLayout>
+
+                        <!-- 4. Soortenanalyse & Windrozen -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSoortAnalyse"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Soortenanalyse &amp; Windrozen"
+                                android:textSize="13sp" />
+
+                            <ImageView
+                                android:id="@+id/btnInfoSoortAnalyse"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:background="?selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:contentDescription="Info Soortenanalyse"
+                                android:focusable="true"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_info_circle_exclamation"
+                                app:tint="@color/floating_info_bg_color" />
+                        </LinearLayout>
+
+                        <!-- 5. AI-Historiek & Auditlogs -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnAiEvaluation"
+                                style="@style/Widget.VT5.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="AI-Historiek &amp; Auditlogs"
+                                android:textSize="13sp" />
+
+                            <ImageView
+                                android:id="@+id/btnInfoAiEvaluation"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginStart="8dp"
+                                android:background="?selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:contentDescription="Info AI Historiek"
+                                android:focusable="true"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_info_circle_exclamation"
+                                app:tint="@color/floating_info_bg_color" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

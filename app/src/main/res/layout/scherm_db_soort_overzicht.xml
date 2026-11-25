@@ -167,6 +167,67 @@
                 android:padding="10dp"
                 android:visibility="gone">
 
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardGlobalChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    app:cardBackgroundColor="@color/vt5_dark_gray"
+                    app:cardCornerRadius="8dp"
+                    app:strokeColor="@color/vt5_light_blue"
+                    app:strokeWidth="1.5dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <TextView
+                            android:id="@+id/tvGlobalChartHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="6dp"
+                            android:text="🌐 Globale Jaartrend (Alle windrichtingen)"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="6dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbGlobalShowTrek"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:checked="true"
+                                android:paddingStart="8dp"
+                                android:text="@string/chart_show_trek" />
+
+                            <com.google.android.material.checkbox.MaterialCheckBox
+                                android:id="@+id/cbGlobalShowReturn"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:checked="true"
+                                android:paddingStart="8dp"
+                                android:text="@string/chart_show_return" />
+                        </LinearLayout>
+
+                        <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                            android:id="@+id/chartGlobal"
+                            android:layout_width="match_parent"
+                            android:layout_height="220dp"
+                            android:background="#000000"
+                            android:backgroundTint="#739B9B"
+                            android:padding="4dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <GridLayout
                     android:id="@+id/gridWindCharts"
                     android:layout_width="match_parent"

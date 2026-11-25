@@ -584,7 +584,22 @@ class AnnotatieScherm : AppCompatActivity() {
         prefillGroup("height", intent.getStringExtra("extra_height"))
 
         // Checkboxes
-        findViewById<CheckBox>(R.id.cb_markeren)?.isChecked = intent.getStringExtra("extra_markeren") == "1"
+        val extraMarkeren = intent.getStringExtra("extra_markeren")
+        val speciesId = intent.getStringExtra("extra_species_id") ?: intent.getStringExtra("extra_soort_id") ?: ""
+        var isMarkerenChecked = extraMarkeren == "1"
+
+        if (extraMarkeren.isNullOrBlank() && speciesId.isNotBlank()) {
+            try {
+                val activeKrenten = com.yvesds.vt5.ai.ModelStore(this).getActiveKrentenSpeciesIds()
+                if (activeKrenten.contains(speciesId)) {
+                    isMarkerenChecked = true
+                }
+            } catch (e: Exception) {
+                Log.e("AnnotatieScherm", "Fout bij controleren Krentenmonitor status: ${e.message}")
+            }
+        }
+
+        findViewById<CheckBox>(R.id.cb_markeren)?.isChecked = isMarkerenChecked
         findViewById<CheckBox>(R.id.cb_markeren_lokaal)?.isChecked = intent.getStringExtra("extra_markerenlokaal") == "1"
         findViewById<CheckBox>(R.id.cb_tally)?.isChecked = intent.getStringExtra("extra_teltype") == "C"
 

@@ -64,6 +64,13 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
     private var availableSiteIds = mutableListOf<String?>()
 
+    private var cardGlobalChart: View? = null
+    private var tvGlobalChartHeader: TextView? = null
+    private var cbGlobalShowTrek: com.google.android.material.checkbox.MaterialCheckBox? = null
+    private var cbGlobalShowReturn: com.google.android.material.checkbox.MaterialCheckBox? = null
+    private var chartGlobal: CartesianChartView? = null
+    private val globalChartProducer = CartesianChartModelProducer()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.scherm_db_soort_overzicht)
@@ -86,6 +93,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         setupSiteFilter()
         setupSearch()
         setupYearSelector()
+        setupGlobalChart()
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -187,6 +195,62 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
         }
     }
 
+    private fun setupGlobalChart() {
+        tvGlobalChartHeader = findViewById(R.id.tvGlobalChartHeader)
+        cbGlobalShowTrek = findViewById(R.id.cbGlobalShowTrek)
+        cbGlobalShowReturn = findViewById(R.id.cbGlobalShowReturn)
+        chartGlobal = findViewById(R.id.chartGlobal)
+
+        val chart = chartGlobal ?: return
+
+        val colorAantal = VicoLineChartHelper.getColorTrek(this)
+        val colorTerug = VicoLineChartHelper.getColorTerug(this)
+
+        cbGlobalShowTrek?.buttonTintList = android.content.res.ColorStateList.valueOf(colorAantal)
+        cbGlobalShowTrek?.setTextColor(colorAantal)
+
+        cbGlobalShowReturn?.buttonTintList = android.content.res.ColorStateList.valueOf(colorTerug)
+        cbGlobalShowReturn?.setTextColor(colorTerug)
+
+        val listener = { _: View? -> prepareAndShowCharts() }
+        cbGlobalShowTrek?.setOnClickListener(listener)
+        cbGlobalShowReturn?.setOnClickListener(listener)
+
+        chart.modelProducer = globalChartProducer
+        val bgColor = ContextCompat.getColor(this, R.color.grafiek_achtergrondkleur)
+        chart.setBackgroundColor(bgColor)
+
+        val thickness = VicoLineChartHelper.getLineThicknessDp(this)
+
+        chart.zoomHandler = ZoomHandler(zoomEnabled = false, initialZoom = Zoom.Content)
+        chart.scrollHandler = ScrollHandler(scrollEnabled = false)
+
+        chart.chart = CartesianChart(
+            layers = arrayOf(
+                LineCartesianLayer(
+                    lineProvider = LineCartesianLayer.LineProvider.series(
+                        LineCartesianLayer.Line(
+                            fill = LineCartesianLayer.LineFill.single(Fill(colorTerug)),
+                            thicknessDp = thickness
+                        ),
+                        LineCartesianLayer.Line(
+                            fill = LineCartesianLayer.LineFill.single(Fill(colorAantal)),
+                            thicknessDp = thickness
+                        )
+                    ),
+                    verticalAxisPosition = Axis.Position.Vertical.Start
+                )
+            ),
+            startAxis = VerticalAxis.start(label = VicoLineChartHelper.whiteAxisLabel),
+            bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
+        )
+
+        cardGlobalChart?.setOnLongClickListener {
+            ChartExportHelper.exportViewToImage(chart, "GlobaleJaarTrend_${selectedSoortId ?: "Soort"}")
+            true
+        }
+    }
+
     private fun prepareAndShowCharts() {
         val soortId = selectedSoortId ?: return
         val siteIdx = spinnerSiteFilter.selectedItemPosition
@@ -199,7 +263,43 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             
             withContext(Dispatchers.Main) {
                 ensureWindChartsCreated()
-                
+
+                // 1. Globale Jaartrend Grafiek (Alle windrichtingen samen)
+                val globalWeekAantal = FloatArray(53)
+                val globalWeekTerug = FloatArray(53)
+                var globalSumAantal = 0L
+                var globalSumTerug = 0L
+
+                stats.forEach { row ->
+                    if (row.week in 1..52) {
+                        globalWeekAantal[row.week] += row.totalAantal.toFloat()
+                        globalWeekTerug[row.week] += row.totalTerug.toFloat()
+                        globalSumAantal += row.totalAantal
+                        globalSumTerug += row.totalTerug
+                    }
+                }
+
+                tvGlobalChartHeader?.text = String.format(
+                    Locale.getDefault(),
+                    "🌐 Globale Jaartrend (Trek: %d, Terug: %d)",
+                    globalSumAantal,
+                    globalSumTerug
+                )
+
+                val showTrek = cbGlobalShowTrek?.isChecked ?: true
+                val showReturn = cbGlobalShowReturn?.isChecked ?: true
+
+                val seriesGlobalAantal = if (showTrek) globalWeekAantal.toList() else List(53) { 0f }
+                val seriesGlobalTerug = if (showReturn) globalWeekTerug.toList() else List(53) { 0f }
+
+                globalChartProducer.runTransaction {
+                    lineSeries {
+                        series(seriesGlobalTerug)
+                        series(seriesGlobalAantal)
+                    }
+                }
+
+                // 2. De 16 Windroos Grafieken
                 windDirections.forEach { dir ->
                     val binding = chartBindings[dir] ?: return@forEach
                     

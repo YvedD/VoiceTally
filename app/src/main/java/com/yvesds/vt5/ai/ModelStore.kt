@@ -224,6 +224,14 @@ class ModelStore(private val context: Context) {
     }
 
     /**
+     * Haalt de unieke set van actieve Krenten-soorten IDs op (gepind of voorgesteld, maar niet uitgesloten).
+     */
+    fun getActiveKrentenSpeciesIds(): Set<String> {
+        val kb = loadExpertKnowledge() ?: return emptySet()
+        return (kb.pinnedSpecies + kb.discoveredKrenten).toSet() - kb.excludedSpecies.toSet()
+    }
+
+    /**
      * Slaat / laadt de BSI response tensor (geprefereerd binair, fallback JSON).
      */
     @OptIn(ExperimentalSerializationApi::class)
