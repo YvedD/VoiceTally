@@ -104,12 +104,20 @@ class SaFStorageHelper(private val context: Context) {
     }
 
     /**
-     * Synchronous download VT5 DocumentFile als die bestaat.
-     * Prefereer getVt5DirIfExistsSuspend() wanneer je vanuit coroutine aanroept.
+     * Synchronous retrieval/creation of VT5 DocumentFile.
+     * Accurately handles cases where user picked Documents directory OR VT5 directory directly in SAF.
      */
     fun getVt5DirIfExists(): DocumentFile? {
         val rootTree = getRootUri() ?: return null
-        return DocumentFile.fromTreeUri(context, rootTree)?.findFile("VT5")?.takeIf { it.isDirectory }
+        val rootDoc = DocumentFile.fromTreeUri(context, rootTree) ?: return null
+        if (rootDoc.name?.equals("VT5", ignoreCase = true) == true) {
+            return rootDoc
+        }
+        val childVt5 = rootDoc.findFile("VT5")?.takeIf { it.isDirectory }
+        if (childVt5 != null) {
+            return childVt5
+        }
+        return findOrCreateDirectory(rootDoc, "VT5")
     }
 
     /**
@@ -276,6 +284,33 @@ class SaFStorageHelper(private val context: Context) {
      */
     suspend fun deleteCountsFileSuspend(filename: String): Boolean = withContext(Dispatchers.IO) {
         deleteCountsFile(filename)
+    }
+
+    /**
+     * Controleert of de submap Documents/VT5/exports/grafieken/ bestaat.
+     * Maakt deze zo nodig automatisch aan. Retourneert de map én een diagnose-bericht.
+     */
+    suspend fun getOrCreateGrafiekenDirDetailed(): Pair<DocumentFile?, String> = withContext(Dispatchers.IO) {
+        val rootTree = getRootUri()
+            ?: return@withContext Pair(null, "SAF Opslagmap is niet ingesteld in de app. Ga naar Instellingen om de Documents of VT5 map eenmalig te selecteren.")
+
+        val rootDoc = DocumentFile.fromTreeUri(context, rootTree)
+            ?: return@withContext Pair(null, "DocumentFile.fromTreeUri retourneerde null voor de opgeslagen URI: $rootTree")
+
+        val vt5Dir = getVt5DirIfExists()
+            ?: return@withContext Pair(null, "Kon de VT5 hoofdmap niet vinden of aanmaken in SAF boom: ${rootDoc.uri}")
+
+        val exportsDir = findOrCreateDirectory(vt5Dir, "exports")
+            ?: return@withContext Pair(null, "Kon de submap 'exports' niet aanmaken in VT5 map: ${vt5Dir.uri}")
+
+        val grafiekenDir = findOrCreateDirectory(exportsDir, "grafieken")
+            ?: return@withContext Pair(null, "Kon de submap 'grafieken' niet aanmaken in exports map: ${exportsDir.uri}")
+
+        Pair(grafiekenDir, "OK")
+    }
+
+    suspend fun getOrCreateGrafiekenDirSuspend(): DocumentFile? = withContext(Dispatchers.IO) {
+        getOrCreateGrafiekenDirDetailed().first
     }
     
     /**

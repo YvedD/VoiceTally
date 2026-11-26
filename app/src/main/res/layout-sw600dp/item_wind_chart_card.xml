@@ -63,6 +63,19 @@
                     android:textSize="14sp"
                     android:buttonTint="@color/vt5_white" />
             </RadioGroup>
+
+            <ImageView
+                android:id="@+id/btnExportChart"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Grafiek Exporteren"
+                android:focusable="true"
+                android:padding="4dp"
+                android:src="@android:drawable/ic_menu_save"
+                app:tint="@color/floating_info_bg_color" />
         </LinearLayout>
 
         <LinearLayout

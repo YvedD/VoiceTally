@@ -31,6 +31,7 @@ import com.yvesds.vt5.core.database.entities.TellingHeader
 import com.yvesds.vt5.core.opslag.AppDataStore
 import com.yvesds.vt5.core.opslag.FileLogger
 import com.yvesds.vt5.core.opslag.SaFStorageHelper
+import com.yvesds.vt5.core.ui.ChartExportHelper
 import com.yvesds.vt5.core.ui.ProgressDialogHelper
 import com.yvesds.vt5.features.serverdata.model.ServerDataCache
 import kotlinx.coroutines.Dispatchers
@@ -103,6 +104,21 @@ class DatabaseBeheerScherm : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.btnResetDatabase).setOnClickListener {
             startDoubleResetConfirmation("DE VOLLEDIGE DATABASE", ::performFullDatabaseReset)
+        }
+
+        findViewById<View>(R.id.btnExportMainChart)?.setOnClickListener {
+            val chartCard = (findViewById<View>(R.id.chartActivity)?.parent as? View) ?: return@setOnClickListener
+            val siteName = spinnerSiteFilter.selectedItem?.toString()?.ifBlank { "AlleTelposten" } ?: "AlleTelposten"
+
+            lifecycleScope.launch {
+                ChartExportHelper.exportCardToHighResPng(
+                    context = this@DatabaseBeheerScherm,
+                    cardView = chartCard,
+                    speciesName = "TellingenOverzicht",
+                    siteName = siteName,
+                    chartType = "WeekTrends"
+                )
+            }
         }
 
         refreshTableList()

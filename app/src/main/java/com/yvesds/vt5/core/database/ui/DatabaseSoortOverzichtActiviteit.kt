@@ -196,6 +196,7 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
     }
 
     private fun setupGlobalChart() {
+        cardGlobalChart = findViewById(R.id.cardGlobalChart)
         tvGlobalChartHeader = findViewById(R.id.tvGlobalChartHeader)
         cbGlobalShowTrek = findViewById(R.id.cbGlobalShowTrek)
         cbGlobalShowReturn = findViewById(R.id.cbGlobalShowReturn)
@@ -245,8 +246,28 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
             bottomAxis = VicoLineChartHelper.createMonthLabelAxis()
         )
 
+        val btnExportGlobal = findViewById<View>(R.id.btnExportGlobalChart)
+        val performGlobalExport = {
+            val card = cardGlobalChart
+            if (card != null) {
+                val speciesName = atvSoortZoeken.text?.toString()?.ifBlank { selectedSoortId ?: "Soort" } ?: "Soort"
+                val siteName = spinnerSiteFilter.selectedItem?.toString()?.ifBlank { "AlleTelposten" } ?: "AlleTelposten"
+
+                lifecycleScope.launch {
+                    ChartExportHelper.exportCardToHighResPng(
+                        context = this@DatabaseSoortOverzichtActiviteit,
+                        cardView = card,
+                        speciesName = speciesName,
+                        siteName = siteName,
+                        chartType = "GlobaleJaarTrend"
+                    )
+                }
+            }
+        }
+
+        btnExportGlobal?.setOnClickListener { performGlobalExport() }
         cardGlobalChart?.setOnLongClickListener {
-            ChartExportHelper.exportViewToImage(chart, "GlobaleJaarTrend_${selectedSoortId ?: "Soort"}")
+            performGlobalExport()
             true
         }
     }
@@ -368,8 +389,25 @@ class DatabaseSoortOverzichtActiviteit : AppCompatActivity() {
 
             setupSingleChart(binding.chartView, binding.producer)
             
+            val btnExport = view.findViewById<View>(R.id.btnExportChart)
+            val performWindExport = {
+                val speciesName = atvSoortZoeken.text?.toString()?.ifBlank { selectedSoortId ?: "Soort" } ?: "Soort"
+                val siteName = spinnerSiteFilter.selectedItem?.toString()?.ifBlank { "AlleTelposten" } ?: "AlleTelposten"
+
+                lifecycleScope.launch {
+                    ChartExportHelper.exportCardToHighResPng(
+                        context = this@DatabaseSoortOverzichtActiviteit,
+                        cardView = view,
+                        speciesName = speciesName,
+                        siteName = siteName,
+                        chartType = "Wind_$dir"
+                    )
+                }
+            }
+
+            btnExport?.setOnClickListener { performWindExport() }
             view.setOnLongClickListener {
-                ChartExportHelper.exportViewToImage(binding.chartView, "WindChart_${selectedSoortId}_$dir")
+                performWindExport()
                 true
             }
 

@@ -54,72 +54,98 @@
             android:orientation="vertical"
             android:padding="10dp">
 
-            <!-- Grafiek Sectie -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Overzicht Tellingen"
-                    android:textColor="@color/vt5_light_blue"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <Spinner
-                    android:id="@+id/spinnerSiteFilter"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:backgroundTint="@color/vt5_white" />
-
-                <CheckBox
-                    android:id="@+id/cbShowAantallen"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:checked="true"
-                    android:text="Aantallen"
-                    android:textSize="10sp" />
-
-                <CheckBox
-                    android:id="@+id/cbShowTellingen"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:checked="true"
-                    android:text="Tellingen"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
+            <!-- Grafiek Sectie in Kaart -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardMainChart"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                app:cardBackgroundColor="@color/grafiek_achtergrondkleur"
-                app:cardCornerRadius="8dp"
+                app:cardBackgroundColor="@color/vt5_dark_gray"
+                app:cardCornerRadius="10dp"
                 app:strokeColor="@color/vt5_light_blue"
-                app:strokeWidth="1dp">
+                app:strokeWidth="1.5dp">
 
-                <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
-                    android:id="@+id/chartActivity"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:padding="12dp"
-                    app:scrollEnabled="false"
-                    app:zoomEnabled="false" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Overzicht Tellingen"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <ImageView
+                            android:id="@+id/btnExportMainChart"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_marginStart="8dp"
+                            android:background="?selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:contentDescription="Grafiek Exporteren"
+                            android:focusable="true"
+                            android:padding="3dp"
+                            android:src="@android:drawable/ic_menu_save"
+                            app:tint="@color/vt5_light_blue" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Spinner
+                            android:id="@+id/spinnerSiteFilter"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:backgroundTint="@color/vt5_white" />
+
+                        <CheckBox
+                            android:id="@+id/cbShowAantallen"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:checked="true"
+                            android:text="Aantallen"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="11sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbShowTellingen"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:checked="true"
+                            android:text="Tellingen"
+                            android:textColor="@color/vt5_white"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <com.patrykandpatrick.vico.views.cartesian.CartesianChartView
+                        android:id="@+id/chartActivity"
+                        android:layout_width="match_parent"
+                        android:layout_height="210dp"
+                        android:background="#000000"
+                        android:backgroundTint="#739B9B"
+                        android:padding="4dp"
+                        app:scrollEnabled="false"
+                        app:zoomEnabled="false" />
+                </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Navigatie Knoppen -->
